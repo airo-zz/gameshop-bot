@@ -207,3 +207,14 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# 📝 логи
+*.log
+
+# 🐳 Docker
+*.env.local
+
+# 🌐 Node / React
+node_modules/
+dist/
+build/
