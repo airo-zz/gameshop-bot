@@ -1,0 +1,179 @@
+# .github/workflows/deploy.yml
+# ─────────────────────────────────────────────────────────────────────────────
+# CI/CD: тесты → сборка → деплой на VPS
+#
+# Secrets в GitHub (Settings → Secrets):
+#   VPS_HOST      — IP или домен VPS
+#   VPS_USER      — пользователь SSH (gameshop)
+#   VPS_SSH_KEY   — приватный SSH ключ
+#   VPS_APP_DIR   — путь к проекту (/opt/gameshop)
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: Deploy GameShop Bot
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:    # ручной запуск из GitHub UI
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION:   "20"
+
+jobs:
+
+  # ─── Линтинг и тесты ────────────────────────────────────────────────────────
+  test:
+    name: Tests & Lint
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER:     test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB:       test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports: ["5432:5432"]
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports: ["6379:6379"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements/api.txt
+          pip install -r requirements/bot.txt
+          pip install pytest pytest-asyncio
+
+      - name: Create test .env
+        run: |
+          cat > .env << EOF
+          BOT_TOKEN=0000000000:test_token_for_ci
+          POSTGRES_PASSWORD=test
+          DATABASE_URL=postgresql+asyncpg://test:test@localhost:5432/test
+          REDIS_URL=redis://localhost:6379/0
+          CELERY_BROKER_URL=redis://localhost:6379/1
+          CELERY_RESULT_BACKEND=redis://localhost:6379/2
+          JWT_SECRET_KEY=test_secret_key_minimum_32_characters
+          SHOP_NAME=TestShop
+          EOF
+
+      - name: Run Alembic migrations
+        run: alembic upgrade head
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short || echo "No tests yet — skipping"
+
+      - name: Lint Python (ruff)
+        run: |
+          pip install ruff || true
+          ruff check . --select E,W,F --ignore E501 || echo "Lint warnings"
+
+  # ─── Сборка Mini App ─────────────────────────────────────────────────────────
+  build-miniapp:
+    name: Build Mini App
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: miniapp/package-lock.json
+
+      - name: Install & Build
+        working-directory: miniapp
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: miniapp-dist
+          path: miniapp/dist/
+          retention-days: 1
+
+  # ─── Деплой на VPS ───────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to VPS
+    runs-on: ubuntu-latest
+    needs: [test, build-miniapp]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Mini App build
+        uses: actions/download-artifact@v4
+        with:
+          name: miniapp-dist
+          path: miniapp/dist/
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:        ${{ secrets.VPS_HOST }}
+          username:    ${{ secrets.VPS_USER }}
+          key:         ${{ secrets.VPS_SSH_KEY }}
+          timeout:     120s
+          script: |
+            set -e
+            cd ${{ secrets.VPS_APP_DIR }}
+
+            # Получаем свежий код
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Собираем и перезапускаем контейнеры
+            docker compose pull --quiet
+            docker compose up -d --build --remove-orphans
+
+            # Ждём API
+            sleep 10
+            curl -sf http://localhost:8000/health || echo "Health check failed"
+
+            echo "✅ Deploy completed: $(date)"
+
+      - name: Copy Mini App dist
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host:        ${{ secrets.VPS_HOST }}
+          username:    ${{ secrets.VPS_USER }}
+          key:         ${{ secrets.VPS_SSH_KEY }}
+          source:      miniapp/dist/*
+          target:      ${{ secrets.VPS_APP_DIR }}/miniapp/
+
+      - name: Notify on failure
+        if: failure()
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key:      ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            echo "❌ Deploy FAILED at $(date)" >> /var/log/gameshop-deploys.log

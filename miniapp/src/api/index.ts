@@ -1,0 +1,227 @@
+/**
+ * src/api/index.ts
+ * ─────────────────────────────────────────────────────────────────────────
+ * Все API-методы приложения.
+ * ─────────────────────────────────────────────────────────────────────────
+ */
+
+import { apiClient } from './client'
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export interface Game {
+  id: string
+  name: string
+  slug: string
+  image_url: string | null
+  banner_url: string | null
+  description: string | null
+  is_featured: boolean
+  sort_order: number
+  tags: string[]
+}
+
+export interface Category {
+  id: string
+  name: string
+  slug: string
+  image_url: string | null
+  description: string | null
+  sort_order: number
+  parent_id: string | null
+  children: Category[]
+}
+
+export interface Lot {
+  id: string
+  name: string
+  price: number
+  original_price: number | null
+  quantity: number
+  badge: string | null
+  sort_order: number
+}
+
+export interface Product {
+  id: string
+  name: string
+  short_description: string | null
+  description: string | null
+  price: number
+  currency: string
+  images: string[]
+  is_featured: boolean
+  delivery_type: 'auto' | 'manual' | 'mixed'
+  stock: number | null
+  lots: Lot[]
+  input_fields: InputField[]
+  instruction: string | null
+  avg_rating: number | null
+  reviews_count: number
+}
+
+export interface InputField {
+  key: string
+  label: string
+  type: 'text' | 'select' | 'number'
+  placeholder?: string
+  required: boolean
+  options?: string[]
+}
+
+export interface CartItem {
+  id: string
+  product_id: string
+  lot_id: string | null
+  quantity: number
+  price_snapshot: number
+  subtotal: number
+  input_data: Record<string, string>
+  product_name: string
+  product_image: string | null
+  lot_name: string | null
+}
+
+export interface Cart {
+  id: string
+  items: CartItem[]
+  items_count: number
+  subtotal: number
+  discount_amount: number
+  total: number
+  promo_code: string | null
+  promo_discount: number | null
+  expires_at: string | null
+}
+
+export interface Order {
+  id: string
+  order_number: string
+  status: string
+  subtotal: number
+  discount_amount: number
+  total_amount: number
+  payment_method: string | null
+  items: OrderItem[]
+  created_at: string
+  paid_at: string | null
+  completed_at: string | null
+}
+
+export interface OrderItem {
+  id: string
+  product_id: string
+  product_name: string
+  lot_name: string | null
+  quantity: number
+  unit_price: number
+  total_price: number
+  input_data: Record<string, string>
+  delivery_data: Record<string, unknown>
+  delivered_at: string | null
+}
+
+export interface Profile {
+  telegram_id: number
+  username: string | null
+  first_name: string
+  balance: number
+  orders_count: number
+  total_spent: number
+  referral_code: string
+  loyalty_level_name: string
+  loyalty_level_emoji: string
+  loyalty_discount_percent: number
+  loyalty_cashback_percent: number
+}
+
+// ── Catalog API ───────────────────────────────────────────────────────────────
+
+export const catalogApi = {
+  getGames: () =>
+    apiClient.get<Game[]>('/catalog/games').then(r => r.data),
+
+  getCategories: (slug: string) =>
+    apiClient.get<Category[]>(`/catalog/games/${slug}/categories`).then(r => r.data),
+
+  getProducts: (categoryId: string, page = 0) =>
+    apiClient.get<Product[]>('/catalog/products', {
+      params: { category_id: categoryId, page }
+    }).then(r => r.data),
+
+  getProduct: (id: string) =>
+    apiClient.get<Product>(`/catalog/products/${id}`).then(r => r.data),
+
+  search: (q: string, page = 0) =>
+    apiClient.get<Product[]>('/catalog/products/search', { params: { q, page } }).then(r => r.data),
+
+  toggleFavorite: (productId: string) =>
+    apiClient.post<{ added: boolean }>(`/catalog/products/${productId}/favorite`).then(r => r.data),
+
+  getFavorites: () =>
+    apiClient.get<Product[]>('/catalog/favorites').then(r => r.data),
+
+  getRecentlyViewed: () =>
+    apiClient.get<Product[]>('/catalog/recently-viewed').then(r => r.data),
+}
+
+// ── Cart API ──────────────────────────────────────────────────────────────────
+
+export const cartApi = {
+  get: () =>
+    apiClient.get<Cart>('/cart').then(r => r.data),
+
+  addItem: (data: { product_id: string; lot_id?: string; quantity: number; input_data: Record<string, string> }) =>
+    apiClient.post<{ ok: boolean; item_id: string; cart_items_count: number }>('/cart/items', data).then(r => r.data),
+
+  updateItem: (itemId: string, quantity: number) =>
+    apiClient.put<{ ok: boolean; deleted: boolean }>(`/cart/items/${itemId}`, { quantity }).then(r => r.data),
+
+  clear: () =>
+    apiClient.delete('/cart').then(r => r.data),
+
+  applyPromo: (code: string) =>
+    apiClient.post<{ valid: boolean; discount: number; message: string }>('/cart/promo', { code }).then(r => r.data),
+}
+
+// ── Orders API ────────────────────────────────────────────────────────────────
+
+export const ordersApi = {
+  create: (data: { payment_method: string; promo_code?: string }) =>
+    apiClient.post<Order>('/orders', data).then(r => r.data),
+
+  list: (page = 0) =>
+    apiClient.get<Order[]>('/orders', { params: { page } }).then(r => r.data),
+
+  get: (id: string) =>
+    apiClient.get<Order>(`/orders/${id}`).then(r => r.data),
+
+  pay: (orderId: string) =>
+    apiClient.post<{
+      payment_id: string
+      method: string
+      status: string
+      redirect_url?: string
+      success?: boolean
+    }>(`/payments/orders/${orderId}/pay`).then(r => r.data),
+}
+
+// ── Profile API ───────────────────────────────────────────────────────────────
+
+export const profileApi = {
+  get: () =>
+    apiClient.get<Profile>('/profile').then(r => r.data),
+}
+
+// ── Support API ───────────────────────────────────────────────────────────────
+
+export const supportApi = {
+  createTicket: (data: { subject: string; message: string; order_id?: string }) =>
+    apiClient.post('/support', data).then(r => r.data),
+
+  list: () =>
+    apiClient.get('/support').then(r => r.data),
+
+  reply: (ticketId: string, text: string) =>
+    apiClient.post(`/support/${ticketId}/reply`, { text }).then(r => r.data),
+}

@@ -1,0 +1,10 @@
+# requirements/base.txt — общие для всех сервисов
+sqlalchemy[asyncio]==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+pydantic==2.10.3
+pydantic-settings==2.7.0
+redis==5.2.1
+cryptography==44.0.0
+python-dotenv==1.0.1
+structlog==24.4.0

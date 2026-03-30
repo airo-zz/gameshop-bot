@@ -1,0 +1,4 @@
+# requirements/bot.txt
+-r base.txt
+aiogram==3.17.0
+cachetools==5.5.0
