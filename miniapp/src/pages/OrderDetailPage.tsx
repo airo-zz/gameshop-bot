@@ -27,8 +27,10 @@ export default function OrderDetailPage() {
     queryKey: ['order', id],
     queryFn: () => ordersApi.get(id!),
     enabled: !!id,
-    refetchInterval: (data) =>
-      data && ['completed', 'cancelled'].includes(data.status) ? false : 5000,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      return status && ['completed', 'cancelled'].includes(status) ? false : 5000
+    },
   })
 
   const copyToClipboard = (text: string) => {
