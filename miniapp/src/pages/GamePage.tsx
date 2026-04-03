@@ -17,7 +17,6 @@ export default function GamePage() {
     enabled: !!slug,
   })
 
-  // Первая категория — авто-выбор
   const activeCatId = selectedCatId ?? categories[0]?.id ?? null
 
   const { data: products = [], isLoading: productsLoading } = useQuery({
@@ -36,18 +35,19 @@ export default function GamePage() {
     })
   }
 
-  // Рендер категорий — плоско (если нет вложенных) или с accordion
   const renderCategories = (cats: Category[]) => cats.filter(c => !c.parent_id)
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in pb-2">
       {/* Заголовок */}
-      <div className="px-4 pt-4 pb-3">
-        <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>{gameName}</h1>
+      <div className="px-4 pt-5 pb-3">
+        <h1 className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--text)' }}>
+          {gameName}
+        </h1>
       </div>
 
       {/* Категории — горизонтальный скролл */}
-      <div className="flex gap-2 px-4 overflow-x-auto pb-2 no-scrollbar">
+      <div className="flex gap-2 px-4 overflow-x-auto pb-3 no-scrollbar">
         {catsLoading
           ? Array(4).fill(0).map((_, i) => (
               <div key={i} className="skeleton h-9 w-24 rounded-full flex-shrink-0" />
@@ -57,16 +57,22 @@ export default function GamePage() {
                 key={cat.id}
                 onClick={() => setSelectedCatId(cat.id)}
                 className={clsx(
-                  'flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium',
-                  'transition-all duration-150 active:scale-95',
-                  activeCatId === cat.id
-                    ? 'text-white'
-                    : 'opacity-60'
+                  'flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold',
+                  'transition-all duration-200 active:scale-95',
                 )}
-                style={{
-                  background: activeCatId === cat.id ? 'var(--btn)' : 'var(--bg2)',
-                  color: activeCatId === cat.id ? 'var(--btn-text)' : 'var(--text)',
-                }}
+                style={
+                  activeCatId === cat.id
+                    ? {
+                        background: 'linear-gradient(135deg, #6366f1, #7c3aed)',
+                        color: '#fff',
+                        boxShadow: '0 2px 12px rgba(99,102,241,0.4)',
+                      }
+                    : {
+                        background: 'var(--bg2)',
+                        border: '1px solid var(--border)',
+                        color: 'var(--hint)',
+                      }
+                }
               >
                 {cat.name}
               </button>
@@ -74,18 +80,22 @@ export default function GamePage() {
         }
       </div>
 
-      {/* Подкатегории (если есть) */}
+      {/* Подкатегории */}
       {activeCatId && (() => {
         const parent = categories.find(c => c.id === activeCatId)
         if (!parent?.children?.length) return null
         return (
-          <div className="flex gap-2 px-4 overflow-x-auto pb-2 no-scrollbar">
+          <div className="flex gap-2 px-4 overflow-x-auto pb-3 no-scrollbar">
             {parent.children.map(sub => (
               <button
                 key={sub.id}
                 onClick={() => setSelectedCatId(sub.id)}
-                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium"
-                style={{ background: 'var(--bg2)', color: 'var(--hint)' }}
+                className="flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 active:scale-95"
+                style={{
+                  background: activeCatId === sub.id ? 'rgba(99,102,241,0.15)' : 'var(--bg2)',
+                  border: activeCatId === sub.id ? '1px solid rgba(99,102,241,0.4)' : '1px solid var(--border)',
+                  color: activeCatId === sub.id ? 'var(--accent)' : 'var(--hint)',
+                }}
               >
                 {sub.name}
               </button>
@@ -95,7 +105,7 @@ export default function GamePage() {
       })()}
 
       {/* Товары */}
-      <div className="px-4 pt-2">
+      <div className="px-4 pt-1">
         {productsLoading ? (
           <div className="grid grid-cols-2 gap-3">
             {Array(6).fill(0).map((_, i) => (
@@ -103,9 +113,11 @@ export default function GamePage() {
             ))}
           </div>
         ) : products.length === 0 ? (
-          <div className="text-center py-16">
-            <p className="text-4xl mb-3">📦</p>
-            <p style={{ color: 'var(--hint)' }}>Товары скоро появятся</p>
+          <div className="text-center py-20">
+            <p className="text-5xl mb-4">📦</p>
+            <p className="font-medium" style={{ color: 'var(--hint)' }}>
+              Товары скоро появятся
+            </p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">

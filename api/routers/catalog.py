@@ -1,22 +1,11 @@
-"""
-api/routers/catalog.py + cart.py + orders.py + payments.py + profile.py + webhooks.py + support.py
-─────────────────────────────────────────────────────────────────────────────
-Все REST-роутеры в одном файле для краткости.
-В реальном проекте разложи по отдельным файлам.
-─────────────────────────────────────────────────────────────────────────────
-"""
-
-# ════════════════════════════════════════════════════════════════════════════
-# CATALOG ROUTER
-# ════════════════════════════════════════════════════════════════════════════
-# api/routers/catalog.py
-
 from fastapi import APIRouter, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import CurrentUser, DbSession
 from api.schemas.catalog import (
-    GameOut, CategoryOut, ProductListOut, ProductDetailOut, ReviewOut
+    GameOut,
+    CategoryOut,
+    ProductListOut,
+    ProductDetailOut,
 )
 from api.services.catalog_service import CatalogService
 
@@ -35,6 +24,7 @@ async def list_categories(slug: str, db: DbSession, user: CurrentUser):
     game = await svc.get_game_by_slug(slug)
     if not game:
         from fastapi import HTTPException
+
         raise HTTPException(404, "Игра не найдена")
     return await svc.get_categories_by_game(game.id)
 
@@ -48,7 +38,7 @@ async def list_products(
     page_size: int = Query(20, ge=1, le=100),
 ):
     import uuid
-    from api.schemas.catalog import CatalogSearchParams
+
     svc = CatalogService(db)
     cat_uuid = uuid.UUID(category_id) if category_id else None
     products, _ = await svc.get_products_by_category(cat_uuid, page, page_size)
@@ -71,6 +61,7 @@ async def search_products(
 async def get_product(product_id: str, db: DbSession, user: CurrentUser):
     import uuid
     from fastapi import HTTPException
+
     svc = CatalogService(db)
     product = await svc.get_product_detail(uuid.UUID(product_id))
     if not product:
@@ -87,6 +78,7 @@ async def get_product(product_id: str, db: DbSession, user: CurrentUser):
 @router.post("/products/{product_id}/favorite")
 async def toggle_favorite(product_id: str, db: DbSession, user: CurrentUser):
     import uuid
+
     svc = CatalogService(db)
     added = await svc.toggle_favorite(user.id, uuid.UUID(product_id))
     return {"added": added}

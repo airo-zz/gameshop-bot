@@ -1,8 +1,14 @@
 """api/routers/cart.py"""
+
 from fastapi import APIRouter
 from api.deps import CurrentUser, DbSession
-from api.schemas.cart import AddToCartRequest, UpdateCartItemRequest, ApplyPromoRequest, CartOut
-from api.services.crypto_service import CartService
+from api.schemas.cart import (
+    AddToCartRequest,
+    UpdateCartItemRequest,
+    ApplyPromoRequest,
+    CartOut,
+)
+from api.services.cart_service import CartService
 
 router = APIRouter()
 
@@ -31,12 +37,19 @@ async def add_to_cart(body: AddToCartRequest, db: DbSession, user: CurrentUser):
     item = await svc.add_item(
         cart, body.product_id, body.lot_id, body.quantity, body.input_data
     )
-    return {"ok": True, "item_id": str(item.id), "cart_items_count": cart.items_count + 1}
+    return {
+        "ok": True,
+        "item_id": str(item.id),
+        "cart_items_count": cart.items_count + 1,
+    }
 
 
 @router.put("/items/{item_id}")
-async def update_cart_item(item_id: str, body: UpdateCartItemRequest, db: DbSession, user: CurrentUser):
+async def update_cart_item(
+    item_id: str, body: UpdateCartItemRequest, db: DbSession, user: CurrentUser
+):
     import uuid
+
     svc = CartService(db)
     cart = await svc.get_or_create_cart(user)
     item = await svc.update_item(cart, uuid.UUID(item_id), body.quantity)

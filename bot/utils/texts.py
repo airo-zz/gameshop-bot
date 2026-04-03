@@ -32,7 +32,8 @@ class BotTexts:
     def greeting_new_user(self, first_name: str, referral_bonus: float = 0) -> str:
         bonus_text = (
             f"\n\n🎁 Тебе начислен бонус <b>{referral_bonus:.0f} ₽</b> за использование реферальной ссылки!"
-            if referral_bonus > 0 else ""
+            if referral_bonus > 0
+            else ""
         )
         return (
             f"🎉 Добро пожаловать в <b>{S.SHOP_NAME}</b>!\n\n"
@@ -58,11 +59,17 @@ class BotTexts:
         return f"🎮 {game_name} › <b>{category_name}</b>\n\nВыбери товар:"
 
     def product_card(
-        self, name: str, description: str, price: float,
-        stock: int | None, delivery_type: str
+        self,
+        name: str,
+        description: str,
+        price: float,
+        stock: int | None,
+        delivery_type: str,
     ) -> str:
-        stock_text = "♾ Неограничено" if stock is None else (
-            f"✅ В наличии: {stock}" if stock > 0 else "❌ Нет в наличии"
+        stock_text = (
+            "♾ Неограничено"
+            if stock is None
+            else (f"✅ В наличии: {stock}" if stock > 0 else "❌ Нет в наличии")
         )
         delivery_text = {
             "auto": "⚡ Автоматически",
@@ -87,9 +94,7 @@ class BotTexts:
         )
 
     def cart_summary(self, items_count: int, total: float, discount: float = 0) -> str:
-        discount_text = (
-            f"\n💸 Скидка: <b>-{discount:.0f} ₽</b>" if discount > 0 else ""
-        )
+        discount_text = f"\n💸 Скидка: <b>-{discount:.0f} ₽</b>" if discount > 0 else ""
         final = total - discount
         return (
             f"🛒 <b>Корзина</b> ({items_count} поз.)\n"
@@ -125,7 +130,11 @@ class BotTexts:
         )
 
     def order_completed(self, order_number: str, delivery_data: str = "") -> str:
-        delivery_text = f"\n\n📦 <b>Данные для получения:</b>\n{delivery_data}" if delivery_data else ""
+        delivery_text = (
+            f"\n\n📦 <b>Данные для получения:</b>\n{delivery_data}"
+            if delivery_data
+            else ""
+        )
         return (
             f"🎉 Заказ <b>{order_number}</b> выполнен!\n"
             f"Спасибо за покупку в {S.SHOP_NAME}!"
@@ -162,8 +171,13 @@ class BotTexts:
 
     # ── Профиль ───────────────────────────────────────────────────────────────
     def profile(
-        self, first_name: str, balance: float, orders_count: int,
-        total_spent: float, loyalty_name: str, loyalty_emoji: str,
+        self,
+        first_name: str,
+        balance: float,
+        orders_count: int,
+        total_spent: float,
+        loyalty_name: str,
+        loyalty_emoji: str,
         referral_code: str,
     ) -> str:
         return (
@@ -194,10 +208,7 @@ class BotTexts:
         )
 
     def ticket_answered(self, operator_name: str, text: str) -> str:
-        return (
-            f"💬 Ответ оператора <b>{operator_name}</b>:\n\n"
-            f"{text}"
-        )
+        return f"💬 Ответ оператора <b>{operator_name}</b>:\n\n{text}"
 
     # ── Брошенная корзина ─────────────────────────────────────────────────────
     def abandoned_cart_reminder(self, items_count: int, total: float) -> str:
@@ -205,6 +216,63 @@ class BotTexts:
             f"🛒 Ты забыл(а) {items_count} товар(а) в корзине {S.SHOP_NAME}!\n\n"
             f"Итого: <b>{total:.0f} ₽</b>\n\n"
             f"Вернись и оформи заказ — товары ждут тебя! 👇"
+        )
+
+    # ── Admin ─────────────────────────────────────────────────────────────────
+    def admin_panel_header(
+        self, first_name: str, role_emoji: str, role_name: str
+    ) -> str:
+        return (
+            f"🎮 <b>Admin Panel — {S.SHOP_NAME}</b>\n\n"
+            f"Привет, {first_name}!\n"
+            f"Роль: {role_emoji} <b>{role_name}</b>\n\n"
+            f"Выбери раздел:"
+        )
+
+    def admin_panel_short(self, role_emoji: str, role_name: str) -> str:
+        return (
+            f"🎮 <b>Admin Panel — {S.SHOP_NAME}</b>\n\n"
+            f"Роль: {role_emoji} <b>{role_name}</b>"
+        )
+
+    @property
+    def admin_catalog_header(self) -> str:
+        return "🎮 <b>Управление каталогом</b>\n\nВыбери раздел:"
+
+    # ── Главное меню клиента ──────────────────────────────────────────────────
+    @property
+    def choose_action(self) -> str:
+        return "👇 Выбери действие:"
+
+    @property
+    def open_shop(self) -> str:
+        return f"🎮 Открой <b>{S.SHOP_NAME}</b>:"
+
+    def faq(self) -> str:
+        return (
+            f"❓ <b>FAQ — {S.SHOP_NAME}</b>\n\n"
+            f"<b>Как быстро выдаётся товар?</b>\n"
+            f"Автоматические товары — мгновенно после оплаты.\n"
+            f"Ручные — в течение 1–24 часов.\n\n"
+            f"<b>Какие способы оплаты?</b>\n"
+            f"Баланс бота, банковская карта, USDT, TON.\n\n"
+            f"<b>Что делать если товар не пришёл?</b>\n"
+            f"Открой тикет в разделе «Поддержка».\n\n"
+            f"<b>Есть ли скидки?</b>\n"
+            f"Да! Программа лояльности Bronze → Silver → Gold → VIP.\n"
+            f"Чем больше покупаешь — тем больше скидка.\n\n"
+            f"<b>Как работает реферальная программа?</b>\n"
+            f"Поделись своим кодом из профиля — получи бонус за каждого друга."
+        )
+
+    def help_text(self) -> str:
+        return (
+            f"🤖 <b>Команды {S.SHOP_NAME}</b>\n\n"
+            f"/start — главное меню\n"
+            f"/orders — мои заказы\n"
+            f"/balance — мой баланс\n"
+            f"/support — поддержка\n"
+            f"/help — эта справка"
         )
 
     # ── Ошибки ────────────────────────────────────────────────────────────────

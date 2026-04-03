@@ -16,12 +16,18 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config import settings
-from shared.models import Order, OrderStatus, Payment, PaymentMethod, PaymentStatus, User
+from shared.models import (
+    Order,
+    OrderStatus,
+    Payment,
+    PaymentMethod,
+    PaymentStatus,
+    User,
+)
 from api.services.order_service import OrderService
 
 
 class PaymentService:
-
     def __init__(self, db: AsyncSession):
         self.db = db
         self.order_svc = OrderService(db)
@@ -61,7 +67,7 @@ class PaymentService:
             payment.status = PaymentStatus.succeeded
             payment.paid_at = datetime.now(timezone.utc)
             return {"success": True, "payment_id": str(payment.id)}
-        except ValueError as e:
+        except ValueError:
             payment.status = PaymentStatus.failed
             raise
 
@@ -75,7 +81,9 @@ class PaymentService:
         if not settings.YUKASSA_SHOP_ID or not settings.YUKASSA_SECRET_KEY:
             raise ValueError("ЮKassa не настроена")
 
-        payment = await self._create_payment_record(order, user, PaymentMethod.card_yukassa)
+        payment = await self._create_payment_record(
+            order, user, PaymentMethod.card_yukassa
+        )
 
         payload = {
             "amount": {
@@ -109,14 +117,18 @@ class PaymentService:
 
         if response.status_code != 200:
             payment.status = PaymentStatus.failed
-            raise ValueError(f"Ошибка ЮKassa: {data.get('description', 'Unknown error')}")
+            raise ValueError(
+                f"Ошибка ЮKassa: {data.get('description', 'Unknown error')}"
+            )
 
         confirm_url = data.get("confirmation", {}).get("confirmation_url")
 
         # Переводим заказ в ожидание оплаты
         await self.order_svc.change_status(
-            order, OrderStatus.pending_payment,
-            changed_by_type="system", reason="ЮKassa платёж создан"
+            order,
+            OrderStatus.pending_payment,
+            changed_by_type="system",
+            reason="ЮKassa платёж создан",
         )
 
         return {
@@ -182,8 +194,10 @@ class PaymentService:
         payment.external_id = str(invoice.get("invoice_id"))
 
         await self.order_svc.change_status(
-            order, OrderStatus.pending_payment,
-            changed_by_type="system", reason=f"{currency} инвойс создан"
+            order,
+            OrderStatus.pending_payment,
+            changed_by_type="system",
+            reason=f"{currency} инвойс создан",
         )
 
         return {
@@ -233,8 +247,10 @@ class PaymentService:
             order = order_result.scalar_one_or_none()
             if order and order.status == OrderStatus.pending_payment:
                 await self.order_svc.change_status(
-                    order, OrderStatus.paid,
-                    changed_by_type="system", reason="ЮKassa: payment.succeeded"
+                    order,
+                    OrderStatus.paid,
+                    changed_by_type="system",
+                    reason="ЮKassa: payment.succeeded",
                 )
                 # Уведомляем пользователя через бот
                 await self._notify_user_payment_success(order)
@@ -271,8 +287,10 @@ class PaymentService:
             order = order_result.scalar_one_or_none()
             if order and order.status == OrderStatus.pending_payment:
                 await self.order_svc.change_status(
-                    order, OrderStatus.paid,
-                    changed_by_type="system", reason="CryptoBot: invoice paid"
+                    order,
+                    OrderStatus.paid,
+                    changed_by_type="system",
+                    reason="CryptoBot: invoice paid",
                 )
                 await self._notify_user_payment_success(order)
 
@@ -282,6 +300,7 @@ class PaymentService:
         """Отправляет уведомление пользователю через Telegram Bot."""
         try:
             from sqlalchemy.orm import selectinload
+
             result = await self.db.execute(
                 select(Order)
                 .options(selectinload(Order.user))
@@ -290,8 +309,10 @@ class PaymentService:
             order_with_user = result.scalar_one()
 
             import httpx
+
             bot_token = settings.BOT_TOKEN
             from bot.utils.texts import texts
+
             text = texts.order_paid(order.order_number)
 
             async with httpx.AsyncClient() as client:
@@ -306,11 +327,3 @@ class PaymentService:
                 )
         except Exception:
             pass  # Уведомление не критично
-
-
-"""
-api/services/crypto_service.py
-─────────────────────────────────────────────────────────────────────────────
-Шифрование / дешифрование ключей выдачи.
-─────────────────────────────────────────────────────────────────────────────
-"""

@@ -23,8 +23,6 @@ celery_app = Celery(
     include=[
         "worker.tasks.cart_tasks",
         "worker.tasks.notification_tasks",
-        "worker.tasks.loyalty_tasks",
-        "worker.tasks.order_tasks",
     ],
 )
 

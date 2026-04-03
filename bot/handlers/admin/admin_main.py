@@ -7,10 +7,14 @@ bot/handlers/admin/admin_main.py
 
 from aiogram import Router, F
 from aiogram.filters import CommandStart
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import (
+    Message,
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
+)
 
 from shared.models import AdminUser, AdminRole
-from shared.config import settings
 
 router = Router(name="admin:main")
 
@@ -28,42 +32,76 @@ def get_admin_menu(admin: AdminUser) -> InlineKeyboardMarkup:
     buttons = []
 
     if admin.has_permission("games.view"):
-        buttons.append([
-            InlineKeyboardButton(text="🎮 Игры и каталог", callback_data="admin:catalog:games"),
-        ])
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="🎮 Игры и каталог", callback_data="admin:catalog:games"
+                ),
+            ]
+        )
 
     if admin.has_permission("orders.view"):
-        buttons.append([
-            InlineKeyboardButton(text="📋 Заказы", callback_data="admin:orders:list"),
-            InlineKeyboardButton(text="🔍 Найти заказ", callback_data="admin:orders:search"),
-        ])
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="📋 Заказы", callback_data="admin:orders:list"
+                ),
+                InlineKeyboardButton(
+                    text="🔍 Найти заказ", callback_data="admin:orders:search"
+                ),
+            ]
+        )
 
     if admin.has_permission("users.view"):
-        buttons.append([
-            InlineKeyboardButton(text="👥 Пользователи", callback_data="admin:users:list"),
-        ])
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="👥 Пользователи", callback_data="admin:users:list"
+                ),
+            ]
+        )
 
     if admin.has_permission("discounts.*"):
-        buttons.append([
-            InlineKeyboardButton(text="💸 Скидки", callback_data="admin:discounts:list"),
-            InlineKeyboardButton(text="🏷 Промокоды", callback_data="admin:promos:list"),
-        ])
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="💸 Скидки", callback_data="admin:discounts:list"
+                ),
+                InlineKeyboardButton(
+                    text="🏷 Промокоды", callback_data="admin:promos:list"
+                ),
+            ]
+        )
 
     if admin.has_permission("support.*"):
-        buttons.append([
-            InlineKeyboardButton(text="🆘 Тикеты", callback_data="admin:tickets:list"),
-        ])
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="🆘 Тикеты", callback_data="admin:tickets:list"
+                ),
+            ]
+        )
 
     if admin.has_permission("analytics.view"):
-        buttons.append([
-            InlineKeyboardButton(text="📊 Статистика", callback_data="admin:stats:main"),
-        ])
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="📊 Статистика", callback_data="admin:stats:main"
+                ),
+            ]
+        )
 
     if admin.has_permission("*"):
-        buttons.append([
-            InlineKeyboardButton(text="⚙️ Настройки", callback_data="admin:settings:main"),
-            InlineKeyboardButton(text="👮 Администраторы", callback_data="admin:admins:list"),
-        ])
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="⚙️ Настройки", callback_data="admin:settings:main"
+                ),
+                InlineKeyboardButton(
+                    text="👮 Администраторы", callback_data="admin:admins:list"
+                ),
+            ]
+        )
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -71,23 +109,34 @@ def get_admin_menu(admin: AdminUser) -> InlineKeyboardMarkup:
 @router.message(CommandStart())
 async def admin_start(message: Message, admin: AdminUser) -> None:
     role_emoji = ROLE_EMOJI.get(admin.role, "👤")
-    text = (
-        f"🎮 <b>Admin Panel — {settings.SHOP_NAME}</b>\n\n"
-        f"Привет, {admin.first_name or 'Admin'}!\n"
-        f"Роль: {role_emoji} <b>{admin.role.value.capitalize()}</b>\n\n"
-        f"Выбери раздел:"
+    await message.answer(
+        texts.admin_panel_header(
+            admin.first_name or "Admin",
+            role_emoji,
+            admin.role.value.capitalize(),
+        ),
+        reply_markup=get_admin_menu(admin),
     )
-    await message.answer(text, reply_markup=get_admin_menu(admin))
 
 
 @router.callback_query(F.data == "admin:catalog:main")
 async def admin_catalog_main(call: CallbackQuery, admin: AdminUser) -> None:
     await call.message.edit_text(
-        f"🎮 <b>Управление каталогом</b>\n\nВыбери раздел:",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🎮 Игры", callback_data="admin:catalog:games")],
-            [InlineKeyboardButton(text="◀️ Главное меню", callback_data="admin:main")],
-        ]),
+        texts.admin_catalog_header,
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="🎮 Игры", callback_data="admin:catalog:games"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="◀️ Главное меню", callback_data="admin:main"
+                    )
+                ],
+            ]
+        ),
     )
     await call.answer()
 
@@ -96,8 +145,7 @@ async def admin_catalog_main(call: CallbackQuery, admin: AdminUser) -> None:
 async def admin_back_to_main(call: CallbackQuery, admin: AdminUser) -> None:
     role_emoji = ROLE_EMOJI.get(admin.role, "👤")
     await call.message.edit_text(
-        f"🎮 <b>Admin Panel — {settings.SHOP_NAME}</b>\n\n"
-        f"Роль: {role_emoji} <b>{admin.role.value.capitalize()}</b>",
+        texts.admin_panel_short(role_emoji, admin.role.value.capitalize()),
         reply_markup=get_admin_menu(admin),
     )
     await call.answer()

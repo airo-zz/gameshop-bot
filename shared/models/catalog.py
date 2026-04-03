@@ -10,8 +10,17 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
-    Boolean, Enum, ForeignKey, Index, Integer,
-    Numeric, String, Text, UniqueConstraint, func,
+    Boolean,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Index,
+    Integer,
+    Numeric,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -22,9 +31,9 @@ import enum
 
 
 class DeliveryType(str, enum.Enum):
-    auto = "auto"       # Ключ/код из БД — мгновенно
-    manual = "manual"   # Оператор выдаёт вручную
-    mixed = "mixed"     # Зависит от конкретного лота
+    auto = "auto"  # Ключ/код из БД — мгновенно
+    manual = "manual"  # Оператор выдаёт вручную
+    mixed = "mixed"  # Зависит от конкретного лота
 
 
 class Game(Base, UUIDMixin, TimestampMixin):
@@ -32,10 +41,13 @@ class Game(Base, UUIDMixin, TimestampMixin):
     Игра — верхний уровень каталога.
     Пример: Brawl Stars, Fortnite, PUBG Mobile.
     """
+
     __tablename__ = "games"
 
     name: Mapped[str] = mapped_column(String(128), nullable=False)
-    slug: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    slug: Mapped[str] = mapped_column(
+        String(64), unique=True, nullable=False, index=True
+    )
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     banner_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -62,6 +74,7 @@ class Category(Base, UUIDMixin, TimestampMixin):
     Поддерживает вложенность (parent_id → дерево категорий).
     Пример: Brawl Stars → Гемы / Скины / Батл-пасс.
     """
+
     __tablename__ = "categories"
     __table_args__ = (
         Index("ix_categories_game_id", "game_id"),
@@ -89,7 +102,9 @@ class Category(Base, UUIDMixin, TimestampMixin):
         "Category", remote_side="Category.id", foreign_keys=[parent_id]
     )
     children: Mapped[list["Category"]] = relationship(
-        "Category", foreign_keys=[parent_id], back_populates="parent",
+        "Category",
+        foreign_keys=[parent_id],
+        back_populates="parent",
         overlaps="parent",
     )
     products: Mapped[list["Product"]] = relationship(
@@ -114,6 +129,7 @@ class Product(Base, UUIDMixin, TimestampMixin):
        "options": ["EU", "RU", "Asia"], "required": true}
     ]
     """
+
     __tablename__ = "products"
     __table_args__ = (
         Index("ix_products_category_id", "category_id"),
@@ -121,7 +137,9 @@ class Product(Base, UUIDMixin, TimestampMixin):
     )
 
     category_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("categories.id", ondelete="RESTRICT"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("categories.id", ondelete="RESTRICT"),
+        nullable=False,
     )
 
     name: Mapped[str] = mapped_column(String(256), nullable=False)
@@ -135,7 +153,9 @@ class Product(Base, UUIDMixin, TimestampMixin):
     # NULL = безлимитный запас; используется для услуг и ручной выдачи
 
     delivery_type: Mapped[DeliveryType] = mapped_column(
-        Enum(DeliveryType, name="delivery_type_enum"), nullable=False, default=DeliveryType.manual
+        Enum(DeliveryType, name="delivery_type_enum"),
+        nullable=False,
+        default=DeliveryType.manual,
     )
 
     # JSON-схема полей ввода от клиента (логин, сервер, ID и т.д.)
@@ -156,7 +176,9 @@ class Product(Base, UUIDMixin, TimestampMixin):
     # Relationships
     category: Mapped[Category] = relationship("Category", back_populates="products")
     lots: Mapped[list["ProductLot"]] = relationship(
-        "ProductLot", back_populates="product", cascade="all, delete-orphan",
+        "ProductLot",
+        back_populates="product",
+        cascade="all, delete-orphan",
         order_by="ProductLot.sort_order",
     )
     keys: Mapped[list["ProductKey"]] = relationship(
@@ -184,14 +206,20 @@ class ProductLot(Base, UUIDMixin):
       - 170 гемов  → 199 ₽  [ХИТ]
       - 360 гемов  → 399 ₽  [ВЫГОДНО]
     """
+
     __tablename__ = "product_lots"
 
     product_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("products.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     name: Mapped[str] = mapped_column(String(128), nullable=False)
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    original_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    original_price: Mapped[Decimal | None] = mapped_column(
+        Numeric(12, 2), nullable=True
+    )
     # original_price → перечёркнутая цена в UI (показывает экономию)
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     badge: Mapped[str | None] = mapped_column(String(32), nullable=True)
@@ -212,30 +240,35 @@ class ProductKey(Base, UUIDMixin):
     Ключ/код для автоматической выдачи товара.
     Хранится в зашифрованном виде (AES-256 через Fernet).
     """
+
     __tablename__ = "product_keys"
-    __table_args__ = (
-        Index("ix_product_keys_available", "product_id", "is_used"),
-    )
+    __table_args__ = (Index("ix_product_keys_available", "product_id", "is_used"),)
 
     product_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"), nullable=False
+        UUID(as_uuid=True),
+        ForeignKey("products.id", ondelete="CASCADE"),
+        nullable=False,
     )
     lot_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("product_lots.id", ondelete="SET NULL"), nullable=True
+        UUID(as_uuid=True),
+        ForeignKey("product_lots.id", ondelete="SET NULL"),
+        nullable=True,
     )
     key_value: Mapped[str] = mapped_column(Text, nullable=False)
     # Хранится в зашифрованном виде! Расшифровывается только при выдаче.
-    is_used: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, index=True)
+    is_used: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, index=True
+    )
     used_at: Mapped[datetime | None] = mapped_column(
-        Boolean, nullable=True  # type: ignore[assignment]
+        DateTime(timezone=True), nullable=True
     )
     order_item_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True
+        UUID(as_uuid=True),
+        nullable=True,
         # ForeignKey добавим после определения OrderItem
     )
     created_at: Mapped[datetime] = mapped_column(
-        Boolean, nullable=False  # type: ignore[assignment]
-        # используем server_default ниже через mapped_column
+        DateTime(timezone=True), nullable=False, default=func.now()
     )
 
     # Relationships
@@ -243,28 +276,25 @@ class ProductKey(Base, UUIDMixin):
     lot: Mapped[ProductLot | None] = relationship("ProductLot", back_populates="keys")
 
 
-# Исправляем типы для ключей (SQLAlchemy требует правильные типы)
-from sqlalchemy import DateTime
-ProductKey.used_at = mapped_column(DateTime(timezone=True), nullable=True)  # type: ignore
-ProductKey.created_at = mapped_column(                                       # type: ignore
-    DateTime(timezone=True), server_default=func.now(), nullable=False
-)
-
-
 class UserFavorite(Base):
     """Избранные товары пользователя."""
+
     __tablename__ = "user_favorites"
     __table_args__ = (
         UniqueConstraint("user_id", "product_id", name="uq_user_favorites"),
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),
-        primary_key=True, nullable=False,
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+        nullable=False,
     )
     product_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"),
-        primary_key=True, nullable=False,
+        UUID(as_uuid=True),
+        ForeignKey("products.id", ondelete="CASCADE"),
+        primary_key=True,
+        nullable=False,
     )
     added_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -276,18 +306,21 @@ class UserFavorite(Base):
 
 class UserViewedProduct(Base):
     """История просмотров товаров (последние 20 на пользователя)."""
+
     __tablename__ = "user_viewed_products"
-    __table_args__ = (
-        UniqueConstraint("user_id", "product_id", name="uq_user_viewed"),
-    )
+    __table_args__ = (UniqueConstraint("user_id", "product_id", name="uq_user_viewed"),)
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),
-        primary_key=True, nullable=False,
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+        nullable=False,
     )
     product_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"),
-        primary_key=True, nullable=False,
+        UUID(as_uuid=True),
+        ForeignKey("products.id", ondelete="CASCADE"),
+        primary_key=True,
+        nullable=False,
     )
     viewed_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
@@ -299,6 +332,7 @@ class UserViewedProduct(Base):
 
 class Review(Base, UUIDMixin):
     """Отзыв на товар после выполненного заказа."""
+
     __tablename__ = "reviews"
     __table_args__ = (
         UniqueConstraint("user_id", "product_id", name="uq_one_review_per_product"),
@@ -308,11 +342,12 @@ class Review(Base, UUIDMixin):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     product_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("products.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
-    order_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), nullable=False
-    )
+    order_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     rating: Mapped[int] = mapped_column(Integer, nullable=False)  # 1–5
     text: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_visible: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

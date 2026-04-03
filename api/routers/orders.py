@@ -1,11 +1,12 @@
 """api/routers/orders.py"""
+
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from api.deps import CurrentUser, DbSession
 from api.schemas.cart import CreateOrderRequest, OrderOut, OrderListItem
-from api.services.crypto_service import CartService
+from api.services.cart_service import CartService
 from api.services.order_service import OrderService
 from shared.models import Order
 
@@ -41,6 +42,7 @@ async def list_orders(
 @router.get("/{order_id}", response_model=OrderOut)
 async def get_order(order_id: str, db: DbSession, user: CurrentUser):
     import uuid
+
     result = await db.execute(
         select(Order)
         .options(selectinload(Order.items))

@@ -2,22 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Telegram CSS-переменные → кастомные свойства ──────────────────────── */
+/* ── Геймерская тёмная палитра ──────────────────────────────────────────── */
 :root {
-  --bg:          var(--tg-theme-bg-color, #ffffff);
-  --bg2:         var(--tg-theme-secondary-bg-color, #f4f4f5);
-  --text:        var(--tg-theme-text-color, #09090b);
-  --hint:        var(--tg-theme-hint-color, #71717a);
-  --link:        var(--tg-theme-link-color, #2481cc);
-  --btn:         var(--tg-theme-button-color, #2481cc);
-  --btn-text:    var(--tg-theme-button-text-color, #ffffff);
-  --accent:      var(--tg-theme-accent-text-color, #2481cc);
-  --destructive: var(--tg-theme-destructive-text-color, #ef4444);
-  --radius:      12px;
+  --bg:          #0a0a0f;
+  --bg2:         #13131a;
+  --bg3:         #1a1a28;
+  --border:      #1e1e2e;
+  --text:        #f1f5f9;
+  --hint:        #94a3b8;
+  --link:        #6366f1;
+  --btn:         #6366f1;
+  --btn-text:    #ffffff;
+  --accent:      #818cf8;
+  --destructive: #ef4444;
+  --success:     #22c55e;
+  --warn:        #f59e0b;
+  --radius:      16px;
+
+  /* Telegram CSS-переменные (переопределяются самим Telegram если пользователь
+     выбрал светлую тему — но мы принудительно держим тёмную) */
+  --tg-theme-bg-color:              #0a0a0f;
+  --tg-theme-secondary-bg-color:    #13131a;
+  --tg-theme-text-color:            #f1f5f9;
+  --tg-theme-hint-color:            #94a3b8;
+  --tg-theme-link-color:            #6366f1;
+  --tg-theme-button-color:          #6366f1;
+  --tg-theme-button-text-color:     #ffffff;
+  --tg-theme-accent-text-color:     #818cf8;
+  --tg-theme-destructive-text-color:#ef4444;
+  --tg-theme-header-bg-color:       #0a0a0f;
+  --tg-theme-section-bg-color:      #13131a;
 }
 
 /* ── Base ──────────────────────────────────────────────────────────────── */
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
 
 html, body, #root {
   height: 100%;
@@ -25,106 +46,165 @@ html, body, #root {
   padding: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
   font-size: 16px;
   line-height: 1.5;
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Без выделения текста на кнопках */
-button { user-select: none; }
-
-/* Убираем стандартную прокрутку страницы в iOS */
+button { user-select: none; cursor: pointer; }
 body { overscroll-behavior: none; }
 
-/* ── Scrollbar (тонкий) ─────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 4px; }
+/* ── Scrollbar (тонкий, тёмный) ─────────────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; height: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--hint); border-radius: 2px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--btn); }
 
-/* ── Утилиты ────────────────────────────────────────────────────────────── */
+/* ── Убираем скроллбар (класс no-scrollbar) ─────────────────────────────── */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ── Компонентные классы ────────────────────────────────────────────────── */
 @layer components {
-  /* Карточка */
+
+  /* ── Карточка ────────────────────────────────────────────────────────── */
   .card {
     @apply rounded-2xl p-4;
     background: var(--bg2);
+    border: 1px solid var(--border);
   }
 
-  /* Кнопка — основная */
+  /* ── Кнопка — основная (градиент + glow) ─────────────────────────────── */
   .btn-primary {
-    @apply w-full py-3 px-6 rounded-2xl font-semibold text-base
-           transition-all duration-150 active:scale-95;
-    background: var(--btn);
-    color: var(--btn-text);
+    @apply w-full py-3.5 px-6 rounded-xl font-semibold text-base
+           transition-all duration-200 active:scale-95
+           flex items-center justify-center gap-2;
+    background: linear-gradient(135deg, #6366f1, #7c3aed);
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+    letter-spacing: 0.01em;
+  }
+  .btn-primary:hover {
+    box-shadow: 0 4px 24px rgba(99, 102, 241, 0.55);
+    filter: brightness(1.08);
   }
   .btn-primary:disabled {
-    opacity: 0.5;
+    opacity: 0.45;
     pointer-events: none;
+    box-shadow: none;
   }
 
-  /* Кнопка — вторичная */
+  /* ── Кнопка — вторичная ───────────────────────────────────────────────── */
   .btn-secondary {
-    @apply w-full py-3 px-6 rounded-2xl font-semibold text-base
-           transition-all duration-150 active:scale-95;
-    background: var(--bg2);
+    @apply w-full py-3.5 px-6 rounded-xl font-semibold text-base
+           transition-all duration-200 active:scale-95
+           flex items-center justify-center gap-2;
+    background: transparent;
     color: var(--text);
+    border: 1.5px solid var(--border);
+  }
+  .btn-secondary:hover {
+    border-color: var(--btn);
+    color: var(--accent);
+    background: rgba(99, 102, 241, 0.07);
   }
 
-  /* Badge */
+  /* ── Badge ────────────────────────────────────────────────────────────── */
   .badge {
     @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold;
-    background: var(--btn);
-    color: var(--btn-text);
+    background: linear-gradient(135deg, #6366f1, #7c3aed);
+    color: #ffffff;
   }
   .badge-warn {
-    background: #f59e0b;
-    color: white;
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
   }
   .badge-success {
-    background: #10b981;
-    color: white;
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.25);
   }
   .badge-danger {
-    background: #ef4444;
-    color: white;
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.25);
   }
 
-  /* Skeleton loader */
+  /* ── Skeleton loader (shimmer) ────────────────────────────────────────── */
   .skeleton {
-    @apply animate-pulse rounded-xl;
+    @apply rounded-xl overflow-hidden;
+    position: relative;
     background: var(--bg2);
   }
+  .skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.04) 40%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0.04) 60%,
+      transparent 100%
+    );
+    background-size: 800px 100%;
+    animation: shimmer 1.8s infinite linear;
+    border-radius: inherit;
+  }
 
-  /* Input */
+  /* ── Input ────────────────────────────────────────────────────────────── */
   .input {
-    @apply w-full px-4 py-3 rounded-2xl text-base outline-none
-           transition-all duration-150;
+    @apply w-full px-4 py-3 rounded-xl text-base outline-none
+           transition-all duration-200;
     background: var(--bg2);
     color: var(--text);
-    border: 1.5px solid transparent;
+    border: 1.5px solid var(--border);
   }
   .input:focus {
     border-color: var(--btn);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
   }
   .input::placeholder { color: var(--hint); }
 
-  /* Divider */
+  /* ── Divider ──────────────────────────────────────────────────────────── */
   .divider {
     @apply my-3;
     height: 1px;
-    background: var(--bg2);
+    background: var(--border);
   }
 
-  /* Safe area bottom (для iPhone с чёлкой) */
+  /* ── Safe area bottom ─────────────────────────────────────────────────── */
   .safe-bottom {
     padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+
+  /* ── Glow text ────────────────────────────────────────────────────────── */
+  .text-glow {
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(129, 140, 248, 0.5);
   }
 }
 
 /* ── Анимации ────────────────────────────────────────────────────────────── */
 @keyframes fadeIn  { from { opacity: 0 } to { opacity: 1 } }
-@keyframes slideUp { from { transform: translateY(12px); opacity: 0 }
-                     to   { transform: translateY(0);    opacity: 1 } }
+@keyframes slideUp {
+  from { transform: translateY(16px); opacity: 0 }
+  to   { transform: translateY(0);    opacity: 1 }
+}
+@keyframes shimmer {
+  0%   { background-position: -400px 0 }
+  100% { background-position:  400px 0 }
+}
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 12px rgba(99, 102, 241, 0.25) }
+  50%       { box-shadow: 0 0 28px rgba(99, 102, 241, 0.5) }
+}
 
 .animate-fade-in  { animation: fadeIn  0.2s ease-out; }
 .animate-slide-up { animation: slideUp 0.25s ease-out; }
+.animate-glow     { animation: glowPulse 2.5s ease-in-out infinite; }

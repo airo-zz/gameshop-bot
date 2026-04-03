@@ -15,16 +15,19 @@ api/services/analytics_service.py
 ─────────────────────────────────────────────────────────────────────────────
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-from sqlalchemy import func, select, and_, cast, Date
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import (
-    AbandonedCart, BalanceTransaction, Cart, CartItem,
-    Order, OrderItem, OrderStatus, Product, User,
+    AbandonedCart,
+    Order,
+    OrderItem,
+    OrderStatus,
+    User,
 )
 
 
@@ -49,7 +52,7 @@ class OrdersStats:
     completed: int
     cancelled: int
     dispute: int
-    completion_rate: float   # completed / (completed + cancelled)
+    completion_rate: float  # completed / (completed + cancelled)
 
 
 @dataclass
@@ -58,8 +61,8 @@ class UsersStats:
     today: int
     week: int
     month: int
-    with_orders: int         # Хоть раз покупали
-    active_week: int         # Активны за 7 дней
+    with_orders: int  # Хоть раз покупали
+    active_week: int  # Активны за 7 дней
 
 
 @dataclass
@@ -72,7 +75,7 @@ class TopProduct:
 
 @dataclass
 class DailyPoint:
-    date: str                # "2025-01-15"
+    date: str  # "2025-01-15"
     revenue: Decimal
     orders: int
     new_users: int
@@ -87,23 +90,22 @@ class FullAnalytics:
     top_games: list[dict]
     daily_7d: list[DailyPoint]
     abandoned_carts_count: int
-    conversion_rate: float   # заказы / уникальные пользователи с корзиной
+    conversion_rate: float  # заказы / уникальные пользователи с корзиной
 
 
 class AnalyticsService:
-
     def __init__(self, db: AsyncSession):
         self.db = db
 
     async def get_full_analytics(self) -> FullAnalytics:
-        revenue   = await self._get_revenue_stats()
-        orders    = await self._get_orders_stats()
-        users     = await self._get_users_stats()
+        revenue = await self._get_revenue_stats()
+        orders = await self._get_orders_stats()
+        users = await self._get_users_stats()
         top_prods = await self._get_top_products(limit=10)
         top_games = await self._get_top_games(limit=5)
-        daily     = await self._get_daily_stats(days=7)
+        daily = await self._get_daily_stats(days=7)
         abandoned = await self._get_abandoned_count()
-        conv      = await self._get_conversion_rate()
+        conv = await self._get_conversion_rate()
 
         return FullAnalytics(
             revenue=revenue,
@@ -123,8 +125,7 @@ class AnalyticsService:
 
         async def revenue_since(since: datetime) -> Decimal:
             result = await self.db.execute(
-                select(func.coalesce(func.sum(Order.total_amount), 0))
-                .where(
+                select(func.coalesce(func.sum(Order.total_amount), 0)).where(
                     Order.status == OrderStatus.completed,
                     Order.completed_at >= since,
                 )
@@ -148,14 +149,14 @@ class AnalyticsService:
         )
         total_row = total_result.one()
         total_revenue = Decimal(str(total_row[0]))
-        total_orders  = int(total_row[1])
+        total_orders = int(total_row[1])
 
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        week_start  = now - timedelta(days=7)
+        week_start = now - timedelta(days=7)
         month_start = now - timedelta(days=30)
 
         today_rev = await revenue_since(today_start)
-        week_rev  = await revenue_since(week_start)
+        week_rev = await revenue_since(week_start)
         month_rev = await revenue_since(month_start)
 
         avg = total_revenue / total_orders if total_orders > 0 else Decimal("0")
@@ -173,8 +174,7 @@ class AnalyticsService:
 
     async def _get_orders_stats(self) -> OrdersStats:
         result = await self.db.execute(
-            select(Order.status, func.count(Order.id))
-            .group_by(Order.status)
+            select(Order.status, func.count(Order.id)).group_by(Order.status)
         )
         rows = result.all()
         counts: dict[str, int] = {row[0].value: row[1] for row in rows}
@@ -206,18 +206,16 @@ class AnalyticsService:
         total = total_result.scalar_one()
 
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-        week_start  = now - timedelta(days=7)
+        week_start = now - timedelta(days=7)
         month_start = now - timedelta(days=30)
 
         async def count_since(col, since: datetime) -> int:
-            r = await self.db.execute(
-                select(func.count(User.id)).where(col >= since)
-            )
+            r = await self.db.execute(select(func.count(User.id)).where(col >= since))
             return r.scalar_one()
 
-        today_new  = await count_since(User.created_at, today_start)
-        week_new   = await count_since(User.created_at, week_start)
-        month_new  = await count_since(User.created_at, month_start)
+        today_new = await count_since(User.created_at, today_start)
+        week_new = await count_since(User.created_at, week_start)
+        month_new = await count_since(User.created_at, month_start)
         active_week = await count_since(User.last_active_at, week_start)
 
         buyers_result = await self.db.execute(
@@ -264,6 +262,7 @@ class AnalyticsService:
 
     async def _get_top_games(self, limit: int = 5) -> list[dict]:
         from shared.models import Game, Category, Product as Prod
+
         result = await self.db.execute(
             select(
                 Game.name,
@@ -297,8 +296,7 @@ class AnalyticsService:
             day_end = day_start + timedelta(days=1)
 
             rev_result = await self.db.execute(
-                select(func.coalesce(func.sum(Order.total_amount), 0))
-                .where(
+                select(func.coalesce(func.sum(Order.total_amount), 0)).where(
                     Order.status == OrderStatus.completed,
                     Order.completed_at >= day_start,
                     Order.completed_at < day_end,
@@ -317,12 +315,14 @@ class AnalyticsService:
                 )
             )
 
-            points.append(DailyPoint(
-                date=day_start.strftime("%d.%m"),
-                revenue=Decimal(str(rev_result.scalar_one())),
-                orders=orders_result.scalar_one(),
-                new_users=users_result.scalar_one(),
-            ))
+            points.append(
+                DailyPoint(
+                    date=day_start.strftime("%d.%m"),
+                    revenue=Decimal(str(rev_result.scalar_one())),
+                    orders=orders_result.scalar_one(),
+                    new_users=users_result.scalar_one(),
+                )
+            )
 
         return points
 
@@ -330,9 +330,7 @@ class AnalyticsService:
 
     async def _get_abandoned_count(self) -> int:
         result = await self.db.execute(
-            select(func.count(AbandonedCart.id)).where(
-                AbandonedCart.recovered == False
-            )
+            select(func.count(AbandonedCart.id)).where(AbandonedCart.recovered == False)
         )
         return result.scalar_one()
 
@@ -373,20 +371,31 @@ class AnalyticsService:
 
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow([
-            "Номер", "Дата создания", "Дата выполнения",
-            "Сумма", "Скидка", "Итого", "Метод оплаты"
-        ])
+        writer.writerow(
+            [
+                "Номер",
+                "Дата создания",
+                "Дата выполнения",
+                "Сумма",
+                "Скидка",
+                "Итого",
+                "Метод оплаты",
+            ]
+        )
 
         for order in orders:
-            writer.writerow([
-                order.order_number,
-                order.created_at.strftime("%Y-%m-%d %H:%M"),
-                order.completed_at.strftime("%Y-%m-%d %H:%M") if order.completed_at else "",
-                order.subtotal,
-                order.discount_amount,
-                order.total_amount,
-                order.payment_method.value if order.payment_method else "",
-            ])
+            writer.writerow(
+                [
+                    order.order_number,
+                    order.created_at.strftime("%Y-%m-%d %H:%M"),
+                    order.completed_at.strftime("%Y-%m-%d %H:%M")
+                    if order.completed_at
+                    else "",
+                    order.subtotal,
+                    order.discount_amount,
+                    order.total_amount,
+                    order.payment_method.value if order.payment_method else "",
+                ]
+            )
 
         return output.getvalue()

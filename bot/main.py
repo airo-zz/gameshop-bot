@@ -8,7 +8,6 @@ bot/main.py
 
 import asyncio
 import logging
-
 import structlog
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -19,7 +18,6 @@ from aiohttp import web
 
 from shared.config import settings
 from shared.database.session import engine
-from shared.models import Base
 
 from bot.middlewares.auth import AuthMiddleware
 from bot.middlewares.throttle import ThrottleMiddleware
@@ -27,8 +25,12 @@ from bot.middlewares.logging import LoggingMiddleware
 
 from bot.handlers.client import start, catalog, cart, orders, profile, support
 from bot.handlers.admin import (
-    admin_main, admin_catalog, admin_orders,
-    admin_stats, admin_users, admin_discounts,
+    admin_main,
+    admin_catalog,
+    admin_orders,
+    admin_stats,
+    admin_users,
+    admin_discounts,
 )
 
 # ── Логирование ───────────────────────────────────────────────────────────────
@@ -75,7 +77,9 @@ def create_dispatcher() -> Dispatcher:
     dp.message.middleware(AuthMiddleware())
     dp.callback_query.middleware(AuthMiddleware())
     dp.message.middleware(ThrottleMiddleware(rate_limit=settings.RATE_LIMIT_CLIENT))
-    dp.callback_query.middleware(ThrottleMiddleware(rate_limit=settings.RATE_LIMIT_CLIENT))
+    dp.callback_query.middleware(
+        ThrottleMiddleware(rate_limit=settings.RATE_LIMIT_CLIENT)
+    )
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
     dp.startup.register(on_startup)

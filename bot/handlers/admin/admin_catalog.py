@@ -10,25 +10,29 @@ FSM-диалоги для каждого шага добавления.
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+import re
+
 from aiogram import Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
-    Message, CallbackQuery,
-    InlineKeyboardMarkup, InlineKeyboardButton,
+    Message,
+    CallbackQuery,
+    InlineKeyboardMarkup,
+    InlineKeyboardButton,
 )
-from sqlalchemy import select, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import Game, Category, Product, ProductLot, AdminUser
-from shared.config import settings
+from shared.models import Game, Category, AdminUser
 from bot.middlewares.admin_auth import require_permission
 
 router = Router(name="admin:catalog")
 
 
 # ── FSM States ────────────────────────────────────────────────────────────────
+
 
 class AddGameFSM(StatesGroup):
     name = State()
@@ -77,6 +81,7 @@ class AddLotFSM(StatesGroup):
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
+
 def admin_back_btn(callback_data: str, text: str = "◀️ Назад") -> InlineKeyboardButton:
     return InlineKeyboardButton(text=text, callback_data=callback_data)
 
@@ -91,32 +96,47 @@ def toggle_emoji(is_active: bool) -> str:
 
 # ── Games List ────────────────────────────────────────────────────────────────
 
+
 @router.callback_query(F.data == "admin:catalog:games")
 @require_permission("games.view")
-async def admin_games_list(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
-    result = await db.execute(
-        select(Game).order_by(Game.sort_order, Game.name)
-    )
+async def admin_games_list(
+    call: CallbackQuery, db: AsyncSession, admin: AdminUser
+) -> None:
+    result = await db.execute(select(Game).order_by(Game.sort_order, Game.name))
     games = result.scalars().all()
 
     if not games:
         text = "🎮 <b>Игры</b>\n\nИгр пока нет."
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(text="➕ Добавить игру", callback_data="admin:game:add"),
-            admin_back_btn("admin:catalog:main"),
-        ]])
+        keyboard = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="➕ Добавить игру", callback_data="admin:game:add"
+                    ),
+                    admin_back_btn("admin:catalog:main"),
+                ]
+            ]
+        )
     else:
         text = f"🎮 <b>Игры</b> ({len(games)} шт.)\n\nВыбери для управления:"
         buttons = []
         for game in games:
-            buttons.append([InlineKeyboardButton(
-                text=f"{toggle_emoji(game.is_active)} {game.name}",
-                callback_data=f"admin:game:{game.id}",
-            )])
-        buttons.append([
-            InlineKeyboardButton(text="➕ Добавить игру", callback_data="admin:game:add"),
-            admin_back_btn("admin:catalog:main"),
-        ])
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text=f"{toggle_emoji(game.is_active)} {game.name}",
+                        callback_data=f"admin:game:{game.id}",
+                    )
+                ]
+            )
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text="➕ Добавить игру", callback_data="admin:game:add"
+                ),
+                admin_back_btn("admin:catalog:main"),
+            ]
+        )
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
 
     await call.message.edit_text(text, reply_markup=keyboard)
@@ -125,9 +145,12 @@ async def admin_games_list(call: CallbackQuery, db: AsyncSession, admin: AdminUs
 
 # ── Game Detail ───────────────────────────────────────────────────────────────
 
+
 @router.callback_query(F.data.startswith("admin:game:") & ~F.data.endswith(":add"))
 @require_permission("games.view")
-async def admin_game_detail(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
+async def admin_game_detail(
+    call: CallbackQuery, db: AsyncSession, admin: AdminUser
+) -> None:
     game_id = call.data.split(":")[2]
     game = await db.get(Game, game_id)
     if not game:
@@ -135,9 +158,7 @@ async def admin_game_detail(call: CallbackQuery, db: AsyncSession, admin: AdminU
         return
 
     # Количество категорий
-    cat_result = await db.execute(
-        select(Category).where(Category.game_id == game.id)
-    )
+    cat_result = await db.execute(select(Category).where(Category.game_id == game.id))
     categories_count = len(cat_result.scalars().all())
 
     text = (
@@ -148,25 +169,31 @@ async def admin_game_detail(call: CallbackQuery, db: AsyncSession, admin: AdminU
         f"Описание: {(game.description or 'нет')[:100]}"
     )
 
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [
-            InlineKeyboardButton(
-                text="🔴 Скрыть" if game.is_active else "✅ Активировать",
-                callback_data=f"admin:game:toggle:{game.id}",
-            ),
-            InlineKeyboardButton(text="✏️ Изменить", callback_data=f"admin:game:edit:{game.id}"),
-        ],
-        [
-            InlineKeyboardButton(
-                text=f"📂 Категории ({categories_count})",
-                callback_data=f"admin:categories:{game.id}",
-            ),
-        ],
-        [
-            InlineKeyboardButton(text="🗑 Удалить", callback_data=f"admin:game:delete:{game.id}"),
-            admin_back_btn("admin:catalog:games"),
-        ],
-    ])
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="🔴 Скрыть" if game.is_active else "✅ Активировать",
+                    callback_data=f"admin:game:toggle:{game.id}",
+                ),
+                InlineKeyboardButton(
+                    text="✏️ Изменить", callback_data=f"admin:game:edit:{game.id}"
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text=f"📂 Категории ({categories_count})",
+                    callback_data=f"admin:categories:{game.id}",
+                ),
+            ],
+            [
+                InlineKeyboardButton(
+                    text="🗑 Удалить", callback_data=f"admin:game:delete:{game.id}"
+                ),
+                admin_back_btn("admin:catalog:games"),
+            ],
+        ]
+    )
 
     await call.message.edit_text(text, reply_markup=keyboard)
     await call.answer()
@@ -174,9 +201,12 @@ async def admin_game_detail(call: CallbackQuery, db: AsyncSession, admin: AdminU
 
 # ── Toggle Game Active ────────────────────────────────────────────────────────
 
+
 @router.callback_query(F.data.startswith("admin:game:toggle:"))
 @require_permission("games.edit")
-async def admin_game_toggle(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
+async def admin_game_toggle(
+    call: CallbackQuery, db: AsyncSession, admin: AdminUser
+) -> None:
     game_id = call.data.split(":")[3]
     game = await db.get(Game, game_id)
     if not game:
@@ -195,12 +225,13 @@ async def admin_game_toggle(call: CallbackQuery, db: AsyncSession, admin: AdminU
 
 # ── Add Game FSM ──────────────────────────────────────────────────────────────
 
+
 @router.callback_query(F.data == "admin:game:add")
 @require_permission("games.create")
 async def admin_game_add_start(call: CallbackQuery, state: FSMContext) -> None:
     await call.message.edit_text(
-        f"➕ <b>Добавление игры</b>\n\nШаг 1/4\n\nВведи <b>название</b> игры:\n"
-        f"<i>Пример: Brawl Stars</i>",
+        "➕ <b>Добавление игры</b>\n\nШаг 1/4\n\nВведи <b>название</b> игры:\n"
+        "<i>Пример: Brawl Stars</i>",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[cancel_btn()]]),
     )
     await state.set_state(AddGameFSM.name)
@@ -215,7 +246,7 @@ async def admin_game_add_name(message: Message, state: FSMContext) -> None:
         return
 
     # Авто-генерация slug
-    import re
+
     slug = re.sub(r"[^a-z0-9-]", "-", name.lower().replace(" ", "-"))
     slug = re.sub(r"-+", "-", slug).strip("-")
 
@@ -225,10 +256,17 @@ async def admin_game_add_name(message: Message, state: FSMContext) -> None:
         f"Шаг 2/4\n\nСлуг (URL-идентификатор):\n"
         f"Авто-генерация: <code>{slug}</code>\n\n"
         f"Отправь другой slug или нажми ✅ чтобы оставить авто:",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=f"✅ Оставить: {slug}", callback_data="admin:game:add:slug_ok")],
-            [cancel_btn()],
-        ]),
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text=f"✅ Оставить: {slug}",
+                        callback_data="admin:game:add:slug_ok",
+                    )
+                ],
+                [cancel_btn()],
+            ]
+        ),
     )
     await state.set_state(AddGameFSM.slug)
 
@@ -241,7 +279,7 @@ async def admin_game_add_slug_ok(call: CallbackQuery, state: FSMContext) -> None
 
 @router.message(StateFilter(AddGameFSM.slug))
 async def admin_game_add_slug_custom(message: Message, state: FSMContext) -> None:
-    import re
+
     slug = message.text.strip().lower()
     if not re.match(r"^[a-z0-9][a-z0-9-]*[a-z0-9]$", slug):
         await message.answer(
@@ -256,16 +294,24 @@ async def admin_game_add_slug_custom(message: Message, state: FSMContext) -> Non
 async def _ask_game_description(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
     await message.answer(
-        f"Шаг 3/4\n\nВведи <b>описание</b> игры (или пропусти):",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⏭ Пропустить", callback_data="admin:game:add:skip_desc")],
-            [cancel_btn()],
-        ]),
+        "Шаг 3/4\n\nВведи <b>описание</b> игры (или пропусти):",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="⏭ Пропустить", callback_data="admin:game:add:skip_desc"
+                    )
+                ],
+                [cancel_btn()],
+            ]
+        ),
     )
     await state.set_state(AddGameFSM.description)
 
 
-@router.callback_query(F.data == "admin:game:add:skip_desc", StateFilter(AddGameFSM.description))
+@router.callback_query(
+    F.data == "admin:game:add:skip_desc", StateFilter(AddGameFSM.description)
+)
 async def admin_game_skip_desc(call: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(description=None)
     await call.answer()
@@ -280,24 +326,36 @@ async def admin_game_add_description(message: Message, state: FSMContext) -> Non
 
 async def _ask_game_image(message: Message, state: FSMContext) -> None:
     await message.answer(
-        f"Шаг 4/4\n\nОтправь <b>обложку игры</b> (фото) или пропусти:",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="⏭ Пропустить", callback_data="admin:game:add:skip_img")],
-            [cancel_btn()],
-        ]),
+        "Шаг 4/4\n\nОтправь <b>обложку игры</b> (фото) или пропусти:",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="⏭ Пропустить", callback_data="admin:game:add:skip_img"
+                    )
+                ],
+                [cancel_btn()],
+            ]
+        ),
     )
     await state.set_state(AddGameFSM.image)
 
 
-@router.callback_query(F.data == "admin:game:add:skip_img", StateFilter(AddGameFSM.image))
-async def admin_game_skip_img(call: CallbackQuery, state: FSMContext, db: AsyncSession) -> None:
+@router.callback_query(
+    F.data == "admin:game:add:skip_img", StateFilter(AddGameFSM.image)
+)
+async def admin_game_skip_img(
+    call: CallbackQuery, state: FSMContext, db: AsyncSession
+) -> None:
     await state.update_data(image_url=None)
     await call.answer()
     await _confirm_game(call.message, state, db)
 
 
 @router.message(StateFilter(AddGameFSM.image), F.photo)
-async def admin_game_add_image(message: Message, state: FSMContext, db: AsyncSession) -> None:
+async def admin_game_add_image(
+    message: Message, state: FSMContext, db: AsyncSession
+) -> None:
     # Берём наибольшее фото
     photo = message.photo[-1]
     await state.update_data(image_url=photo.file_id)
@@ -317,12 +375,18 @@ async def _confirm_game(message: Message, state: FSMContext, db: AsyncSession) -
     )
     await message.answer(
         text,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [
-                InlineKeyboardButton(text="✅ Создать", callback_data="admin:game:add:save"),
-                InlineKeyboardButton(text="❌ Отмена", callback_data="admin:catalog:games"),
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="✅ Создать", callback_data="admin:game:add:save"
+                    ),
+                    InlineKeyboardButton(
+                        text="❌ Отмена", callback_data="admin:catalog:games"
+                    ),
+                ]
             ]
-        ]),
+        ),
     )
     await state.set_state(AddGameFSM.confirm)
 
@@ -355,30 +419,43 @@ async def admin_game_save(
 
     # Лог действия
     from bot.utils.admin_log import log_admin_action
-    await log_admin_action(db, admin, "game.create", "game", game.id, after_data={
-        "name": game.name, "slug": game.slug
-    })
+
+    await log_admin_action(
+        db,
+        admin,
+        "game.create",
+        "game",
+        game.id,
+        after_data={"name": game.name, "slug": game.slug},
+    )
 
     await call.message.edit_text(
         f"✅ Игра <b>{game.name}</b> создана!\n\n"
         f"Статус: 🔴 Скрыта\n"
         f"Активируй когда будешь готов.",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(
-                text=f"✅ Активировать сейчас",
-                callback_data=f"admin:game:toggle:{game.id}",
-            )],
-            [InlineKeyboardButton(
-                text=f"📂 Добавить категории",
-                callback_data=f"admin:categories:{game.id}",
-            )],
-            [admin_back_btn("admin:catalog:games")],
-        ]),
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="✅ Активировать сейчас",
+                        callback_data=f"admin:game:toggle:{game.id}",
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="📂 Добавить категории",
+                        callback_data=f"admin:categories:{game.id}",
+                    )
+                ],
+                [admin_back_btn("admin:catalog:games")],
+            ]
+        ),
     )
     await call.answer("✅ Игра создана!")
 
 
 # ── Categories ────────────────────────────────────────────────────────────────
+
 
 @router.callback_query(F.data.startswith("admin:categories:"))
 @require_permission("categories.view")
@@ -401,18 +478,24 @@ async def admin_categories_list(
     text = f"📂 <b>Категории — {game.name}</b> ({len(categories)} шт.)\n\nВыбери для управления:"
     buttons = []
     for cat in categories:
-        buttons.append([InlineKeyboardButton(
-            text=f"{toggle_emoji(cat.is_active)} {cat.name}",
-            callback_data=f"admin:category:{cat.id}",
-        )])
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=f"{toggle_emoji(cat.is_active)} {cat.name}",
+                    callback_data=f"admin:category:{cat.id}",
+                )
+            ]
+        )
 
-    buttons.append([
-        InlineKeyboardButton(
-            text="➕ Добавить категорию",
-            callback_data=f"admin:category:add:{game_id}",
-        ),
-        admin_back_btn(f"admin:game:{game_id}"),
-    ])
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="➕ Добавить категорию",
+                callback_data=f"admin:category:add:{game_id}",
+            ),
+            admin_back_btn(f"admin:game:{game_id}"),
+        ]
+    )
 
     await call.message.edit_text(
         text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -422,16 +505,15 @@ async def admin_categories_list(
 
 # ── Add Category FSM ──────────────────────────────────────────────────────────
 
+
 @router.callback_query(F.data.startswith("admin:category:add:"))
 @require_permission("categories.create")
-async def admin_category_add_start(
-    call: CallbackQuery, state: FSMContext
-) -> None:
+async def admin_category_add_start(call: CallbackQuery, state: FSMContext) -> None:
     game_id = call.data.split(":")[3]
     await state.update_data(game_id=game_id)
     await call.message.edit_text(
-        f"➕ <b>Добавление категории</b>\n\nВведи <b>название</b>:\n"
-        f"<i>Например: Гемы, Скины, Батл-пасс</i>",
+        "➕ <b>Добавление категории</b>\n\nВведи <b>название</b>:\n"
+        "<i>Например: Гемы, Скины, Батл-пасс</i>",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[cancel_btn()]]),
     )
     await state.set_state(AddCategoryFSM.name)
@@ -443,7 +525,7 @@ async def admin_category_add_name(
     message: Message, state: FSMContext, db: AsyncSession
 ) -> None:
     name = message.text.strip()
-    import re
+
     slug = re.sub(r"[^a-z0-9-]", "-", name.lower().replace(" ", "-"))
     slug = re.sub(r"-+", "-", slug).strip("-")
 
@@ -460,15 +542,23 @@ async def admin_category_add_name(
     parents = result.scalars().all()
 
     if parents:
-        buttons = [[InlineKeyboardButton(
-            text="⏭ Без родителя (корневая)",
-            callback_data="admin:cat:add:no_parent",
-        )]]
+        buttons = [
+            [
+                InlineKeyboardButton(
+                    text="⏭ Без родителя (корневая)",
+                    callback_data="admin:cat:add:no_parent",
+                )
+            ]
+        ]
         for p in parents:
-            buttons.append([InlineKeyboardButton(
-                text=f"📁 {p.name}",
-                callback_data=f"admin:cat:add:parent:{p.id}",
-            )])
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text=f"📁 {p.name}",
+                        callback_data=f"admin:cat:add:parent:{p.id}",
+                    )
+                ]
+            )
         buttons.append([cancel_btn()])
         await message.answer(
             "Выбери <b>родительскую категорию</b> или оставь как корневую:",
@@ -505,9 +595,7 @@ async def admin_cat_set_parent(
     await _save_category(call.message, state, db)
 
 
-async def _save_category(
-    message: Message, state: FSMContext, db: AsyncSession
-) -> None:
+async def _save_category(message: Message, state: FSMContext, db: AsyncSession) -> None:
     data = await state.get_data()
 
     cat = Category(
@@ -522,13 +610,16 @@ async def _save_category(
     await state.clear()
 
     await message.answer(
-        f"✅ Категория <b>{cat.name}</b> создана!\n\n"
-        f"Теперь добавь товары:",
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(
-                text="➕ Добавить товар",
-                callback_data=f"admin:product:add:{cat.id}",
-            )],
-            [admin_back_btn(f"admin:categories:{data['game_id']}")],
-        ]),
+        f"✅ Категория <b>{cat.name}</b> создана!\n\nТеперь добавь товары:",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="➕ Добавить товар",
+                        callback_data=f"admin:product:add:{cat.id}",
+                    )
+                ],
+                [admin_back_btn(f"admin:categories:{data['game_id']}")],
+            ]
+        ),
     )

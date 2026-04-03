@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scp:*)",
+      "Bash(sshpass:*)",
+      "Bash(ssh-keyscan -H 185.23.19.227)",
+      "Bash(expect -c ':*)",
+      "Bash(python3:*)",
+      "Bash(pip install:*)",
+      "Bash(pip3 install:*)",
+      "Skill(update-config)",
+      "Bash(ruff --version)",
+      "Bash(claude mcp:*)",
+      "Bash(cd /tmp)",
+      "Bash(unzip -o \"C:/Users/airo/Downloads/ui-ux-pro-max-skill-main.zip\" -d ui-ux-pro-max)",
+      "Bash(mkdir -p \"C:/Users/airo/Documents/reDonate/gameshop-bot/.claude/skills\")",
+      "Bash(cp -r \"/tmp/ui-ux-pro-max/ui-ux-pro-max-skill-main/.claude/skills/ui-ux-pro-max\" \"C:/Users/airo/Documents/reDonate/gameshop-bot/.claude/skills/\")",
+      "Bash(cp -r \"/tmp/ui-ux-pro-max/ui-ux-pro-max-skill-main/.claude/skills/ui-styling\" \"C:/Users/airo/Documents/reDonate/gameshop-bot/.claude/skills/\")",
+      "Bash(npm run:*)",
+      "Bash(npx vite:*)",
+      "Bash(node_modules/.bin/tsc --noEmit)"
+    ]
+  }
+}

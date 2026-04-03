@@ -1,4 +1,5 @@
 """worker/tasks/cart_tasks.py — брошенные корзины"""
+
 import asyncio
 from datetime import datetime, timedelta, timezone
 
@@ -6,7 +7,9 @@ from worker.main import celery_app
 from shared.config import settings
 
 
-@celery_app.task(name="worker.tasks.cart_tasks.check_abandoned_carts", bind=True, max_retries=3)
+@celery_app.task(
+    name="worker.tasks.cart_tasks.check_abandoned_carts", bind=True, max_retries=3
+)
 def check_abandoned_carts(self):
     """
     Находит корзины с товарами, которые не оформлены за N часов.
@@ -19,9 +22,11 @@ async def _check_abandoned_carts_async():
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
     from shared.database.session import get_db_session
-    from shared.models import Cart, CartItem, AbandonedCart, User
+    from shared.models import Cart, CartItem, AbandonedCart
 
-    threshold = datetime.now(timezone.utc) - timedelta(hours=settings.ABANDONED_CART_HOURS)
+    threshold = datetime.now(timezone.utc) - timedelta(
+        hours=settings.ABANDONED_CART_HOURS
+    )
 
     async with get_db_session() as db:
         # Корзины с товарами, не обновлявшиеся > N часов
@@ -71,7 +76,8 @@ async def _check_abandoned_carts_async():
             elif (
                 not abandoned.second_reminder_sent
                 and abandoned.reminder_sent_at
-                and datetime.now(timezone.utc) - abandoned.reminder_sent_at > timedelta(hours=24)
+                and datetime.now(timezone.utc) - abandoned.reminder_sent_at
+                > timedelta(hours=24)
             ):
                 # Второе напоминание через 24ч
                 send_abandoned_cart_reminder.delay(
@@ -100,7 +106,6 @@ def send_abandoned_cart_reminder(
     if reminder_num == 2:
         text = "⏰ Последнее напоминание!\n\n" + text
 
-    from shared.models.catalog import InlineKeyboardMarkup  # noqa — заглушка
     try:
         with httpx.Client(timeout=5.0) as client:
             client.post(
@@ -110,9 +115,14 @@ def send_abandoned_cart_reminder(
                     "text": text,
                     "parse_mode": "HTML",
                     "reply_markup": {
-                        "inline_keyboard": [[
-                            {"text": "🛒 Открыть корзину", "callback_data": "cart:view"}
-                        ]]
+                        "inline_keyboard": [
+                            [
+                                {
+                                    "text": "🛒 Открыть корзину",
+                                    "callback_data": "cart:view",
+                                }
+                            ]
+                        ]
                     },
                 },
             )
@@ -131,7 +141,6 @@ def recalculate_all_loyalty():
 
 async def _recalculate_all_async():
     from sqlalchemy import select
-    from sqlalchemy.orm import selectinload
     from shared.database.session import get_db_session
     from shared.models import LoyaltyLevel, User
 
@@ -148,9 +157,7 @@ async def _recalculate_all_async():
         offset = 0
         while True:
             users_result = await db.execute(
-                select(User)
-                .where(User.is_blocked == False)
-                .offset(offset).limit(100)
+                select(User).where(User.is_blocked == False).offset(offset).limit(100)
             )
             users = users_result.scalars().all()
             if not users:
@@ -195,11 +202,13 @@ async def _expire_orders_async():
         orders = result.scalars().all()
 
         from api.services.order_service import OrderService
+
         svc = OrderService(db)
 
         for order in orders:
             await svc.change_status(
-                order, OrderStatus.cancelled,
+                order,
+                OrderStatus.cancelled,
                 changed_by_type="system",
                 reason="Автоотмена: время оплаты истекло (24ч)",
             )

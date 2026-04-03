@@ -1,5 +1,3 @@
-version: "3.9"
-
 # ─────────────────────────────────────────────
 #  GameShop Bot — Docker Compose (Production)
 # ─────────────────────────────────────────────
@@ -37,8 +35,8 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
-    ports:
-      - "5432:5432"   # убери в prod если не нужен внешний доступ
+    # ports:
+    #   - "5432:5432"   # не открывать наружу в production
 
   # ── Redis ───────────────────────────────────
   redis:
@@ -126,7 +124,7 @@ services:
       context: .
       dockerfile: Dockerfile.api
     <<: *common-env
-    command: celery -A worker.main beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    command: celery -A worker.main beat --loglevel=info
     depends_on:
       db:
         condition: service_healthy
