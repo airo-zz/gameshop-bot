@@ -9,6 +9,8 @@ bot/utils/texts.py
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+from html import escape
+
 from shared.config import settings
 
 S = settings  # Короткий псевдоним
@@ -24,12 +26,13 @@ class BotTexts:
 
     def greeting(self, first_name: str) -> str:
         return (
-            f"👋 Привет, {first_name}!\n\n"
+            f"👋 Привет, {escape(first_name)}!\n\n"
             f"Добро пожаловать в <b>{S.SHOP_NAME}</b> — {S.SHOP_TAGLINE}.\n\n"
             f"Выбери действие:"
         )
 
     def greeting_new_user(self, first_name: str, referral_bonus: float = 0) -> str:
+        first_name = escape(first_name)
         bonus_text = (
             f"\n\n🎁 Тебе начислен бонус <b>{referral_bonus:.0f} ₽</b> за использование реферальной ссылки!"
             if referral_bonus > 0
@@ -65,6 +68,8 @@ class BotTexts:
         price: float,
         stock: int | None,
         delivery_type: str,
+        min_price: float | None = None,
+        max_price: float | None = None,
     ) -> str:
         stock_text = (
             "♾ Неограничено"
@@ -77,10 +82,18 @@ class BotTexts:
             "mixed": "📦 Зависит от лота",
         }.get(delivery_type, delivery_type)
 
+        # Ценовой диапазон
+        _min = min_price if min_price is not None else price
+        _max = max_price if max_price is not None else price
+        if _min != _max:
+            price_text = f"от <b>{_min:.0f}</b> до <b>{_max:.0f} ₽</b>"
+        else:
+            price_text = f"<b>{_min:.0f} ₽</b>"
+
         return (
             f"<b>{name}</b>\n\n"
             f"{description}\n\n"
-            f"💰 Цена: от <b>{price:.0f} ₽</b>\n"
+            f"💰 Цена: {price_text}\n"
             f"📦 Доставка: {delivery_text}\n"
             f"🗃 Наличие: {stock_text}"
         )
@@ -99,7 +112,7 @@ class BotTexts:
         return (
             f"🛒 <b>Корзина</b> ({items_count} поз.)\n"
             f"━━━━━━━━━━━━━━━\n"
-            f"Сумма: {total:.0f} ₽"
+            f"Сумма: {total:.0f} ₽\n"
             f"{discount_text}\n"
             f"<b>Итого: {final:.0f} ₽</b>"
         )
@@ -183,7 +196,7 @@ class BotTexts:
         return (
             f"👤 <b>Профиль</b>\n"
             f"━━━━━━━━━━━━━━━\n"
-            f"Имя: {first_name}\n"
+            f"Имя: {escape(first_name)}\n"
             f"Баланс: <b>{balance:.2f} ₽</b>\n"
             f"Заказов: <b>{orders_count}</b>\n"
             f"Потрачено: <b>{total_spent:.0f} ₽</b>\n"
@@ -203,7 +216,7 @@ class BotTexts:
     def ticket_created(self, ticket_id: str) -> str:
         return (
             f"✅ Обращение <b>#{ticket_id[:8]}</b> создано!\n"
-            f"Оператор ответит в ближайшее время.\n\n"
+            f"Обычно мы отвечаем в течение 1–4 часов.\n\n"
             f"Все ответы придут сюда, в бота."
         )
 
@@ -211,12 +224,32 @@ class BotTexts:
         return f"💬 Ответ оператора <b>{operator_name}</b>:\n\n{text}"
 
     # ── Брошенная корзина ─────────────────────────────────────────────────────
+    @staticmethod
+    def _plural(n: int, one: str, few: str, many: str) -> str:
+        if 11 <= n % 100 <= 19:
+            return many
+        r = n % 10
+        if r == 1:
+            return one
+        if 2 <= r <= 4:
+            return few
+        return many
+
     def abandoned_cart_reminder(self, items_count: int, total: float) -> str:
+        товар_word = self._plural(items_count, "товар", "товара", "товаров")
         return (
-            f"🛒 Ты забыл(а) {items_count} товар(а) в корзине {S.SHOP_NAME}!\n\n"
+            f"🛒 В твоей корзине {items_count} {товар_word} в {S.SHOP_NAME}!\n\n"
             f"Итого: <b>{total:.0f} ₽</b>\n\n"
             f"Вернись и оформи заказ — товары ждут тебя! 👇"
         )
+
+    # ── Заказы (клиент) ───────────────────────────────────────────────────────
+    @property
+    def orders_empty(self) -> str:
+        return "📋 У тебя пока нет заказов.\n\nПерейди в каталог и сделай первую покупку!"
+
+    def orders_list_header(self, count: int) -> str:
+        return f"📋 <b>Мои заказы</b> — последние {count}:"
 
     # ── Admin ─────────────────────────────────────────────────────────────────
     def admin_panel_header(
@@ -224,7 +257,7 @@ class BotTexts:
     ) -> str:
         return (
             f"🎮 <b>Admin Panel — {S.SHOP_NAME}</b>\n\n"
-            f"Привет, {first_name}!\n"
+            f"Привет, {escape(first_name)}!\n"
             f"Роль: {role_emoji} <b>{role_name}</b>\n\n"
             f"Выбери раздел:"
         )
@@ -296,7 +329,7 @@ class BotTexts:
 
     @property
     def error_blocked(self) -> str:
-        return f"🚫 Ваш аккаунт заблокирован. Обратитесь в поддержку: {S.support_link}"
+        return f"🚫 Твой аккаунт заблокирован. Обратись в поддержку: {S.support_link}"
 
 
 # Синглтон — импортируй и используй

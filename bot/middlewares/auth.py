@@ -59,9 +59,7 @@ class AuthMiddleware(BaseMiddleware):
             data["user"] = user
             data["db"] = session
 
-            result = await handler(event, data)
-            await session.commit()
-            return result
+            return await handler(event, data)
 
     async def _register_user(
         self, session, tg_user: TgUser, data: dict

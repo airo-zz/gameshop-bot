@@ -11,6 +11,7 @@ api/services/order_service.py
 """
 
 import uuid
+from collections import defaultdict
 from datetime import datetime, timezone
 from decimal import Decimal
 
@@ -231,22 +232,33 @@ class OrderService:
         )
         items = result.scalars().all()
 
+        # Собираем все item_id для авто-товаров одним запросом — устраняем N+1
+        auto_items = [
+            item for item in items
+            if item.product.delivery_type.value in ("auto", "mixed")
+        ]
+        auto_item_ids = [item.id for item in auto_items]
+
+        keys_by_item: dict[uuid.UUID, list[ProductKey]] = defaultdict(list)
+        if auto_item_ids:
+            keys_result = await self.db.execute(
+                select(ProductKey)
+                .where(
+                    ProductKey.order_item_id.in_(auto_item_ids),
+                    ProductKey.is_used == True,
+                )
+                .with_for_update(skip_locked=True)
+            )
+            for key in keys_result.scalars().all():
+                keys_by_item[key.order_item_id].append(key)
+
         all_delivered = True
         for item in items:
             if item.product.delivery_type.value not in ("auto", "mixed"):
                 all_delivered = False
                 continue
 
-            # Берём зарезервированные ключи
-            keys_result = await self.db.execute(
-                select(ProductKey).where(
-                    ProductKey.product_id == item.product_id,
-                    ProductKey.lot_id == item.lot_id,
-                    ProductKey.is_used == True,
-                    ProductKey.order_item_id == item.id,
-                ).limit(item.quantity)
-            )
-            keys = keys_result.scalars().all()
+            keys = keys_by_item[item.id]
 
             if len(keys) >= item.quantity:
                 # Расшифровываем и записываем в delivery_data
@@ -277,11 +289,14 @@ class OrderService:
     ) -> None:
         """Резервирует ключи (помечает как used без order_item_id пока нет order_item)."""
         result = await self.db.execute(
-            select(ProductKey).where(
+            select(ProductKey)
+            .where(
                 ProductKey.product_id == product_id,
                 ProductKey.lot_id == lot_id,
                 ProductKey.is_used == False,
-            ).limit(quantity)
+            )
+            .limit(quantity)
+            .with_for_update(skip_locked=True)
         )
         keys = result.scalars().all()
         for key in keys:

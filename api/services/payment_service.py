@@ -6,12 +6,13 @@ api/services/payment_service.py
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+import logging
 import uuid
-import hashlib
 from datetime import datetime, timezone
 from decimal import Decimal
 
 import httpx
+from aiogram import Bot
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -26,6 +27,26 @@ from shared.models import (
 )
 from api.services.order_service import OrderService
 
+logger = logging.getLogger(__name__)
+
+
+async def _get_usdt_rate() -> Decimal:
+    """Получает актуальный курс USDT/RUB из CoinGecko. При недоступности — fallback 90."""
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            response = await client.get(
+                "https://api.coingecko.com/api/v3/simple/price",
+                params={"ids": "tether", "vs_currencies": "rub"},
+            )
+            data = response.json()
+            rate = Decimal(str(data["tether"]["rub"]))
+            return rate
+    except Exception as e:
+        logger.warning(
+            "Не удалось получить курс USDT/RUB, используем fallback 90: %s", e
+        )
+        return Decimal("90")
+
 
 class PaymentService:
     def __init__(self, db: AsyncSession):
@@ -33,9 +54,9 @@ class PaymentService:
         self.order_svc = OrderService(db)
 
     def _make_idempotency_key(self, order_id: uuid.UUID, method: str) -> str:
-        """Детерминированный ключ идемпотентности."""
-        raw = f"{order_id}:{method}:{settings.JWT_SECRET_KEY}"
-        return hashlib.sha256(raw.encode()).hexdigest()[:64]
+        """Детерминированный ключ идемпотентности на основе UUID5."""
+        raw = f"{order_id}:{method}"
+        return str(uuid.uuid5(uuid.NAMESPACE_URL, raw))
 
     async def _create_payment_record(
         self,
@@ -155,9 +176,8 @@ class PaymentService:
         method = PaymentMethod.usdt if currency == "USDT" else PaymentMethod.ton
         payment = await self._create_payment_record(order, user, method)
 
-        # Конвертируем RUB → crypto (в продакшене нужен курс из API)
-        # Здесь заглушка — в реальности используй курс с биржи
-        rate_rub_per_usdt = Decimal("90")  # TODO: получать из внешнего API
+        # Конвертируем RUB → crypto с актуальным курсом из CoinGecko (fallback 90)
+        rate_rub_per_usdt = await _get_usdt_rate()
         crypto_amount = order.total_amount / rate_rub_per_usdt
 
         base_url = (
@@ -297,9 +317,10 @@ class PaymentService:
         return True
 
     async def _notify_user_payment_success(self, order: Order) -> None:
-        """Отправляет уведомление пользователю через Telegram Bot."""
+        """Отправляет уведомление пользователю через aiogram Bot."""
         try:
             from sqlalchemy.orm import selectinload
+            from bot.utils.texts import texts
 
             result = await self.db.execute(
                 select(Order)
@@ -307,23 +328,14 @@ class PaymentService:
                 .where(Order.id == order.id)
             )
             order_with_user = result.scalar_one()
-
-            import httpx
-
-            bot_token = settings.BOT_TOKEN
-            from bot.utils.texts import texts
-
+            telegram_id = order_with_user.user.telegram_id
             text = texts.order_paid(order.order_number)
 
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"https://api.telegram.org/bot{bot_token}/sendMessage",
-                    json={
-                        "chat_id": order_with_user.user.telegram_id,
-                        "text": text,
-                        "parse_mode": "HTML",
-                    },
-                    timeout=5.0,
-                )
-        except Exception:
-            pass  # Уведомление не критично
+            bot = Bot(token=settings.BOT_TOKEN)
+            try:
+                await bot.send_message(telegram_id, text, parse_mode="HTML")
+            finally:
+                await bot.session.close()
+        except Exception as exc:
+            logger.warning("Не удалось отправить уведомление об оплате: %s", exc)
+            # Уведомление не критично — не прерываем основной flow

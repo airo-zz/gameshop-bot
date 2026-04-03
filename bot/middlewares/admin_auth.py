@@ -54,9 +54,7 @@ class AdminAuthMiddleware(BaseMiddleware):
 
             data["admin"] = admin
             data["db"] = session
-            result = await handler(event, data)
-            await session.commit()
-            return result
+            return await handler(event, data)
 
 
 def require_permission(permission: str):

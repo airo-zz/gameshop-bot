@@ -10,7 +10,9 @@ bot/handlers/admin/admin_orders.py
 ─────────────────────────────────────────────────────────────────────────────
 """
 
-from aiogram import Router, F
+import uuid as _uuid
+
+from aiogram import Bot, Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -168,13 +170,18 @@ async def admin_order_detail(
     call: CallbackQuery, db: AsyncSession, admin: AdminUser
 ) -> None:
     order_id = call.data.split(":")[2]
+    try:
+        order_uuid = _uuid.UUID(order_id)
+    except (ValueError, AttributeError):
+        await call.answer("Некорректный ID заказа", show_alert=True)
+        return
     result = await db.execute(
         select(Order)
         .options(
             selectinload(Order.items).selectinload(OrderItem.product),
             selectinload(Order.user),
         )
-        .where(Order.id == order_id)
+        .where(Order.id == order_uuid)
     )
     order = result.scalar_one_or_none()
 
@@ -237,13 +244,19 @@ async def admin_order_detail(
 @router.callback_query(F.data.startswith("admin:order:status:"))
 @require_permission("orders.update_status")
 async def admin_order_change_status(
-    call: CallbackQuery, db: AsyncSession, admin: AdminUser
+    call: CallbackQuery, bot: Bot, db: AsyncSession, admin: AdminUser
 ) -> None:
     parts = call.data.split(":")
     order_id, new_status_str = parts[3], parts[4]
 
+    try:
+        order_uuid = _uuid.UUID(order_id)
+    except (ValueError, AttributeError):
+        await call.answer("Некорректный ID заказа", show_alert=True)
+        return
+
     result = await db.execute(
-        select(Order).options(selectinload(Order.user)).where(Order.id == order_id)
+        select(Order).options(selectinload(Order.user)).where(Order.id == order_uuid)
     )
     order = result.scalar_one_or_none()
     if not order:
@@ -296,14 +309,11 @@ async def admin_order_change_status(
 
     # Уведомляем клиента
     try:
-        from bot.main import create_bot
-        bot = create_bot()
         from bot.utils.texts import texts
         await bot.send_message(
             order.user.telegram_id,
             texts.order_status_changed(order.order_number, new_status.value),
         )
-        await bot.session.close()
     except Exception:
         pass  # Не критично если уведомление не дошло
 

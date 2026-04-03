@@ -108,10 +108,11 @@ def verify_telegram_init_data(init_data: str) -> dict:
     if not hmac.compare_digest(computed_hash, received_hash):
         raise HTTPException(status_code=401, detail="Невалидная подпись initData")
 
-    # Проверяем свежесть (не старше 1 часа)
+    # Проверяем свежесть (не старше 5 минут — защита от replay-атак)
+    MAX_AUTH_AGE = 300
     auth_date = int(parsed.get("auth_date", 0))
     now = int(datetime.now(timezone.utc).timestamp())
-    if now - auth_date > 3600:
+    if now - auth_date > MAX_AUTH_AGE:
         raise HTTPException(status_code=401, detail="initData устарела")
 
     # Парсим user

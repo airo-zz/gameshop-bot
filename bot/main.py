@@ -13,6 +13,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.types import ErrorEvent
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 
@@ -20,6 +21,7 @@ from shared.config import settings
 from shared.database.session import engine
 
 from bot.middlewares.auth import AuthMiddleware
+from bot.middlewares.admin_auth import AdminAuthMiddleware
 from bot.middlewares.throttle import ThrottleMiddleware
 from bot.middlewares.logging import LoggingMiddleware
 
@@ -40,6 +42,8 @@ log = structlog.get_logger()
 
 async def on_startup(bot: Bot) -> None:
     log.info("bot.startup", shop_name=settings.SHOP_NAME, env=settings.ENVIRONMENT)
+    if not settings.WEBHOOK_SECRET:
+        log.warning("WEBHOOK_SECRET не задан — webhook не защищён от подделки запросов!")
 
     if settings.ENVIRONMENT == "production" and settings.WEBHOOK_HOST:
         await bot.set_webhook(
@@ -85,6 +89,25 @@ def create_dispatcher() -> Dispatcher:
     dp.startup.register(on_startup)
     dp.shutdown.register(on_shutdown)
 
+    # ── Global error handler ──────────────────────────────────────────────────
+    @dp.errors()
+    async def global_error_handler(event: ErrorEvent) -> None:
+        log.exception(
+            "Необработанная ошибка",
+            exc_info=event.exception,
+        )
+        try:
+            if event.update.message:
+                await event.update.message.answer(
+                    "Произошла ошибка. Попробуй ещё раз или обратись в поддержку."
+                )
+            elif event.update.callback_query:
+                await event.update.callback_query.answer(
+                    "Произошла ошибка", show_alert=True
+                )
+        except Exception:
+            pass
+
     # ── Client routers ────────────────────────────────────────────────────────
     dp.include_router(start.router)
     dp.include_router(catalog.router)
@@ -94,12 +117,18 @@ def create_dispatcher() -> Dispatcher:
     dp.include_router(support.router)
 
     # ── Admin routers ─────────────────────────────────────────────────────────
-    dp.include_router(admin_main.router)
-    dp.include_router(admin_catalog.router)
-    dp.include_router(admin_orders.router)
-    dp.include_router(admin_stats.router)
-    dp.include_router(admin_users.router)
-    dp.include_router(admin_discounts.router)
+    _admin_routers = [
+        admin_main.router,
+        admin_catalog.router,
+        admin_orders.router,
+        admin_stats.router,
+        admin_users.router,
+        admin_discounts.router,
+    ]
+    for _r in _admin_routers:
+        _r.message.middleware(AdminAuthMiddleware())
+        _r.callback_query.middleware(AdminAuthMiddleware())
+        dp.include_router(_r)
 
     return dp
 

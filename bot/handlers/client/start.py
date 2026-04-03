@@ -6,10 +6,13 @@ bot/handlers/client/start.py
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+import os
+from datetime import datetime, timezone, timedelta
+
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import (
-    Message, InlineKeyboardMarkup, InlineKeyboardButton,
+    FSInputFile, Message, InlineKeyboardMarkup, InlineKeyboardButton,
     WebAppInfo, ReplyKeyboardMarkup, KeyboardButton,
 )
 
@@ -96,71 +99,37 @@ async def cmd_start(message: Message, user: User) -> None:
     AuthMiddleware уже зарегистрировал/обновил пользователя
     и передал его в data["user"].
     """
-    # Определяем — новый пользователь или вернулся
-    is_new = user.orders_count == 0 and user.total_spent == 0
+    # Определяем — новый пользователь или вернулся (зарегистрирован менее 5 минут назад)
+    is_new = (
+        datetime.now(timezone.utc) - user.created_at.replace(tzinfo=timezone.utc)
+    ) < timedelta(minutes=5)
 
     if is_new:
-        text = texts.greeting_new_user(user.first_name)
+        welcome_text = texts.greeting_new_user(user.first_name)
     else:
-        text = texts.greeting(user.first_name)
+        welcome_text = texts.greeting(user.first_name)
 
-    await message.answer(
-        text,
-        reply_markup=get_main_keyboard(),
+    keyboard = get_start_inline_keyboard()
+
+    assets_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "assets", "welcome.jpg"
     )
-    await message.answer(
-        f"👇 Выбери действие:",
-        reply_markup=get_start_inline_keyboard(),
-    )
-
-
-@router.message(F.text == "🛍 Магазин")
-async def btn_shop(message: Message) -> None:
-    """Кнопка 'Магазин' из ReplyKeyboard."""
-    if settings.MINIAPP_URL:
-        await message.answer(
-            f"🎮 Открой <b>{settings.SHOP_NAME}</b>:",
-            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
-                InlineKeyboardButton(
-                    text=f"🛍 Открыть {settings.SHOP_NAME}",
-                    web_app=WebAppInfo(url=settings.MINIAPP_URL),
-                )
-            ]])
+    if os.path.exists(assets_path):
+        await message.answer_photo(
+            photo=FSInputFile(assets_path),
+            caption=welcome_text,
+            reply_markup=keyboard,
+            parse_mode="HTML",
         )
     else:
-        # Fallback — текстовый каталог прямо в боте
-        from bot.handlers.client.catalog import show_games_list
-        await show_games_list(message)
+        await message.answer(welcome_text, reply_markup=keyboard, parse_mode="HTML")
 
 
 @router.message(F.text == "❓ FAQ")
 async def btn_faq(message: Message) -> None:
-    faq_text = (
-        f"❓ <b>FAQ — {settings.SHOP_NAME}</b>\n\n"
-        f"<b>Как быстро выдаётся товар?</b>\n"
-        f"Автоматические товары — мгновенно после оплаты.\n"
-        f"Ручные — в течение 1–24 часов.\n\n"
-        f"<b>Какие способы оплаты?</b>\n"
-        f"Баланс бота, банковская карта, USDT, TON.\n\n"
-        f"<b>Что делать если товар не пришёл?</b>\n"
-        f"Открой тикет в разделе «Поддержка».\n\n"
-        f"<b>Есть ли скидки?</b>\n"
-        f"Да! Программа лояльности Bronze → Silver → Gold → VIP.\n"
-        f"Чем больше покупаешь — тем больше скидка.\n\n"
-        f"<b>Как работает реферальная программа?</b>\n"
-        f"Поделись своим кодом из профиля — получи бонус за каждого друга."
-    )
-    await message.answer(faq_text)
+    await message.answer(texts.faq())
 
 
 @router.message(Command("help"))
 async def cmd_help(message: Message) -> None:
-    help_text = (
-        f"🤖 <b>Команды {settings.SHOP_NAME}</b>\n\n"
-        f"/start — главное меню\n"
-        f"/orders — мои заказы\n"
-        f"/balance — мой баланс\n"
-        f"/support — поддержка\n"
-        f"/help — эта справка"
-    )
-    await message.answer(help_text)
+    await message.answer(texts.help_text())
