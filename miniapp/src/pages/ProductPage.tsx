@@ -50,7 +50,7 @@ export default function ProductPage() {
     const handler = () => handleAddToCart()
     if (canAdd) {
       const price = selectedLot ? selectedLot.price : product.price
-      showMainButton(`Добавить в корзину · ${price.toLocaleString('ru')} ₽`, handler)
+      showMainButton(`В корзину · ${price.toLocaleString('ru')} ₽`, handler)
     }
     return () => hideMainButton(handler)
   }, [product, selectedLot, canAdd, inputData])
@@ -59,7 +59,6 @@ export default function ProductPage() {
     if (!product || adding) return
     setAdding(true)
     haptic.impact('medium')
-
     try {
       await cartApi.addItem({
         product_id: product.id,
@@ -80,65 +79,45 @@ export default function ProductPage() {
 
   if (isLoading) return <ProductSkeleton />
   if (!product) return (
-    <div className="p-8 text-center" style={{ color: 'var(--hint)' }}>
-      Товар не найден
-    </div>
+    <div className="p-8 text-center" style={{ color: 'var(--hint)' }}>Товар не найден</div>
   )
 
   const isOutOfStock = product.stock !== null && product.stock === 0
   const currentPrice = selectedLot ? selectedLot.price : product.price
 
   return (
-    <div className="pb-6 animate-slide-up">
+    <div className="pb-8 animate-slide-up">
       {/* Изображения */}
       <div className="relative">
-        <div
-          className="overflow-hidden"
-          style={{ aspectRatio: '16/9', background: 'var(--bg2)' }}
-        >
+        <div className="aspect-video overflow-hidden" style={{ background: 'var(--bg3)' }}>
           {product.images.length > 0 ? (
-            <img
-              src={product.images[imgIdx]}
-              alt={product.name}
-              className="w-full h-full object-cover"
-            />
+            <img src={product.images[imgIdx]} alt={product.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-6xl">🎮</div>
+            <div className="w-full h-full flex items-center justify-center text-7xl">🎮</div>
           )}
-          {/* Нижний градиент */}
-          <div
-            className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
-            style={{ background: 'linear-gradient(to top, var(--bg), transparent)' }}
-          />
         </div>
 
-        {/* Кнопка назад */}
+        {/* Назад */}
         <button
           onClick={() => navigate(-1)}
-          className="absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90"
-          style={{
-            background: 'rgba(10,10,15,0.6)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }}
+          className="absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center transition-transform active:scale-90"
+          style={{ background: 'rgba(10,15,30,0.7)', backdropFilter: 'blur(8px)' }}
         >
           <ChevronLeft size={20} color="white" />
         </button>
 
-        {/* Точки навигации */}
+        {/* Точки */}
         {product.images.length > 1 && (
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5">
+          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
             {product.images.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setImgIdx(i)}
-                className="rounded-full transition-all duration-200"
+                className="rounded-full transition-all"
                 style={{
                   width: i === imgIdx ? 20 : 6,
                   height: 6,
-                  background: i === imgIdx
-                    ? 'linear-gradient(135deg, #6366f1, #7c3aed)'
-                    : 'rgba(255,255,255,0.3)',
+                  background: i === imgIdx ? '#3b82f6' : 'rgba(255,255,255,0.3)',
                 }}
               />
             ))}
@@ -146,68 +125,44 @@ export default function ProductPage() {
         )}
       </div>
 
-      <div className="px-4 pt-4 space-y-4">
+      <div className="px-4 pt-4 space-y-5">
         {/* Заголовок */}
         <div>
           <div className="flex items-start justify-between gap-2">
-            <h1
-              className="text-xl font-bold leading-snug flex-1 tracking-tight"
-              style={{ color: 'var(--text)' }}
-            >
+            <h1 className="text-xl font-extrabold leading-snug flex-1" style={{ color: 'var(--text)' }}>
               {product.name}
             </h1>
-            {isOutOfStock && (
-              <span className="badge badge-danger flex-shrink-0">Нет</span>
-            )}
+            {isOutOfStock && <span className="badge badge-danger flex-shrink-0">Нет</span>}
           </div>
 
-          {/* Рейтинг */}
           {product.avg_rating && (
-            <div className="flex items-center gap-1.5 mt-2">
-              <div className="flex items-center gap-1">
-                {[1,2,3,4,5].map(s => (
-                  <Star
-                    key={s}
-                    size={13}
-                    fill={s <= Math.round(product.avg_rating!) ? '#f59e0b' : 'none'}
-                    stroke={s <= Math.round(product.avg_rating!) ? '#f59e0b' : 'var(--hint)'}
-                  />
-                ))}
-              </div>
-              <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+            <div className="flex items-center gap-1 mt-1.5">
+              <Star size={13} fill="#f59e0b" stroke="#f59e0b" />
+              <span className="text-sm font-semibold" style={{ color: '#fbbf24' }}>
                 {product.avg_rating.toFixed(1)}
               </span>
               <span className="text-xs" style={{ color: 'var(--hint)' }}>
-                ({product.reviews_count})
+                ({product.reviews_count} отзывов)
               </span>
             </div>
           )}
 
-          {/* Тип доставки */}
-          <div className="flex items-center gap-1.5 mt-2">
+          <div className="flex items-center gap-2 mt-2">
             {product.delivery_type === 'auto' ? (
               <span
-                className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
-                style={{
-                  background: 'rgba(34,197,94,0.12)',
-                  border: '1px solid rgba(34,197,94,0.25)',
-                  color: '#22c55e',
-                }}
+                className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full"
+                style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }}
               >
-                <Zap size={12} />
+                <Zap size={12} fill="#34d399" stroke="none" />
                 Мгновенная выдача
               </span>
             ) : (
               <span
-                className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
-                style={{
-                  background: 'rgba(148,163,184,0.1)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--hint)',
-                }}
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full"
+                style={{ background: 'var(--bg2)', color: 'var(--hint)', border: '1px solid var(--border)' }}
               >
                 <Clock size={12} />
-                Выдача вручную (до 24ч)
+                Вручную (до 24ч)
               </span>
             )}
           </div>
@@ -215,10 +170,7 @@ export default function ProductPage() {
 
         {/* Описание */}
         {product.description && (
-          <p
-            className="text-sm leading-relaxed"
-            style={{ color: 'var(--hint)' }}
-          >
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--hint)' }}>
             {product.description}
           </p>
         )}
@@ -226,10 +178,7 @@ export default function ProductPage() {
         {/* Лоты */}
         {product.lots.length > 0 && (
           <section>
-            <h3
-              className="text-sm font-bold mb-3"
-              style={{ color: 'var(--text)' }}
-            >
+            <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--hint)' }}>
               Выбери пакет
             </h3>
             <div className="grid grid-cols-2 gap-2">
@@ -239,37 +188,27 @@ export default function ProductPage() {
                   <button
                     key={lot.id}
                     onClick={() => { setSelectedLot(lot); haptic.select() }}
-                    className={clsx(
-                      'p-3 rounded-2xl text-left transition-all duration-200 active:scale-95',
-                    )}
-                    style={
-                      isSelected
-                        ? {
-                            background: 'linear-gradient(135deg, #6366f1, #7c3aed)',
-                            border: '1.5px solid rgba(99,102,241,0.6)',
-                            boxShadow: '0 4px 16px rgba(99,102,241,0.35)',
-                            color: '#fff',
-                          }
-                        : {
-                            background: 'var(--bg2)',
-                            border: '1.5px solid var(--border)',
-                            color: 'var(--text)',
-                          }
-                    }
+                    className="p-3 rounded-2xl text-left transition-all duration-150 active:scale-95"
+                    style={{
+                      background: isSelected
+                        ? 'linear-gradient(135deg, rgba(37,99,235,0.3), rgba(79,70,229,0.3))'
+                        : 'var(--bg2)',
+                      border: isSelected
+                        ? '1.5px solid rgba(59,130,246,0.6)'
+                        : '1.5px solid var(--border)',
+                    }}
                   >
                     <div className="flex items-start justify-between">
-                      <span className="text-sm font-semibold leading-tight">{lot.name}</span>
+                      <span className="text-sm font-semibold leading-tight" style={{ color: 'var(--text)' }}>
+                        {lot.name}
+                      </span>
                       {lot.badge && (
                         <span
                           className="text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1 flex-shrink-0"
-                          style={
-                            isSelected
-                              ? { background: 'rgba(255,255,255,0.2)', color: '#fff' }
-                              : {
-                                  background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
-                                  color: '#fff',
-                                }
-                          }
+                          style={{
+                            background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                            color: '#fff',
+                          }}
                         >
                           {lot.badge}
                         </span>
@@ -277,11 +216,11 @@ export default function ProductPage() {
                     </div>
                     <div className="mt-1.5">
                       {lot.original_price && (
-                        <span className="text-xs line-through opacity-55 mr-1">
+                        <span className="text-xs line-through mr-1" style={{ color: 'var(--hint)' }}>
                           {lot.original_price.toLocaleString('ru')} ₽
                         </span>
                       )}
-                      <span className="text-base font-bold">
+                      <span className="text-base font-bold" style={{ color: '#60a5fa' }}>
                         {lot.price.toLocaleString('ru')} ₽
                       </span>
                     </div>
@@ -295,17 +234,15 @@ export default function ProductPage() {
         {/* Поля ввода */}
         {product.input_fields.length > 0 && (
           <section>
-            <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--text)' }}>
+            <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--hint)' }}>
               Данные для заказа
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {product.input_fields.map((field: InputField) => (
                 <div key={field.key}>
-                  <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--hint)' }}>
+                  <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--hint)' }}>
                     {field.label}
-                    {field.required && (
-                      <span style={{ color: 'var(--destructive)' }}> *</span>
-                    )}
+                    {field.required && <span style={{ color: '#f87171' }}> *</span>}
                   </label>
                   {field.type === 'select' ? (
                     <select
@@ -314,9 +251,7 @@ export default function ProductPage() {
                       onChange={e => setInputData(prev => ({ ...prev, [field.key]: e.target.value }))}
                     >
                       <option value="">Выбери...</option>
-                      {field.options?.map(opt => (
-                        <option key={opt} value={opt}>{opt}</option>
-                      ))}
+                      {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   ) : (
                     <input
@@ -337,33 +272,23 @@ export default function ProductPage() {
         {product.instruction && (
           <div
             className="p-4 rounded-2xl"
-            style={{
-              background: 'rgba(99,102,241,0.06)',
-              border: '1px solid rgba(99,102,241,0.2)',
-            }}
+            style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}
           >
-            <p className="text-xs font-bold mb-1.5" style={{ color: 'var(--accent)' }}>
-              ℹ️ Инструкция
-            </p>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--text)' }}>
-              {product.instruction}
-            </p>
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#a5b4fc' }}>ℹ️ Инструкция</p>
+            <p className="text-sm" style={{ color: 'var(--hint)' }}>{product.instruction}</p>
           </div>
         )}
 
         {/* Кнопка */}
         <button
-          className="btn-primary"
+          className="btn-primary gap-2"
           disabled={!canAdd || adding || isOutOfStock}
           onClick={handleAddToCart}
         >
           {adding ? (
-            <>
-              <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-              Добавляем...
-            </>
+            '⏳ Добавляем...'
           ) : isOutOfStock ? (
-            'Нет в наличии'
+            '😔 Нет в наличии'
           ) : (
             <>
               <ShoppingCart size={18} />
@@ -378,18 +303,14 @@ export default function ProductPage() {
 
 function ProductSkeleton() {
   return (
-    <div className="animate-pulse">
-      <div className="skeleton w-full" style={{ aspectRatio: '16/9' }} />
-      <div className="px-4 pt-4 space-y-4">
+    <div>
+      <div className="skeleton aspect-video w-full rounded-none" style={{ borderRadius: 0 }} />
+      <div className="px-4 pt-4 space-y-3">
         <div className="skeleton h-7 w-3/4 rounded-xl" />
         <div className="skeleton h-4 w-1/3 rounded-xl" />
-        <div className="skeleton h-4 w-2/3 rounded-xl" />
         <div className="grid grid-cols-2 gap-2">
-          {Array(4).fill(0).map((_, i) => (
-            <div key={i} className="skeleton h-20 rounded-2xl" />
-          ))}
+          {Array(4).fill(0).map((_, i) => <div key={i} className="skeleton h-20 rounded-2xl" />)}
         </div>
-        <div className="skeleton h-12 rounded-xl" />
       </div>
     </div>
   )

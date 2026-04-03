@@ -6,7 +6,7 @@ import { catalogApi } from '@/api'
 import ProductCard from '@/components/ui/ProductCard'
 
 export default function SearchPage() {
-  const [query, setQuery] = useState('')
+  const [query, setQuery]           = useState('')
   const [debouncedQ, setDebouncedQ] = useState('')
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function SearchPage() {
 
   return (
     <div className="px-4 pt-5 space-y-5 animate-fade-in">
-      {/* Поле поиска */}
+      {/* Поиск */}
       <div className="relative">
         <Search
           size={17}
@@ -46,10 +46,8 @@ export default function SearchPage() {
         {query && (
           <button
             onClick={() => setQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full flex items-center justify-center transition-all active:scale-90"
-            style={{
-              background: 'rgba(148,163,184,0.1)',
-            }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center transition-all active:scale-90"
+            style={{ background: 'var(--bg3)' }}
           >
             <X size={14} style={{ color: 'var(--hint)' }} />
           </button>
@@ -59,10 +57,7 @@ export default function SearchPage() {
       {/* Недавно просмотренные */}
       {debouncedQ.length < 2 && recent.length > 0 && (
         <section>
-          <p
-            className="text-xs font-semibold uppercase tracking-wider mb-3"
-            style={{ color: 'var(--hint)' }}
-          >
+          <p className="text-sm font-semibold mb-3" style={{ color: 'var(--hint)' }}>
             Недавно просматривал
           </p>
           <div className="grid grid-cols-2 gap-3">
@@ -71,20 +66,7 @@ export default function SearchPage() {
         </section>
       )}
 
-      {/* Пустое состояние — подсказка */}
-      {debouncedQ.length < 2 && recent.length === 0 && (
-        <div className="text-center py-16">
-          <p className="text-5xl mb-4">🔍</p>
-          <p className="font-medium" style={{ color: 'var(--hint)' }}>
-            Начни вводить название товара
-          </p>
-          <p className="text-sm mt-1" style={{ color: 'rgba(148,163,184,0.5)' }}>
-            Минимум 2 символа
-          </p>
-        </div>
-      )}
-
-      {/* Результаты поиска */}
+      {/* Результаты */}
       {debouncedQ.length >= 2 && (
         <section>
           {isFetching ? (
@@ -95,20 +77,13 @@ export default function SearchPage() {
             </div>
           ) : results.length === 0 ? (
             <div className="text-center py-16">
-              <p className="text-5xl mb-4">🤔</p>
-              <p className="font-medium" style={{ color: 'var(--text)' }}>
-                Ничего не найдено
-              </p>
-              <p className="text-sm mt-1.5" style={{ color: 'var(--hint)' }}>
-                Попробуй другой запрос
-              </p>
+              <p className="text-5xl mb-3">🔍</p>
+              <p className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Ничего не найдено</p>
+              <p className="text-sm" style={{ color: 'var(--hint)' }}>Попробуй другой запрос</p>
             </div>
           ) : (
             <>
-              <p
-                className="text-xs font-semibold uppercase tracking-wider mb-3"
-                style={{ color: 'var(--hint)' }}
-              >
+              <p className="text-xs mb-3 font-medium" style={{ color: 'var(--hint)' }}>
                 Найдено: {results.length}
               </p>
               <div className="grid grid-cols-2 gap-3">

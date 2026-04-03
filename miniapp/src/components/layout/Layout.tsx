@@ -1,15 +1,74 @@
 // src/components/layout/Layout.tsx
 import { Outlet, useLocation, Link } from 'react-router-dom'
-import { ShoppingBag, ShoppingCart, Package, User } from 'lucide-react'
 import { useCartStore } from '@/store'
-import clsx from 'clsx'
+import ParticleCanvas from '@/components/ui/ParticleCanvas'
+
+// ── SVG Icons ────────────────────────────────────────────────────────────────
+
+function IconHome({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12L12 3l9 9" />
+      <path d="M5 10v9a1 1 0 0 0 1 1h4v-5h4v5h4a1 1 0 0 0 1-1v-9" />
+    </svg>
+  )
+}
+
+function IconGrid({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  )
+}
+
+function IconCart({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 3h2l1 5" />
+      <path d="M5.5 8h13l-1.5 8H7L5.5 8z" />
+      <circle cx="9" cy="19.5" r="1.5" />
+      <circle cx="16" cy="19.5" r="1.5" />
+    </svg>
+  )
+}
+
+function IconHeart({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor"
+         strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 21C12 21 3 14.5 3 8.5a5 5 0 0 1 9-3 5 5 0 0 1 9 3C21 14.5 12 21 12 21z" />
+    </svg>
+  )
+}
+
+function IconUser({ active }: { active: boolean }) {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  )
+}
+
+// ── Nav config ───────────────────────────────────────────────────────────────
 
 const NAV = [
-  { to: '/',        label: 'Магазин',  Icon: ShoppingBag },
-  { to: '/cart',    label: 'Корзина',  Icon: ShoppingCart, badge: true },
-  { to: '/orders',  label: 'Заказы',   Icon: Package },
-  { to: '/profile', label: 'Профиль',  Icon: User },
+  { to: '/',          label: 'Главная',  IconComp: IconHome,  badge: false },
+  { to: '/catalog',   label: 'Каталог',  IconComp: IconGrid,  badge: false },
+  { to: '/cart',      label: 'Корзина',  IconComp: IconCart,  badge: true  },
+  { to: '/favorites', label: 'Вишлист',  IconComp: IconHeart, badge: false },
+  { to: '/profile',   label: 'Профиль',  IconComp: IconUser,  badge: false },
 ]
+
+// ── Layout ───────────────────────────────────────────────────────────────────
 
 export default function Layout() {
   const { pathname } = useLocation()
@@ -17,64 +76,74 @@ export default function Layout() {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--bg)' }}>
-      {/* Контент — прокручиваемая область */}
-      <main className="flex-1 overflow-y-auto pb-[72px]">
+      {/* Star particle background */}
+      <ParticleCanvas />
+
+      {/* Page content — padded so it sits above the floating nav */}
+      <main
+        className="flex-1 overflow-y-auto"
+        style={{ position: 'relative', zIndex: 1, paddingBottom: '96px' }}
+      >
         <Outlet />
       </main>
 
-      {/* Нижний навбар */}
+      {/* ── Floating bottom navigation ─────────────────────────────────── */}
       <nav
-        className="fixed bottom-0 left-0 right-0 safe-bottom z-50"
+        className="fixed bottom-4 left-3 right-3 z-50"
         style={{
-          background: 'rgba(10,10,15,0.92)',
+          background: 'rgba(13,13,26,0.96)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
-          borderTop: '1px solid var(--border)',
+          border: '1px solid rgba(255,255,255,0.08)',
+          borderRadius: '28px',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,58,237,0.1)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
-        <div className="flex items-center justify-around py-1.5">
-          {NAV.map(({ to, label, Icon, badge }) => {
+        <div className="flex items-center justify-around px-2 py-2">
+          {NAV.map(({ to, label, IconComp, badge }) => {
             const isActive = to === '/' ? pathname === '/' : pathname.startsWith(to)
             return (
               <Link
                 key={to}
                 to={to}
-                className={clsx(
-                  'flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-2xl',
-                  'transition-all duration-200',
-                  isActive ? 'opacity-100' : 'opacity-40 hover:opacity-70'
-                )}
+                className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl transition-all duration-200 active:scale-90"
+                style={{
+                  background: isActive ? 'rgba(124,58,237,0.18)' : 'transparent',
+                  minWidth: 52,
+                }}
               >
-                <div className="relative">
-                  {/* Glow-подсветка активного таба */}
-                  {isActive && (
-                    <span
-                      className="absolute inset-0 rounded-full blur-md"
-                      style={{ background: 'rgba(99,102,241,0.4)', transform: 'scale(1.8)' }}
-                    />
-                  )}
-                  <Icon
-                    size={22}
-                    strokeWidth={isActive ? 2.5 : 1.8}
-                    style={{ color: isActive ? '#818cf8' : 'var(--hint)', position: 'relative' }}
-                  />
+                {/* Icon + badge */}
+                <div className="relative flex items-center justify-center">
+                  <span
+                    style={{
+                      color: isActive ? '#a78bfa' : 'rgba(255,255,255,0.38)',
+                      filter: isActive ? 'drop-shadow(0 0 6px rgba(167,139,250,0.6))' : 'none',
+                      transition: 'color 0.2s, filter 0.2s',
+                      display: 'flex',
+                    }}
+                  >
+                    <IconComp active={isActive} />
+                  </span>
+
                   {badge && itemsCount > 0 && (
                     <span
-                      className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] flex items-center justify-center
-                                 rounded-full text-[9px] font-bold px-1"
+                      className="absolute -top-1 -right-2 min-w-[16px] h-4 flex items-center justify-center
+                                 rounded-full text-[10px] font-bold px-1"
                       style={{
-                        background: 'linear-gradient(135deg, #6366f1, #7c3aed)',
+                        background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
                         color: '#fff',
-                        boxShadow: '0 0 8px rgba(99,102,241,0.6)',
+                        boxShadow: '0 2px 8px rgba(124,58,237,0.5)',
                       }}
                     >
                       {itemsCount > 99 ? '99+' : itemsCount}
                     </span>
                   )}
                 </div>
+
                 <span
-                  className="text-[10px] font-medium"
-                  style={{ color: isActive ? '#818cf8' : 'var(--hint)' }}
+                  className="text-[10px] font-medium transition-colors duration-200"
+                  style={{ color: isActive ? '#a78bfa' : 'rgba(255,255,255,0.35)' }}
                 >
                   {label}
                 </span>

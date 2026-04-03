@@ -2,50 +2,68 @@
 export default function LoadingScreen() {
   return (
     <div
-      className="flex flex-col items-center justify-center h-full gap-5"
+      className="flex flex-col items-center justify-center h-full gap-6"
       style={{ background: 'var(--bg)' }}
     >
-      {/* Геймерский спиннер с двойным кольцом */}
-      <div className="relative w-16 h-16">
-        {/* Внешнее кольцо */}
+      {/* Ambient glow layers */}
+      <div className="relative flex items-center justify-center">
+        {/* Outer pulse rings */}
+        {[1, 2, 3].map(i => (
+          <div
+            key={i}
+            className="absolute rounded-full"
+            style={{
+              inset: `-${i * 14}px`,
+              border: `1px solid rgba(124,58,237,${0.18 / i})`,
+              animation: `glowPulse 2.4s ease-in-out ${i * 0.35}s infinite`,
+            }}
+          />
+        ))}
+
+        {/* Logo tile */}
         <div
-          className="absolute inset-0 rounded-full border-2 border-transparent animate-spin"
+          className="relative w-18 h-18 rounded-2xl flex items-center justify-center z-10"
           style={{
-            borderTopColor: '#6366f1',
-            borderRightColor: 'rgba(99,102,241,0.3)',
-            animationDuration: '1s',
+            width: 72,
+            height: 72,
+            background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+            boxShadow: '0 0 32px rgba(124,58,237,0.55), 0 0 64px rgba(124,58,237,0.2)',
+          }}
+        >
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+               stroke="white" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="2" y="6" width="20" height="12" rx="4" />
+            <path d="M6 12h4M8 10v4" />
+            <circle cx="15" cy="11" r="1.1" fill="white" stroke="none" />
+            <circle cx="18" cy="13" r="1.1" fill="white" stroke="none" />
+          </svg>
+        </div>
+      </div>
+
+      {/* Spinner */}
+      <div className="relative w-9 h-9">
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            border: '2px solid rgba(124,58,237,0.15)',
           }}
         />
-        {/* Внутреннее кольцо (обратное вращение) */}
         <div
-          className="absolute inset-2 rounded-full border-2 border-transparent"
+          className="absolute inset-0 rounded-full animate-spin"
           style={{
-            borderBottomColor: '#818cf8',
-            borderLeftColor: 'rgba(129,140,248,0.3)',
-            animation: 'spin 1.5s linear infinite reverse',
+            border: '2px solid transparent',
+            borderTopColor: '#a78bfa',
+            borderRightColor: 'rgba(167,139,250,0.3)',
           }}
-        />
-        {/* Центральный пульсирующий dot */}
-        <div
-          className="absolute inset-[22px] rounded-full animate-pulse"
-          style={{ background: 'linear-gradient(135deg, #6366f1, #7c3aed)' }}
         />
       </div>
 
-      <div className="text-center">
-        <p
-          className="text-sm font-medium"
-          style={{ color: 'var(--hint)' }}
-        >
-          Загрузка...
-        </p>
-        <p
-          className="text-xs mt-1"
-          style={{ color: 'rgba(148,163,184,0.5)' }}
-        >
-          redonate.su
-        </p>
-      </div>
+      <p
+        className="text-sm font-medium tracking-wide"
+        style={{ color: 'rgba(167,139,250,0.6)', letterSpacing: '0.08em' }}
+      >
+        Загрузка...
+      </p>
     </div>
   )
 }
