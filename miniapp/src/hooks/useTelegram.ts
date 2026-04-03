@@ -15,7 +15,7 @@
  * ─────────────────────────────────────────────────────────────────────────
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 // Тип для window.Telegram.WebApp (упрощённый)
 interface TelegramWebApp {
@@ -84,7 +84,11 @@ function getTg(): TelegramWebApp | null {
 }
 
 export function useTelegram() {
-  const tg = getTg()
+  // Стабилизируем ссылку на объект WebApp через ref,
+  // чтобы не вызывать useEffect при каждом рендере
+  const tgRef = useRef<TelegramWebApp | null>(getTg())
+  const tg = tgRef.current
+
   const [colorScheme, setColorScheme] = useState<'light' | 'dark'>(
     tg?.colorScheme ?? 'light'
   )
@@ -100,7 +104,8 @@ export function useTelegram() {
     // поэтому периодически проверяем (или используем MutationObserver)
     const interval = setInterval(handler, 1000)
     return () => clearInterval(interval)
-  }, [tg])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // ── Main Button ────────────────────────────────────────────────────────────
   const showMainButton = useCallback(

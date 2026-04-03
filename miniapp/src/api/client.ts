@@ -93,8 +93,7 @@ apiClient.interceptors.response.use(
     } catch {
       clearTokens()
       pendingRequests = []
-      // Перезагружаем страницу для повторной авторизации
-      window.location.reload()
+      // Не делаем reload — просто отклоняем запрос, чтобы не вызвать бесконечный цикл
       return Promise.reject(error)
     } finally {
       isRefreshing = false

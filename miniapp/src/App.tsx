@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useTelegram } from '@/hooks/useTelegram'
 import { authenticateWithTelegram } from '@/api/client'
@@ -26,8 +26,14 @@ export default function App() {
   const { initData } = useTelegram()
   const { isReady, isError, setReady, setError } = useAuthStore()
   const { setItemsCount } = useCartStore()
+  // Гарантируем что init() выполнится ровно один раз,
+  // независимо от нестабильности ссылок в deps
+  const initialized = useRef(false)
 
   useEffect(() => {
+    if (initialized.current) return
+    initialized.current = true
+
     async function init() {
       try {
         // Авторизуемся через Telegram initData
@@ -44,7 +50,7 @@ export default function App() {
           const cart = await cartApi.get()
           setItemsCount(cart.items_count)
         } catch {
-          // OK
+          // OK — пользователь не авторизован или API недоступен
         }
 
         setReady()
@@ -54,7 +60,8 @@ export default function App() {
       }
     }
     init()
-  }, [initData, setReady, setError, setItemsCount])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (isError) return <ErrorScreen />
   if (!isReady) return <LoadingScreen />
