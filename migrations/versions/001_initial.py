@@ -51,10 +51,14 @@ def enum(name: str) -> postgresql.ENUM:
 def upgrade() -> None:
     op.execute(sa.text("CREATE EXTENSION IF NOT EXISTS pgcrypto"))
 
-    # Создаём все enum типы явно — один раз, с IF NOT EXISTS
+    # Создаём все enum типы явно — один раз перед таблицами
     for name, values in ENUM_TYPES.items():
         vals = ", ".join(f"'{v}'" for v in values)
-        op.execute(sa.text(f"CREATE TYPE IF NOT EXISTS {name} AS ENUM ({vals})"))
+        op.execute(
+            sa.text(
+                f"DO $$ BEGIN CREATE TYPE {name} AS ENUM ({vals}); EXCEPTION WHEN duplicate_object THEN null; END $$"
+            )
+        )
 
     # ── loyalty_levels ────────────────────────────────────────────────────────
     op.create_table(
