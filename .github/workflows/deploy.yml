@@ -108,6 +108,7 @@ jobs:
         working-directory: miniapp
         env:
           VITE_SHOP_NAME: reDonate
+          VITE_BOT_USERNAME: redonate_robot
         run: |
           npm ci
           npm run build
