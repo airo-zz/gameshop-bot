@@ -218,3 +218,5 @@ __marimo__/
 node_modules/
 dist/
 build/
+# miniapp build output — деплоится через SCP, не через git
+miniapp/dist/

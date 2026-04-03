@@ -136,6 +136,19 @@ jobs:
           name: miniapp-dist
           path: miniapp/dist/
 
+      # SCP идёт ДО docker compose up, чтобы nginx поднимался уже с новыми файлами.
+      # strip_components: 2 срезает "miniapp/dist/" — файлы попадают прямо в
+      # $VPS_APP_DIR/miniapp/dist/, что соответствует volume-монту в docker-compose.yml.
+      - name: Copy Mini App dist
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host:        ${{ secrets.VPS_HOST }}
+          username:    ${{ secrets.VPS_USER }}
+          password:    ${{ secrets.VPS_PASSWORD }}
+          source:      "miniapp/dist/*"
+          target:      ${{ secrets.VPS_APP_DIR }}/miniapp/dist/
+          strip_components: 2
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -147,9 +160,14 @@ jobs:
             set -e
             cd ${{ secrets.VPS_APP_DIR }}
 
-            # Получаем свежий код
+            # Получаем свежий код (без miniapp/dist — он уже обновлён через SCP)
             git fetch origin main
             git reset --hard origin/main
+
+            # Восстанавливаем miniapp/dist после git reset --hard:
+            # git reset затёр бы dist если бы он трекался, но dist в .gitignore —
+            # тем не менее явно проверяем что директория на месте
+            mkdir -p miniapp/dist
 
             # Собираем и перезапускаем контейнеры
             docker compose pull --quiet
@@ -159,17 +177,10 @@ jobs:
             sleep 10
             curl -sf http://localhost:8000/health || echo "Health check failed"
 
-            echo "✅ Deploy completed: $(date)"
+            # Перезагружаем nginx чтобы он подхватил новые файлы из volume-монта
+            docker compose exec -T nginx nginx -s reload
 
-      - name: Copy Mini App dist
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host:        ${{ secrets.VPS_HOST }}
-          username:    ${{ secrets.VPS_USER }}
-          password:    ${{ secrets.VPS_PASSWORD }}
-          source:      miniapp/dist/*
-          target:      ${{ secrets.VPS_APP_DIR }}/miniapp/dist/
-          strip_components: 2
+            echo "Deploy completed: $(date)"
 
       - name: Notify on failure
         if: failure()
