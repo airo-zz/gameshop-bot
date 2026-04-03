@@ -136,18 +136,15 @@ jobs:
           name: miniapp-dist
           path: miniapp/dist/
 
-      # SCP идёт ДО docker compose up, чтобы nginx поднимался уже с новыми файлами.
-      # strip_components: 2 срезает "miniapp/dist/" — файлы попадают прямо в
-      # $VPS_APP_DIR/miniapp/dist/, что соответствует volume-монту в docker-compose.yml.
+      # SCP копирует dist во временную папку с предсказуемым путём
       - name: Copy Mini App dist
         uses: appleboy/scp-action@v0.1.7
         with:
           host:        ${{ secrets.VPS_HOST }}
           username:    ${{ secrets.VPS_USER }}
           password:    ${{ secrets.VPS_PASSWORD }}
-          source:      "miniapp/dist/*"
-          target:      ${{ secrets.VPS_APP_DIR }}/miniapp/dist/
-          strip_components: 2
+          source:      "miniapp/dist"
+          target:      "/tmp/redonate-deploy/"
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -160,14 +157,14 @@ jobs:
             set -e
             cd ${{ secrets.VPS_APP_DIR }}
 
-            # Получаем свежий код (без miniapp/dist — он уже обновлён через SCP)
+            # Обновляем miniapp/dist из временной папки (предсказуемый путь)
+            mkdir -p miniapp/dist
+            cp -r /tmp/redonate-deploy/miniapp/dist/. miniapp/dist/
+            rm -rf /tmp/redonate-deploy
+
+            # Получаем свежий код
             git fetch origin main
             git reset --hard origin/main
-
-            # Восстанавливаем miniapp/dist после git reset --hard:
-            # git reset затёр бы dist если бы он трекался, но dist в .gitignore —
-            # тем не менее явно проверяем что директория на месте
-            mkdir -p miniapp/dist
 
             # Собираем и перезапускаем контейнеры
             docker compose pull --quiet
@@ -177,7 +174,7 @@ jobs:
             sleep 10
             curl -sf http://localhost:8000/health || echo "Health check failed"
 
-            # Перезагружаем nginx чтобы он подхватил новые файлы из volume-монта
+            # Перезагружаем nginx
             docker compose exec -T nginx nginx -s reload
 
             echo "Deploy completed: $(date)"
