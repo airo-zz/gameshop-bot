@@ -1,0 +1,10 @@
+miniapp/node_modules
+miniapp/dist
+.git
+.claude
+.github
+__pycache__
+*.pyc
+.env
+.venv
+node_modules
