@@ -16,6 +16,7 @@ from typing import Any
 from aiogram import BaseMiddleware, Bot
 from aiogram.types import Message, CallbackQuery, TelegramObject, User as TgUser
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from shared.database.session import async_session_factory
 from shared.models import User, LoyaltyLevel
@@ -57,9 +58,12 @@ class AuthMiddleware(BaseMiddleware):
         bot: Bot = data.get("bot")
 
         async with async_session_factory() as session:
-            # Ищем пользователя в БД
+            # Ищем пользователя в БД, сразу загружаем loyalty_level
+            # чтобы избежать MissingGreenlet при обращении к relationship в хендлерах
             result = await session.execute(
-                select(User).where(User.telegram_id == tg_user.id)
+                select(User)
+                .options(selectinload(User.loyalty_level))
+                .where(User.telegram_id == tg_user.id)
             )
             user = result.scalar_one_or_none()
 

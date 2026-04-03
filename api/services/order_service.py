@@ -232,25 +232,29 @@ class OrderService:
         )
         items = result.scalars().all()
 
-        # Собираем все item_id для авто-товаров одним запросом — устраняем N+1
+        # Фильтруем позиции с авто-выдачей
         auto_items = [
             item for item in items
             if item.product.delivery_type.value in ("auto", "mixed")
         ]
-        auto_item_ids = [item.id for item in auto_items]
 
+        # Для каждого auto-item ищем зарезервированные ключи по product_id/lot_id.
+        # Ключи резервируются в _reserve_keys без order_item_id (он неизвестен до flush),
+        # поэтому фильтруем по product_id + lot_id + is_used=True + order_item_id IS NULL.
         keys_by_item: dict[uuid.UUID, list[ProductKey]] = defaultdict(list)
-        if auto_item_ids:
+        for item in auto_items:
             keys_result = await self.db.execute(
                 select(ProductKey)
                 .where(
-                    ProductKey.order_item_id.in_(auto_item_ids),
+                    ProductKey.product_id == item.product_id,
+                    ProductKey.lot_id == item.lot_id,
                     ProductKey.is_used == True,
+                    ProductKey.order_item_id.is_(None),
                 )
+                .limit(item.quantity)
                 .with_for_update(skip_locked=True)
             )
-            for key in keys_result.scalars().all():
-                keys_by_item[key.order_item_id].append(key)
+            keys_by_item[item.id] = list(keys_result.scalars().all())
 
         all_delivered = True
         for item in items:
@@ -261,9 +265,12 @@ class OrderService:
             keys = keys_by_item[item.id]
 
             if len(keys) >= item.quantity:
-                # Расшифровываем и записываем в delivery_data
+                # Привязываем ключи к позиции заказа и расшифровываем для выдачи
                 from api.services.crypto_service import decrypt_key
-                decrypted_keys = [decrypt_key(k.key_value) for k in keys]
+                decrypted_keys = []
+                for k in keys[: item.quantity]:
+                    k.order_item_id = item.id
+                    decrypted_keys.append(decrypt_key(k.key_value))
                 item.delivery_data = {"keys": decrypted_keys}
                 item.delivered_at = datetime.now(timezone.utc)
             else:

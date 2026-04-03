@@ -22,7 +22,7 @@ async def get_profile(db: DbSession, user: CurrentUser):
 
     # Считаем количество рефералов
     ref_result = await db.execute(
-        select(func.count()).where(User.referred_by_id == user_full.id)
+        select(func.count()).select_from(User).where(User.referred_by_id == user_full.id)
     )
     referrals_count = ref_result.scalar_one() or 0
 
