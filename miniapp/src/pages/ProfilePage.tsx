@@ -62,7 +62,7 @@ export default function ProfilePage() {
           ) : (
             <div
               className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 text-xl font-bold"
-              style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: '#fff' }}
+              style={{ background: 'linear-gradient(135deg, #4f46e5, #4f46e5)', color: '#fff' }}
             >
               {avatarInitial}
             </div>
@@ -81,8 +81,8 @@ export default function ProfilePage() {
         <div
           className="p-4 rounded-2xl"
           style={{
-            background: 'rgba(124,58,237,0.08)',
-            border: '1px solid rgba(124,58,237,0.2)',
+            background: 'rgba(79,70,229,0.1)',
+            border: '1px solid rgba(79,70,229,0.22)',
           }}
         >
           <p className="text-sm" style={{ color: 'var(--hint)' }}>
@@ -103,7 +103,7 @@ export default function ProfilePage() {
               className="flex items-center gap-3 p-4 rounded-2xl active:scale-[0.98] transition-transform"
               style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
             >
-              <span style={{ color: '#a78bfa' }}>{icon}</span>
+              <span style={{ color: '#818cf8' }}>{icon}</span>
               <span className="font-medium text-sm flex-1" style={{ color: 'var(--text)' }}>{label}</span>
               <ChevronRight size={16} style={{ color: 'var(--hint)' }} />
             </Link>
@@ -130,7 +130,7 @@ export default function ProfilePage() {
         ) : (
           <div
             className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 text-xl font-bold"
-            style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: '#fff' }}
+            style={{ background: 'linear-gradient(135deg, #4f46e5, #4f46e5)', color: '#fff' }}
           >
             {avatarInitial}
           </div>
@@ -151,7 +151,7 @@ export default function ProfilePage() {
       {/* Статистика */}
       <div className="grid grid-cols-2 gap-2">
         {[
-          { label: 'Баланс',    value: `${Number(profile.balance).toLocaleString('ru')} ₽`, color: '#a78bfa' },
+          { label: 'Баланс',    value: `${Number(profile.balance).toLocaleString('ru')} ₽`, color: '#818cf8' },
           { label: 'Заказов',   value: String(profile.orders_count),                          color: 'var(--text)' },
           { label: 'Потрачено', value: `${Number(profile.total_spent).toLocaleString('ru')} ₽`, color: 'var(--text)' },
           { label: 'Рефералов', value: String(profile.referrals_count),                       color: '#34d399' },
@@ -177,8 +177,8 @@ export default function ProfilePage() {
         <div
           className="p-4 rounded-2xl"
           style={{
-            background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.15))',
-            border: '1px solid rgba(124,58,237,0.25)',
+            background: 'linear-gradient(135deg, rgba(79,70,229,0.16), rgba(79,70,229,0.15))',
+            border: '1px solid rgba(79,70,229,0.28)',
           }}
         >
           <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>
@@ -187,7 +187,7 @@ export default function ProfilePage() {
           <div className="flex gap-6">
             {profile.loyalty_discount_percent > 0 && (
               <div>
-                <p className="text-2xl font-extrabold" style={{ color: '#a78bfa' }}>
+                <p className="text-2xl font-extrabold" style={{ color: '#818cf8' }}>
                   {profile.loyalty_discount_percent}%
                 </p>
                 <p className="text-xs" style={{ color: 'var(--hint)' }}>скидка</p>
@@ -223,7 +223,7 @@ export default function ProfilePage() {
         >
           <code
             className="text-xs font-bold truncate mr-2"
-            style={{ color: '#a78bfa', maxWidth: '70%' }}
+            style={{ color: '#818cf8', maxWidth: '70%' }}
           >
             t.me/{BOT_USERNAME}?start=REF_{profile.telegram_id}
           </code>
@@ -247,7 +247,7 @@ export default function ProfilePage() {
             className="flex items-center gap-3 p-4 rounded-2xl active:scale-[0.98] transition-transform"
             style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
           >
-            <span style={{ color: '#a78bfa' }}>{icon}</span>
+            <span style={{ color: '#818cf8' }}>{icon}</span>
             <span className="font-medium text-sm flex-1" style={{ color: 'var(--text)' }}>{label}</span>
             <ChevronRight size={16} style={{ color: 'var(--hint)' }} />
           </Link>

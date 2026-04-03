@@ -20,7 +20,7 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled:  '#f87171',
   dispute:    '#fbbf24',
   paid:       '#60a5fa',
-  processing: '#a78bfa',
+  processing: '#818cf8',
 }
 
 export default function OrdersPage() {
@@ -36,7 +36,7 @@ export default function OrdersPage() {
       <button
         onClick={() => refetch()}
         className="px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
-        style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.35)', color: '#a78bfa' }}
+        style={{ background: 'rgba(79,70,229,0.16)', border: '1px solid rgba(79,70,229,0.38)', color: '#818cf8' }}
       >
         Повторить
       </button>
@@ -81,7 +81,7 @@ export default function OrdersPage() {
                   <p className="font-bold text-sm" style={{ color: 'var(--text)' }}>
                     {order.order_number}
                   </p>
-                  <p className="font-bold text-sm" style={{ color: '#a78bfa' }}>
+                  <p className="font-bold text-sm" style={{ color: '#818cf8' }}>
                     {order.total_amount.toLocaleString('ru')} ₽
                   </p>
                 </div>

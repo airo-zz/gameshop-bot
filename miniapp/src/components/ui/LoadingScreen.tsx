@@ -16,7 +16,7 @@ export default function LoadingScreen() {
             className="absolute rounded-full"
             style={{
               inset: `-${i * 14}px`,
-              border: `1px solid rgba(124,58,237,${0.18 / i})`,
+              border: `1px solid rgba(79,70,229,${0.2 / i})`,
               animation: `glowPulse 2.4s ease-in-out ${i * 0.35}s infinite`,
             }}
           />
@@ -28,8 +28,8 @@ export default function LoadingScreen() {
           style={{
             width: 72,
             height: 72,
-            background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
-            boxShadow: '0 0 32px rgba(124,58,237,0.55), 0 0 64px rgba(124,58,237,0.2)',
+            background: 'linear-gradient(135deg, #4f46e5 0%, #6d28d9 100%)',
+            boxShadow: '0 0 32px rgba(79,70,229,0.6), 0 0 64px rgba(79,70,229,0.22)',
           }}
         >
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
@@ -46,7 +46,7 @@ export default function LoadingScreen() {
       <p
         className="text-base font-bold tracking-tight"
         style={{
-          background: 'linear-gradient(135deg, #ffffff, #c4b5fd)',
+          background: 'linear-gradient(135deg, #ffffff, #a5b4fc)',
           WebkitBackgroundClip: 'text',
           WebkitTextFillColor: 'transparent',
           backgroundClip: 'text',
@@ -61,22 +61,22 @@ export default function LoadingScreen() {
         <div
           className="absolute inset-0 rounded-full"
           style={{
-            border: '2px solid rgba(124,58,237,0.15)',
+            border: '2px solid rgba(79,70,229,0.18)',
           }}
         />
         <div
           className="absolute inset-0 rounded-full animate-spin"
           style={{
             border: '2px solid transparent',
-            borderTopColor: '#a78bfa',
-            borderRightColor: 'rgba(167,139,250,0.3)',
+            borderTopColor: '#818cf8',
+            borderRightColor: 'rgba(129,140,248,0.3)',
           }}
         />
       </div>
 
       <p
         className="text-sm font-medium tracking-wide"
-        style={{ color: 'rgba(167,139,250,0.6)', letterSpacing: '0.08em' }}
+        style={{ color: 'rgba(129,140,248,0.65)', letterSpacing: '0.08em' }}
       >
         Загрузка...
       </p>

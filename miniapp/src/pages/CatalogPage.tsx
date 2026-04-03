@@ -46,9 +46,9 @@ export default function CatalogPage() {
         onClick={() => refetch()}
         className="px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
         style={{
-          background: 'rgba(124,58,237,0.15)',
-          border: '1px solid rgba(124,58,237,0.35)',
-          color: '#a78bfa',
+          background: 'rgba(79,70,229,0.16)',
+          border: '1px solid rgba(79,70,229,0.38)',
+          color: '#818cf8',
         }}
       >
         Повторить
@@ -137,7 +137,7 @@ export default function CatalogPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>{product.name}</p>
-                      <p className="text-xs mt-0.5 font-medium" style={{ color: '#a78bfa' }}>
+                      <p className="text-xs mt-0.5 font-medium" style={{ color: '#818cf8' }}>
                         от {minPrice.toLocaleString('ru')} ₽
                       </p>
                     </div>

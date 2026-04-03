@@ -19,7 +19,7 @@ export default function FavoritesPage() {
       <button
         onClick={() => refetch()}
         className="px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
-        style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.35)', color: '#a78bfa' }}
+        style={{ background: 'rgba(79,70,229,0.16)', border: '1px solid rgba(79,70,229,0.38)', color: '#818cf8' }}
       >
         Повторить
       </button>

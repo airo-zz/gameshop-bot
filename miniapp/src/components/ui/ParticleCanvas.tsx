@@ -73,10 +73,10 @@ function getDPR() {
   return IS_MOBILE ? Math.min(devicePixelRatio, 1.5) : (devicePixelRatio || 1)
 }
 
-// Particle settings adapted to violet/indigo gaming palette
+// Particle settings — magenta/pink palette matching VoxiProxy style
 const PARTICLE_COUNT = IS_MOBILE ? 75  : 300
 const RANGE_Y        = 100
-const BASE_HUE       = 260   // violet — matches our accent
+const BASE_HUE       = 295   // pink-magenta base (#d946ef territory)
 const RANGE_SPEED    = 1.2
 const PROPS_PER      = 9     // x y vx vy life maxLife speed size hue
 
@@ -118,7 +118,7 @@ export default function ParticleCanvas() {
       props[i+5] = 50 + rand(150)
       props[i+6] = rand(RANGE_SPEED)
       props[i+7] = 1 + rand(2)
-      props[i+8] = BASE_HUE + rand(60)   // violet → indigo range
+      props[i+8] = BASE_HUE + rand(50)   // magenta → pink range (#d946ef → #e879f9)
     }
 
     for (let i = 0; i < total; i += PROPS_PER) initParticle(i)
@@ -176,7 +176,7 @@ export default function ParticleCanvas() {
         const alpha = triWave(life, maxLife)
 
         ctx.lineWidth   = size
-        ctx.strokeStyle = `hsla(${hue},100%,60%,${alpha.toFixed(3)})`
+        ctx.strokeStyle = `hsla(${hue},100%,68%,${Math.min(alpha * 1.25, 1).toFixed(3)})`
         ctx.beginPath()
         ctx.moveTo(x, y)
         ctx.lineTo(nx, ny)

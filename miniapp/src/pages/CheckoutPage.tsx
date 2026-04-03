@@ -142,7 +142,7 @@ export default function CheckoutPage() {
         )}
         <div className="flex justify-between font-bold text-base">
           <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span style={{ color: '#a78bfa' }}>{cart.total.toLocaleString('ru')} ₽</span>
+          <span style={{ color: '#818cf8' }}>{cart.total.toLocaleString('ru')} ₽</span>
         </div>
       </div>
 
@@ -162,15 +162,15 @@ export default function CheckoutPage() {
                 className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all duration-150 active:scale-[0.98]"
                 style={{
                   background: isSelected
-                    ? 'linear-gradient(135deg, rgba(124,58,237,0.25), rgba(79,70,229,0.25))'
+                    ? 'linear-gradient(135deg, rgba(79,70,229,0.28), rgba(79,70,229,0.25))'
                     : 'var(--bg2)',
                   border: isSelected
-                    ? '1.5px solid rgba(124,58,237,0.5)'
+                    ? '1.5px solid rgba(79,70,229,0.55)'
                     : '1.5px solid var(--border)',
                   opacity: isDisabled ? 0.5 : 1,
                 }}
               >
-                <span style={{ color: isSelected ? '#a78bfa' : 'var(--hint)' }}>
+                <span style={{ color: isSelected ? '#818cf8' : 'var(--hint)' }}>
                   {method.icon}
                 </span>
                 <div className="flex-1">
@@ -182,7 +182,7 @@ export default function CheckoutPage() {
                     }
                   </p>
                 </div>
-                {isSelected && <CheckCircle size={18} style={{ color: '#a78bfa' }} />}
+                {isSelected && <CheckCircle size={18} style={{ color: '#818cf8' }} />}
               </button>
             )
           })}

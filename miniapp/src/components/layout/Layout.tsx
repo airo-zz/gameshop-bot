@@ -92,12 +92,12 @@ export default function Layout() {
       <nav
         className="fixed bottom-4 left-3 right-3 z-50"
         style={{
-          background: 'rgba(13,13,26,0.96)',
+          background: 'rgba(19,17,42,0.97)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '28px',
-          boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(124,58,237,0.1)',
+          boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(79,70,229,0.12)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
@@ -110,7 +110,7 @@ export default function Layout() {
                 to={to}
                 className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl transition-all duration-200 active:scale-90"
                 style={{
-                  background: isActive ? 'rgba(124,58,237,0.18)' : 'transparent',
+                  background: isActive ? 'rgba(79,70,229,0.18)' : 'transparent',
                   minWidth: 52,
                 }}
               >
@@ -118,8 +118,8 @@ export default function Layout() {
                 <div className="relative flex items-center justify-center">
                   <span
                     style={{
-                      color: isActive ? '#a78bfa' : 'rgba(255,255,255,0.38)',
-                      filter: isActive ? 'drop-shadow(0 0 6px rgba(167,139,250,0.6))' : 'none',
+                      color: isActive ? '#818cf8' : 'rgba(255,255,255,0.38)',
+                      filter: isActive ? 'drop-shadow(0 0 6px rgba(129,140,248,0.65))' : 'none',
                       transition: 'color 0.2s, filter 0.2s',
                       display: 'flex',
                     }}
@@ -132,9 +132,9 @@ export default function Layout() {
                       className="absolute -top-1 -right-2 min-w-[16px] h-4 flex items-center justify-center
                                  rounded-full text-[10px] font-bold px-1"
                       style={{
-                        background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
+                        background: 'linear-gradient(135deg, #4f46e5, #6d28d9)',
                         color: '#fff',
-                        boxShadow: '0 2px 8px rgba(124,58,237,0.5)',
+                        boxShadow: '0 2px 8px rgba(79,70,229,0.55)',
                       }}
                     >
                       {itemsCount > 99 ? '99+' : itemsCount}
@@ -144,7 +144,7 @@ export default function Layout() {
 
                 <span
                   className="text-[10px] font-medium transition-colors duration-200"
-                  style={{ color: isActive ? '#a78bfa' : 'rgba(255,255,255,0.35)' }}
+                  style={{ color: isActive ? '#818cf8' : 'rgba(255,255,255,0.35)' }}
                 >
                   {label}
                 </span>

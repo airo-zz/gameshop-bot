@@ -117,7 +117,7 @@ export default function ProductPage() {
                 style={{
                   width: i === imgIdx ? 20 : 6,
                   height: 6,
-                  background: i === imgIdx ? '#7c3aed' : 'rgba(255,255,255,0.3)',
+                  background: i === imgIdx ? '#4f46e5' : 'rgba(255,255,255,0.3)',
                 }}
               />
             ))}
@@ -191,10 +191,10 @@ export default function ProductPage() {
                     className="p-3 rounded-2xl text-left transition-all duration-150 active:scale-95"
                     style={{
                       background: isSelected
-                        ? 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(79,70,229,0.3))'
+                        ? 'linear-gradient(135deg, rgba(79,70,229,0.32), rgba(79,70,229,0.3))'
                         : 'var(--bg2)',
                       border: isSelected
-                        ? '1.5px solid rgba(124,58,237,0.6)'
+                        ? '1.5px solid rgba(79,70,229,0.65)'
                         : '1.5px solid var(--border)',
                     }}
                   >
@@ -220,7 +220,7 @@ export default function ProductPage() {
                           {lot.original_price.toLocaleString('ru')} ₽
                         </span>
                       )}
-                      <span className="text-base font-bold" style={{ color: '#a78bfa' }}>
+                      <span className="text-base font-bold" style={{ color: '#818cf8' }}>
                         {lot.price.toLocaleString('ru')} ₽
                       </span>
                     </div>

@@ -145,8 +145,8 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
         width: 38,
         height: 22,
         borderRadius: 11,
-        background: checked ? 'rgba(124,58,237,0.8)' : 'rgba(255,255,255,0.12)',
-        border: checked ? '1px solid rgba(167,139,250,0.5)' : '1px solid rgba(255,255,255,0.1)',
+        background: checked ? 'rgba(79,70,229,0.85)' : 'rgba(255,255,255,0.12)',
+        border: checked ? '1px solid rgba(129,140,248,0.5)' : '1px solid rgba(255,255,255,0.1)',
         position: 'relative',
         cursor: 'pointer',
         transition: 'background 0.2s, border-color 0.2s',
@@ -214,10 +214,10 @@ function DropdownMenu({ open, onClose, particlesEnabled, onToggleParticles }: Dr
         top: 'calc(100% + 10px)',
         right: 0,
         minWidth: 230,
-        background: 'rgba(15,10,30,0.92)',
-        border: '1px solid rgba(124,58,237,0.3)',
+        background: 'rgba(19,17,42,0.94)',
+        border: '1px solid rgba(79,70,229,0.32)',
         borderRadius: 16,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(124,58,237,0.08), inset 0 1px 0 rgba(255,255,255,0.05), 0 0 40px rgba(124,58,237,0.12)',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(79,70,229,0.08), inset 0 1px 0 rgba(255,255,255,0.05), 0 0 40px rgba(79,70,229,0.14)',
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         overflow: 'hidden',
@@ -237,8 +237,8 @@ function DropdownMenu({ open, onClose, particlesEnabled, onToggleParticles }: Dr
       <div style={{ position: 'absolute', top: -6, right: 14, width: 12, height: 6, overflow: 'hidden' }}>
         <div style={{
           width: 12, height: 12,
-          background: 'rgba(15,10,30,0.92)',
-          border: '1px solid rgba(124,58,237,0.3)',
+          background: 'rgba(19,17,42,0.94)',
+          border: '1px solid rgba(79,70,229,0.32)',
           transform: 'rotate(45deg)',
           transformOrigin: 'center',
           marginTop: 6,
@@ -248,7 +248,7 @@ function DropdownMenu({ open, onClose, particlesEnabled, onToggleParticles }: Dr
       {MENU_GROUPS.map((group, gi) => (
         <div key={gi}>
           {gi > 0 && (
-            <div style={{ height: 1, background: 'rgba(124,58,237,0.15)', margin: '0 12px' }} />
+            <div style={{ height: 1, background: 'rgba(79,70,229,0.18)', margin: '0 12px' }} />
           )}
           {group.map((item) => {
             const isToggle = !!item.toggle
@@ -277,12 +277,12 @@ function DropdownMenu({ open, onClose, particlesEnabled, onToggleParticles }: Dr
                   color: 'var(--text)',
                   transition: 'background 0.15s',
                 }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(124,58,237,0.1)' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(79,70,229,0.12)' }}
                 onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-                onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(124,58,237,0.14)' }}
+                onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(79,70,229,0.16)' }}
                 onTouchEnd={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
               >
-                <span style={{ color: 'rgba(167,139,250,0.7)', display: 'flex', flexShrink: 0, width: 20 }}>
+                <span style={{ color: 'rgba(129,140,248,0.75)', display: 'flex', flexShrink: 0, width: 20 }}>
                   {item.icon}
                 </span>
                 <span style={{ flex: 1, textAlign: 'left', fontSize: 14, fontWeight: 500, letterSpacing: '-0.01em' }}>
@@ -293,7 +293,7 @@ function DropdownMenu({ open, onClose, particlesEnabled, onToggleParticles }: Dr
                     if (item.toggleKey === 'particles') onToggleParticles(v)
                   }} />
                 ) : (
-                  <span style={{ color: 'rgba(167,139,250,0.3)', display: 'flex' }}>
+                  <span style={{ color: 'rgba(129,140,248,0.35)', display: 'flex' }}>
                     <IconChevronRight />
                   </span>
                 )}
@@ -355,7 +355,7 @@ export default function HomePage() {
       <div
         className="sticky top-0 z-40 animate-slide-down"
         style={{
-          background: 'rgba(8,8,16,0.9)',
+          background: 'rgba(12,11,29,0.92)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
@@ -377,13 +377,13 @@ export default function HomePage() {
                 width: 36,
                 height: 36,
                 borderRadius: 10,
-                background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
-                border: '1px solid rgba(167,139,250,0.2)',
+                background: 'linear-gradient(135deg, #4f46e5 0%, #6d28d9 100%)',
+                border: '1px solid rgba(129,140,248,0.2)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
-                boxShadow: '0 0 16px rgba(124,58,237,0.4)',
+                boxShadow: '0 0 16px rgba(79,70,229,0.45)',
               }}
             >
               <IconGamepadLogo />
@@ -393,7 +393,7 @@ export default function HomePage() {
                 fontWeight: 700,
                 fontSize: '1.05rem',
                 letterSpacing: '-0.01em',
-                background: 'linear-gradient(135deg, #ffffff, #c4b5fd)',
+                background: 'linear-gradient(135deg, #ffffff, #a5b4fc)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
@@ -415,9 +415,9 @@ export default function HomePage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   borderRadius: 12,
-                  background: menuOpen ? 'rgba(124,58,237,0.15)' : 'none',
-                  border: menuOpen ? '1px solid rgba(124,58,237,0.3)' : '1px solid transparent',
-                  color: menuOpen ? '#a78bfa' : 'rgba(255,255,255,0.45)',
+                  background: menuOpen ? 'rgba(79,70,229,0.16)' : 'none',
+                  border: menuOpen ? '1px solid rgba(79,70,229,0.32)' : '1px solid transparent',
+                  color: menuOpen ? '#818cf8' : 'rgba(255,255,255,0.45)',
                   cursor: 'pointer',
                   transition: 'background 0.15s, border-color 0.15s, color 0.15s',
                 }}
@@ -446,7 +446,7 @@ export default function HomePage() {
               fontSize: '1.3rem',
               lineHeight: 1.2,
               letterSpacing: '-0.02em',
-              background: 'linear-gradient(135deg, #ffffff 0%, #c4b5fd 100%)',
+              background: 'linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%)',
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
               backgroundClip: 'text',
@@ -464,11 +464,11 @@ export default function HomePage() {
                   gap: 5,
                   padding: '3px 12px 3px 8px',
                   borderRadius: 999,
-                  background: 'rgba(124,58,237,0.15)',
-                  border: '1px solid rgba(124,58,237,0.3)',
+                  background: 'rgba(79,70,229,0.16)',
+                  border: '1px solid rgba(79,70,229,0.32)',
                   fontSize: 12,
                   fontWeight: 600,
-                  color: '#c4b5fd',
+                  color: '#a5b4fc',
                 }}
               >
                 <span style={{ fontSize: 13 }}>{profile.loyalty_level_emoji || '⭐'}</span>
@@ -499,7 +499,7 @@ export default function HomePage() {
                 gap: 7,
               }}
             >
-              <span style={{ color: '#a78bfa', display: 'flex' }}>
+              <span style={{ color: '#818cf8', display: 'flex' }}>
                 <IconGamepadSmall />
               </span>
               Игры
@@ -512,7 +512,7 @@ export default function HomePage() {
                 gap: 3,
                 fontSize: 13,
                 fontWeight: 500,
-                color: '#a78bfa',
+                color: '#818cf8',
                 textDecoration: 'none',
               }}
             >
@@ -581,8 +581,8 @@ export default function HomePage() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            background: 'linear-gradient(135deg, #12121f, #1a1a2e)',
-                            color: 'rgba(167,139,250,0.5)',
+                            background: 'linear-gradient(135deg, #13112a, #1e1c3a)',
+                            color: 'rgba(129,140,248,0.5)',
                           }}
                         >
                           <IconGamepadSmall />
@@ -645,7 +645,7 @@ export default function HomePage() {
                 gap: 3,
                 fontSize: 13,
                 fontWeight: 500,
-                color: '#a78bfa',
+                color: '#818cf8',
                 textDecoration: 'none',
               }}
             >
@@ -702,8 +702,8 @@ export default function HomePage() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            background: 'linear-gradient(135deg, #12121f, #1a1a2e)',
-                            color: 'rgba(167,139,250,0.4)',
+                            background: 'linear-gradient(135deg, #13112a, #1e1c3a)',
+                            color: 'rgba(129,140,248,0.4)',
                           }}
                         >
                           <IconGamepadSmall />
@@ -730,7 +730,7 @@ export default function HomePage() {
                           margin: '2px 0 0',
                           fontSize: 12,
                           fontWeight: 700,
-                          background: 'linear-gradient(135deg, #a78bfa, #818cf8)',
+                          background: 'linear-gradient(135deg, #818cf8, #6366f1)',
                           WebkitBackgroundClip: 'text',
                           WebkitTextFillColor: 'transparent',
                           backgroundClip: 'text',
@@ -740,7 +740,7 @@ export default function HomePage() {
                       </p>
                     </div>
 
-                    <span style={{ color: 'rgba(167,139,250,0.4)', display: 'flex', flexShrink: 0 }}>
+                    <span style={{ color: 'rgba(129,140,248,0.4)', display: 'flex', flexShrink: 0 }}>
                       <IconChevronRight />
                     </span>
                   </Link>
