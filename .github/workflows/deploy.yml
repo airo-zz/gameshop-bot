@@ -167,7 +167,8 @@ jobs:
           username:    ${{ secrets.VPS_USER }}
           password:    ${{ secrets.VPS_PASSWORD }}
           source:      miniapp/dist/*
-          target:      ${{ secrets.VPS_APP_DIR }}/miniapp/
+          target:      ${{ secrets.VPS_APP_DIR }}/miniapp/dist/
+          strip_components: 2
 
       - name: Notify on failure
         if: failure()
