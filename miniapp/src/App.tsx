@@ -33,12 +33,13 @@ export default function App() {
       try {
         // Авторизуемся через Telegram initData
         if (initData) {
-          await authenticateWithTelegram(initData)
-        } else if (import.meta.env.DEV) {
-          // В dev-режиме без Telegram — пропускаем авторизацию
-          console.warn('Dev mode: skipping Telegram auth')
+          try {
+            await authenticateWithTelegram(initData)
+          } catch (authErr) {
+            console.warn('Auth endpoint not available yet, skipping:', authErr)
+          }
         } else {
-          throw new Error('No initData')
+          console.warn('No initData — skipping Telegram auth')
         }
 
         // Загружаем количество позиций в корзине для бейджа
@@ -46,7 +47,7 @@ export default function App() {
           const cart = await cartApi.get()
           setItemsCount(cart.items_count)
         } catch {
-          // Не критично
+          // Не критично — API может быть ещё не готов
         }
 
         setReady()
