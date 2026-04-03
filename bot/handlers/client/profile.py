@@ -1,7 +1,7 @@
 """
 bot/handlers/client/profile.py
 ─────────────────────────────────────────────────────────────────────────────
-Профиль пользователя.
+Профиль пользователя + реферальная программа.
 ─────────────────────────────────────────────────────────────────────────────
 """
 
@@ -14,9 +14,9 @@ from aiogram.types import (
     Message,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
-from sqlalchemy import select
+from sqlalchemy import select, func
 
+from shared.config import settings
 from shared.models import User
 from bot.utils.texts import texts
 
@@ -28,6 +28,21 @@ def _profile_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text="📋 Мои заказы", callback_data="orders:list")],
             [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="balance:topup")],
+            [InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="referral:show")],
+        ]
+    )
+
+
+def _referral_keyboard(ref_link: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="📤 Поделиться ссылкой",
+                    switch_inline_query=ref_link,
+                )
+            ],
+            [InlineKeyboardButton(text="◀️ Назад в профиль", callback_data="profile:view")],
         ]
     )
 
@@ -58,6 +73,24 @@ async def _build_profile_text(user: User, db: AsyncSession) -> str:
     )
 
 
+async def _build_referral_text(user: User, db: AsyncSession) -> tuple[str, str]:
+    """Возвращает (текст, реф-ссылка)."""
+    # Считаем количество рефералов
+    result = await db.execute(
+        select(func.count()).where(User.referred_by_id == user.id)
+    )
+    referrals_count = result.scalar_one() or 0
+
+    ref_link = f"https://t.me/{settings.BOT_USERNAME}?start=REF_{user.telegram_id}"
+
+    text = texts.referral_info(
+        referral_code=user.referral_code,
+        ref_link=ref_link,
+        referrals_count=referrals_count,
+    )
+    return text, ref_link
+
+
 @router.message(Command("profile"))
 @router.message(F.text == "👤 Профиль")
 async def cmd_profile(message: Message, user: User, db: AsyncSession) -> None:
@@ -72,5 +105,30 @@ async def cb_profile_view(
     text = await _build_profile_text(user, db)
     await call.message.edit_text(
         text, reply_markup=_profile_keyboard(), parse_mode="HTML"
+    )
+    await call.answer()
+
+
+@router.message(Command("referral"))
+async def cmd_referral(message: Message, user: User, db: AsyncSession) -> None:
+    """Команда /referral — показать реферальную ссылку."""
+    text, ref_link = await _build_referral_text(user, db)
+    await message.answer(
+        text,
+        reply_markup=_referral_keyboard(ref_link),
+        parse_mode="HTML",
+    )
+
+
+@router.callback_query(F.data == "referral:show")
+async def cb_referral_show(
+    call: CallbackQuery, user: User, db: AsyncSession
+) -> None:
+    """Inline-кнопка реферальной программы."""
+    text, ref_link = await _build_referral_text(user, db)
+    await call.message.edit_text(
+        text,
+        reply_markup=_referral_keyboard(ref_link),
+        parse_mode="HTML",
     )
     await call.answer()

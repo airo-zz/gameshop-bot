@@ -125,10 +125,12 @@ export interface Profile {
   telegram_id: number
   username: string | null
   first_name: string
+  photo_url: string | null
   balance: number
   orders_count: number
   total_spent: number
   referral_code: string
+  referrals_count: number
   loyalty_level_name: string
   loyalty_level_emoji: string
   loyalty_discount_percent: number

@@ -64,7 +64,7 @@ const NAV = [
   { to: '/',          label: 'Главная',  IconComp: IconHome,  badge: false },
   { to: '/catalog',   label: 'Каталог',  IconComp: IconGrid,  badge: false },
   { to: '/cart',      label: 'Корзина',  IconComp: IconCart,  badge: true  },
-  { to: '/favorites', label: 'Вишлист',  IconComp: IconHeart, badge: false },
+  { to: '/favorites', label: 'Избранное', IconComp: IconHeart, badge: false },
   { to: '/profile',   label: 'Профиль',  IconComp: IconUser,  badge: false },
 ]
 

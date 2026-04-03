@@ -72,6 +72,7 @@ class User(Base, UUIDMixin, TimestampMixin):
     last_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     language_code: Mapped[str] = mapped_column(String(8), nullable=False, default="ru")
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    photo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     # Финансы
     balance: Mapped[Decimal] = mapped_column(

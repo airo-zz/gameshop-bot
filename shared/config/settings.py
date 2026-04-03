@@ -43,7 +43,8 @@ class ShopSettings(BaseSettings):
 
 class TelegramSettings(BaseSettings):
     BOT_TOKEN: str
-    ADMIN_BOT_TOKEN: str = ""          # если нет отдельного — используем BOT_TOKEN
+    BOT_USERNAME: str = "redonate_bot"  # username бота без @
+    ADMIN_BOT_TOKEN: str = ""           # если нет отдельного — используем BOT_TOKEN
     WEBHOOK_HOST: str = ""
     WEBHOOK_PATH: str = "/webhook/bot"
     WEBHOOK_SECRET: str = ""

@@ -1,4 +1,5 @@
 // src/pages/ProfilePage.tsx
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Heart, Package, Copy, MessageCircle, ChevronRight } from 'lucide-react'
@@ -6,8 +7,11 @@ import toast from 'react-hot-toast'
 import { profileApi } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 
+const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'redonate_bot'
+
 export default function ProfilePage() {
   const { user, haptic } = useTelegram()
+  const [avatarError, setAvatarError] = useState(false)
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: profileApi.get,
@@ -15,11 +19,16 @@ export default function ProfilePage() {
 
   const copyRef = () => {
     if (!profile) return
-    const link = `https://t.me/your_bot?start=${profile.referral_code}`
+    const link = `https://t.me/${BOT_USERNAME}?start=REF_${profile.telegram_id}`
     navigator.clipboard.writeText(link)
     haptic.success()
     toast.success('Ссылка скопирована!')
   }
+
+  const avatarInitial = profile?.first_name?.charAt(0)?.toUpperCase() ?? '?'
+  // Приоритет: photo_url из backend (Bot API) → photo_url из initDataUnsafe
+  const avatarSrc = profile?.photo_url ?? user?.photo_url ?? null
+  const showAvatar = avatarSrc !== null && !avatarError
 
   if (isLoading) return (
     <div className="px-4 pt-5 space-y-3">
@@ -38,14 +47,19 @@ export default function ProfilePage() {
         className="flex items-center gap-4 p-4 rounded-2xl"
         style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
       >
-        {user?.photo_url ? (
-          <img src={user.photo_url} alt="" className="w-14 h-14 rounded-full object-cover flex-shrink-0" />
+        {showAvatar ? (
+          <img
+            src={avatarSrc!}
+            alt=""
+            className="w-14 h-14 rounded-full object-cover flex-shrink-0"
+            onError={() => setAvatarError(true)}
+          />
         ) : (
           <div
-            className="w-14 h-14 rounded-full flex items-center justify-center text-2xl flex-shrink-0"
-            style={{ background: 'linear-gradient(135deg, #2563eb, #4f46e5)' }}
+            className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 text-xl font-bold"
+            style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: '#fff' }}
           >
-            👤
+            {avatarInitial}
           </div>
         )}
         <div className="min-w-0">
@@ -62,11 +76,12 @@ export default function ProfilePage() {
       </div>
 
       {/* Статистика */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 gap-2">
         {[
-          { label: 'Баланс',   value: `${profile.balance.toLocaleString('ru')} ₽`,       color: '#60a5fa' },
-          { label: 'Заказов',  value: profile.orders_count,                                color: 'var(--text)' },
-          { label: 'Потрачено', value: `${profile.total_spent.toLocaleString('ru')} ₽`,   color: 'var(--text)' },
+          { label: 'Баланс',    value: `${Number(profile.balance).toLocaleString('ru')} ₽`, color: '#60a5fa' },
+          { label: 'Заказов',   value: profile.orders_count,                                  color: 'var(--text)' },
+          { label: 'Потрачено', value: `${Number(profile.total_spent).toLocaleString('ru')} ₽`, color: 'var(--text)' },
+          { label: 'Рефералов', value: profile.referrals_count,                               color: '#34d399' },
         ].map(({ label, value, color }) => (
           <div key={label} className="card text-center py-3">
             <p className="text-base font-bold" style={{ color }}>{value}</p>
@@ -124,10 +139,13 @@ export default function ProfilePage() {
           className="flex items-center justify-between w-full p-3 rounded-xl active:scale-95 transition-transform"
           style={{ background: 'var(--bg3)', border: '1px solid var(--border)' }}
         >
-          <code className="text-sm font-bold" style={{ color: '#60a5fa' }}>
-            {profile.referral_code}
+          <code
+            className="text-xs font-bold truncate mr-2"
+            style={{ color: '#60a5fa', maxWidth: '70%' }}
+          >
+            t.me/{BOT_USERNAME}?start=REF_{profile.telegram_id}
           </code>
-          <div className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--hint)' }}>
+          <div className="flex items-center gap-1.5 text-xs flex-shrink-0" style={{ color: 'var(--hint)' }}>
             <Copy size={13} />
             Скопировать
           </div>

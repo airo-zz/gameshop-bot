@@ -204,6 +204,26 @@ class BotTexts:
             f"Реферальный код: <code>{referral_code}</code>"
         )
 
+    # ── Реферальная программа ─────────────────────────────────────────────────
+
+    def referral_info(
+        self,
+        referral_code: str,
+        ref_link: str,
+        referrals_count: int,
+    ) -> str:
+        return (
+            f"🎁 <b>Реферальная программа</b>\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"Приглашай друзей и получай бонусы за каждого!\n\n"
+            f"👥 Приглашено: <b>{referrals_count}</b>\n"
+            f"🔑 Твой код: <code>{referral_code}</code>\n\n"
+            f"🔗 Твоя ссылка:\n"
+            f"<code>{ref_link}</code>\n\n"
+            f"Поделись ссылкой с друзьями — когда они совершат первую покупку, "
+            f"ты получишь бонус на баланс!"
+        )
+
     # ── Поддержка ─────────────────────────────────────────────────────────────
     @property
     def support_header(self) -> str:

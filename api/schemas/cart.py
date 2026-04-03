@@ -161,10 +161,12 @@ class ProfileOut(BaseModel):
     telegram_id: int
     username: str | None
     first_name: str
+    photo_url: str | None = None
     balance: Decimal
     orders_count: int
     total_spent: Decimal
     referral_code: str
+    referrals_count: int = 0
     loyalty_level_name: str = "Bronze"
     loyalty_level_emoji: str = "🥉"
     loyalty_discount_percent: Decimal = Decimal("0")

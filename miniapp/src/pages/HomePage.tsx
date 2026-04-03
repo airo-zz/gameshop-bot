@@ -5,7 +5,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { catalogApi, profileApi } from '@/api'
 import { useShopStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
-import ProductCard from '@/components/ui/ProductCard'
 
 // ── Inline SVG icons ─────────────────────────────────────────────────────────
 
@@ -63,17 +62,6 @@ function IconBell() {
   )
 }
 
-function IconWallet() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="5" width="20" height="14" rx="3" />
-      <path d="M16 12a1 1 0 1 0 2 0 1 1 0 0 0-2 0" />
-      <path d="M2 10h20" />
-    </svg>
-  )
-}
-
 function IconZap() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
@@ -82,15 +70,21 @@ function IconZap() {
   )
 }
 
-// ── Menu items ────────────────────────────────────────────────────────────────
+// ── Menu groups ───────────────────────────────────────────────────────────────
 
-const MENU_ITEMS = [
-  { emoji: '🏠', label: 'Главная',   path: '/' },
-  { emoji: '🎮', label: 'Каталог',   path: '/catalog' },
-  { emoji: '🛒', label: 'Корзина',   path: '/cart' },
-  { emoji: '📋', label: 'Заказы',    path: '/orders' },
-  { emoji: '👤', label: 'Профиль',   path: '/profile' },
-  { emoji: '🆘', label: 'Поддержка', path: '/support' },
+const MENU_GROUPS = [
+  [
+    { emoji: '🏠', label: 'Главная',   path: '/' },
+    { emoji: '🎮', label: 'Каталог',   path: '/catalog' },
+  ],
+  [
+    { emoji: '🛒', label: 'Корзина',   path: '/cart' },
+    { emoji: '📋', label: 'Заказы',    path: '/orders' },
+    { emoji: '👤', label: 'Профиль',   path: '/profile' },
+  ],
+  [
+    { emoji: '🆘', label: 'Поддержка', path: '/support' },
+  ],
 ]
 
 // ── Dropdown Menu ─────────────────────────────────────────────────────────────
@@ -108,50 +102,83 @@ function DropdownMenu({ open, onClose }: DropdownMenuProps) {
     <div
       style={{
         position: 'absolute',
-        top: 'calc(100% + 8px)',
+        top: 'calc(100% + 10px)',
         right: 0,
-        minWidth: 210,
-        background: 'rgba(13,13,26,0.98)',
-        border: '1px solid rgba(124,58,237,0.25)',
-        borderRadius: 18,
-        boxShadow: '0 16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(124,58,237,0.08)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
+        minWidth: 220,
+        background: 'rgba(10,10,22,0.97)',
+        border: '1px solid rgba(124,58,237,0.3)',
+        borderRadius: 20,
+        boxShadow: '0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(124,58,237,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
         overflow: 'hidden',
         zIndex: 100,
         opacity: open ? 1 : 0,
-        transform: open ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.97)',
+        transform: open ? 'translateY(0) scale(1)' : 'translateY(-10px) scale(0.96)',
+        transformOrigin: 'top right',
         pointerEvents: open ? 'auto' : 'none',
-        transition: 'opacity 0.18s ease, transform 0.18s ease',
+        transition: 'opacity 0.2s cubic-bezier(0.4,0,0.2,1), transform 0.2s cubic-bezier(0.4,0,0.2,1)',
       }}
     >
-      {MENU_ITEMS.map((item, i) => (
-        <button
-          key={item.path}
-          onClick={() => handleNav(item.path)}
-          style={{
-            width: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            height: 48,
-            padding: '0 16px',
-            background: 'none',
-            border: 'none',
-            borderBottom: i < MENU_ITEMS.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-            cursor: 'pointer',
-            color: 'var(--text)',
-            transition: 'background 0.1s',
-          }}
-          onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(124,58,237,0.12)' }}
-          onTouchEnd={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-        >
-          <span style={{ fontSize: 17, lineHeight: 1, flexShrink: 0 }}>{item.emoji}</span>
-          <span style={{ flex: 1, textAlign: 'left', fontSize: 14, fontWeight: 500 }}>
-            {item.label}
-          </span>
-          <IconChevronRight />
-        </button>
+      {/* Caret arrow */}
+      <div style={{
+        position: 'absolute',
+        top: -6,
+        right: 14,
+        width: 12,
+        height: 6,
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          width: 12,
+          height: 12,
+          background: 'rgba(10,10,22,0.97)',
+          border: '1px solid rgba(124,58,237,0.3)',
+          transform: 'rotate(45deg)',
+          transformOrigin: 'center',
+          marginTop: 6,
+        }} />
+      </div>
+
+      {MENU_GROUPS.map((group, gi) => (
+        <div key={gi}>
+          {gi > 0 && (
+            <div style={{ height: 1, background: 'rgba(124,58,237,0.12)', margin: '0 12px' }} />
+          )}
+          {group.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => handleNav(item.path)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                height: 50,
+                padding: '0 16px',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text)',
+                transition: 'background 0.15s',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(124,58,237,0.1)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+              onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(124,58,237,0.14)' }}
+              onTouchEnd={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+            >
+              <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, width: 24, textAlign: 'center' }}>
+                {item.emoji}
+              </span>
+              <span style={{ flex: 1, textAlign: 'left', fontSize: 14, fontWeight: 500, letterSpacing: '-0.01em' }}>
+                {item.label}
+              </span>
+              <span style={{ color: 'rgba(167,139,250,0.4)', display: 'flex' }}>
+                <IconChevronRight />
+              </span>
+            </button>
+          ))}
+        </div>
       ))}
     </div>
   )
@@ -292,46 +319,23 @@ export default function HomePage() {
 
       <div className="px-4 pb-4">
 
-        {/* ── Hero greeting ───────────────────────────────────────────── */}
+        {/* ── Hero greeting — одна строка, одинаковый размер ──────────────── */}
         <div className="pt-5 pb-4 animate-fade-in">
-          {displayName ? (
-            <>
-              <p style={{ fontSize: 13, color: 'var(--hint)', marginBottom: 4 }}>
-                Добро пожаловать,
-              </p>
-              <h1
-                style={{
-                  margin: 0,
-                  fontWeight: 800,
-                  fontSize: '1.6rem',
-                  lineHeight: 1.15,
-                  letterSpacing: '-0.02em',
-                  background: 'linear-gradient(135deg, #ffffff 0%, #c4b5fd 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}
-              >
-                {displayName}!
-              </h1>
-            </>
-          ) : (
-            <h1
-              style={{
-                margin: 0,
-                fontWeight: 800,
-                fontSize: '1.5rem',
-                lineHeight: 1.2,
-                letterSpacing: '-0.02em',
-                background: 'linear-gradient(135deg, #ffffff 0%, #c4b5fd 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              Добро пожаловать!
-            </h1>
-          )}
+          <h1
+            style={{
+              margin: 0,
+              fontWeight: 700,
+              fontSize: '1.3rem',
+              lineHeight: 1.2,
+              letterSpacing: '-0.02em',
+              background: 'linear-gradient(135deg, #ffffff 0%, #c4b5fd 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            {displayName ? `Добро пожаловать, ${displayName}!` : 'Добро пожаловать!'}
+          </h1>
 
           {/* Loyalty badge */}
           {profile && (
@@ -359,61 +363,7 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* ── Balance card ─────────────────────────────────────────────── */}
-        {profile && (
-          <div
-            className="rounded-3xl p-4 mb-5 animate-fade-in delay-75"
-            style={{
-              background: 'linear-gradient(135deg, rgba(124,58,237,0.25) 0%, rgba(79,70,229,0.2) 100%)',
-              border: '1px solid rgba(124,58,237,0.25)',
-              boxShadow: '0 4px 24px rgba(124,58,237,0.12)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <p style={{ fontSize: 12, color: 'rgba(196,181,253,0.7)', marginBottom: 4, fontWeight: 500 }}>
-                  Мой баланс
-                </p>
-                <p
-                  style={{
-                    fontSize: '1.5rem',
-                    fontWeight: 800,
-                    letterSpacing: '-0.02em',
-                    background: 'linear-gradient(135deg, #c4b5fd, #a78bfa)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    backgroundClip: 'text',
-                    lineHeight: 1.1,
-                  }}
-                >
-                  {profile.balance.toLocaleString('ru')} ₽
-                </p>
-                {profile.loyalty_discount_percent > 0 && (
-                  <p style={{ fontSize: 11, color: 'rgba(196,181,253,0.6)', marginTop: 4 }}>
-                    Скидка {profile.loyalty_discount_percent}% на все товары
-                  </p>
-                )}
-              </div>
-              <div
-                style={{
-                  width: 52,
-                  height: 52,
-                  borderRadius: 14,
-                  background: 'rgba(124,58,237,0.25)',
-                  border: '1px solid rgba(167,139,250,0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#c4b5fd',
-                }}
-              >
-                <IconWallet />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Games horizontal scroll ──────────────────────────────────── */}
+        {/* ── Games horizontal scroll — крупные карточки ──────────────────── */}
         <section className="mb-5 animate-fade-in delay-150">
           <div
             style={{
@@ -460,7 +410,7 @@ export default function HomePage() {
             className="no-scrollbar"
             style={{
               display: 'flex',
-              gap: 10,
+              gap: 12,
               overflowX: 'auto',
               marginLeft: -16,
               marginRight: -16,
@@ -474,7 +424,7 @@ export default function HomePage() {
                   <div
                     key={i}
                     className="skeleton flex-shrink-0"
-                    style={{ width: 76, height: 100, borderRadius: 16 }}
+                    style={{ width: 110, height: 138, borderRadius: 18 }}
                   />
                 ))
               : games.map(game => (
@@ -483,8 +433,8 @@ export default function HomePage() {
                     to={`/catalog/${game.slug}`}
                     className="flex-shrink-0 active:scale-95 transition-transform"
                     style={{
-                      width: 76,
-                      borderRadius: 16,
+                      width: 110,
+                      borderRadius: 18,
                       overflow: 'hidden',
                       border: '1px solid rgba(255,255,255,0.07)',
                       textDecoration: 'none',
@@ -494,8 +444,8 @@ export default function HomePage() {
                   >
                     <div
                       style={{
-                        width: 76,
-                        height: 76,
+                        width: 110,
+                        height: 110,
                         background: 'var(--bg3)',
                         position: 'relative',
                         overflow: 'hidden',
@@ -523,14 +473,14 @@ export default function HomePage() {
                         </div>
                       )}
                     </div>
-                    <div style={{ padding: '5px 4px 7px', background: 'var(--bg2)' }}>
+                    <div style={{ padding: '6px 6px 9px', background: 'var(--bg2)' }}>
                       <p
                         style={{
                           margin: 0,
                           textAlign: 'center',
-                          fontSize: 10,
-                          fontWeight: 500,
-                          color: 'rgba(255,255,255,0.55)',
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: 'rgba(255,255,255,0.75)',
                           overflow: 'hidden',
                           whiteSpace: 'nowrap',
                           textOverflow: 'ellipsis',
@@ -545,7 +495,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── Featured products ────────────────────────────────────────── */}
+        {/* ── Featured products — компактный список ───────────────────────── */}
         <section className="animate-fade-in delay-225">
           <div
             style={{
@@ -589,26 +539,104 @@ export default function HomePage() {
           </div>
 
           {featured.length > 0 ? (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 10,
-              }}
-            >
-              {featured.slice(0, 6).map((product, i) => (
-                <div
-                  key={product.id}
-                  className={`animate-fade-in delay-${Math.min(i * 75, 375)}`}
-                >
-                  <ProductCard product={product} />
-                </div>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {featured.slice(0, 6).map((product, i) => {
+                const minPrice = product.lots.length
+                  ? Math.min(...product.lots.map((l: { price: number }) => l.price))
+                  : product.price
+                return (
+                  <Link
+                    key={product.id}
+                    to={`/product/${product.id}`}
+                    className={`animate-fade-in delay-${Math.min(i * 50, 300)}`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 12,
+                      padding: '10px 12px',
+                      background: 'var(--bg2)',
+                      border: '1px solid rgba(255,255,255,0.07)',
+                      borderRadius: 16,
+                      textDecoration: 'none',
+                      transition: 'transform 0.15s',
+                    }}
+                  >
+                    {/* Thumbnail */}
+                    <div
+                      style={{
+                        width: 48,
+                        height: 48,
+                        borderRadius: 10,
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        background: 'var(--bg3)',
+                      }}
+                    >
+                      {product.images?.[0] ? (
+                        <img
+                          src={product.images[0]}
+                          alt={product.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'linear-gradient(135deg, #12121f, #1a1a2e)',
+                            color: 'rgba(167,139,250,0.4)',
+                          }}
+                        >
+                          <IconGamepadSmall />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: 13,
+                          fontWeight: 600,
+                          color: 'rgba(255,255,255,0.9)',
+                          overflow: 'hidden',
+                          whiteSpace: 'nowrap',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {product.name}
+                      </p>
+                      <p
+                        style={{
+                          margin: '2px 0 0',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          background: 'linear-gradient(135deg, #a78bfa, #818cf8)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                        }}
+                      >
+                        от {minPrice.toLocaleString('ru')} ₽
+                      </p>
+                    </div>
+
+                    {/* Arrow */}
+                    <span style={{ color: 'rgba(167,139,250,0.4)', display: 'flex', flexShrink: 0 }}>
+                      <IconChevronRight />
+                    </span>
+                  </Link>
+                )
+              })}
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {Array(4).fill(0).map((_, i) => (
-                <div key={i} className="skeleton rounded-2xl" style={{ height: 210 }} />
+                <div key={i} className="skeleton rounded-2xl" style={{ height: 68 }} />
               ))}
             </div>
           )}

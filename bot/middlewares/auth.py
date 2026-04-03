@@ -6,19 +6,40 @@ Middleware авторизации:
   2. Обновляет last_active_at
   3. Блокирует заблокированных пользователей
   4. Пробрасывает объект User в handler через data["user"]
+  5. Кеширует photo_url через Bot API (getUserProfilePhotos)
 ─────────────────────────────────────────────────────────────────────────────
 """
 
 from collections.abc import Awaitable, Callable
 from typing import Any
 
-from aiogram import BaseMiddleware
+from aiogram import BaseMiddleware, Bot
 from aiogram.types import Message, CallbackQuery, TelegramObject, User as TgUser
 from sqlalchemy import select
 
 from shared.database.session import async_session_factory
 from shared.models import User, LoyaltyLevel
 from bot.utils.texts import texts
+
+
+async def _fetch_photo_url(bot: Bot, tg_user_id: int) -> str | None:
+    """
+    Получает URL первой фотографии профиля пользователя через Bot API.
+    Возвращает None если фото нет или получить не удалось.
+    """
+    try:
+        photos = await bot.get_user_profile_photos(tg_user_id, limit=1)
+        if photos.total_count == 0 or not photos.photos:
+            return None
+        # Берём наибольший размер первой фотографии
+        file_id = photos.photos[0][-1].file_id
+        file = await bot.get_file(file_id)
+        if not file.file_path:
+            return None
+        token = bot.token
+        return f"https://api.telegram.org/file/bot{token}/{file.file_path}"
+    except Exception:
+        return None
 
 
 class AuthMiddleware(BaseMiddleware):
@@ -33,6 +54,8 @@ class AuthMiddleware(BaseMiddleware):
         if tg_user is None or tg_user.is_bot:
             return await handler(event, data)
 
+        bot: Bot = data.get("bot")
+
         async with async_session_factory() as session:
             # Ищем пользователя в БД
             result = await session.execute(
@@ -42,10 +65,10 @@ class AuthMiddleware(BaseMiddleware):
 
             if user is None:
                 # Новый пользователь — регистрируем
-                user = await self._register_user(session, tg_user, data)
+                user = await self._register_user(session, tg_user, data, bot)
             else:
                 # Обновляем данные профиля если изменились
-                await self._update_user_info(session, user, tg_user)
+                await self._update_user_info(session, user, tg_user, bot)
 
             # Блокируем заблокированных
             if user.is_blocked:
@@ -62,7 +85,7 @@ class AuthMiddleware(BaseMiddleware):
             return await handler(event, data)
 
     async def _register_user(
-        self, session, tg_user: TgUser, data: dict
+        self, session, tg_user: TgUser, data: dict, bot: Bot | None
     ) -> User:
         """Создать нового пользователя."""
         from datetime import datetime, timezone
@@ -88,6 +111,11 @@ class AuthMiddleware(BaseMiddleware):
         )
         bronze = loyalty_result.scalar_one_or_none()
 
+        # Получаем фото профиля
+        photo_url = None
+        if bot:
+            photo_url = await _fetch_photo_url(bot, tg_user.id)
+
         user = User(
             telegram_id=tg_user.id,
             username=tg_user.username,
@@ -96,13 +124,16 @@ class AuthMiddleware(BaseMiddleware):
             language_code=tg_user.language_code or "ru",
             referred_by_id=referred_by_id,
             loyalty_level_id=bronze.id if bronze else None,
+            photo_url=photo_url,
             last_active_at=datetime.now(timezone.utc),
         )
         session.add(user)
         await session.flush()  # Получаем user.id без commit
         return user
 
-    async def _update_user_info(self, session, user: User, tg_user: TgUser) -> None:
+    async def _update_user_info(
+        self, session, user: User, tg_user: TgUser, bot: Bot | None
+    ) -> None:
         """Обновить изменившиеся данные профиля."""
         from datetime import datetime, timezone
 
@@ -113,6 +144,13 @@ class AuthMiddleware(BaseMiddleware):
         if user.first_name != (tg_user.first_name or ""):
             user.first_name = tg_user.first_name or ""
             changed = True
+
+        # Обновляем photo_url если оно отсутствует (ленивое обновление)
+        if user.photo_url is None and bot:
+            photo_url = await _fetch_photo_url(bot, tg_user.id)
+            if photo_url:
+                user.photo_url = photo_url
+                changed = True
 
         user.last_active_at = datetime.now(timezone.utc)
         if changed:

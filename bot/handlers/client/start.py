@@ -3,6 +3,7 @@ bot/handlers/client/start.py
 ─────────────────────────────────────────────────────────────────────────────
 /start — точка входа клиента.
 Главное меню с кнопками + кнопка открытия Mini App.
+Обрабатывает реферальный параметр: /start REF_<telegram_id>
 ─────────────────────────────────────────────────────────────────────────────
 """
 
@@ -15,6 +16,8 @@ from aiogram.types import (
     FSInputFile, Message, InlineKeyboardMarkup, InlineKeyboardButton,
     WebAppInfo, ReplyKeyboardMarkup, KeyboardButton,
 )
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from shared.config import settings
 from shared.models import User
@@ -76,6 +79,9 @@ def get_start_inline_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="balance:topup"),
             InlineKeyboardButton(text="🆘 Поддержка", callback_data="support:main"),
         ],
+        [
+            InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="referral:show"),
+        ],
     ]
 
     # Убираем None значения из кнопок
@@ -92,20 +98,64 @@ def get_start_inline_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=cleaned)
 
 
+async def _apply_referral(user: User, start_param: str, db: AsyncSession) -> float:
+    """
+    Применяет реферальный код при первом входе.
+    Формат: REF_<telegram_id>
+    Возвращает бонус реферала (0 если не применён).
+    """
+    if not start_param or not start_param.startswith("REF_"):
+        return 0.0
+
+    # Уже есть реферер — не меняем
+    if user.referred_by_id is not None:
+        return 0.0
+
+    try:
+        referrer_tg_id = int(start_param[4:])
+    except (ValueError, IndexError):
+        return 0.0
+
+    # Нельзя быть своим же рефералом
+    if referrer_tg_id == user.telegram_id:
+        return 0.0
+
+    result = await db.execute(
+        select(User).where(User.telegram_id == referrer_tg_id)
+    )
+    referrer = result.scalar_one_or_none()
+    if not referrer:
+        return 0.0
+
+    user.referred_by_id = referrer.id
+    await db.commit()
+    return 0.0  # Бонус будет начислен при первой покупке
+
+
 @router.message(CommandStart())
-async def cmd_start(message: Message, user: User) -> None:
+async def cmd_start(message: Message, user: User, db: AsyncSession) -> None:
     """
     Обработчик /start.
     AuthMiddleware уже зарегистрировал/обновил пользователя
     и передал его в data["user"].
+    Обрабатывает реферальный параметр REF_<telegram_id>.
     """
+    # Парсим start_param для реферальной программы
+    referral_bonus = 0.0
+    start_param = None
+    if message.text and len(message.text.split()) > 1:
+        start_param = message.text.split(maxsplit=1)[1].strip()
+
     # Определяем — новый пользователь или вернулся (зарегистрирован менее 5 минут назад)
     is_new = (
         datetime.now(timezone.utc) - user.created_at.replace(tzinfo=timezone.utc)
     ) < timedelta(minutes=5)
 
+    if is_new and start_param:
+        referral_bonus = await _apply_referral(user, start_param, db)
+
     if is_new:
-        welcome_text = texts.greeting_new_user(user.first_name)
+        welcome_text = texts.greeting_new_user(user.first_name, referral_bonus)
     else:
         welcome_text = texts.greeting(user.first_name)
 
