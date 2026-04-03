@@ -1,10 +1,7 @@
 // src/App.tsx
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useTelegram } from '@/hooks/useTelegram'
-import { authenticateWithTelegram } from '@/api/client'
-import { useAuthStore, useCartStore } from '@/store'
-import { cartApi } from '@/api'
+import { useAuthStore } from '@/store'
 
 import Layout from '@/components/layout/Layout'
 import HomePage from '@/pages/HomePage'
@@ -23,41 +20,12 @@ import LoadingScreen from '@/components/ui/LoadingScreen'
 import ErrorScreen from '@/components/ui/ErrorScreen'
 
 export default function App() {
-  const { initData } = useTelegram()
-  const { isReady, isError, setReady, setError } = useAuthStore()
-  const { setItemsCount } = useCartStore()
+  const { isReady, isError, setReady } = useAuthStore()
 
-  // ── Инициализация: авторизация → загрузка корзины ─────────────────────────
+  // ── Инициализация ──────────────────────────────────────────────────────────
   useEffect(() => {
-    async function init() {
-      try {
-        // Авторизуемся через Telegram initData
-        if (initData) {
-          try {
-            await authenticateWithTelegram(initData)
-          } catch (authErr) {
-            console.warn('Auth endpoint not available yet, skipping:', authErr)
-          }
-        } else {
-          console.warn('No initData — skipping Telegram auth')
-        }
-
-        // Загружаем количество позиций в корзине для бейджа
-        try {
-          const cart = await cartApi.get()
-          setItemsCount(cart.items_count)
-        } catch {
-          // Не критично — API может быть ещё не готов
-        }
-
-        setReady()
-      } catch (err) {
-        console.error('Auth failed:', err)
-        setError()
-      }
-    }
-    init()
-  }, [initData, setReady, setError, setItemsCount])
+    setReady()
+  }, [setReady])
 
   if (isError)  return <ErrorScreen />
   if (!isReady) return <LoadingScreen />
