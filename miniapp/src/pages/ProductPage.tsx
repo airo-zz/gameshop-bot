@@ -26,18 +26,21 @@ export default function ProductPage() {
     enabled: !!id,
   })
 
+  // Авто-выбор первого лота
   useEffect(() => {
     if (product?.lots?.length && !selectedLot) {
       setSelectedLot(product.lots[0])
     }
   }, [product, selectedLot])
 
+  // Telegram Back Button
   useEffect(() => {
     const handler = () => navigate(-1)
     showBackButton(handler)
     return () => hideBackButton(handler)
   }, [navigate, showBackButton, hideBackButton])
 
+  // Telegram Main Button — «В корзину»
   const canAdd = !!(
     product &&
     product.stock !== 0 &&
@@ -79,11 +82,7 @@ export default function ProductPage() {
   }
 
   if (isLoading) return <ProductSkeleton />
-  if (!product) return (
-    <div className="p-8 text-center" style={{ color: 'var(--hint)' }}>
-      Товар не найден
-    </div>
-  )
+  if (!product)  return <div className="p-8 text-center" style={{ color: 'var(--hint)' }}>Товар не найден</div>
 
   const isOutOfStock = product.stock !== null && product.stock === 0
   const currentPrice = selectedLot ? selectedLot.price : product.price
@@ -92,10 +91,7 @@ export default function ProductPage() {
     <div className="pb-6 animate-slide-up">
       {/* Изображения */}
       <div className="relative">
-        <div
-          className="overflow-hidden"
-          style={{ aspectRatio: '16/9', background: 'var(--bg2)' }}
-        >
+        <div className="aspect-video overflow-hidden bg-black/5">
           {product.images.length > 0 ? (
             <img
               src={product.images[imgIdx]}
@@ -105,41 +101,26 @@ export default function ProductPage() {
           ) : (
             <div className="w-full h-full flex items-center justify-center text-6xl">🎮</div>
           )}
-          {/* Нижний градиент */}
-          <div
-            className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
-            style={{ background: 'linear-gradient(to top, var(--bg), transparent)' }}
-          />
         </div>
 
-        {/* Кнопка назад */}
+        {/* Стрелка назад (fallback если нет кнопки Telegram) */}
         <button
           onClick={() => navigate(-1)}
-          className="absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90"
-          style={{
-            background: 'rgba(10,10,15,0.6)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }}
+          className="absolute top-3 left-3 w-9 h-9 rounded-full flex items-center justify-center"
+          style={{ background: 'rgba(0,0,0,0.4)' }}
         >
           <ChevronLeft size={20} color="white" />
         </button>
 
-        {/* Точки навигации */}
+        {/* Точки навигации по фото */}
         {product.images.length > 1 && (
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-1.5">
+          <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-1.5">
             {product.images.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setImgIdx(i)}
-                className="rounded-full transition-all duration-200"
-                style={{
-                  width: i === imgIdx ? 20 : 6,
-                  height: 6,
-                  background: i === imgIdx
-                    ? 'linear-gradient(135deg, #6366f1, #7c3aed)'
-                    : 'rgba(255,255,255,0.3)',
-                }}
+                className="w-2 h-2 rounded-full transition-all"
+                style={{ background: i === imgIdx ? 'white' : 'rgba(255,255,255,0.4)' }}
               />
             ))}
           </div>
@@ -150,10 +131,7 @@ export default function ProductPage() {
         {/* Заголовок */}
         <div>
           <div className="flex items-start justify-between gap-2">
-            <h1
-              className="text-xl font-bold leading-snug flex-1 tracking-tight"
-              style={{ color: 'var(--text)' }}
-            >
+            <h1 className="text-xl font-bold leading-snug flex-1" style={{ color: 'var(--text)' }}>
               {product.name}
             </h1>
             {isOutOfStock && (
@@ -163,62 +141,29 @@ export default function ProductPage() {
 
           {/* Рейтинг */}
           {product.avg_rating && (
-            <div className="flex items-center gap-1.5 mt-2">
-              <div className="flex items-center gap-1">
-                {[1,2,3,4,5].map(s => (
-                  <Star
-                    key={s}
-                    size={13}
-                    fill={s <= Math.round(product.avg_rating!) ? '#f59e0b' : 'none'}
-                    stroke={s <= Math.round(product.avg_rating!) ? '#f59e0b' : 'var(--hint)'}
-                  />
-                ))}
-              </div>
-              <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>
+            <div className="flex items-center gap-1 mt-1">
+              <Star size={14} fill="#f59e0b" stroke="#f59e0b" />
+              <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
                 {product.avg_rating.toFixed(1)}
               </span>
               <span className="text-xs" style={{ color: 'var(--hint)' }}>
-                ({product.reviews_count})
+                ({product.reviews_count} отзывов)
               </span>
             </div>
           )}
 
           {/* Тип доставки */}
           <div className="flex items-center gap-1.5 mt-2">
-            {product.delivery_type === 'auto' ? (
-              <span
-                className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
-                style={{
-                  background: 'rgba(34,197,94,0.12)',
-                  border: '1px solid rgba(34,197,94,0.25)',
-                  color: '#22c55e',
-                }}
-              >
-                <Zap size={12} />
-                Мгновенная выдача
-              </span>
-            ) : (
-              <span
-                className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
-                style={{
-                  background: 'rgba(148,163,184,0.1)',
-                  border: '1px solid var(--border)',
-                  color: 'var(--hint)',
-                }}
-              >
-                <Clock size={12} />
-                Выдача вручную (до 24ч)
-              </span>
-            )}
+            {product.delivery_type === 'auto'
+              ? <><Zap size={14} style={{ color: 'var(--btn)' }} /><span className="text-xs font-medium" style={{ color: 'var(--btn)' }}>Мгновенная выдача</span></>
+              : <><Clock size={14} style={{ color: 'var(--hint)' }} /><span className="text-xs" style={{ color: 'var(--hint)' }}>Выдача вручную (до 24ч)</span></>
+            }
           </div>
         </div>
 
         {/* Описание */}
         {product.description && (
-          <p
-            className="text-sm leading-relaxed"
-            style={{ color: 'var(--hint)' }}
-          >
+          <p className="text-sm leading-relaxed" style={{ color: 'var(--hint)' }}>
             {product.description}
           </p>
         )}
@@ -226,92 +171,72 @@ export default function ProductPage() {
         {/* Лоты */}
         {product.lots.length > 0 && (
           <section>
-            <h3
-              className="text-sm font-bold mb-3"
-              style={{ color: 'var(--text)' }}
-            >
+            <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--text)' }}>
               Выбери пакет
             </h3>
             <div className="grid grid-cols-2 gap-2">
-              {product.lots.map(lot => {
-                const isSelected = selectedLot?.id === lot.id
-                return (
-                  <button
-                    key={lot.id}
-                    onClick={() => { setSelectedLot(lot); haptic.select() }}
-                    className={clsx(
-                      'p-3 rounded-2xl text-left transition-all duration-200 active:scale-95',
-                    )}
-                    style={
-                      isSelected
-                        ? {
-                            background: 'linear-gradient(135deg, #6366f1, #7c3aed)',
-                            border: '1.5px solid rgba(99,102,241,0.6)',
-                            boxShadow: '0 4px 16px rgba(99,102,241,0.35)',
-                            color: '#fff',
-                          }
-                        : {
-                            background: 'var(--bg2)',
-                            border: '1.5px solid var(--border)',
-                            color: 'var(--text)',
-                          }
-                    }
-                  >
-                    <div className="flex items-start justify-between">
-                      <span className="text-sm font-semibold leading-tight">{lot.name}</span>
-                      {lot.badge && (
-                        <span
-                          className="text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1 flex-shrink-0"
-                          style={
-                            isSelected
-                              ? { background: 'rgba(255,255,255,0.2)', color: '#fff' }
-                              : {
-                                  background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
-                                  color: '#fff',
-                                }
-                          }
-                        >
-                          {lot.badge}
-                        </span>
-                      )}
-                    </div>
-                    <div className="mt-1.5">
-                      {lot.original_price && (
-                        <span className="text-xs line-through opacity-55 mr-1">
-                          {lot.original_price.toLocaleString('ru')} ₽
-                        </span>
-                      )}
-                      <span className="text-base font-bold">
-                        {lot.price.toLocaleString('ru')} ₽
+              {product.lots.map(lot => (
+                <button
+                  key={lot.id}
+                  onClick={() => { setSelectedLot(lot); haptic.select() }}
+                  className={clsx(
+                    'p-3 rounded-2xl text-left transition-all duration-150 active:scale-95',
+                    'border-2',
+                  )}
+                  style={{
+                    background: selectedLot?.id === lot.id ? 'var(--btn)' : 'var(--bg2)',
+                    borderColor: selectedLot?.id === lot.id ? 'var(--btn)' : 'transparent',
+                    color: selectedLot?.id === lot.id ? 'var(--btn-text)' : 'var(--text)',
+                  }}
+                >
+                  <div className="flex items-start justify-between">
+                    <span className="text-sm font-semibold leading-tight">{lot.name}</span>
+                    {lot.badge && (
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1 flex-shrink-0"
+                        style={{
+                          background: selectedLot?.id === lot.id ? 'rgba(255,255,255,0.25)' : 'var(--btn)',
+                          color: selectedLot?.id === lot.id ? 'white' : 'var(--btn-text)',
+                        }}
+                      >
+                        {lot.badge}
                       </span>
-                    </div>
-                  </button>
-                )
-              })}
+                    )}
+                  </div>
+                  <div className="mt-1.5">
+                    {lot.original_price && (
+                      <span className="text-xs line-through opacity-60 mr-1">
+                        {lot.original_price.toLocaleString('ru')} ₽
+                      </span>
+                    )}
+                    <span className="text-base font-bold">
+                      {lot.price.toLocaleString('ru')} ₽
+                    </span>
+                  </div>
+                </button>
+              ))}
             </div>
           </section>
         )}
 
-        {/* Поля ввода */}
+        {/* Поля ввода от пользователя */}
         {product.input_fields.length > 0 && (
           <section>
-            <h3 className="text-sm font-bold mb-3" style={{ color: 'var(--text)' }}>
+            <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--text)' }}>
               Данные для заказа
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {product.input_fields.map((field: InputField) => (
                 <div key={field.key}>
-                  <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--hint)' }}>
-                    {field.label}
-                    {field.required && (
-                      <span style={{ color: 'var(--destructive)' }}> *</span>
-                    )}
+                  <label className="text-xs mb-1 block" style={{ color: 'var(--hint)' }}>
+                    {field.label}{field.required && <span style={{ color: 'var(--destructive)' }}>*</span>}
                   </label>
                   {field.type === 'select' ? (
                     <select
                       className="input"
                       value={inputData[field.key] ?? ''}
                       onChange={e => setInputData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                      style={{ background: 'var(--bg2)', color: 'var(--text)' }}
                     >
                       <option value="">Выбери...</option>
                       {field.options?.map(opt => (
@@ -335,41 +260,24 @@ export default function ProductPage() {
 
         {/* Инструкция */}
         {product.instruction && (
-          <div
-            className="p-4 rounded-2xl"
-            style={{
-              background: 'rgba(99,102,241,0.06)',
-              border: '1px solid rgba(99,102,241,0.2)',
-            }}
-          >
-            <p className="text-xs font-bold mb-1.5" style={{ color: 'var(--accent)' }}>
-              ℹ️ Инструкция
-            </p>
-            <p className="text-sm leading-relaxed" style={{ color: 'var(--text)' }}>
-              {product.instruction}
-            </p>
+          <div className="p-3 rounded-2xl" style={{ background: 'var(--bg2)' }}>
+            <p className="text-xs font-semibold mb-1" style={{ color: 'var(--hint)' }}>ℹ️ Инструкция</p>
+            <p className="text-sm" style={{ color: 'var(--text)' }}>{product.instruction}</p>
           </div>
         )}
 
-        {/* Кнопка */}
+        {/* Кнопка (fallback без Telegram MainButton) */}
         <button
           className="btn-primary"
           disabled={!canAdd || adding || isOutOfStock}
           onClick={handleAddToCart}
         >
-          {adding ? (
-            <>
-              <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-              Добавляем...
-            </>
-          ) : isOutOfStock ? (
-            'Нет в наличии'
-          ) : (
-            <>
-              <ShoppingCart size={18} />
-              В корзину · {currentPrice.toLocaleString('ru')} ₽
-            </>
-          )}
+          {adding
+            ? 'Добавляем...'
+            : isOutOfStock
+            ? '😔 Нет в наличии'
+            : `В корзину · ${currentPrice.toLocaleString('ru')} ₽`
+          }
         </button>
       </div>
     </div>
@@ -379,17 +287,13 @@ export default function ProductPage() {
 function ProductSkeleton() {
   return (
     <div className="animate-pulse">
-      <div className="skeleton w-full" style={{ aspectRatio: '16/9' }} />
-      <div className="px-4 pt-4 space-y-4">
+      <div className="skeleton aspect-video w-full" />
+      <div className="px-4 pt-4 space-y-3">
         <div className="skeleton h-7 w-3/4 rounded-xl" />
-        <div className="skeleton h-4 w-1/3 rounded-xl" />
-        <div className="skeleton h-4 w-2/3 rounded-xl" />
+        <div className="skeleton h-4 w-1/2 rounded-xl" />
         <div className="grid grid-cols-2 gap-2">
-          {Array(4).fill(0).map((_, i) => (
-            <div key={i} className="skeleton h-20 rounded-2xl" />
-          ))}
+          {Array(4).fill(0).map((_, i) => <div key={i} className="skeleton h-20 rounded-2xl" />)}
         </div>
-        <div className="skeleton h-12 rounded-xl" />
       </div>
     </div>
   )

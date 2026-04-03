@@ -1,12 +1,13 @@
 // src/pages/CartPage.tsx
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Trash2, Plus, Minus, Tag, ShoppingBag } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi, type CartItem } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
+import { Link } from 'react-router-dom'
 
 export default function CartPage() {
   const navigate = useNavigate()
@@ -93,90 +94,59 @@ export default function CartPage() {
   }
 
   if (isLoading) return (
-    <div className="px-4 pt-5 space-y-3">
-      {Array(3).fill(0).map((_, i) => (
-        <div key={i} className="skeleton h-24 rounded-2xl" />
-      ))}
+    <div className="px-4 pt-4 space-y-3">
+      {Array(3).fill(0).map((_, i) => <div key={i} className="skeleton h-24 rounded-2xl" />)}
     </div>
   )
 
   if (!cart || cart.items.length === 0) return (
-    <div className="flex flex-col items-center justify-center h-full gap-5 px-8 text-center pt-16">
-      <div
-        className="w-24 h-24 rounded-3xl flex items-center justify-center"
-        style={{
-          background: 'var(--bg2)',
-          border: '1px solid var(--border)',
-        }}
-      >
-        <ShoppingBag size={44} style={{ color: 'var(--hint)' }} />
-      </div>
-      <div>
-        <h2 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>
-          Корзина пуста
-        </h2>
-        <p className="text-sm mt-1" style={{ color: 'var(--hint)' }}>
-          Перейди в каталог и добавь товары
-        </p>
-      </div>
-      <Link to="/catalog" className="btn-primary" style={{ maxWidth: 220 }}>
+    <div className="flex flex-col items-center justify-center h-full gap-4 px-8 text-center pt-16">
+      <ShoppingBag size={64} style={{ color: 'var(--bg2)' }} />
+      <h2 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Корзина пуста</h2>
+      <p style={{ color: 'var(--hint)' }} className="text-sm">
+        Перейди в каталог и добавь товары
+      </p>
+      <Link to="/catalog" className="btn-primary mt-4" style={{ maxWidth: 200 }}>
         В каталог
       </Link>
     </div>
   )
 
   return (
-    <div className="px-4 pt-5 pb-6 space-y-4 animate-fade-in">
+    <div className="px-4 pt-4 pb-6 space-y-4 animate-fade-in">
       {/* Заголовок */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--text)' }}>
+        <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>
           🛒 Корзина
         </h1>
         <button
           onClick={handleClear}
-          className="flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-xl transition-all active:scale-95"
-          style={{
-            background: 'rgba(239,68,68,0.1)',
-            border: '1px solid rgba(239,68,68,0.2)',
-            color: '#ef4444',
-          }}
+          className="text-sm flex items-center gap-1"
+          style={{ color: 'var(--destructive)' }}
         >
-          <Trash2 size={13} />
+          <Trash2 size={14} />
           Очистить
         </button>
       </div>
 
       {/* Позиции */}
-      <div className="space-y-2">
+      <div className="space-y-3">
         {cart.items.map(item => (
           <div
             key={item.id}
-            className="flex gap-3 p-3 rounded-2xl animate-fade-in transition-opacity duration-150"
+            className="flex gap-3 p-3 rounded-2xl animate-fade-in"
             style={{
               background: 'var(--bg2)',
-              border: '1px solid var(--border)',
-              opacity: updatingId === item.id ? 0.45 : 1,
+              opacity: updatingId === item.id ? 0.5 : 1,
+              transition: 'opacity 0.15s',
             }}
           >
             {/* Фото */}
-            <div
-              className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0"
-              style={{ border: '1px solid var(--border)' }}
-            >
-              {item.product_image ? (
-                <img
-                  src={item.product_image}
-                  alt={item.product_name}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div
-                  className="w-full h-full flex items-center justify-center text-2xl"
-                  style={{ background: 'var(--bg3, #1a1a28)' }}
-                >
-                  🎮
-                </div>
-              )}
+            <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-black/5">
+              {item.product_image
+                ? <img src={item.product_image} alt={item.product_name} className="w-full h-full object-cover" />
+                : <div className="w-full h-full flex items-center justify-center text-2xl">🎮</div>
+              }
             </div>
 
             {/* Инфо */}
@@ -185,11 +155,10 @@ export default function CartPage() {
                 {item.product_name}
               </p>
               {item.lot_name && (
-                <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>
-                  {item.lot_name}
-                </p>
+                <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>{item.lot_name}</p>
               )}
 
+              {/* Данные (логин и т.д.) */}
               {Object.keys(item.input_data).length > 0 && (
                 <div className="mt-1">
                   {Object.entries(item.input_data).map(([k, v]) => (
@@ -202,7 +171,7 @@ export default function CartPage() {
 
               <div className="flex items-center justify-between mt-2">
                 {/* Цена */}
-                <p className="font-bold text-sm" style={{ color: '#818cf8' }}>
+                <p className="font-bold text-sm" style={{ color: 'var(--btn)' }}>
                   {item.subtotal.toLocaleString('ru')} ₽
                 </p>
 
@@ -211,17 +180,10 @@ export default function CartPage() {
                   <button
                     onClick={() => handleQtyChange(item, -1)}
                     className="w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-transform"
-                    style={{
-                      background: item.quantity === 1 ? 'rgba(239,68,68,0.1)' : 'var(--bg3, #1a1a28)',
-                      border: '1px solid var(--border)',
-                      color: item.quantity === 1 ? '#ef4444' : 'var(--hint)',
-                    }}
+                    style={{ background: 'var(--bg)', color: 'var(--text)' }}
                     disabled={!!updatingId}
                   >
-                    {item.quantity === 1
-                      ? <Trash2 size={12} />
-                      : <Minus size={12} />
-                    }
+                    {item.quantity === 1 ? <Trash2 size={14} style={{ color: 'var(--destructive)' }} /> : <Minus size={14} />}
                   </button>
                   <span className="text-sm font-bold w-5 text-center" style={{ color: 'var(--text)' }}>
                     {item.quantity}
@@ -229,14 +191,10 @@ export default function CartPage() {
                   <button
                     onClick={() => handleQtyChange(item, 1)}
                     className="w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-transform"
-                    style={{
-                      background: 'rgba(99,102,241,0.15)',
-                      border: '1px solid rgba(99,102,241,0.3)',
-                      color: 'var(--accent)',
-                    }}
+                    style={{ background: 'var(--bg)', color: 'var(--text)' }}
                     disabled={!!updatingId}
                   >
-                    <Plus size={12} />
+                    <Plus size={14} />
                   </button>
                 </div>
               </div>
@@ -248,10 +206,10 @@ export default function CartPage() {
       {/* Промокод */}
       <div className="flex gap-2">
         <div className="flex-1 relative">
-          <Tag size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--hint)' }} />
+          <Tag size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: 'var(--hint)' }} />
           <input
             type="text"
-            className="input pl-9 uppercase tracking-wider"
+            className="input pl-9 uppercase"
             placeholder="Промокод"
             value={promoInput}
             onChange={e => setPromoInput(e.target.value.toUpperCase())}
@@ -260,39 +218,28 @@ export default function CartPage() {
         <button
           onClick={handleApplyPromo}
           disabled={!promoInput.trim() || promoApplying}
-          className="px-4 py-3 rounded-xl font-semibold text-sm transition-all active:scale-95 flex items-center gap-1.5"
-          style={{
-            background: promoInput.trim() ? 'linear-gradient(135deg, #6366f1, #7c3aed)' : 'var(--bg2)',
-            color: promoInput.trim() ? '#fff' : 'var(--hint)',
-            border: promoInput.trim() ? 'none' : '1px solid var(--border)',
-            opacity: promoApplying ? 0.6 : 1,
-            boxShadow: promoInput.trim() ? '0 2px 10px rgba(99,102,241,0.3)' : 'none',
-          }}
+          className="px-4 py-3 rounded-2xl font-semibold text-sm transition-all active:scale-95"
+          style={{ background: 'var(--btn)', color: 'var(--btn-text)', opacity: promoApplying ? 0.6 : 1 }}
         >
           {promoApplying ? '...' : 'Применить'}
         </button>
       </div>
 
-      {/* Применённый промокод */}
+      {/* Уже применённый промокод */}
       {cart.promo_code && (
-        <div
-          className="flex items-center justify-between px-3 py-2.5 rounded-xl"
-          style={{
-            background: 'rgba(34,197,94,0.08)',
-            border: '1px solid rgba(34,197,94,0.2)',
-          }}
-        >
-          <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+        <div className="flex items-center justify-between px-3 py-2 rounded-xl"
+             style={{ background: 'var(--bg2)' }}>
+          <span className="text-sm" style={{ color: 'var(--text)' }}>
             🏷 {cart.promo_code}
           </span>
-          <span className="text-sm font-bold" style={{ color: '#22c55e' }}>
+          <span className="text-sm font-bold" style={{ color: '#10b981' }}>
             -{(cart.promo_discount ?? 0).toLocaleString('ru')} ₽
           </span>
         </div>
       )}
 
       {/* Итоги */}
-      <div className="card space-y-2.5">
+      <div className="card space-y-2">
         <div className="flex justify-between text-sm">
           <span style={{ color: 'var(--hint)' }}>Сумма</span>
           <span style={{ color: 'var(--text)' }}>{cart.subtotal.toLocaleString('ru')} ₽</span>
@@ -300,18 +247,21 @@ export default function CartPage() {
         {cart.discount_amount > 0 && (
           <div className="flex justify-between text-sm">
             <span style={{ color: 'var(--hint)' }}>Скидка</span>
-            <span style={{ color: '#22c55e' }}>-{cart.discount_amount.toLocaleString('ru')} ₽</span>
+            <span style={{ color: '#10b981' }}>-{cart.discount_amount.toLocaleString('ru')} ₽</span>
           </div>
         )}
-        <div className="divider" />
-        <div className="flex justify-between font-bold text-base">
+        <div className="h-px" style={{ background: 'var(--bg)' }} />
+        <div className="flex justify-between font-bold">
           <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span style={{ color: '#818cf8' }}>{cart.total.toLocaleString('ru')} ₽</span>
+          <span style={{ color: 'var(--btn)' }}>{cart.total.toLocaleString('ru')} ₽</span>
         </div>
       </div>
 
       {/* Кнопка оформления */}
-      <button className="btn-primary" onClick={() => navigate('/checkout')}>
+      <button
+        className="btn-primary"
+        onClick={() => navigate('/checkout')}
+      >
         Оформить заказ
       </button>
     </div>

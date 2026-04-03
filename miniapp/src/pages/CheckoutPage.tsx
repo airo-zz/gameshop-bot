@@ -53,6 +53,7 @@ export default function CheckoutPage() {
     cart &&
     profile.balance < cart.total
 
+  // Telegram MainButton
   useEffect(() => {
     const handler = () => handlePlaceOrder()
     showMainButton(
@@ -69,10 +70,14 @@ export default function CheckoutPage() {
     haptic.impact('medium')
 
     try {
+      // 1. Создаём заказ
       const order = await ordersApi.create({ payment_method: selectedMethod })
+
+      // 2. Инициируем оплату
       const payment = await ordersApi.pay(order.id)
 
       if (payment.success) {
+        // Оплата балансом — сразу успех
         setItemsCount(0)
         haptic.success()
         navigate(`/orders/${order.id}?success=1`, { replace: true })
@@ -80,7 +85,9 @@ export default function CheckoutPage() {
       }
 
       if (payment.redirect_url) {
+        // Карта или крипта — открываем страницу оплаты
         openLink(payment.redirect_url)
+        // После возврата проверяем статус
         setItemsCount(0)
         navigate(`/orders/${order.id}`, { replace: true })
         return
@@ -98,48 +105,41 @@ export default function CheckoutPage() {
   if (!cart) return null
 
   return (
-    <div className="px-4 pt-5 pb-6 space-y-5 animate-slide-up">
-      <h1 className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--text)' }}>
-        💳 Оформление
-      </h1>
+    <div className="px-4 pt-4 pb-6 space-y-5 animate-slide-up">
+      <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>💳 Оформление</h1>
 
       {/* Итог корзины */}
-      <div className="card space-y-2.5">
-        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--hint)' }}>
-          Состав заказа · {cart.items_count} поз.
+      <div className="card space-y-2">
+        <p className="text-sm font-semibold mb-1" style={{ color: 'var(--hint)' }}>
+          Состав заказа ({cart.items_count} поз.)
         </p>
         {cart.items.map(item => (
-          <div key={item.id} className="flex justify-between text-sm gap-2">
-            <span className="truncate flex-1" style={{ color: 'var(--text)' }}>
+          <div key={item.id} className="flex justify-between text-sm">
+            <span className="truncate flex-1 mr-2" style={{ color: 'var(--text)' }}>
               {item.product_name}
-              {item.lot_name && (
-                <span style={{ color: 'var(--hint)' }}> · {item.lot_name}</span>
-              )}
+              {item.lot_name && <span style={{ color: 'var(--hint)' }}> · {item.lot_name}</span>}
             </span>
-            <span className="font-semibold flex-shrink-0" style={{ color: 'var(--text)' }}>
+            <span className="font-medium flex-shrink-0" style={{ color: 'var(--text)' }}>
               {item.subtotal.toLocaleString('ru')} ₽
             </span>
           </div>
         ))}
-        <div className="divider" />
+        <div className="h-px" style={{ background: 'var(--bg)' }} />
         {cart.discount_amount > 0 && (
           <div className="flex justify-between text-sm">
             <span style={{ color: 'var(--hint)' }}>Скидка</span>
-            <span style={{ color: '#22c55e' }}>-{cart.discount_amount.toLocaleString('ru')} ₽</span>
+            <span style={{ color: '#10b981' }}>-{cart.discount_amount.toLocaleString('ru')} ₽</span>
           </div>
         )}
         <div className="flex justify-between font-bold text-base">
           <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span style={{ color: '#818cf8' }}>{cart.total.toLocaleString('ru')} ₽</span>
+          <span style={{ color: 'var(--btn)' }}>{cart.total.toLocaleString('ru')} ₽</span>
         </div>
       </div>
 
       {/* Способ оплаты */}
       <section>
-        <h2
-          className="text-xs font-semibold uppercase tracking-wider mb-3"
-          style={{ color: 'var(--hint)' }}
-        >
+        <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>
           Способ оплаты
         </h2>
         <div className="space-y-2">
@@ -153,43 +153,32 @@ export default function CheckoutPage() {
                 onClick={() => { setSelectedMethod(method.id); haptic.select() }}
                 className={clsx(
                   'w-full flex items-center gap-3 p-4 rounded-2xl text-left',
-                  'transition-all duration-200 active:scale-[0.98]',
+                  'transition-all duration-150 active:scale-98',
+                  'border-2',
                 )}
-                style={
-                  isSelected
-                    ? {
-                        background: 'rgba(99,102,241,0.12)',
-                        border: '1.5px solid rgba(99,102,241,0.5)',
-                        boxShadow: '0 0 16px rgba(99,102,241,0.1)',
-                        opacity: isDisabled ? 0.5 : 1,
-                      }
-                    : {
-                        background: 'var(--bg2)',
-                        border: '1.5px solid var(--border)',
-                        opacity: isDisabled ? 0.5 : 1,
-                      }
-                }
+                style={{
+                  background: isSelected ? 'var(--btn)' : 'var(--bg2)',
+                  borderColor: isSelected ? 'var(--btn)' : 'transparent',
+                  color: isSelected ? 'var(--btn-text)' : 'var(--text)',
+                  opacity: isDisabled ? 0.5 : 1,
+                }}
               >
-                <span style={{ color: isSelected ? 'var(--accent)' : 'var(--hint)' }}>
+                <span style={{ color: isSelected ? 'var(--btn-text)' : 'var(--btn)' }}>
                   {method.icon}
                 </span>
                 <div className="flex-1">
+                  <p className="font-semibold text-sm">{method.label}</p>
                   <p
-                    className="font-semibold text-sm"
-                    style={{ color: 'var(--text)' }}
+                    className="text-xs mt-0.5"
+                    style={{ color: isSelected ? 'rgba(255,255,255,0.7)' : 'var(--hint)' }}
                   >
-                    {method.label}
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>
                     {method.id === 'balance' && profile
                       ? `Баланс: ${profile.balance.toLocaleString('ru')} ₽`
                       : method.description
                     }
                   </p>
                 </div>
-                {isSelected && (
-                  <CheckCircle size={20} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-                )}
+                {isSelected && <CheckCircle size={20} />}
               </button>
             )
           })}
@@ -198,37 +187,25 @@ export default function CheckoutPage() {
 
       {/* Предупреждение о балансе */}
       {insufficientBalance && (
-        <div
-          className="flex items-start gap-2.5 p-3.5 rounded-2xl"
-          style={{
-            background: 'rgba(239,68,68,0.08)',
-            border: '1px solid rgba(239,68,68,0.2)',
-          }}
-        >
-          <AlertCircle size={16} style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }} />
-          <p className="text-sm" style={{ color: '#fca5a5' }}>
+        <div className="flex items-start gap-2 p-3 rounded-2xl"
+             style={{ background: '#fef2f2', color: '#991b1b' }}>
+          <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+          <p className="text-sm">
             Недостаточно средств. Пополни баланс или выбери другой способ.
           </p>
         </div>
       )}
 
-      {/* Кнопка */}
+      {/* Кнопка (fallback) */}
       <button
         className="btn-primary"
         disabled={placing || !!insufficientBalance}
         onClick={handlePlaceOrder}
       >
-        {placing ? (
-          <>
-            <div className="w-4 h-4 rounded-full border-2 border-white/30 border-t-white animate-spin" />
-            Оформляем...
-          </>
-        ) : (
-          `Оплатить ${cart.total.toLocaleString('ru')} ₽`
-        )}
+        {placing ? '⏳ Оформляем...' : `Оплатить ${cart.total.toLocaleString('ru')} ₽`}
       </button>
 
-      <p className="text-xs text-center" style={{ color: 'rgba(148,163,184,0.5)' }}>
+      <p className="text-xs text-center" style={{ color: 'var(--hint)' }}>
         Нажимая «Оплатить», ты соглашаешься с условиями магазина
       </p>
     </div>
