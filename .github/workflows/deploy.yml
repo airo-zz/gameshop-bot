@@ -107,6 +107,8 @@ jobs:
 
       - name: Install & Build
         working-directory: miniapp
+        env:
+          VITE_SHOP_NAME: reDonate
         run: |
           npm ci
           npm run build
