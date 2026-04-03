@@ -49,12 +49,12 @@ def enum(name: str) -> postgresql.ENUM:
 
 
 def upgrade() -> None:
-    op.execute("CREATE EXTENSION IF NOT EXISTS pgcrypto")
+    op.execute(sa.text("CREATE EXTENSION IF NOT EXISTS pgcrypto"))
 
     # Создаём все enum типы явно — один раз, с IF NOT EXISTS
     for name, values in ENUM_TYPES.items():
         vals = ", ".join(f"'{v}'" for v in values)
-        op.execute(f"CREATE TYPE IF NOT EXISTS {name} AS ENUM ({vals})")
+        op.execute(sa.text(f"CREATE TYPE IF NOT EXISTS {name} AS ENUM ({vals})"))
 
     # ── loyalty_levels ────────────────────────────────────────────────────────
     op.create_table(
@@ -737,23 +737,29 @@ def upgrade() -> None:
     op.create_index("ix_orders_status", "orders", ["status"])
     op.create_index("ix_orders_order_number", "orders", ["order_number"])
 
-    op.execute("""
-        CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1000;
+    op.execute(sa.text("CREATE SEQUENCE IF NOT EXISTS order_number_seq START 1000"))
 
+    op.execute(
+        sa.text("""
         CREATE OR REPLACE FUNCTION generate_order_number()
         RETURNS TRIGGER AS $$
         BEGIN
             NEW.order_number := '#' || LPAD(nextval('order_number_seq')::TEXT, 6, '0');
             RETURN NEW;
         END;
-        $$ LANGUAGE plpgsql;
+        $$ LANGUAGE plpgsql
+    """)
+    )
 
+    op.execute(
+        sa.text("""
         CREATE TRIGGER trg_generate_order_number
         BEFORE INSERT ON orders
         FOR EACH ROW
         WHEN (NEW.order_number IS NULL OR NEW.order_number = '')
-        EXECUTE FUNCTION generate_order_number();
+        EXECUTE FUNCTION generate_order_number()
     """)
+    )
 
     # ── order_items ───────────────────────────────────────────────────────────
     op.create_table(
@@ -1099,14 +1105,16 @@ def upgrade() -> None:
     )
 
     # ── Seed: Уровни лояльности по умолчанию ──────────────────────────────��──
-    op.execute("""
+    op.execute(
+        sa.text("""
         INSERT INTO loyalty_levels (name, min_spent, min_orders, discount_percent, cashback_percent, priority, color_hex, icon_emoji, description) VALUES
         ('Bronze', 0,     0,  0,  0, 10, '#CD7F32', '🥉', 'Начальный уровень'),
         ('Silver', 3000,  5,  3,  1, 20, '#C0C0C0', '🥈', 'Скидка 3%% + кэшбек 1%%'),
         ('Gold',   10000, 15, 7,  2, 30, '#FFD700', '🥇', 'Скидка 7%% + кэшбек 2%%'),
         ('VIP',    30000, 30, 12, 3, 40, '#9B59B6', '💎', 'Скидка 12%% + кэшбек 3%% + приоритетная поддержка')
-        ON CONFLICT DO NOTHING;
+        ON CONFLICT DO NOTHING
     """)
+    )
 
 
 def downgrade() -> None:
@@ -1141,6 +1149,6 @@ def downgrade() -> None:
     op.drop_table("loyalty_levels")
 
     for name in ENUM_TYPES:
-        op.execute(f"DROP TYPE IF EXISTS {name}")
-    op.execute("DROP SEQUENCE IF EXISTS order_number_seq")
-    op.execute("DROP FUNCTION IF EXISTS generate_order_number()")
+        op.execute(sa.text(f"DROP TYPE IF EXISTS {name}"))
+    op.execute(sa.text("DROP SEQUENCE IF EXISTS order_number_seq"))
+    op.execute(sa.text("DROP FUNCTION IF EXISTS generate_order_number()"))
