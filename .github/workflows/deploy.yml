@@ -4,12 +4,12 @@
 #
 # Secrets в GitHub (Settings → Secrets):
 #   VPS_HOST      — IP или домен VPS
-#   VPS_USER      — пользователь SSH (gameshop)
+#   VPS_USER      — пользователь SSH (redonate)
 #   VPS_SSH_KEY   — приватный SSH ключ
-#   VPS_APP_DIR   — путь к проекту (/opt/gameshop)
+#   VPS_APP_DIR   — путь к проекту (/opt/redonate)
 # ─────────────────────────────────────────────────────────────────────────────
 
-name: Deploy GameShop Bot
+name: Deploy reDonate Bot
 
 on:
   push:
@@ -176,4 +176,4 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key:      ${{ secrets.VPS_SSH_KEY }}
           script: |
-            echo "❌ Deploy FAILED at $(date)" >> /var/log/gameshop-deploys.log
+            echo "❌ Deploy FAILED at $(date)" >> /var/log/redonate-deploys.log
