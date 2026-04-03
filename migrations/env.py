@@ -12,11 +12,11 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
 
 # Импортируем ВСЕ модели — Alembic должен их видеть для autogenerate
-from shared.models import Base  # noqa: F401 — все модели регистрируются через __init__
 from shared.config import settings
+from shared.models import Base  # noqa: F401 — все модели регистрируются через __init__
 
 # Alembic Config объект
 config = context.config
@@ -28,19 +28,15 @@ if config.config_file_name is not None:
 # Метаданные для autogenerate
 target_metadata = Base.metadata
 
-# Переопределяем DATABASE_URL из настроек (синхронный URL для Alembic)
-config.set_main_option("sqlalchemy.url", settings.sync_url)
-
 
 def run_migrations_offline() -> None:
     """Офлайн-режим: генерация SQL без подключения к БД."""
-    url = config.get_main_option("sqlalchemy.url")
     context.configure(
-        url=url,
+        url=settings.sync_url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        compare_type=True,          # Отслеживать изменения типов колонок
+        compare_type=True,
         compare_server_default=True,
     )
     with context.begin_transaction():
@@ -59,12 +55,8 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    """Онлайн-режим: async подключение к PostgreSQL."""
-    connectable = async_engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
+    """Онлайн-режим: async подключение к PostgreSQL через asyncpg."""
+    connectable = create_async_engine(settings.DATABASE_URL, poolclass=pool.NullPool)
     async with connectable.connect() as connection:
         await connection.run_sync(do_run_migrations)
     await connectable.dispose()
