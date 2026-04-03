@@ -91,14 +91,14 @@ def verify_telegram_init_data(init_data: str) -> dict:
     # Формируем строку для проверки
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(parsed.items()))
 
-    # Вычисляем секретный ключ
+    # Вычисляем секретный ключ: HMAC-SHA256(key="WebAppData", msg=BOT_TOKEN)
     secret_key = hmac.new(
         b"WebAppData",
         settings.BOT_TOKEN.encode(),
         hashlib.sha256,
     ).digest()
 
-    # Вычисляем hash
+    # Вычисляем hash: HMAC-SHA256(key=secret_key, msg=data_check_string)
     computed_hash = hmac.new(
         secret_key,
         data_check_string.encode(),

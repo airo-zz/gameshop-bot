@@ -12,7 +12,6 @@ from datetime import datetime, timezone
 from decimal import Decimal
 
 import httpx
-from aiogram import Bot
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -319,6 +318,7 @@ class PaymentService:
     async def _notify_user_payment_success(self, order: Order) -> None:
         """Отправляет уведомление пользователю через aiogram Bot."""
         try:
+            from aiogram import Bot
             from sqlalchemy.orm import selectinload
             from bot.utils.texts import texts
 
