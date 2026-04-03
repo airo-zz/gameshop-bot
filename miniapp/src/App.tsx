@@ -1,6 +1,7 @@
 // src/App.tsx
 import { useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
 import { authenticateWithTelegram } from '@/api/client'
 import { useAuthStore, useCartStore } from '@/store'
@@ -68,6 +69,21 @@ export default function App() {
 
   return (
     <BrowserRouter basename="/app">
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          style: {
+            background: '#1a0533',
+            color: '#fff',
+            border: '1px solid rgba(124,58,237,0.4)',
+            borderRadius: '14px',
+            fontSize: '14px',
+            fontWeight: 500,
+          },
+          success: { iconTheme: { primary: '#a78bfa', secondary: '#1a0533' } },
+          error:   { iconTheme: { primary: '#f87171', secondary: '#1a0533' } },
+        }}
+      />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<HomePage />} />

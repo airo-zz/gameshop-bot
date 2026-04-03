@@ -24,10 +24,24 @@ const STATUS_COLOR: Record<string, string> = {
 }
 
 export default function OrdersPage() {
-  const { data: orders = [], isLoading } = useQuery({
+  const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['orders'],
     queryFn: () => ordersApi.list(),
   })
+
+  if (isError) return (
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <p className="text-5xl mb-4">😔</p>
+      <p className="text-sm mb-4" style={{ color: 'var(--hint)' }}>Не удалось загрузить данные</p>
+      <button
+        onClick={() => refetch()}
+        className="px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
+        style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.35)', color: '#a78bfa' }}
+      >
+        Повторить
+      </button>
+    </div>
+  )
 
   if (isLoading) return (
     <div className="px-4 pt-5 space-y-2">
@@ -67,7 +81,7 @@ export default function OrdersPage() {
                   <p className="font-bold text-sm" style={{ color: 'var(--text)' }}>
                     {order.order_number}
                   </p>
-                  <p className="font-bold text-sm" style={{ color: '#60a5fa' }}>
+                  <p className="font-bold text-sm" style={{ color: '#a78bfa' }}>
                     {order.total_amount.toLocaleString('ru')} ₽
                   </p>
                 </div>

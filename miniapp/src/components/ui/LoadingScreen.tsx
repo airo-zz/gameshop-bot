@@ -1,4 +1,6 @@
 // src/components/ui/LoadingScreen.tsx
+const SHOP_NAME = import.meta.env.VITE_SHOP_NAME || 'reDonate'
+
 export default function LoadingScreen() {
   return (
     <div
@@ -39,6 +41,20 @@ export default function LoadingScreen() {
           </svg>
         </div>
       </div>
+
+      {/* Shop name */}
+      <p
+        className="text-base font-bold tracking-tight"
+        style={{
+          background: 'linear-gradient(135deg, #ffffff, #c4b5fd)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          marginTop: -8,
+        }}
+      >
+        {SHOP_NAME}
+      </p>
 
       {/* Spinner */}
       <div className="relative w-9 h-9">

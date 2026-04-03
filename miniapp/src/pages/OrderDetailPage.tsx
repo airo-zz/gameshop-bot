@@ -1,15 +1,15 @@
 // src/pages/OrderDetailPage.tsx
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ordersApi } from '@/api'
-import { CheckCircle, Copy } from 'lucide-react'
+import { CheckCircle, Copy, MessageCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
 
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string; emoji: string }> = {
   new:             { label: 'Новый',           color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', emoji: '🆕' },
   pending_payment: { label: 'Ожидает оплаты',  color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',  emoji: '⏳' },
-  paid:            { label: 'Оплачен',          color: '#60a5fa', bg: 'rgba(59,130,246,0.1)',  emoji: '💚' },
+  paid:            { label: 'Оплачен',          color: '#a78bfa', bg: 'rgba(124,58,237,0.1)',  emoji: '💚' },
   processing:      { label: 'В обработке',      color: '#a78bfa', bg: 'rgba(139,92,246,0.1)',  emoji: '⚙️' },
   clarification:   { label: 'Нужно уточнение', color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',  emoji: '❓' },
   completed:       { label: 'Выполнен',         color: '#34d399', bg: 'rgba(16,185,129,0.1)',  emoji: '✅' },
@@ -17,9 +17,12 @@ const STATUS_LABEL: Record<string, { label: string; color: string; bg: string; e
   dispute:         { label: 'Спор',             color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',  emoji: '⚠️' },
 }
 
+const SUPPORT_STATUSES = new Set(['dispute', 'clarification', 'paid'])
+
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const isSuccess = searchParams.get('success') === '1'
   const { haptic } = useTelegram()
 
@@ -88,7 +91,7 @@ export default function OrderDetailPage() {
                   {item.quantity} шт. × {item.unit_price.toLocaleString('ru')} ₽
                 </p>
               </div>
-              <p className="font-bold text-sm flex-shrink-0" style={{ color: '#60a5fa' }}>
+              <p className="font-bold text-sm flex-shrink-0" style={{ color: '#a78bfa' }}>
                 {item.total_price.toLocaleString('ru')} ₽
               </p>
             </div>
@@ -133,7 +136,7 @@ export default function OrderDetailPage() {
         )}
         <div className="flex justify-between font-bold">
           <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span style={{ color: '#60a5fa' }}>{order.total_amount.toLocaleString('ru')} ₽</span>
+          <span style={{ color: '#a78bfa' }}>{order.total_amount.toLocaleString('ru')} ₽</span>
         </div>
       </div>
 
@@ -158,6 +161,22 @@ export default function OrderDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Кнопка поддержки для проблемных статусов */}
+      {SUPPORT_STATUSES.has(order.status) && (
+        <button
+          onClick={() => navigate('/support')}
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm transition-all active:scale-95"
+          style={{
+            background: 'rgba(124,58,237,0.12)',
+            border: '1px solid rgba(124,58,237,0.3)',
+            color: '#a78bfa',
+          }}
+        >
+          <MessageCircle size={17} />
+          Связаться с поддержкой
+        </button>
+      )}
     </div>
   )
 }

@@ -89,7 +89,7 @@ export default function ProductPage() {
     <div className="pb-8 animate-slide-up">
       {/* Изображения */}
       <div className="relative">
-        <div className="aspect-video overflow-hidden" style={{ background: 'var(--bg3)' }}>
+        <div className="aspect-[4/3] overflow-hidden" style={{ background: 'var(--bg3)' }}>
           {product.images.length > 0 ? (
             <img src={product.images[imgIdx]} alt={product.name} className="w-full h-full object-cover" />
           ) : (
@@ -117,7 +117,7 @@ export default function ProductPage() {
                 style={{
                   width: i === imgIdx ? 20 : 6,
                   height: 6,
-                  background: i === imgIdx ? '#3b82f6' : 'rgba(255,255,255,0.3)',
+                  background: i === imgIdx ? '#7c3aed' : 'rgba(255,255,255,0.3)',
                 }}
               />
             ))}
@@ -191,10 +191,10 @@ export default function ProductPage() {
                     className="p-3 rounded-2xl text-left transition-all duration-150 active:scale-95"
                     style={{
                       background: isSelected
-                        ? 'linear-gradient(135deg, rgba(37,99,235,0.3), rgba(79,70,229,0.3))'
+                        ? 'linear-gradient(135deg, rgba(124,58,237,0.3), rgba(79,70,229,0.3))'
                         : 'var(--bg2)',
                       border: isSelected
-                        ? '1.5px solid rgba(59,130,246,0.6)'
+                        ? '1.5px solid rgba(124,58,237,0.6)'
                         : '1.5px solid var(--border)',
                     }}
                   >
@@ -220,7 +220,7 @@ export default function ProductPage() {
                           {lot.original_price.toLocaleString('ru')} ₽
                         </span>
                       )}
-                      <span className="text-base font-bold" style={{ color: '#60a5fa' }}>
+                      <span className="text-base font-bold" style={{ color: '#a78bfa' }}>
                         {lot.price.toLocaleString('ru')} ₽
                       </span>
                     </div>
@@ -304,7 +304,7 @@ export default function ProductPage() {
 function ProductSkeleton() {
   return (
     <div>
-      <div className="skeleton aspect-video w-full rounded-none" style={{ borderRadius: 0 }} />
+      <div className="skeleton aspect-[4/3] w-full rounded-none" style={{ borderRadius: 0 }} />
       <div className="px-4 pt-4 space-y-3">
         <div className="skeleton h-7 w-3/4 rounded-xl" />
         <div className="skeleton h-4 w-1/3 rounded-xl" />

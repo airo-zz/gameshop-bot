@@ -7,7 +7,6 @@ import toast from 'react-hot-toast'
 import { cartApi, ordersApi, profileApi } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
-import clsx from 'clsx'
 
 const PAYMENT_METHODS = [
   { id: 'balance',      label: 'Баланс бота',      icon: <Wallet size={20} />,   description: 'Мгновенно' },
@@ -15,6 +14,48 @@ const PAYMENT_METHODS = [
   { id: 'usdt',         label: 'USDT (TRC-20)',     icon: <Bitcoin size={20} />,  description: 'Крипта' },
   { id: 'ton',          label: 'TON',               icon: <span className="text-lg">💎</span>, description: 'Telegram монеты' },
 ]
+
+function CheckoutSkeleton() {
+  return (
+    <div className="px-4 pt-5 pb-8 space-y-5">
+      <div className="skeleton h-7 w-40 rounded-xl" />
+
+      {/* Cart items skeleton */}
+      <div
+        className="rounded-2xl p-4 space-y-3"
+        style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+      >
+        <div className="skeleton h-3 w-32 rounded-lg" />
+        {Array(3).fill(0).map((_, i) => (
+          <div key={i} className="flex justify-between items-center">
+            <div className="skeleton h-4 rounded-lg flex-1 mr-4" style={{ maxWidth: '60%' }} />
+            <div className="skeleton h-4 w-16 rounded-lg flex-shrink-0" />
+          </div>
+        ))}
+        <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
+        <div className="flex justify-between">
+          <div className="skeleton h-5 w-16 rounded-lg" />
+          <div className="skeleton h-5 w-20 rounded-lg" />
+        </div>
+      </div>
+
+      {/* Payment methods skeleton */}
+      <div className="space-y-2">
+        <div className="skeleton h-3 w-28 rounded-lg" />
+        {Array(4).fill(0).map((_, i) => (
+          <div
+            key={i}
+            className="skeleton rounded-2xl"
+            style={{ height: 68 }}
+          />
+        ))}
+      </div>
+
+      {/* Button skeleton */}
+      <div className="skeleton rounded-2xl" style={{ height: 52 }} />
+    </div>
+  )
+}
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
@@ -24,7 +65,7 @@ export default function CheckoutPage() {
   const [selectedMethod, setSelectedMethod] = useState('balance')
   const [placing, setPlacing] = useState(false)
 
-  const { data: cart }    = useQuery({ queryKey: ['cart'],    queryFn: cartApi.get })
+  const { data: cart, isLoading: cartLoading }    = useQuery({ queryKey: ['cart'],    queryFn: cartApi.get })
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: profileApi.get })
 
   const insufficientBalance =
@@ -69,7 +110,8 @@ export default function CheckoutPage() {
     }
   }
 
-  if (!cart) return null
+  if (cartLoading) return <CheckoutSkeleton />
+  if (!cart) return <CheckoutSkeleton />
 
   return (
     <div className="px-4 pt-5 pb-8 space-y-5 animate-slide-up">
@@ -100,7 +142,7 @@ export default function CheckoutPage() {
         )}
         <div className="flex justify-between font-bold text-base">
           <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span style={{ color: '#60a5fa' }}>{cart.total.toLocaleString('ru')} ₽</span>
+          <span style={{ color: '#a78bfa' }}>{cart.total.toLocaleString('ru')} ₽</span>
         </div>
       </div>
 
@@ -120,15 +162,15 @@ export default function CheckoutPage() {
                 className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all duration-150 active:scale-[0.98]"
                 style={{
                   background: isSelected
-                    ? 'linear-gradient(135deg, rgba(37,99,235,0.25), rgba(79,70,229,0.25))'
+                    ? 'linear-gradient(135deg, rgba(124,58,237,0.25), rgba(79,70,229,0.25))'
                     : 'var(--bg2)',
                   border: isSelected
-                    ? '1.5px solid rgba(59,130,246,0.5)'
+                    ? '1.5px solid rgba(124,58,237,0.5)'
                     : '1.5px solid var(--border)',
                   opacity: isDisabled ? 0.5 : 1,
                 }}
               >
-                <span style={{ color: isSelected ? '#60a5fa' : 'var(--hint)' }}>
+                <span style={{ color: isSelected ? '#a78bfa' : 'var(--hint)' }}>
                   {method.icon}
                 </span>
                 <div className="flex-1">
@@ -140,7 +182,7 @@ export default function CheckoutPage() {
                     }
                   </p>
                 </div>
-                {isSelected && <CheckCircle size={18} style={{ color: '#60a5fa' }} />}
+                {isSelected && <CheckCircle size={18} style={{ color: '#a78bfa' }} />}
               </button>
             )
           })}

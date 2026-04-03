@@ -19,6 +19,17 @@ export default function ErrorScreen() {
           Открой бота и попробуй снова
         </p>
       </div>
+      <button
+        onClick={() => window.location.reload()}
+        className="px-6 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
+        style={{
+          background: 'rgba(124,58,237,0.15)',
+          border: '1px solid rgba(124,58,237,0.35)',
+          color: '#a78bfa',
+        }}
+      >
+        Попробовать снова
+      </button>
     </div>
   )
 }

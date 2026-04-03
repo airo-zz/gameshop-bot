@@ -11,7 +11,14 @@ export default function GamePage() {
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
 
-  const { data: categories = [], isLoading: catsLoading } = useQuery({
+  // Получаем список всех игр для поиска реального названия по slug
+  const { data: games = [] } = useQuery({
+    queryKey: ['games'],
+    queryFn: catalogApi.getGames,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: categories = [], isLoading: catsLoading, isError: catsError, refetch: refetchCats } = useQuery({
     queryKey: ['categories', slug],
     queryFn: () => catalogApi.getCategories(slug!),
     enabled: !!slug,
@@ -19,13 +26,15 @@ export default function GamePage() {
 
   const activeCatId = selectedCatId ?? categories[0]?.id ?? null
 
-  const { data: products = [], isLoading: productsLoading } = useQuery({
+  const { data: products = [], isLoading: productsLoading, isError: productsError, refetch: refetchProducts } = useQuery({
     queryKey: ['products', activeCatId],
     queryFn: () => catalogApi.getProducts(activeCatId!),
     enabled: !!activeCatId,
   })
 
-  const gameName = slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) ?? ''
+  // Реальное название из API, fallback на slug
+  const gameFromApi = games.find(g => g.slug === slug)
+  const gameName = gameFromApi?.name ?? slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) ?? ''
 
   const handleFavoriteToggle = (id: string, added: boolean) => {
     setFavorites(prev => {
@@ -36,6 +45,20 @@ export default function GamePage() {
   }
 
   const rootCats = (cats: Category[]) => cats.filter(c => !c.parent_id)
+
+  if (catsError) return (
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <p className="text-5xl mb-4">😔</p>
+      <p className="text-sm mb-4" style={{ color: 'var(--hint)' }}>Не удалось загрузить данные</p>
+      <button
+        onClick={() => refetchCats()}
+        className="px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
+        style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.35)', color: '#a78bfa' }}
+      >
+        Повторить
+      </button>
+    </div>
+  )
 
   return (
     <div className="animate-fade-in">
@@ -67,7 +90,7 @@ export default function GamePage() {
         }
       </div>
 
-      {/* Подкатегории */}
+      {/* Подкатегории с активным состоянием */}
       {activeCatId && (() => {
         const parent = categories.find(c => c.id === activeCatId)
         if (!parent?.children?.length) return null
@@ -77,8 +100,26 @@ export default function GamePage() {
               <button
                 key={sub.id}
                 onClick={() => setSelectedCatId(sub.id)}
-                className="pill"
-                style={{ fontSize: '12px', padding: '4px 12px' }}
+                style={{
+                  flexShrink: 0,
+                  fontSize: '12px',
+                  padding: '4px 12px',
+                  borderRadius: 999,
+                  border: selectedCatId === sub.id
+                    ? '1px solid rgba(124,58,237,0.5)'
+                    : '1px solid var(--border)',
+                  background: selectedCatId === sub.id
+                    ? 'rgba(124,58,237,0.2)'
+                    : 'var(--bg2)',
+                  color: selectedCatId === sub.id
+                    ? '#c4b5fd'
+                    : 'var(--hint)',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  fontWeight: 500,
+                  transition: 'all 0.15s',
+                  boxShadow: selectedCatId === sub.id ? '0 0 10px rgba(124,58,237,0.18)' : 'none',
+                }}
               >
                 {sub.name}
               </button>
@@ -89,7 +130,18 @@ export default function GamePage() {
 
       {/* Товары */}
       <div className="px-4 pt-3 pb-4">
-        {productsLoading ? (
+        {productsError ? (
+          <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <p className="text-sm mb-3" style={{ color: 'var(--hint)' }}>Не удалось загрузить товары</p>
+            <button
+              onClick={() => refetchProducts()}
+              className="px-5 py-2 rounded-2xl text-sm font-semibold transition-all active:scale-95"
+              style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.35)', color: '#a78bfa' }}
+            >
+              Повторить
+            </button>
+          </div>
+        ) : productsLoading ? (
           <div className="grid grid-cols-2 gap-3">
             {Array(6).fill(0).map((_, i) => (
               <div key={i} className="skeleton rounded-2xl" style={{ height: 220 }} />

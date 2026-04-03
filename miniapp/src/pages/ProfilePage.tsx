@@ -76,15 +76,24 @@ export default function ProfilePage() {
       </div>
 
       {/* Статистика */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {[
-          { label: 'Баланс',    value: `${Number(profile.balance).toLocaleString('ru')} ₽`, color: '#60a5fa' },
-          { label: 'Заказов',   value: profile.orders_count,                                  color: 'var(--text)' },
+          { label: 'Баланс',    value: `${Number(profile.balance).toLocaleString('ru')} ₽`, color: '#a78bfa' },
+          { label: 'Заказов',   value: String(profile.orders_count),                          color: 'var(--text)' },
           { label: 'Потрачено', value: `${Number(profile.total_spent).toLocaleString('ru')} ₽`, color: 'var(--text)' },
-          { label: 'Рефералов', value: profile.referrals_count,                               color: '#34d399' },
+          { label: 'Рефералов', value: String(profile.referrals_count),                       color: '#34d399' },
         ].map(({ label, value, color }) => (
-          <div key={label} className="card text-center py-3">
-            <p className="text-base font-bold" style={{ color }}>{value}</p>
+          <div
+            key={label}
+            style={{
+              background: 'var(--bg2)',
+              border: '1px solid var(--border)',
+              borderRadius: 16,
+              padding: '14px 16px',
+              textAlign: 'center',
+            }}
+          >
+            <p className="text-lg font-bold truncate" style={{ color }}>{value}</p>
             <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>{label}</p>
           </div>
         ))}
@@ -95,8 +104,8 @@ export default function ProfilePage() {
         <div
           className="p-4 rounded-2xl"
           style={{
-            background: 'linear-gradient(135deg, rgba(37,99,235,0.15), rgba(79,70,229,0.15))',
-            border: '1px solid rgba(59,130,246,0.25)',
+            background: 'linear-gradient(135deg, rgba(124,58,237,0.15), rgba(79,70,229,0.15))',
+            border: '1px solid rgba(124,58,237,0.25)',
           }}
         >
           <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>
@@ -105,7 +114,7 @@ export default function ProfilePage() {
           <div className="flex gap-6">
             {profile.loyalty_discount_percent > 0 && (
               <div>
-                <p className="text-2xl font-extrabold" style={{ color: '#60a5fa' }}>
+                <p className="text-2xl font-extrabold" style={{ color: '#a78bfa' }}>
                   {profile.loyalty_discount_percent}%
                 </p>
                 <p className="text-xs" style={{ color: 'var(--hint)' }}>скидка</p>
@@ -141,7 +150,7 @@ export default function ProfilePage() {
         >
           <code
             className="text-xs font-bold truncate mr-2"
-            style={{ color: '#60a5fa', maxWidth: '70%' }}
+            style={{ color: '#a78bfa', maxWidth: '70%' }}
           >
             t.me/{BOT_USERNAME}?start=REF_{profile.telegram_id}
           </code>
@@ -165,7 +174,7 @@ export default function ProfilePage() {
             className="flex items-center gap-3 p-4 rounded-2xl active:scale-[0.98] transition-transform"
             style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
           >
-            <span style={{ color: '#60a5fa' }}>{icon}</span>
+            <span style={{ color: '#a78bfa' }}>{icon}</span>
             <span className="font-medium text-sm flex-1" style={{ color: 'var(--text)' }}>{label}</span>
             <ChevronRight size={16} style={{ color: 'var(--hint)' }} />
           </Link>

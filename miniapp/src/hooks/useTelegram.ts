@@ -97,13 +97,8 @@ export function useTelegram() {
     if (!tg) return
     tg.ready()
     tg.expand()
-
-    // Слушаем смену темы
-    const handler = () => setColorScheme(tg.colorScheme)
-    // Telegram не предоставляет стандартный event listener для темы,
-    // поэтому периодически проверяем (или используем MutationObserver)
-    const interval = setInterval(handler, 1000)
-    return () => clearInterval(interval)
+    // colorScheme читается один раз при инициализации;
+    // Telegram WebApp не предоставляет event для смены темы во время сессии
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

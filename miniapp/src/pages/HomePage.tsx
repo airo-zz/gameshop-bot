@@ -52,16 +52,6 @@ function IconMenu() {
   )
 }
 
-function IconBell() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  )
-}
-
 function IconZap() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
@@ -70,31 +60,150 @@ function IconZap() {
   )
 }
 
-// ── Menu groups ───────────────────────────────────────────────────────────────
+// ── Icons для меню (lucide-style inline) ──────────────────────────────────────
 
-const MENU_GROUPS = [
-  [
-    { emoji: '🏠', label: 'Главная',   path: '/' },
-    { emoji: '🎮', label: 'Каталог',   path: '/catalog' },
-  ],
-  [
-    { emoji: '🛒', label: 'Корзина',   path: '/cart' },
-    { emoji: '📋', label: 'Заказы',    path: '/orders' },
-    { emoji: '👤', label: 'Профиль',   path: '/profile' },
-  ],
-  [
-    { emoji: '🆘', label: 'Поддержка', path: '/support' },
-  ],
-]
+function IconHome() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  )
+}
+
+function IconCatalog() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="7" width="20" height="12" rx="5" />
+      <path d="M7 13v-2m0 2v2m0-2h2m-2 0H5" />
+      <circle cx="16" cy="12" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="18.5" cy="14" r="1.1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+function IconCart() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="21" r="1" /><circle cx="20" cy="21" r="1" />
+      <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
+    </svg>
+  )
+}
+
+function IconOrders() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="16" y1="13" x2="8" y2="13" />
+      <line x1="16" y1="17" x2="8" y2="17" />
+      <polyline points="10 9 9 9 8 9" />
+    </svg>
+  )
+}
+
+function IconProfile() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  )
+}
+
+function IconSupport() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  )
+}
+
+function IconSparkle() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
+    </svg>
+  )
+}
+
+// ── Toggle switch ─────────────────────────────────────────────────────────────
+
+function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div
+      onClick={e => { e.stopPropagation(); onChange(!checked) }}
+      style={{
+        width: 38,
+        height: 22,
+        borderRadius: 11,
+        background: checked ? 'rgba(124,58,237,0.8)' : 'rgba(255,255,255,0.12)',
+        border: checked ? '1px solid rgba(167,139,250,0.5)' : '1px solid rgba(255,255,255,0.1)',
+        position: 'relative',
+        cursor: 'pointer',
+        transition: 'background 0.2s, border-color 0.2s',
+        flexShrink: 0,
+      }}
+    >
+      <div style={{
+        position: 'absolute',
+        top: 2,
+        left: checked ? 18 : 2,
+        width: 16,
+        height: 16,
+        borderRadius: '50%',
+        background: '#fff',
+        transition: 'left 0.2s cubic-bezier(0.34,1.56,0.64,1)',
+        boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+      }} />
+    </div>
+  )
+}
+
+// ── Menu config ───────────────────────────────────────────────────────────────
+
+interface MenuItem {
+  icon: React.ReactNode
+  label: string
+  path?: string
+  toggle?: boolean
+  toggleKey?: string
+}
 
 // ── Dropdown Menu ─────────────────────────────────────────────────────────────
 
 interface DropdownMenuProps {
   open: boolean
   onClose: () => void
+  particlesEnabled: boolean
+  onToggleParticles: (v: boolean) => void
 }
 
-function DropdownMenu({ open, onClose }: DropdownMenuProps) {
+const MENU_GROUPS: MenuItem[][] = [
+  [
+    { icon: <IconHome />,    label: 'Главная',   path: '/' },
+    { icon: <IconCatalog />, label: 'Каталог',   path: '/catalog' },
+  ],
+  [
+    { icon: <IconCart />,    label: 'Корзина',   path: '/cart' },
+    { icon: <IconOrders />,  label: 'Заказы',    path: '/orders' },
+    { icon: <IconProfile />, label: 'Профиль',   path: '/profile' },
+  ],
+  [
+    { icon: <IconSupport />, label: 'Поддержка', path: '/support' },
+    { icon: <IconSparkle />, label: 'Эффекты частиц', toggle: true, toggleKey: 'particles' },
+  ],
+]
+
+function DropdownMenu({ open, onClose, particlesEnabled, onToggleParticles }: DropdownMenuProps) {
   const navigate = useNavigate()
   const handleNav = (path: string) => { onClose(); navigate(path) }
 
@@ -104,35 +213,31 @@ function DropdownMenu({ open, onClose }: DropdownMenuProps) {
         position: 'absolute',
         top: 'calc(100% + 10px)',
         right: 0,
-        minWidth: 220,
-        background: 'rgba(10,10,22,0.97)',
+        minWidth: 230,
+        background: 'rgba(15,10,30,0.92)',
         border: '1px solid rgba(124,58,237,0.3)',
-        borderRadius: 20,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(124,58,237,0.1), inset 0 1px 0 rgba(255,255,255,0.05)',
-        backdropFilter: 'blur(24px)',
-        WebkitBackdropFilter: 'blur(24px)',
+        borderRadius: 16,
+        boxShadow: '0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(124,58,237,0.08), inset 0 1px 0 rgba(255,255,255,0.05), 0 0 40px rgba(124,58,237,0.12)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         overflow: 'hidden',
         zIndex: 100,
         opacity: open ? 1 : 0,
-        transform: open ? 'translateY(0) scale(1)' : 'translateY(-10px) scale(0.96)',
+        transform: open
+          ? 'translateY(0) scale(1)'
+          : 'translateY(-8px) scale(0.94)',
         transformOrigin: 'top right',
         pointerEvents: open ? 'auto' : 'none',
-        transition: 'opacity 0.2s cubic-bezier(0.4,0,0.2,1), transform 0.2s cubic-bezier(0.4,0,0.2,1)',
+        transition: open
+          ? 'opacity 0.22s cubic-bezier(0.34,1.56,0.64,1), transform 0.22s cubic-bezier(0.34,1.56,0.64,1)'
+          : 'opacity 0.15s ease, transform 0.15s ease',
       }}
     >
-      {/* Caret arrow */}
-      <div style={{
-        position: 'absolute',
-        top: -6,
-        right: 14,
-        width: 12,
-        height: 6,
-        overflow: 'hidden',
-      }}>
+      {/* Caret */}
+      <div style={{ position: 'absolute', top: -6, right: 14, width: 12, height: 6, overflow: 'hidden' }}>
         <div style={{
-          width: 12,
-          height: 12,
-          background: 'rgba(10,10,22,0.97)',
+          width: 12, height: 12,
+          background: 'rgba(15,10,30,0.92)',
           border: '1px solid rgba(124,58,237,0.3)',
           transform: 'rotate(45deg)',
           transformOrigin: 'center',
@@ -143,41 +248,58 @@ function DropdownMenu({ open, onClose }: DropdownMenuProps) {
       {MENU_GROUPS.map((group, gi) => (
         <div key={gi}>
           {gi > 0 && (
-            <div style={{ height: 1, background: 'rgba(124,58,237,0.12)', margin: '0 12px' }} />
+            <div style={{ height: 1, background: 'rgba(124,58,237,0.15)', margin: '0 12px' }} />
           )}
-          {group.map((item) => (
-            <button
-              key={item.path}
-              onClick={() => handleNav(item.path)}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                height: 50,
-                padding: '0 16px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text)',
-                transition: 'background 0.15s',
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(124,58,237,0.1)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-              onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(124,58,237,0.14)' }}
-              onTouchEnd={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-            >
-              <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0, width: 24, textAlign: 'center' }}>
-                {item.emoji}
-              </span>
-              <span style={{ flex: 1, textAlign: 'left', fontSize: 14, fontWeight: 500, letterSpacing: '-0.01em' }}>
-                {item.label}
-              </span>
-              <span style={{ color: 'rgba(167,139,250,0.4)', display: 'flex' }}>
-                <IconChevronRight />
-              </span>
-            </button>
-          ))}
+          {group.map((item) => {
+            const isToggle = !!item.toggle
+            const checked = item.toggleKey === 'particles' ? particlesEnabled : false
+
+            return (
+              <button
+                key={item.label}
+                onClick={() => {
+                  if (isToggle) {
+                    if (item.toggleKey === 'particles') onToggleParticles(!checked)
+                  } else if (item.path) {
+                    handleNav(item.path)
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 12,
+                  height: 50,
+                  padding: '0 16px',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--text)',
+                  transition: 'background 0.15s',
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(124,58,237,0.1)' }}
+                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+                onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(124,58,237,0.14)' }}
+                onTouchEnd={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+              >
+                <span style={{ color: 'rgba(167,139,250,0.7)', display: 'flex', flexShrink: 0, width: 20 }}>
+                  {item.icon}
+                </span>
+                <span style={{ flex: 1, textAlign: 'left', fontSize: 14, fontWeight: 500, letterSpacing: '-0.01em' }}>
+                  {item.label}
+                </span>
+                {isToggle ? (
+                  <ToggleSwitch checked={checked} onChange={v => {
+                    if (item.toggleKey === 'particles') onToggleParticles(v)
+                  }} />
+                ) : (
+                  <span style={{ color: 'rgba(167,139,250,0.3)', display: 'flex' }}>
+                    <IconChevronRight />
+                  </span>
+                )}
+              </button>
+            )
+          })}
         </div>
       ))}
     </div>
@@ -186,12 +308,27 @@ function DropdownMenu({ open, onClose }: DropdownMenuProps) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
+const LS_PARTICLES_KEY = 'redonate_particles_enabled'
+
 export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const shopName = useShopStore(s => s.name)
   const { user } = useTelegram()
   const displayName = user?.first_name || user?.username || null
+
+  // Particles toggle — читаем из localStorage (по умолчанию включены)
+  const [particlesEnabled, setParticlesEnabled] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem(LS_PARTICLES_KEY)
+      return stored === null ? true : stored === 'true'
+    } catch { return true }
+  })
+
+  const handleToggleParticles = (v: boolean) => {
+    setParticlesEnabled(v)
+    try { localStorage.setItem(LS_PARTICLES_KEY, String(v)) } catch {}
+  }
 
   const { data: games = [], isLoading: gamesLoading } = useQuery({
     queryKey: ['games'],
@@ -273,25 +410,8 @@ export default function HomePage() {
             </span>
           </div>
 
-          {/* Right actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <button
-              style={{
-                width: 40,
-                height: 40,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 12,
-                background: 'none',
-                border: 'none',
-                color: 'rgba(255,255,255,0.45)',
-                cursor: 'pointer',
-              }}
-            >
-              <IconBell />
-            </button>
-
+          {/* Right actions — только меню */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
             <div ref={menuRef} style={{ position: 'relative' }}>
               <button
                 onClick={() => setMenuOpen(v => !v)}
@@ -311,7 +431,12 @@ export default function HomePage() {
               >
                 <IconMenu />
               </button>
-              <DropdownMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+              <DropdownMenu
+                open={menuOpen}
+                onClose={() => setMenuOpen(false)}
+                particlesEnabled={particlesEnabled}
+                onToggleParticles={handleToggleParticles}
+              />
             </div>
           </div>
         </div>
@@ -319,7 +444,7 @@ export default function HomePage() {
 
       <div className="px-4 pb-4">
 
-        {/* ── Hero greeting — одна строка, одинаковый размер ──────────────── */}
+        {/* ── Hero greeting ────────────────────────────────────────────────── */}
         <div className="pt-5 pb-4 animate-fade-in">
           <h1
             style={{
@@ -337,7 +462,6 @@ export default function HomePage() {
             {displayName ? `Добро пожаловать, ${displayName}!` : 'Добро пожаловать!'}
           </h1>
 
-          {/* Loyalty badge */}
           {profile && (
             <div style={{ marginTop: 10 }}>
               <span
@@ -354,16 +478,14 @@ export default function HomePage() {
                   color: '#c4b5fd',
                 }}
               >
-                <span style={{ fontSize: 13 }}>
-                  {profile.loyalty_level_emoji || '⭐'}
-                </span>
+                <span style={{ fontSize: 13 }}>{profile.loyalty_level_emoji || '⭐'}</span>
                 {profile.loyalty_level_name || 'Базовый'}
               </span>
             </div>
           )}
         </div>
 
-        {/* ── Games horizontal scroll — крупные карточки ──────────────────── */}
+        {/* ── Games horizontal scroll ──────────────────────────────────────── */}
         <section className="mb-5 animate-fade-in delay-150">
           <div
             style={{
@@ -455,6 +577,7 @@ export default function HomePage() {
                         <img
                           src={game.image_url}
                           alt={game.name}
+                          loading="lazy"
                           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                         />
                       ) : (
@@ -495,7 +618,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* ── Featured products — компактный список ───────────────────────── */}
+        {/* ── Featured products ────────────────────────────────────────────── */}
         <section className="animate-fade-in delay-225">
           <div
             style={{
@@ -561,7 +684,6 @@ export default function HomePage() {
                       transition: 'transform 0.15s',
                     }}
                   >
-                    {/* Thumbnail */}
                     <div
                       style={{
                         width: 48,
@@ -576,6 +698,7 @@ export default function HomePage() {
                         <img
                           src={product.images[0]}
                           alt={product.name}
+                          loading="lazy"
                           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
                         />
                       ) : (
@@ -595,7 +718,6 @@ export default function HomePage() {
                       )}
                     </div>
 
-                    {/* Info */}
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p
                         style={{
@@ -625,7 +747,6 @@ export default function HomePage() {
                       </p>
                     </div>
 
-                    {/* Arrow */}
                     <span style={{ color: 'rgba(167,139,250,0.4)', display: 'flex', flexShrink: 0 }}>
                       <IconChevronRight />
                     </span>

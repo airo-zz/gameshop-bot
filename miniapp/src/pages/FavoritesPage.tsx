@@ -7,10 +7,24 @@ import { Link } from 'react-router-dom'
 
 export default function FavoritesPage() {
   const qc = useQueryClient()
-  const { data: favorites = [], isLoading } = useQuery({
+  const { data: favorites = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['favorites'],
     queryFn: catalogApi.getFavorites,
   })
+
+  if (isError) return (
+    <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+      <p className="text-5xl mb-4">😔</p>
+      <p className="text-sm mb-4" style={{ color: 'var(--hint)' }}>Не удалось загрузить данные</p>
+      <button
+        onClick={() => refetch()}
+        className="px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
+        style={{ background: 'rgba(124,58,237,0.15)', border: '1px solid rgba(124,58,237,0.35)', color: '#a78bfa' }}
+      >
+        Повторить
+      </button>
+    </div>
+  )
 
   const handleToggle = (_id: string, _added: boolean) => {
     qc.invalidateQueries({ queryKey: ['favorites'] })

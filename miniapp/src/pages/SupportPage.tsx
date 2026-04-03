@@ -1,7 +1,7 @@
 // src/pages/SupportPage.tsx
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { MessageCircle, Send, ChevronRight, Plus, ArrowLeft } from 'lucide-react'
+import { MessageCircle, Send, Plus, ArrowLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { supportApi } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -59,7 +59,7 @@ export default function SupportPage() {
           <button
             onClick={() => setView('list')}
             className="flex items-center gap-1.5 text-sm font-medium"
-            style={{ color: '#60a5fa' }}
+            style={{ color: '#a78bfa' }}
           >
             <ArrowLeft size={16} />
             Назад
@@ -73,7 +73,7 @@ export default function SupportPage() {
             onClick={() => setView('new')}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all active:scale-95"
             style={{
-              background: 'linear-gradient(135deg, #2563eb, #4f46e5)',
+              background: 'linear-gradient(135deg, #7c3aed, #4f46e5)',
               color: '#fff',
             }}
           >
@@ -127,7 +127,6 @@ export default function SupportPage() {
                       })}
                     </p>
                   </div>
-                  <ChevronRight size={15} style={{ color: 'var(--hint)' }} />
                 </div>
               )
             })
