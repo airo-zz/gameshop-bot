@@ -19,6 +19,7 @@ from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from shared.models import (
     Cart, DiscountRule, DiscountType, LoyaltyLevel,
@@ -169,7 +170,9 @@ class DiscountService:
     ) -> tuple[PromoCode, DiscountRule] | None:
         """Валидирует промокод. Возвращает (PromoCode, DiscountRule) или None."""
         result = await self.db.execute(
-            select(PromoCode).where(
+            select(PromoCode)
+            .options(selectinload(PromoCode.discount_rule))
+            .where(
                 PromoCode.code == code.upper(),
                 PromoCode.is_active == True,
             )
@@ -230,10 +233,16 @@ class DiscountService:
     ) -> None:
         """Фиксирует использование промокода после создания заказа."""
         # Увеличиваем счётчик
-        promo = await self.db.get(PromoCode, promo_id)
+        promo_result = await self.db.execute(
+            select(PromoCode)
+            .options(selectinload(PromoCode.discount_rule))
+            .where(PromoCode.id == promo_id)
+        )
+        promo = promo_result.scalar_one_or_none()
         if promo:
             promo.used_count += 1
-            promo.discount_rule.usage_count += 1
+            if promo.discount_rule:
+                promo.discount_rule.usage_count += 1
 
         # Лог
         self.db.add(PromoCodeUsage(

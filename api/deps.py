@@ -23,6 +23,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from shared.config import settings
 from shared.database.session import get_session
@@ -135,7 +136,14 @@ async def get_or_create_user(
     if not telegram_id:
         raise HTTPException(status_code=400, detail="Отсутствует user.id")
 
-    result = await db.execute(select(User).where(User.telegram_id == telegram_id))
+    result = await db.execute(
+        select(User)
+        .options(
+            selectinload(User.loyalty_level),
+            selectinload(User.referred_by),
+        )
+        .where(User.telegram_id == telegram_id)
+    )
     user = result.scalar_one_or_none()
 
     if user is None:
@@ -161,6 +169,17 @@ async def get_or_create_user(
         )
         db.add(user)
         await db.flush()
+        # Перезагружаем с relationships после flush, чтобы избежать lazy-load в async контексте
+        await db.refresh(user)
+        result2 = await db.execute(
+            select(User)
+            .options(
+                selectinload(User.loyalty_level),
+                selectinload(User.referred_by),
+            )
+            .where(User.id == user.id)
+        )
+        user = result2.scalar_one()
     else:
         user.last_active_at = datetime.now(timezone.utc)
 
@@ -195,7 +214,14 @@ async def get_current_user(
             raise HTTPException(status_code=401, detail="Неверный тип токена")
 
         telegram_id = int(payload["sub"])
-        result = await db.execute(select(User).where(User.telegram_id == telegram_id))
+        result = await db.execute(
+            select(User)
+            .options(
+                selectinload(User.loyalty_level),
+                selectinload(User.referred_by),
+            )
+            .where(User.telegram_id == telegram_id)
+        )
         user = result.scalar_one_or_none()
 
         if not user:
