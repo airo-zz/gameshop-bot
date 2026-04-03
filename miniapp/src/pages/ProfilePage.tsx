@@ -1,11 +1,126 @@
 // src/pages/ProfilePage.tsx
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { Heart, Package, Copy, MessageCircle, ChevronRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { profileApi } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
+
+// ── Loyalty levels ─────────────────────────────────────────────────────────────
+
+interface LoyaltyLevel {
+  name: string
+  emoji: string
+  min: number
+  max: number | null
+  nextDiscount: number
+}
+
+const LOYALTY_LEVELS: LoyaltyLevel[] = [
+  { name: 'Bronze',   emoji: '🥉', min: 0,     max: 1000,  nextDiscount: 3  },
+  { name: 'Silver',   emoji: '🥈', min: 1000,  max: 5000,  nextDiscount: 5  },
+  { name: 'Gold',     emoji: '🥇', min: 5000,  max: 15000, nextDiscount: 10 },
+  { name: 'Platinum', emoji: '💎', min: 15000, max: null,  nextDiscount: 0  },
+]
+
+function getLoyaltyProgress(totalSpent: number) {
+  const current = [...LOYALTY_LEVELS].reverse().find(l => totalSpent >= l.min) ?? LOYALTY_LEVELS[0]
+  const currentIndex = LOYALTY_LEVELS.indexOf(current)
+  const next = currentIndex < LOYALTY_LEVELS.length - 1 ? LOYALTY_LEVELS[currentIndex + 1] : null
+
+  if (!next || current.max === null) {
+    return { current, next: null, percent: 100, remaining: 0 }
+  }
+
+  const rangeSize = current.max - current.min
+  const progress = totalSpent - current.min
+  const percent = Math.min(100, Math.round((progress / rangeSize) * 100))
+  const remaining = current.max - totalSpent
+
+  return { current, next, percent, remaining }
+}
+
+// ── LoyaltyProgressBar ─────────────────────────────────────────────────────────
+
+function LoyaltyProgressBar({ totalSpent, discountPercent }: { totalSpent: number; discountPercent: number }) {
+  const { current, next, percent, remaining } = getLoyaltyProgress(totalSpent)
+  const barRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    // Запускаем анимацию через requestAnimationFrame после монтирования
+    const el = barRef.current
+    if (!el) return
+    el.style.width = '0%'
+    const raf = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        el.style.width = `${percent}%`
+      })
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [percent])
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      {/* Метки уровней */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span style={{ fontSize: 11, fontWeight: 600, color: '#818cf8' }}>
+          {current.emoji} {current.name}
+        </span>
+        {next ? (
+          <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--hint)' }}>
+            {next.emoji} {next.name}
+          </span>
+        ) : (
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#f59e0b' }}>MAX</span>
+        )}
+      </div>
+
+      {/* Полоса прогресса */}
+      <div
+        style={{
+          height: 6,
+          borderRadius: 99,
+          background: 'rgba(255,255,255,0.08)',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+      >
+        <div
+          ref={barRef}
+          style={{
+            height: '100%',
+            borderRadius: 99,
+            background: 'linear-gradient(90deg, #4f46e5, #818cf8)',
+            boxShadow: '0 0 8px rgba(79,70,229,0.6)',
+            transition: 'width 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
+            width: 0,
+          }}
+        />
+      </div>
+
+      {/* Подпись */}
+      <div style={{ marginTop: 6, fontSize: 11, color: 'var(--hint)' }}>
+        {next ? (
+          <>
+            До {next.emoji} {next.name}:{' '}
+            <span style={{ color: '#818cf8', fontWeight: 600 }}>
+              {remaining.toLocaleString('ru')} ₽
+            </span>
+            {next.nextDiscount > 0 && (
+              <span style={{ color: 'var(--hint)' }}> — скидка {next.nextDiscount}%</span>
+            )}
+          </>
+        ) : (
+          <span style={{ color: '#f59e0b', fontWeight: 600 }}>
+            Максимальный уровень
+            {discountPercent > 0 && ` · скидка ${discountPercent}%`}
+          </span>
+        )}
+      </div>
+    </div>
+  )
+}
 
 const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'redonate_bot'
 
@@ -145,6 +260,10 @@ export default function ProfilePage() {
           <span className="badge mt-1.5 inline-flex">
             {profile.loyalty_level_emoji} {profile.loyalty_level_name}
           </span>
+          <LoyaltyProgressBar
+            totalSpent={profile.total_spent}
+            discountPercent={profile.loyalty_discount_percent}
+          />
         </div>
       </div>
 

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { catalogApi, profileApi } from '@/api'
-import { useShopStore, useUIStore } from '@/store'
+import { useShopStore, useUIStore, useHistoryStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
 
 // ── Inline SVG icons ─────────────────────────────────────────────────────────
@@ -319,6 +319,8 @@ export default function HomePage() {
   const particlesEnabled = useUIStore(s => s.particlesEnabled)
   const setParticlesEnabled = useUIStore(s => s.setParticlesEnabled)
 
+  const recentlyViewed = useHistoryStore(s => s.recentlyViewed)
+
   const handleToggleParticles = (v: boolean) => {
     setParticlesEnabled(v)
   }
@@ -477,6 +479,123 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
+        {/* ── Recently viewed ──────────────────────────────────────────────── */}
+        {recentlyViewed.length > 0 && (
+          <section className="mb-5 animate-fade-in">
+            <h2
+              style={{
+                margin: '0 0 12px',
+                fontWeight: 700,
+                fontSize: '1rem',
+                color: 'var(--text)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+              }}
+            >
+              <span style={{ fontSize: 15 }}>👁</span>
+              Недавно смотрел
+            </h2>
+
+            <div
+              className="no-scrollbar"
+              style={{
+                display: 'flex',
+                gap: 10,
+                overflowX: 'auto',
+                marginLeft: -16,
+                marginRight: -16,
+                paddingLeft: 16,
+                paddingRight: 16,
+                paddingBottom: 4,
+              }}
+            >
+              {recentlyViewed.map(product => {
+                const minPrice = product.lots.length
+                  ? Math.min(...product.lots.map((l: { price: number }) => l.price))
+                  : product.price
+                return (
+                  <Link
+                    key={product.id}
+                    to={`/product/${product.id}`}
+                    className="flex-shrink-0 active:scale-95 transition-transform"
+                    style={{
+                      width: 90,
+                      borderRadius: 14,
+                      overflow: 'hidden',
+                      background: 'var(--bg2)',
+                      border: '1px solid rgba(255,255,255,0.07)',
+                      textDecoration: 'none',
+                      display: 'block',
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: 90,
+                        height: 90,
+                        background: 'var(--bg3)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {product.images?.[0] ? (
+                        <img
+                          src={product.images[0]}
+                          alt={product.name}
+                          loading="lazy"
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            background: 'linear-gradient(135deg, #13112a, #1e1c3a)',
+                            color: 'rgba(129,140,248,0.45)',
+                          }}
+                        >
+                          <IconGamepadSmall />
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ padding: '5px 6px 8px' }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: 'rgba(255,255,255,0.75)',
+                          overflow: 'hidden',
+                          whiteSpace: 'nowrap',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {product.name}
+                      </p>
+                      <p
+                        style={{
+                          margin: '2px 0 0',
+                          fontSize: 11,
+                          fontWeight: 700,
+                          background: 'linear-gradient(135deg, #818cf8, #6366f1)',
+                          WebkitBackgroundClip: 'text',
+                          WebkitTextFillColor: 'transparent',
+                          backgroundClip: 'text',
+                        }}
+                      >
+                        {minPrice.toLocaleString('ru')} ₽
+                      </p>
+                    </div>
+                  </Link>
+                )
+              })}
+            </div>
+          </section>
+        )}
 
         {/* ── Games horizontal scroll ──────────────────────────────────────── */}
         <section className="mb-5 animate-fade-in delay-150">

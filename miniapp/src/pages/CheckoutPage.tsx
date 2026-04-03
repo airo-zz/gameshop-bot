@@ -144,6 +144,42 @@ export default function CheckoutPage() {
           <span style={{ color: 'var(--text)' }}>Итого</span>
           <span style={{ color: '#818cf8' }}>{cart.total.toLocaleString('ru')} ₽</span>
         </div>
+
+        {/* Подсказка о прогрессе лояльности */}
+        {profile && (() => {
+          const LEVELS = [
+            { name: 'Bronze',   min: 0,     max: 1000  },
+            { name: 'Silver',   min: 1000,  max: 5000  },
+            { name: 'Gold',     min: 5000,  max: 15000 },
+            { name: 'Platinum', min: 15000, max: null  },
+          ]
+          const DISCOUNTS: Record<string, number> = { Silver: 3, Gold: 5, Platinum: 10 }
+          const spent = profile.total_spent
+          const current = [...LEVELS].reverse().find(l => spent >= l.min) ?? LEVELS[0]
+          const currentIdx = LEVELS.indexOf(current)
+          const next = currentIdx < LEVELS.length - 1 ? LEVELS[currentIdx + 1] : null
+          if (!next || current.max === null) return null
+          const remaining = current.max - spent
+          const discount = DISCOUNTS[next.name] ?? 0
+          return (
+            <div
+              style={{
+                marginTop: 10,
+                padding: '7px 10px',
+                borderRadius: 10,
+                background: 'rgba(79,70,229,0.08)',
+                border: '1px solid rgba(79,70,229,0.18)',
+                fontSize: 12,
+                color: '#818cf8',
+                lineHeight: 1.4,
+              }}
+            >
+              ⭐ До {next.name} осталось{' '}
+              <strong>{remaining.toLocaleString('ru')} ₽</strong>
+              {discount > 0 && ` — апгрейд даст скидку ${discount}%`}
+            </div>
+          )
+        })()}
       </div>
 
       {/* Способы оплаты */}

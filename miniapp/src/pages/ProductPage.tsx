@@ -6,7 +6,7 @@ import { ShoppingCart, Star, Zap, Clock, ChevronLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { catalogApi, cartApi, type Lot, type InputField } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
-import { useCartStore } from '@/store'
+import { useCartStore, useHistoryStore } from '@/store'
 import clsx from 'clsx'
 
 export default function ProductPage() {
@@ -14,6 +14,7 @@ export default function ProductPage() {
   const navigate = useNavigate()
   const { showMainButton, hideMainButton, haptic, showBackButton, hideBackButton } = useTelegram()
   const { increment } = useCartStore()
+  const { addRecentlyViewed } = useHistoryStore()
 
   const [selectedLot, setSelectedLot] = useState<Lot | null>(null)
   const [inputData, setInputData] = useState<Record<string, string>>({})
@@ -31,6 +32,13 @@ export default function ProductPage() {
       setSelectedLot(product.lots[0])
     }
   }, [product, selectedLot])
+
+  // Фиксируем просмотр товара в историю
+  useEffect(() => {
+    if (product) {
+      addRecentlyViewed(product)
+    }
+  }, [product?.id])
 
   useEffect(() => {
     const handler = () => navigate(-1)

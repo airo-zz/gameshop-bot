@@ -3,13 +3,15 @@
  * ─────────────────────────────────────────────────────────────────────────
  * Zustand стор — глобальное состояние приложения.
  *
- * Два стора:
- *   useAuthStore — авторизация (инициализирована / пользователь)
- *   useCartStore — корзина (количество позиций для бейджа в навбаре)
+ * Сторы:
+ *   useAuthStore    — авторизация (инициализирована / пользователь)
+ *   useCartStore    — корзина (количество позиций для бейджа в навбаре)
+ *   useHistoryStore — история просмотренных товаров (localStorage)
  * ─────────────────────────────────────────────────────────────────────────
  */
 
 import { create } from 'zustand'
+import type { Product } from '@/api'
 
 // ── Auth Store ────────────────────────────────────────────────────────────────
 
@@ -80,5 +82,38 @@ export const useUIStore = create<UIState>((set) => ({
   setParticlesEnabled: (v) => {
     try { localStorage.setItem(LS_PARTICLES_KEY, String(v)) } catch {}
     set({ particlesEnabled: v })
+  },
+}))
+
+// ── History Store ──────────────────────────────────────────────────────────────
+// Последние просмотренные товары, сохраняются в localStorage
+
+const LS_RECENTLY_VIEWED_KEY = 'recently_viewed'
+const RECENTLY_VIEWED_MAX = 5
+
+function readRecentlyViewed(): Product[] {
+  try {
+    const stored = localStorage.getItem(LS_RECENTLY_VIEWED_KEY)
+    if (!stored) return []
+    return JSON.parse(stored) as Product[]
+  } catch {
+    return []
+  }
+}
+
+interface HistoryState {
+  recentlyViewed: Product[]
+  addRecentlyViewed: (product: Product) => void
+}
+
+export const useHistoryStore = create<HistoryState>((set) => ({
+  recentlyViewed: readRecentlyViewed(),
+  addRecentlyViewed: (product) => {
+    set((state) => {
+      const filtered = state.recentlyViewed.filter(p => p.id !== product.id)
+      const next = [product, ...filtered].slice(0, RECENTLY_VIEWED_MAX)
+      try { localStorage.setItem(LS_RECENTLY_VIEWED_KEY, JSON.stringify(next)) } catch {}
+      return { recentlyViewed: next }
+    })
   },
 }))
