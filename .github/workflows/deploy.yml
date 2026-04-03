@@ -157,7 +157,8 @@ jobs:
             set -e
             cd ${{ secrets.VPS_APP_DIR }}
 
-            # Обновляем miniapp/dist из временной папки (предсказуемый путь)
+            # Обновляем miniapp/dist — сначала очищаем старые файлы
+            rm -rf miniapp/dist
             mkdir -p miniapp/dist
             cp -r /tmp/redonate-deploy/miniapp/dist/. miniapp/dist/
             rm -rf /tmp/redonate-deploy
