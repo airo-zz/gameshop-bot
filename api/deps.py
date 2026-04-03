@@ -43,7 +43,9 @@ def create_access_token(telegram_id: int) -> str:
         minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
     )
     payload = {"sub": str(telegram_id), "exp": expire, "type": "access"}
-    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(
+        payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
+    )
 
 
 def create_refresh_token(telegram_id: int) -> str:
@@ -51,12 +53,16 @@ def create_refresh_token(telegram_id: int) -> str:
         days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS
     )
     payload = {"sub": str(telegram_id), "exp": expire, "type": "refresh"}
-    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return jwt.encode(
+        payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM
+    )
 
 
 def decode_token(token: str) -> dict:
     try:
-        return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+        return jwt.decode(
+            token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+        )
     except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -66,6 +72,7 @@ def decode_token(token: str) -> dict:
 
 
 # ── Telegram WebApp Verification ──────────────────────────────────────────────
+
 
 def verify_telegram_init_data(init_data: str) -> dict:
     """
@@ -82,9 +89,7 @@ def verify_telegram_init_data(init_data: str) -> dict:
         raise HTTPException(status_code=401, detail="Отсутствует hash в initData")
 
     # Формируем строку для проверки
-    data_check_string = "\n".join(
-        f"{k}={v}" for k, v in sorted(parsed.items())
-    )
+    data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(parsed.items()))
 
     # Вычисляем секретный ключ
     secret_key = hmac.new(
@@ -119,6 +124,7 @@ def verify_telegram_init_data(init_data: str) -> dict:
 
 # ── Auth Endpoints ────────────────────────────────────────────────────────────
 
+
 async def get_or_create_user(
     tg_user_data: dict,
     db: AsyncSession,
@@ -134,6 +140,7 @@ async def get_or_create_user(
     if user is None:
         # Новый пользователь через Mini App
         from shared.models import LoyaltyLevel
+
         bronze_result = await db.execute(
             select(LoyaltyLevel)
             .where(LoyaltyLevel.is_active == True)
@@ -161,9 +168,12 @@ async def get_or_create_user(
 
 # ── Main Auth Dependency ──────────────────────────────────────────────────────
 
+
 async def get_current_user(
     db: DbSession,
-    credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(security)] = None,
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None, Depends(security)
+    ] = None,
     x_telegram_init_data: Annotated[str | None, Header()] = None,
 ) -> User:
     """
@@ -210,3 +220,23 @@ async def get_current_user(
 
 # ── Typed Dependency ──────────────────────────────────────────────────────────
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+# ── Optional Auth (для публичных эндпоинтов) ─────────────────────────────────
+
+
+async def get_optional_user(
+    db: DbSession,
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None, Depends(security)
+    ] = None,
+    x_telegram_init_data: Annotated[str | None, Header()] = None,
+) -> User | None:
+    """Как get_current_user, но возвращает None вместо 401."""
+    try:
+        return await get_current_user(db, credentials, x_telegram_init_data)
+    except HTTPException:
+        return None
+
+
+OptionalUser = Annotated[User | None, Depends(get_optional_user)]
