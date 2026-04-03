@@ -1,5 +1,5 @@
 // src/App.tsx
-import { useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -8,20 +8,21 @@ import { useAuthStore, useCartStore } from '@/store'
 import { cartApi } from '@/api'
 
 import Layout from '@/components/layout/Layout'
-import HomePage from '@/pages/HomePage'
-import CatalogPage from '@/pages/CatalogPage'
-import GamePage from '@/pages/GamePage'
-import ProductPage from '@/pages/ProductPage'
-import CartPage from '@/pages/CartPage'
-import CheckoutPage from '@/pages/CheckoutPage'
-import OrdersPage from '@/pages/OrdersPage'
-import OrderDetailPage from '@/pages/OrderDetailPage'
-import ProfilePage from '@/pages/ProfilePage'
-import FavoritesPage from '@/pages/FavoritesPage'
-import SearchPage from '@/pages/SearchPage'
-import SupportPage from '@/pages/SupportPage'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 import ErrorScreen from '@/components/ui/ErrorScreen'
+
+const HomePage       = lazy(() => import('@/pages/HomePage'))
+const CatalogPage    = lazy(() => import('@/pages/CatalogPage'))
+const GamePage       = lazy(() => import('@/pages/GamePage'))
+const ProductPage    = lazy(() => import('@/pages/ProductPage'))
+const CartPage       = lazy(() => import('@/pages/CartPage'))
+const CheckoutPage   = lazy(() => import('@/pages/CheckoutPage'))
+const OrdersPage     = lazy(() => import('@/pages/OrdersPage'))
+const OrderDetailPage = lazy(() => import('@/pages/OrderDetailPage'))
+const ProfilePage    = lazy(() => import('@/pages/ProfilePage'))
+const FavoritesPage  = lazy(() => import('@/pages/FavoritesPage'))
+const SearchPage     = lazy(() => import('@/pages/SearchPage'))
+const SupportPage    = lazy(() => import('@/pages/SupportPage'))
 
 export default function App() {
   const { initData } = useTelegram()
@@ -86,18 +87,18 @@ export default function App() {
       />
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="catalog" element={<CatalogPage />} />
-          <Route path="catalog/:slug" element={<GamePage />} />
-          <Route path="product/:id" element={<ProductPage />} />
-          <Route path="cart" element={<CartPage />} />
-          <Route path="checkout" element={<CheckoutPage />} />
-          <Route path="orders" element={<OrdersPage />} />
-          <Route path="orders/:id" element={<OrderDetailPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="favorites" element={<FavoritesPage />} />
-          <Route path="search" element={<SearchPage />} />
-          <Route path="support" element={<SupportPage />} />
+          <Route index element={<Suspense fallback={<LoadingScreen />}><HomePage /></Suspense>} />
+          <Route path="catalog"      element={<Suspense fallback={<LoadingScreen />}><CatalogPage /></Suspense>} />
+          <Route path="catalog/:slug" element={<Suspense fallback={<LoadingScreen />}><GamePage /></Suspense>} />
+          <Route path="product/:id"  element={<Suspense fallback={<LoadingScreen />}><ProductPage /></Suspense>} />
+          <Route path="cart"         element={<Suspense fallback={<LoadingScreen />}><CartPage /></Suspense>} />
+          <Route path="checkout"     element={<Suspense fallback={<LoadingScreen />}><CheckoutPage /></Suspense>} />
+          <Route path="orders"       element={<Suspense fallback={<LoadingScreen />}><OrdersPage /></Suspense>} />
+          <Route path="orders/:id"   element={<Suspense fallback={<LoadingScreen />}><OrderDetailPage /></Suspense>} />
+          <Route path="profile"      element={<Suspense fallback={<LoadingScreen />}><ProfilePage /></Suspense>} />
+          <Route path="favorites"    element={<Suspense fallback={<LoadingScreen />}><FavoritesPage /></Suspense>} />
+          <Route path="search"       element={<Suspense fallback={<LoadingScreen />}><SearchPage /></Suspense>} />
+          <Route path="support"      element={<Suspense fallback={<LoadingScreen />}><SupportPage /></Suspense>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
