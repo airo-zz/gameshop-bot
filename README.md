@@ -1,4 +1,4 @@
-# 🎮 GameShop Bot
+# 🎮 reDonate Bot
 
 Коммерческий Telegram-магазин игрового доната и виртуальных товаров.
 Архитектура: **Telegram Bot + Mini App** на едином backend.

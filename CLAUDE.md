@@ -1,4 +1,4 @@
-# GameShop Bot (DonateBot) — redonate.su
+# reDonate Bot — redonate.su
 
 Telegram-магазин игрового доната. Стек: **aiogram 3** + **FastAPI** + **React/Vite** + **PostgreSQL** + **Redis/Celery**.
 

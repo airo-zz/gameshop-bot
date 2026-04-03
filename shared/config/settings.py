@@ -22,7 +22,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class ShopSettings(BaseSettings):
     """Настройки магазина — название, описание, контакты."""
 
-    SHOP_NAME: str = "GameShop"
+    SHOP_NAME: str = "reDonate"
     SHOP_TAGLINE: str = "Игровой донат и виртуальные товары"
     SHOP_SUPPORT_USERNAME: str = "support"
 
@@ -171,7 +171,7 @@ class Settings(
     Использование:
         from shared.config import settings
         print(settings.SHOP_NAME)
-        print(settings.shop_name_emoji)   # "🎮 GameShop"
+        print(settings.shop_name_emoji)   # "🎮 reDonate"
     """
 
     model_config = SettingsConfigDict(

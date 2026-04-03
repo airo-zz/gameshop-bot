@@ -31,7 +31,7 @@ def get_main_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(
         keyboard=[
             [
-                KeyboardButton(text="🛍 Магазин"),
+                KeyboardButton(text="🛍 reDonate"),
                 KeyboardButton(text="🛒 Корзина"),
             ],
             [

@@ -64,7 +64,7 @@ async def cb_catalog_main(
     await show_games_list(call, db)
 
 
-@router.message(F.text == "🛍 Магазин")
+@router.message(F.text == "🛍 reDonate")
 async def btn_shop(message: Message, db: AsyncSession) -> None:
     from shared.config import settings
     from aiogram.types import WebAppInfo
