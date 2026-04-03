@@ -15,7 +15,6 @@ from fastapi.responses import JSONResponse
 
 from shared.config import settings
 from shared.database.session import engine
-from shared.models import Base
 
 from api.routers import catalog, cart, orders, payments, profile, support, webhooks
 
@@ -41,13 +40,19 @@ def create_app() -> FastAPI:
     )
 
     # ── CORS (только Telegram домены в prod) ─────────────────────────────────
+    miniapp_origin = (
+        settings.MINIAPP_URL.rstrip("/").rsplit("/app", 1)[0]
+        if settings.MINIAPP_URL
+        else ""
+    )
     allowed_origins = (
-        ["*"] if settings.DEBUG
+        ["*"]
+        if settings.DEBUG
         else [
             "https://web.telegram.org",
             "https://k.web.telegram.org",
             "https://z.web.telegram.org",
-            settings.MINIAPP_URL,
+            miniapp_origin,
         ]
     )
     app.add_middleware(
@@ -60,13 +65,13 @@ def create_app() -> FastAPI:
 
     # ── Роутеры ───────────────────────────────────────────────────────────────
     prefix = "/api/v1"
-    app.include_router(catalog.router,  prefix=f"{prefix}/catalog",  tags=["Catalog"])
-    app.include_router(cart.router,     prefix=f"{prefix}/cart",     tags=["Cart"])
-    app.include_router(orders.router,   prefix=f"{prefix}/orders",   tags=["Orders"])
+    app.include_router(catalog.router, prefix=f"{prefix}/catalog", tags=["Catalog"])
+    app.include_router(cart.router, prefix=f"{prefix}/cart", tags=["Cart"])
+    app.include_router(orders.router, prefix=f"{prefix}/orders", tags=["Orders"])
     app.include_router(payments.router, prefix=f"{prefix}/payments", tags=["Payments"])
-    app.include_router(profile.router,  prefix=f"{prefix}/profile",  tags=["Profile"])
-    app.include_router(support.router,  prefix=f"{prefix}/support",  tags=["Support"])
-    app.include_router(webhooks.router, prefix="/webhooks",           tags=["Webhooks"])
+    app.include_router(profile.router, prefix=f"{prefix}/profile", tags=["Profile"])
+    app.include_router(support.router, prefix=f"{prefix}/support", tags=["Support"])
+    app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
 
     # ── Health check ──────────────────────────────────────────────────────────
     @app.get("/health", include_in_schema=False)
@@ -76,7 +81,9 @@ def create_app() -> FastAPI:
     # ── Глобальный обработчик ошибок ─────────────────────────────────────────
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception):
-        log.error("api.unhandled_error", path=request.url.path, error=str(exc), exc_info=True)
+        log.error(
+            "api.unhandled_error", path=request.url.path, error=str(exc), exc_info=True
+        )
         return JSONResponse(
             status_code=500,
             content={"detail": "Внутренняя ошибка сервера"},

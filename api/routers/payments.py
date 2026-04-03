@@ -1,7 +1,7 @@
 """api/routers/payments.py"""
+
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
 
 from api.deps import CurrentUser, DbSession
 from api.schemas.cart import PaymentInitResponse, TokenResponse, RefreshTokenRequest
@@ -15,10 +15,9 @@ router = APIRouter()
 @router.post("/auth/telegram", response_model=TokenResponse)
 async def auth_telegram(
     db: DbSession,
-    x_telegram_init_data: str,
-    user: CurrentUser,  # Верифицируется через initData
+    user: CurrentUser,
 ):
-    """Обменивает Telegram initData на JWT токены."""
+    """Обменивает Telegram initData на JWT токены. Auth через CurrentUser dependency."""
     access = create_access_token(user.telegram_id)
     refresh = create_refresh_token(user.telegram_id)
     return TokenResponse(access_token=access, refresh_token=refresh)
@@ -43,6 +42,7 @@ async def refresh_token(body: RefreshTokenRequest, db: DbSession):
 @router.post("/orders/{order_id}/pay", response_model=PaymentInitResponse)
 async def initiate_payment(order_id: str, db: DbSession, user: CurrentUser):
     import uuid
+
     result = await db.execute(
         select(Order).where(Order.id == uuid.UUID(order_id), Order.user_id == user.id)
     )
@@ -54,7 +54,9 @@ async def initiate_payment(order_id: str, db: DbSession, user: CurrentUser):
 
     if order.payment_method.value == "balance":
         data = await svc.pay_balance(order, user)
-        return PaymentInitResponse(method="balance", status="succeeded", success=True, **data)
+        return PaymentInitResponse(
+            method="balance", status="succeeded", success=True, **data
+        )
 
     elif order.payment_method.value == "card_yukassa":
         data = await svc.pay_yukassa(order, user)
