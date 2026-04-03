@@ -52,6 +52,6 @@ interface ShopState {
 }
 
 export const useShopStore = create<ShopState>((set) => ({
-  name: import.meta.env.VITE_SHOP_NAME ?? 'GameShop',
+  name: import.meta.env.VITE_SHOP_NAME ?? 'reDonate',
   setName: (name) => set({ name }),
 }))
