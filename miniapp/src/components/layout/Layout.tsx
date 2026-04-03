@@ -1,6 +1,6 @@
 // src/components/layout/Layout.tsx
 import { Outlet, useLocation, Link } from 'react-router-dom'
-import { useCartStore } from '@/store'
+import { useCartStore, useUIStore } from '@/store'
 import ParticleCanvas from '@/components/ui/ParticleCanvas'
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
@@ -73,11 +73,12 @@ const NAV = [
 export default function Layout() {
   const { pathname } = useLocation()
   const { itemsCount } = useCartStore()
+  const particlesEnabled = useUIStore(s => s.particlesEnabled)
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--bg)' }}>
       {/* Star particle background */}
-      <ParticleCanvas />
+      {particlesEnabled && <ParticleCanvas />}
 
       {/* Page content — padded so it sits above the floating nav */}
       <main

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { catalogApi, profileApi } from '@/api'
-import { useShopStore } from '@/store'
+import { useShopStore, useUIStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
 
 // ── Inline SVG icons ─────────────────────────────────────────────────────────
@@ -308,8 +308,6 @@ function DropdownMenu({ open, onClose, particlesEnabled, onToggleParticles }: Dr
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-const LS_PARTICLES_KEY = 'redonate_particles_enabled'
-
 export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -317,17 +315,12 @@ export default function HomePage() {
   const { user } = useTelegram()
   const displayName = user?.first_name || user?.username || null
 
-  // Particles toggle — читаем из localStorage (по умолчанию включены)
-  const [particlesEnabled, setParticlesEnabled] = useState<boolean>(() => {
-    try {
-      const stored = localStorage.getItem(LS_PARTICLES_KEY)
-      return stored === null ? true : stored === 'true'
-    } catch { return true }
-  })
+  // Particles toggle — глобальное состояние через Zustand (сохраняется в localStorage внутри store)
+  const particlesEnabled = useUIStore(s => s.particlesEnabled)
+  const setParticlesEnabled = useUIStore(s => s.setParticlesEnabled)
 
   const handleToggleParticles = (v: boolean) => {
     setParticlesEnabled(v)
-    try { localStorage.setItem(LS_PARTICLES_KEY, String(v)) } catch {}
   }
 
   const { data: games = [], isLoading: gamesLoading } = useQuery({

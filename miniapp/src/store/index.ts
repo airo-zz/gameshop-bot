@@ -55,3 +55,30 @@ export const useShopStore = create<ShopState>((set) => ({
   name: import.meta.env.VITE_SHOP_NAME ?? 'reDonate',
   setName: (name) => set({ name }),
 }))
+
+// ── UI Store ───────────────────────────────────────────────────────────────────
+// Глобальные настройки UI, которые должны быть видны из любого компонента
+
+const LS_PARTICLES_KEY = 'redonate_particles_enabled'
+
+function readParticlesEnabled(): boolean {
+  try {
+    const stored = localStorage.getItem(LS_PARTICLES_KEY)
+    return stored === null ? true : stored === 'true'
+  } catch {
+    return true
+  }
+}
+
+interface UIState {
+  particlesEnabled: boolean
+  setParticlesEnabled: (v: boolean) => void
+}
+
+export const useUIStore = create<UIState>((set) => ({
+  particlesEnabled: readParticlesEnabled(),
+  setParticlesEnabled: (v) => {
+    try { localStorage.setItem(LS_PARTICLES_KEY, String(v)) } catch {}
+    set({ particlesEnabled: v })
+  },
+}))

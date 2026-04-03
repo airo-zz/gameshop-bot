@@ -15,6 +15,8 @@ export default function ProfilePage() {
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: profileApi.get,
+    // Не бросаем ошибку наружу — обрабатываем gracefully внутри компонента
+    retry: false,
   })
 
   const copyRef = () => {
@@ -25,7 +27,10 @@ export default function ProfilePage() {
     toast.success('Ссылка скопирована!')
   }
 
-  const avatarInitial = profile?.first_name?.charAt(0)?.toUpperCase() ?? '?'
+  // Используем данные из profile если есть, иначе fallback на данные из Telegram initData
+  const displayName = profile?.first_name ?? user?.first_name ?? user?.username ?? 'Гость'
+  const displayUsername = profile?.username ?? user?.username ?? null
+  const avatarInitial = displayName.charAt(0).toUpperCase()
   // Приоритет: photo_url из backend (Bot API) → photo_url из initDataUnsafe
   const avatarSrc = profile?.photo_url ?? user?.photo_url ?? null
   const showAvatar = avatarSrc !== null && !avatarError
@@ -38,7 +43,75 @@ export default function ProfilePage() {
     </div>
   )
 
-  if (!profile) return null
+  // Если profile не загрузился (401 или API недоступен) — показываем заглушку с данными из Telegram
+  if (!profile) {
+    return (
+      <div className="px-4 pt-5 pb-6 space-y-4 animate-fade-in">
+        {/* Аватар + имя (заглушка) */}
+        <div
+          className="flex items-center gap-4 p-4 rounded-2xl"
+          style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+        >
+          {showAvatar ? (
+            <img
+              src={avatarSrc!}
+              alt=""
+              className="w-14 h-14 rounded-full object-cover flex-shrink-0"
+              onError={() => setAvatarError(true)}
+            />
+          ) : (
+            <div
+              className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 text-xl font-bold"
+              style={{ background: 'linear-gradient(135deg, #7c3aed, #4f46e5)', color: '#fff' }}
+            >
+              {avatarInitial}
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="font-bold text-base truncate" style={{ color: 'var(--text)' }}>
+              {displayName}
+            </p>
+            {displayUsername && (
+              <p className="text-sm truncate" style={{ color: 'var(--hint)' }}>@{displayUsername}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Уведомление о недоступности данных */}
+        <div
+          className="p-4 rounded-2xl"
+          style={{
+            background: 'rgba(124,58,237,0.08)',
+            border: '1px solid rgba(124,58,237,0.2)',
+          }}
+        >
+          <p className="text-sm" style={{ color: 'var(--hint)' }}>
+            Данные профиля временно недоступны. Попробуй позже.
+          </p>
+        </div>
+
+        {/* Меню */}
+        <div className="space-y-2">
+          {[
+            { to: '/orders',    icon: <Package size={18} />,       label: 'Мои заказы' },
+            { to: '/favorites', icon: <Heart size={18} />,         label: 'Избранное' },
+            { to: '/support',   icon: <MessageCircle size={18} />, label: 'Поддержка' },
+          ].map(({ to, icon, label }) => (
+            <Link
+              key={to}
+              to={to}
+              className="flex items-center gap-3 p-4 rounded-2xl active:scale-[0.98] transition-transform"
+              style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+            >
+              <span style={{ color: '#a78bfa' }}>{icon}</span>
+              <span className="font-medium text-sm flex-1" style={{ color: 'var(--text)' }}>{label}</span>
+              <ChevronRight size={16} style={{ color: 'var(--hint)' }} />
+            </Link>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="px-4 pt-5 pb-6 space-y-4 animate-fade-in">
