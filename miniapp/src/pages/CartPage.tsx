@@ -121,14 +121,6 @@ export default function CartPage() {
       {/* Заголовок */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>🛒 Корзина</h1>
-        <button
-          onClick={handleClear}
-          className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-full transition-all active:scale-90"
-          style={{ background: 'rgba(239,68,68,0.1)', color: '#f87171', border: '1px solid rgba(239,68,68,0.2)' }}
-        >
-          <Trash2 size={13} />
-          Очистить
-        </button>
       </div>
 
       {/* Позиции */}
@@ -264,6 +256,22 @@ export default function CartPage() {
       <button className="btn-primary" onClick={() => navigate('/checkout')}>
         Оформить заказ
       </button>
+
+      <div className="flex justify-center">
+        <button
+          onClick={handleClear}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#666',
+            fontSize: 13,
+            cursor: 'pointer',
+            padding: '4px 0',
+          }}
+        >
+          Очистить корзину
+        </button>
+      </div>
     </div>
   )
 }

@@ -153,7 +153,6 @@ export default function ProfilePage() {
         {[
           { label: 'Баланс',    value: `${Number(profile.balance).toLocaleString('ru')} ₽`, color: '#818cf8' },
           { label: 'Заказов',   value: String(profile.orders_count),                          color: 'var(--text)' },
-          { label: 'Потрачено', value: `${Number(profile.total_spent).toLocaleString('ru')} ₽`, color: 'var(--text)' },
           { label: 'Рефералов', value: String(profile.referrals_count),                       color: '#34d399' },
         ].map(({ label, value, color }) => (
           <div

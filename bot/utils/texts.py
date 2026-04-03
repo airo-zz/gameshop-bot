@@ -228,7 +228,7 @@ class BotTexts:
     @property
     def support_header(self) -> str:
         return (
-            f"🆘 <b>Поддержка {S.SHOP_NAME}</b>\n\n"
+            f"💬 <b>Поддержка {S.SHOP_NAME}</b>\n\n"
             f"Опиши проблему — мы ответим в ближайшее время.\n"
             f"Также можно написать напрямую: {S.support_link}"
         )

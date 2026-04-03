@@ -65,7 +65,7 @@ export default function SupportPage() {
             Назад
           </button>
         ) : (
-          <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>🆘 Поддержка</h1>
+          <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>💬 Поддержка</h1>
         )}
 
         {view === 'list' && (
