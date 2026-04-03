@@ -9,7 +9,7 @@ import ProductCard from '@/components/ui/ProductCard'
 export default function HomePage() {
   const shopName = useShopStore(s => s.name)
 
-  const { data: games = [], isLoading: gamesLoading } = useQuery({
+  const { data: games = [], isLoading: gamesLoading, isError: gamesError } = useQuery({
     queryKey: ['games'],
     queryFn: catalogApi.getGames,
   })
@@ -65,6 +65,12 @@ export default function HomePage() {
             ? Array(5).fill(0).map((_, i) => (
                 <div key={i} className="skeleton flex-shrink-0 w-[88px] rounded-2xl" style={{ height: 110 }} />
               ))
+            : gamesError || games.length === 0
+            ? (
+              <p className="text-sm py-4" style={{ color: 'var(--hint)' }}>
+                Каталог скоро появится
+              </p>
+            )
             : games.map(game => (
                 <Link
                   key={game.id}
