@@ -147,6 +147,15 @@ function getLoyaltyIcon(levelName: string | null) {
   }
 }
 
+function getLoyaltyColor(levelName: string | null) {
+  switch (levelName?.toLowerCase()) {
+    case 'silver':   return '#94a3b8'
+    case 'gold':     return '#eab308'
+    case 'platinum': return '#a78bfa'
+    default:         return '#f59e0b' // bronze
+  }
+}
+
 // ── Toggle switch ─────────────────────────────────────────────────────────────
 
 function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -515,14 +524,14 @@ export default function HomePage() {
                   gap: 5,
                   padding: '4px 12px 4px 8px',
                   borderRadius: 999,
-                  background: 'rgba(45,88,173,0.16)',
-                  border: '1px solid rgba(45,88,173,0.32)',
+                  background: `${getLoyaltyColor(profile.loyalty_level_name ?? null)}22`,
+                  border: `1px solid ${getLoyaltyColor(profile.loyalty_level_name ?? null)}44`,
                   fontSize: 12,
                   fontWeight: 600,
-                  color: '#93b8f0',
+                  color: getLoyaltyColor(profile.loyalty_level_name ?? null),
                 }}
               >
-                <span style={{ display: 'flex', width: 13, height: 13, flexShrink: 0, color: '#93b8f0' }}>
+                <span style={{ display: 'flex', width: 13, height: 13, flexShrink: 0, color: getLoyaltyColor(profile.loyalty_level_name ?? null) }}>
                   {getLoyaltyIcon(profile.loyalty_level_name ?? null)}
                 </span>
                 {profile.loyalty_level_name || 'Базовый'}

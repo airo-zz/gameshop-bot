@@ -135,7 +135,6 @@ export default function ProfilePage() {
   const { user, haptic, tg } = useTelegram()
   const [avatarError, setAvatarError] = useState(false)
   const [showLevels, setShowLevels] = useState(false)
-  const [showRefSheet, setShowRefSheet] = useState(false)
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: profileApi.get,
@@ -148,17 +147,10 @@ export default function ProfilePage() {
     navigator.clipboard.writeText(refLink)
     haptic.success()
     toast.success('Ссылка скопирована!')
-    setShowRefSheet(false)
   }
 
   const handleShareTelegram = () => {
     tg?.openTelegramLink('https://t.me/share/url?url=' + encodeURIComponent(refLink))
-    setShowRefSheet(false)
-  }
-
-  const handleNativeShare = () => {
-    navigator.share({ url: refLink }).catch(() => {})
-    setShowRefSheet(false)
   }
 
   const displayName = profile?.first_name ?? user?.first_name ?? user?.username ?? 'Гость'
@@ -353,159 +345,29 @@ export default function ProfilePage() {
         <p className="text-xs mb-3" style={{ color: 'var(--hint)' }}>
           Поделись ссылкой и получи бонус за каждого друга
         </p>
-        <button
-          onClick={() => setShowRefSheet(true)}
-          className="flex items-center justify-between w-full p-3 rounded-xl active:scale-95 transition-transform"
-          style={{ background: 'var(--bg3)', border: '1px solid var(--border)' }}
-        >
-          <code className="text-xs font-bold truncate mr-2" style={{ color: '#6b9de8', maxWidth: '65%' }}>
-            t.me/{BOT_USERNAME}?start=REF_{profile.telegram_id}
-          </code>
-          <div
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg flex-shrink-0 text-xs font-medium"
-            style={{ background: 'rgba(45,88,173,0.2)', color: '#6b9de8' }}
-          >
-            <Share2 size={12} />
-            Поделиться
-          </div>
-        </button>
-      </div>
-
-      {/* ── Referral share sheet ── */}
-      {/* Backdrop */}
-      <div
-        onClick={() => setShowRefSheet(false)}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.5)',
-          zIndex: 92,
-          opacity: showRefSheet ? 1 : 0,
-          pointerEvents: showRefSheet ? 'auto' : 'none',
-          transition: 'opacity 0.3s ease',
-        }}
-      />
-      {/* Sheet panel */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          zIndex: 93,
-          background: 'rgba(16,14,38,0.97)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          borderTop: '1px solid rgba(45,88,173,0.28)',
-          borderRadius: '20px 20px 0 0',
-          boxShadow: '0 -8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(45,88,173,0.06)',
-          transform: showRefSheet ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        }}
-      >
-        {/* Drag handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4 }}>
-          <div style={{ width: 36, height: 4, borderRadius: 99, background: 'rgba(255,255,255,0.18)' }} />
-        </div>
-
-        {/* Title */}
-        <div style={{ padding: '8px 20px 4px', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Share2 size={15} style={{ color: '#6b9de8', flexShrink: 0 }} />
-          <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>Поделиться ссылкой</span>
-        </div>
-
-        {/* Link preview */}
-        <div style={{ margin: '8px 20px 4px', padding: '8px 12px', borderRadius: 10, background: 'rgba(45,88,173,0.10)', border: '1px solid rgba(45,88,173,0.20)' }}>
-          <code style={{ fontSize: 11, color: '#6b9de8', wordBreak: 'break-all' }}>
-            t.me/{BOT_USERNAME}?start=REF_{profile.telegram_id}
-          </code>
-        </div>
-
-        {/* Actions */}
-        <div style={{ padding: '8px 0 20px' }}>
-          {/* Copy */}
+        <div className="flex items-center gap-2">
           <button
             onClick={handleCopyLink}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              minHeight: 52,
-              padding: '0 20px',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--text)',
-              transition: 'background 0.15s',
-            }}
-            onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(45,88,173,0.12)' }}
-            onTouchEnd={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(45,88,173,0.10)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+            className="flex items-center flex-1 p-3 rounded-xl active:scale-95 transition-transform"
+            style={{ background: 'var(--bg3)', border: '1px solid var(--border)' }}
           >
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 10, background: 'rgba(107,157,232,0.10)', border: '1px solid rgba(107,157,232,0.15)', color: '#6b9de8', flexShrink: 0 }}>
-              <Copy size={16} />
-            </span>
-            <span style={{ flex: 1, textAlign: 'left', fontSize: 15, fontWeight: 500 }}>Скопировать ссылку</span>
-          </button>
-
-          {/* Telegram share */}
+            <code className="text-xs font-bold truncate" style={{ color: '#6b9de8' }}>
+              t.me/{BOT_USERNAME}?start=REF_{profile.telegram_id}
+            </code>
+          </div>
           <button
             onClick={handleShareTelegram}
+            className="flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
             style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 14,
-              minHeight: 52,
-              padding: '0 20px',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              color: 'var(--text)',
-              transition: 'background 0.15s',
+              width: 40, height: 40,
+              borderRadius: 12,
+              background: 'rgba(45,88,173,0.15)',
+              border: '1px solid rgba(45,88,173,0.25)',
+              color: '#6b9de8',
             }}
-            onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(45,88,173,0.12)' }}
-            onTouchEnd={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-            onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(45,88,173,0.10)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
           >
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 10, background: 'rgba(107,157,232,0.10)', border: '1px solid rgba(107,157,232,0.15)', color: '#6b9de8', flexShrink: 0 }}>
-              <MessageCircle size={16} />
-            </span>
-            <span style={{ flex: 1, textAlign: 'left', fontSize: 15, fontWeight: 500 }}>Поделиться в Telegram</span>
+            <Share2 size={16} />
           </button>
-
-          {/* Native share — only if supported */}
-          {typeof navigator !== 'undefined' && navigator.share !== undefined && (
-            <button
-              onClick={handleNativeShare}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                minHeight: 52,
-                padding: '0 20px',
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text)',
-                transition: 'background 0.15s',
-              }}
-              onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(45,88,173,0.12)' }}
-              onTouchEnd={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(45,88,173,0.10)' }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-            >
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 10, background: 'rgba(107,157,232,0.10)', border: '1px solid rgba(107,157,232,0.15)', color: '#6b9de8', flexShrink: 0 }}>
-                <Share2 size={16} />
-              </span>
-              <span style={{ flex: 1, textAlign: 'left', fontSize: 15, fontWeight: 500 }}>Поделиться...</span>
-            </button>
-          )}
         </div>
       </div>
 
