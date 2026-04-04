@@ -148,6 +148,9 @@ export default function Layout() {
                 >
                   {label}
                 </span>
+                {isActive && (
+                  <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#4f46e5', marginTop: 1, boxShadow: '0 0 6px rgba(79,70,229,0.8)' }} />
+                )}
               </Link>
             )
           })}

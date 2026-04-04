@@ -445,7 +445,7 @@ export default function HomePage() {
             style={{
               margin: 0,
               fontWeight: 700,
-              fontSize: '1.3rem',
+              fontSize: '1.6rem',
               lineHeight: 1.2,
               letterSpacing: '-0.02em',
               background: 'linear-gradient(135deg, #ffffff 0%, #a5b4fc 100%)',
@@ -554,8 +554,8 @@ export default function HomePage() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            background: 'linear-gradient(135deg, #13112a, #1e1c3a)',
-                            color: 'rgba(129,140,248,0.45)',
+                            background: 'linear-gradient(135deg, #1e1b4b, #312e81)',
+                            color: 'rgba(129,140,248,0.65)',
                           }}
                         >
                           <IconGamepadSmall />
@@ -611,11 +611,11 @@ export default function HomePage() {
               style={{
                 margin: 0,
                 fontWeight: 700,
-                fontSize: '1rem',
+                fontSize: '1.05rem',
                 color: 'var(--text)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 7,
+                gap: 8,
               }}
             >
               <span style={{ color: '#818cf8', display: 'flex' }}>
@@ -708,7 +708,7 @@ export default function HomePage() {
                         </div>
                       )}
                     </div>
-                    <div style={{ padding: '6px 6px 9px', background: 'var(--bg2)' }}>
+                    <div style={{ padding: '6px 6px 9px', background: 'var(--bg2)', borderTop: '1px solid rgba(79,70,229,0.15)' }}>
                       <p
                         style={{
                           margin: 0,
@@ -744,11 +744,11 @@ export default function HomePage() {
               style={{
                 margin: 0,
                 fontWeight: 700,
-                fontSize: '1rem',
+                fontSize: '1.05rem',
                 color: 'var(--text)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 7,
+                gap: 8,
               }}
             >
               <span style={{ color: '#fbbf24', display: 'flex' }}>
@@ -790,7 +790,7 @@ export default function HomePage() {
                       gap: 12,
                       padding: '10px 12px',
                       background: 'var(--bg2)',
-                      border: '1px solid rgba(255,255,255,0.07)',
+                      border: '1px solid rgba(79,70,229,0.18)',
                       borderRadius: 16,
                       textDecoration: 'none',
                       transition: 'transform 0.15s',
@@ -880,7 +880,7 @@ export default function HomePage() {
           <Link
             to="/catalog"
             className="btn-primary"
-            style={{ textDecoration: 'none' }}
+            style={{ textDecoration: 'none', boxShadow: '0 0 24px rgba(79,70,229,0.45), 0 4px 24px rgba(79,70,229,0.3)' }}
           >
             Открыть весь каталог
           </Link>
