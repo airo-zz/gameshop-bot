@@ -482,10 +482,10 @@ export default function HomePage() {
 
         {/* ── Recently viewed ──────────────────────────────────────────────── */}
         {recentlyViewed.length > 0 && (
-          <section className="mb-8 animate-fade-in">
+          <section className="mb-6 animate-fade-in">
             <h2
               style={{
-                margin: '0 0 12px',
+                margin: '0 0 10px',
                 fontWeight: 700,
                 fontSize: '1rem',
                 color: 'var(--text)',
@@ -502,13 +502,13 @@ export default function HomePage() {
               className="no-scrollbar"
               style={{
                 display: 'flex',
-                gap: 10,
+                gap: 8,
                 overflowX: 'auto',
                 marginLeft: -16,
                 marginRight: -16,
                 paddingLeft: 16,
                 paddingRight: 16,
-                paddingBottom: 4,
+                paddingBottom: 2,
               }}
             >
               {recentlyViewed.map(product => {
@@ -521,77 +521,43 @@ export default function HomePage() {
                     to={`/product/${product.id}`}
                     className="flex-shrink-0 active:scale-95 transition-transform"
                     style={{
-                      width: 90,
-                      borderRadius: 14,
-                      overflow: 'hidden',
-                      background: 'rgba(12,11,26,0.55)',
-                      border: '1px solid rgba(255,255,255,0.09)',
-                      backdropFilter: 'blur(8px)',
-                      WebkitBackdropFilter: 'blur(8px)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 2,
+                      padding: '6px 12px',
+                      borderRadius: 20,
+                      background: 'rgba(79,70,229,0.12)',
+                      border: '1px solid rgba(79,70,229,0.25)',
                       textDecoration: 'none',
-                      display: 'block',
                     }}
                   >
-                    <div
+                    <span
                       style={{
-                        width: 90,
-                        height: 90,
-                        background: 'var(--bg3)',
-                        position: 'relative',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'rgba(255,255,255,0.85)',
+                        whiteSpace: 'nowrap',
                         overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        maxWidth: 100,
+                        display: 'block',
                       }}
                     >
-                      {product.images?.[0] ? (
-                        <img
-                          src={product.images[0]}
-                          alt={product.name}
-                          loading="lazy"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: 'linear-gradient(135deg, #1e1b4b, #312e81)',
-                            color: 'rgba(129,140,248,0.65)',
-                          }}
-                        >
-                          <IconGamepadSmall />
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ padding: '5px 6px 8px' }}>
-                      <p
-                        style={{
-                          margin: 0,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: 'rgba(255,255,255,0.75)',
-                          overflow: 'hidden',
-                          whiteSpace: 'nowrap',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {product.name}
-                      </p>
-                      <p
-                        style={{
-                          margin: '2px 0 0',
-                          fontSize: 11,
-                          fontWeight: 700,
-                          background: 'linear-gradient(135deg, #818cf8, #6366f1)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          backgroundClip: 'text',
-                        }}
-                      >
-                        {minPrice.toLocaleString('ru')} ₽
-                      </p>
-                    </div>
+                      {product.name}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        background: 'linear-gradient(135deg, #818cf8, #6366f1)',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        backgroundClip: 'text',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {minPrice.toLocaleString('ru')} ₽
+                    </span>
                   </Link>
                 )
               })}
