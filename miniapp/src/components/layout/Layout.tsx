@@ -85,6 +85,17 @@ export default function Layout() {
       {/* Star particle background */}
       {particlesEnabled && <ParticleCanvas />}
 
+      {/* Safe area top fill — extends page background under status bar / close button */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))',
+        background: 'var(--bg)',
+        zIndex: 49,
+      }} />
+
       {/* Page content — padded so it sits above the floating nav */}
       <main
         className="flex-1 overflow-y-auto"
