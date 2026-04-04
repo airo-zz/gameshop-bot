@@ -529,7 +529,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="px-4 pb-4" style={{ paddingTop: 'calc(56px + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))' }}>
+      <div className="px-4 pb-4" style={{ paddingTop: 56 }}>
 
         {/* ── Hero greeting ────────────────────────────────────────────────── */}
         <div className="pt-5 pb-4 animate-fade-in">
