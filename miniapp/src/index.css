@@ -28,6 +28,9 @@
   --glass-border: rgba(255,255,255,0.08);
   --glass-blur:   16px;
 
+  /* Semi-transparent card bg — lets particles show through */
+  --card-bg:      rgba(12,11,26,0.52);
+
   /* Gradient accents */
   --gradient-primary: linear-gradient(135deg, #4f46e5 0%, #6d28d9 100%);
   --gradient-gaming:  linear-gradient(135deg, #4f46e5 0%, #06b6d4 100%);

@@ -482,7 +482,7 @@ export default function HomePage() {
 
         {/* ── Recently viewed ──────────────────────────────────────────────── */}
         {recentlyViewed.length > 0 && (
-          <section className="mb-5 animate-fade-in">
+          <section className="mb-8 animate-fade-in">
             <h2
               style={{
                 margin: '0 0 12px',
@@ -524,8 +524,10 @@ export default function HomePage() {
                       width: 90,
                       borderRadius: 14,
                       overflow: 'hidden',
-                      background: 'var(--bg2)',
-                      border: '1px solid rgba(255,255,255,0.07)',
+                      background: 'rgba(12,11,26,0.55)',
+                      border: '1px solid rgba(255,255,255,0.09)',
+                      backdropFilter: 'blur(8px)',
+                      WebkitBackdropFilter: 'blur(8px)',
                       textDecoration: 'none',
                       display: 'block',
                     }}
@@ -598,7 +600,8 @@ export default function HomePage() {
         )}
 
         {/* ── Games horizontal scroll ──────────────────────────────────────── */}
-        <section className="mb-5 animate-fade-in delay-150">
+        <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(79,70,229,0.2) 30%, rgba(79,70,229,0.2) 70%, transparent)', marginBottom: 24 }} />
+        <section className="mb-8 animate-fade-in delay-150">
           <div
             style={{
               display: 'flex',
@@ -670,10 +673,12 @@ export default function HomePage() {
                       width: 110,
                       borderRadius: 18,
                       overflow: 'hidden',
-                      border: '1px solid rgba(255,255,255,0.07)',
+                      border: '1px solid rgba(255,255,255,0.08)',
                       textDecoration: 'none',
                       display: 'block',
-                      background: 'var(--bg2)',
+                      background: 'rgba(12,11,26,0.50)',
+                      backdropFilter: 'blur(10px)',
+                      WebkitBackdropFilter: 'blur(10px)',
                     }}
                   >
                     <div
@@ -708,7 +713,7 @@ export default function HomePage() {
                         </div>
                       )}
                     </div>
-                    <div style={{ padding: '6px 6px 9px', background: 'var(--bg2)', borderTop: '1px solid rgba(79,70,229,0.15)' }}>
+                    <div style={{ padding: '6px 6px 9px', background: 'rgba(8,7,20,0.6)', borderTop: '1px solid rgba(79,70,229,0.15)' }}>
                       <p
                         style={{
                           margin: 0,
@@ -731,6 +736,7 @@ export default function HomePage() {
         </section>
 
         {/* ── Featured products ────────────────────────────────────────────── */}
+        <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(79,70,229,0.2) 30%, rgba(79,70,229,0.2) 70%, transparent)', marginBottom: 24 }} />
         <section className="animate-fade-in delay-225">
           <div
             style={{
@@ -774,7 +780,7 @@ export default function HomePage() {
           </div>
 
           {featured.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {featured.slice(0, 6).map((product, i) => {
                 const minPrice = product.lots.length
                   ? Math.min(...product.lots.map((l: { price: number }) => l.price))
@@ -788,9 +794,11 @@ export default function HomePage() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: 12,
-                      padding: '10px 12px',
-                      background: 'var(--bg2)',
-                      border: '1px solid rgba(79,70,229,0.18)',
+                      padding: '12px 14px',
+                      background: 'rgba(10,9,22,0.45)',
+                      backdropFilter: 'blur(12px)',
+                      WebkitBackdropFilter: 'blur(12px)',
+                      border: '1px solid rgba(79,70,229,0.20)',
                       borderRadius: 16,
                       textDecoration: 'none',
                       transition: 'transform 0.15s',
