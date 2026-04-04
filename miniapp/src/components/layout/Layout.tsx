@@ -75,6 +75,11 @@ export default function Layout() {
   const { itemsCount } = useCartStore()
   const particlesEnabled = useUIStore(s => s.particlesEnabled)
 
+  const activeIndex = NAV.findIndex(({ to }) =>
+    to === '/' ? pathname === '/' : pathname.startsWith(to)
+  )
+  const safeActiveIndex = activeIndex === -1 ? 0 : activeIndex
+
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--bg)' }}>
       {/* Star particle background */}
@@ -92,7 +97,7 @@ export default function Layout() {
       <nav
         className="fixed bottom-4 left-3 right-3 z-50"
         style={{
-          background: 'rgba(19,17,42,0.97)',
+          background: 'rgba(8,14,28,0.97)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
           border: '1px solid rgba(255,255,255,0.08)',
@@ -101,27 +106,54 @@ export default function Layout() {
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
-        <div className="flex items-center justify-around px-2 py-2">
-          {NAV.map(({ to, label, IconComp, badge }) => {
-            const isActive = to === '/' ? pathname === '/' : pathname.startsWith(to)
+        <div className="relative flex items-center justify-around px-2 py-2">
+
+          {/* ── Sliding pill indicator ────────────────────────────────── */}
+          <div
+            aria-hidden="true"
+            style={{
+              position: 'absolute',
+              top: 8,
+              bottom: 8,
+              left: 8,
+              width: `calc((100% - 16px) / ${NAV.length})`,
+              transform: `translateX(calc(${safeActiveIndex} * 100%))`,
+              transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              background: 'rgba(45,88,173,0.22)',
+              border: '1px solid rgba(45,88,173,0.35)',
+              borderRadius: '20px',
+              pointerEvents: 'none',
+            }}
+          />
+
+          {/* ── Nav items ────────────────────────────────────────────── */}
+          {NAV.map(({ to, label, IconComp, badge }, index) => {
+            const isActive = index === safeActiveIndex
             return (
               <Link
                 key={to}
                 to={to}
-                className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl transition-all duration-200 active:scale-90"
+                className="relative flex flex-col items-center justify-center active:scale-90"
                 style={{
-                  background: isActive ? 'rgba(45,88,173,0.18)' : 'transparent',
-                  minWidth: 52,
+                  flex: 1,
+                  minHeight: 52,
+                  gap: 0,
+                  padding: '8px 4px',
+                  transition: 'transform 0.15s ease',
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 {/* Icon + badge */}
                 <div className="relative flex items-center justify-center">
                   <span
                     style={{
-                      color: isActive ? '#6b9de8' : 'rgba(255,255,255,0.38)',
-                      filter: isActive ? 'drop-shadow(0 0 6px rgba(107,157,232,0.65))' : 'none',
-                      transition: 'color 0.2s, filter 0.2s',
                       display: 'flex',
+                      color: isActive ? '#6b9de8' : 'rgba(255,255,255,0.35)',
+                      filter: isActive
+                        ? 'drop-shadow(0 0 8px rgba(107,157,232,0.8))'
+                        : 'none',
+                      transform: isActive ? 'scale(1.15) translateY(-2px)' : 'scale(1) translateY(0px)',
+                      transition: 'color 0.2s, filter 0.2s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     }}
                   >
                     <IconComp active={isActive} />
@@ -129,12 +161,12 @@ export default function Layout() {
 
                   {badge && itemsCount > 0 && (
                     <span
-                      className="absolute -top-1 -right-2 min-w-[16px] h-4 flex items-center justify-center
-                                 rounded-full text-[10px] font-bold px-1"
+                      className="absolute -top-1 -right-2 min-w-[16px] h-4 flex items-center justify-center rounded-full text-[10px] font-bold px-1"
                       style={{
                         background: 'linear-gradient(135deg, #2d58ad, #1e3f8a)',
                         color: '#fff',
                         boxShadow: '0 2px 8px rgba(45,88,173,0.55)',
+                        zIndex: 1,
                       }}
                     >
                       {itemsCount > 99 ? '99+' : itemsCount}
@@ -142,15 +174,22 @@ export default function Layout() {
                   )}
                 </div>
 
+                {/* Label — visible only for active item */}
                 <span
-                  className="text-[10px] font-medium transition-colors duration-200"
-                  style={{ color: isActive ? '#6b9de8' : 'rgba(255,255,255,0.35)' }}
+                  className="text-[10px] font-medium leading-none select-none"
+                  style={{
+                    color: '#6b9de8',
+                    opacity: isActive ? 1 : 0,
+                    maxHeight: isActive ? '14px' : '0px',
+                    marginTop: isActive ? '3px' : '0px',
+                    overflow: 'hidden',
+                    transition: 'opacity 0.2s ease, max-height 0.2s ease, margin-top 0.2s ease',
+                    whiteSpace: 'nowrap',
+                  }}
+                  aria-hidden={!isActive}
                 >
                   {label}
                 </span>
-                {isActive && (
-                  <div style={{ width: 4, height: 4, borderRadius: '50%', background: '#2d58ad', marginTop: 1, boxShadow: '0 0 6px rgba(45,88,173,0.8)' }} />
-                )}
               </Link>
             )
           })}
