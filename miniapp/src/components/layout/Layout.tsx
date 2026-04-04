@@ -81,7 +81,7 @@ export default function Layout() {
   const safeActiveIndex = activeIndex === -1 ? 0 : activeIndex
 
   return (
-    <div className="flex flex-col h-full" style={{ background: '#0c0b1d' }}>
+    <div className="flex flex-col h-full" style={{ background: 'var(--bg)' }}>
       {/* Star particle background */}
       {particlesEnabled && <ParticleCanvas />}
 
