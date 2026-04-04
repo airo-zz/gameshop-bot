@@ -1130,37 +1130,37 @@ async def _save_category(message: Message, state: FSMContext, db: AsyncSession) 
     game_id_str = data["game_id"]
 
     parent_id_raw = data.get("parent_id")
-    cat = Category(
-        game_id=_uuid.UUID(game_id_str),
-        parent_id=_uuid.UUID(parent_id_raw) if parent_id_raw else None,
-        name=cat_name,
-        slug=data["slug"],
-        is_active=True,
-    )
-    db.add(cat)
-    await db.flush()
-
-    cat_id = cat.id  # PK доступен после flush (генерируется в Python)
-
-    # Автоматически создаём продукт для этой категории
-    product = Product(
-        category_id=cat_id,
-        name=cat_name,
-        price=Decimal("0"),
-        delivery_type=DeliveryType.manual,
-        is_active=True,
-    )
-    db.add(product)
-    await db.flush()
-
-    product_id = product.id  # PK доступен после flush
-
     try:
+        cat = Category(
+            game_id=_uuid.UUID(game_id_str),
+            parent_id=_uuid.UUID(parent_id_raw) if parent_id_raw else None,
+            name=cat_name,
+            slug=data["slug"],
+            is_active=True,
+        )
+        db.add(cat)
+        await db.flush()
+
+        cat_id = cat.id  # PK генерируется в Python, доступен до коммита
+
+        # Автоматически создаём продукт для этой категории
+        product = Product(
+            category_id=cat_id,
+            name=cat_name,
+            price=Decimal("0"),
+            delivery_type=DeliveryType.manual,
+            is_active=True,
+        )
+        db.add(product)
+        await db.flush()
+
+        product_id = product.id  # PK генерируется в Python
+
         await db.commit()
     except Exception as e:
         await db.rollback()
         err_msg = str(e.orig) if hasattr(e, "orig") else str(e)
-        await message.answer(f"❌ Ошибка создания категории: {err_msg[:200]}")
+        await message.answer(f"❌ Ошибка создания категории:\n<code>{err_msg[:300]}</code>")
         return
 
     await state.clear()
