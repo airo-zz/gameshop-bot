@@ -573,7 +573,7 @@ async def admin_category_add_name(
 
     # Предлагаем выбрать родительскую категорию или пропустить
     data = await state.get_data()
-    game_id = data["game_id"]
+    game_id = _uuid.UUID(data["game_id"])
     result = await db.execute(
         select(Category)
         .where(Category.game_id == game_id, Category.parent_id == None)
@@ -1125,41 +1125,57 @@ async def _save_category(message: Message, state: FSMContext, db: AsyncSession) 
     from decimal import Decimal
     data = await state.get_data()
 
+    # Сохраняем данные до коммита — после commit объекты expire и lazy load недоступен
+    cat_name = data["name"]
+    game_id_str = data["game_id"]
+
     parent_id_raw = data.get("parent_id")
     cat = Category(
-        game_id=_uuid.UUID(data["game_id"]),
+        game_id=_uuid.UUID(game_id_str),
         parent_id=_uuid.UUID(parent_id_raw) if parent_id_raw else None,
-        name=data["name"],
+        name=cat_name,
         slug=data["slug"],
         is_active=True,
     )
     db.add(cat)
     await db.flush()
 
+    cat_id = cat.id  # PK доступен после flush (генерируется в Python)
+
     # Автоматически создаём продукт для этой категории
     product = Product(
-        category_id=cat.id,
-        name=cat.name,
+        category_id=cat_id,
+        name=cat_name,
         price=Decimal("0"),
         delivery_type=DeliveryType.manual,
         is_active=True,
     )
     db.add(product)
-    await db.commit()
-    await db.refresh(product)
+    await db.flush()
+
+    product_id = product.id  # PK доступен после flush
+
+    try:
+        await db.commit()
+    except Exception as e:
+        await db.rollback()
+        err_msg = str(e.orig) if hasattr(e, "orig") else str(e)
+        await message.answer(f"❌ Ошибка создания категории: {err_msg[:200]}")
+        return
+
     await state.clear()
 
     await message.answer(
-        f"✅ Категория <b>{cat.name}</b> создана!\n\nДобавь пакеты с ценами:",
+        f"✅ Категория <b>{cat_name}</b> создана!\n\nДобавь пакеты с ценами:",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [
                     InlineKeyboardButton(
                         text="➕ Добавить пакет",
-                        callback_data=f"admin:lot:add:{product.id}:{cat.id}",
+                        callback_data=f"admin:lot:add:{product_id}:{cat_id}",
                     )
                 ],
-                [admin_back_btn(f"admin:categories:{data['game_id']}")],
+                [admin_back_btn(f"admin:categories:{game_id_str}")],
             ]
         ),
     )
