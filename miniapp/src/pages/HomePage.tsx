@@ -450,8 +450,13 @@ export default function HomePage() {
 
       {/* ── Fixed header ────────────────────────────────────────────────── */}
       <div
-        className="sticky top-0 z-40 animate-slide-down"
+        className="z-40 animate-slide-down"
         style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))',
           background: 'rgba(12,11,29,0.92)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',
@@ -524,7 +529,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="px-4 pb-4">
+      <div className="px-4 pb-4" style={{ paddingTop: 56 }}>
 
         {/* ── Hero greeting ────────────────────────────────────────────────── */}
         <div className="pt-5 pb-4 animate-fade-in">
