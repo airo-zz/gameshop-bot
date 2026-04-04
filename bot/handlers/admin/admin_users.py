@@ -26,7 +26,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import (
     AdminUser, BalanceTransaction, LoyaltyLevel,
-    Order, User, Cart,
+    Order, User, Cart, CartItem,
 )
 from bot.middlewares.admin_auth import require_permission
 from bot.utils.admin_log import log_admin_action
@@ -459,7 +459,7 @@ async def admin_user_cart(call: CallbackQuery, db: AsyncSession, admin: AdminUse
 
     result = await db.execute(
         select(Cart).options(
-            selectinload(Cart.items).selectinload(Cart.items)
+            selectinload(Cart.items).selectinload(CartItem.product)
         ).where(Cart.user_id == user_id)
     )
     cart = result.scalar_one_or_none()

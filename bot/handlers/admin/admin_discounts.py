@@ -84,7 +84,15 @@ async def admin_promos_list(call: CallbackQuery, db: AsyncSession, admin: AdminU
 
 # ── Детали промокода ──────────────────────────────────────────────────────────
 
-@router.callback_query(F.data.startswith("admin:promo:") & ~F.data.endswith(":add"))
+@router.callback_query(
+    F.data.startswith("admin:promo:")
+    & ~F.data.startswith("admin:promo:add")
+    & ~F.data.startswith("admin:promo:toggle:")
+    & ~F.data.startswith("admin:promo:type:")
+    & ~F.data.startswith("admin:promo:minamount:")
+    & ~F.data.startswith("admin:promo:maxuses:")
+    & ~F.data.startswith("admin:promo:expires:")
+)
 @require_permission("discounts.*")
 async def admin_promo_detail(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
     promo_id = call.data.split(":")[2]

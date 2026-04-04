@@ -164,7 +164,12 @@ async def _show_orders_by_status(
 
 # ── Order Detail ──────────────────────────────────────────────────────────────
 
-@router.callback_query(F.data.startswith("admin:order:") & ~F.data.contains("status"))
+@router.callback_query(
+    F.data.startswith("admin:order:")
+    & ~F.data.startswith("admin:order:status:")
+    & ~F.data.startswith("admin:order:deliver:")
+    & ~F.data.startswith("admin:order:note:")
+)
 @require_permission("orders.view")
 async def admin_order_detail(
     call: CallbackQuery, db: AsyncSession, admin: AdminUser
@@ -319,6 +324,81 @@ async def admin_order_change_status(
 
     await call.answer(f"✅ Статус изменён на {STATUS_NAMES.get(new_status)}", show_alert=False)
     await admin_order_detail(call, db, admin)
+
+
+# ── Manual Delivery ───────────────────────────────────────────────────────────
+
+@router.callback_query(F.data.startswith("admin:order:deliver:"))
+@require_permission("orders.update_status")
+async def admin_order_deliver(
+    call: CallbackQuery, db: AsyncSession, admin: AdminUser
+) -> None:
+    await call.answer(
+        "📦 Ручная выдача: введи данные в поле заметки и смени статус на «Выполнен».",
+        show_alert=True,
+    )
+
+
+# ── Order Note ────────────────────────────────────────────────────────────────
+
+class OrderNoteFSM(StatesGroup):
+    waiting_text = State()
+
+
+@router.callback_query(F.data.startswith("admin:order:note:"))
+@require_permission("orders.add_notes")
+async def admin_order_note_start(
+    call: CallbackQuery, state: FSMContext, admin: AdminUser
+) -> None:
+    order_id = call.data.split(":")[3]
+    await state.update_data(order_id=order_id)
+    await call.message.edit_text(
+        "📝 <b>Добавить заметку к заказу</b>\n\nВведи текст заметки:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="❌ Отмена", callback_data=f"admin:order:{order_id}")
+        ]]),
+    )
+    await state.set_state(OrderNoteFSM.waiting_text)
+    await call.answer()
+
+
+@router.message(StateFilter(OrderNoteFSM.waiting_text))
+@require_permission("orders.add_notes")
+async def admin_order_note_save(
+    message: Message, state: FSMContext, db: AsyncSession, admin: AdminUser
+) -> None:
+    data = await state.get_data()
+    await state.clear()
+
+    try:
+        order_uuid = _uuid.UUID(data["order_id"])
+    except (KeyError, ValueError):
+        await message.answer("❌ Ошибка: ID заказа не найден")
+        return
+
+    result = await db.execute(select(Order).where(Order.id == order_uuid))
+    order = result.scalar_one_or_none()
+    if not order:
+        await message.answer("❌ Заказ не найден")
+        return
+
+    order.notes = (
+        f"{order.notes}\n[{admin.first_name}]: {message.text.strip()}"
+        if order.notes
+        else f"[{admin.first_name}]: {message.text.strip()}"
+    )
+
+    await log_admin_action(
+        db, admin, "order.add_note", "order", order.id,
+        after_data={"note": message.text.strip()},
+    )
+
+    await message.answer(
+        f"✅ Заметка добавлена к заказу {order.order_number}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="📋 К заказу", callback_data=f"admin:order:{order.id}")
+        ]]),
+    )
 
 
 # ── Search Orders ─────────────────────────────────────────────────────────────

@@ -120,6 +120,46 @@ async def cmd_referral(message: Message, user: User, db: AsyncSession) -> None:
     )
 
 
+@router.callback_query(F.data == "balance:topup")
+async def cb_balance_topup(
+    call: CallbackQuery, user: User
+) -> None:
+    """Пополнение баланса — направляет в Mini App или сообщает способы."""
+    from shared.config import settings as _settings
+
+    if _settings.MINIAPP_URL:
+        from aiogram.types import InlineKeyboardButton as IKB, InlineKeyboardMarkup as IKM, WebAppInfo
+        keyboard = IKM(
+            inline_keyboard=[
+                [IKB(
+                    text=f"💳 Открыть {_settings.SHOP_NAME}",
+                    web_app=WebAppInfo(url=_settings.MINIAPP_URL),
+                )],
+                [IKB(text="◀️ Профиль", callback_data="profile:view")],
+            ]
+        )
+        await call.message.edit_text(
+            f"💰 <b>Пополнение баланса</b>\n\n"
+            f"Текущий баланс: <b>{float(user.balance):.2f} ₽</b>\n\n"
+            f"Пополни баланс через Mini App:",
+            reply_markup=keyboard,
+            parse_mode="HTML",
+        )
+    else:
+        await call.message.edit_text(
+            f"💰 <b>Пополнение баланса</b>\n\n"
+            f"Текущий баланс: <b>{float(user.balance):.2f} ₽</b>\n\n"
+            f"Для пополнения обратись в поддержку: {_settings.support_link}",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="◀️ Профиль", callback_data="profile:view")]
+                ]
+            ),
+            parse_mode="HTML",
+        )
+    await call.answer()
+
+
 @router.callback_query(F.data == "referral:show")
 async def cb_referral_show(
     call: CallbackQuery, user: User, db: AsyncSession

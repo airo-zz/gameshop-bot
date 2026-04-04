@@ -21,7 +21,7 @@ class AddToCartRequest(BaseModel):
     lot_id: uuid.UUID | None = None
     quantity: int = Field(1, ge=1, le=99)
     input_data: dict = Field(default_factory=dict)
-    # {"game_id": "123", "server": "EU"}
+    # {"game_id": "123", "server": "EU"} — все поля необязательны
 
 
 class UpdateCartItemRequest(BaseModel):

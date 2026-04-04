@@ -72,7 +72,7 @@ class InputFieldSchema(BaseModel):
     label: str
     type: str = "text"           # text | select | number
     placeholder: str = ""
-    required: bool = True
+    required: bool = False
     options: list[str] = []      # для type=select
 
 

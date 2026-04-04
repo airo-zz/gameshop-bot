@@ -15,6 +15,7 @@ from aiogram.types import (
 )
 
 from shared.models import AdminUser, AdminRole
+from bot.utils.texts import texts
 
 router = Router(name="admin:main")
 
@@ -149,3 +150,18 @@ async def admin_back_to_main(call: CallbackQuery, admin: AdminUser) -> None:
         reply_markup=get_admin_menu(admin),
     )
     await call.answer()
+
+
+@router.callback_query(F.data == "admin:tickets:list")
+async def admin_tickets_list_stub(call: CallbackQuery, admin: AdminUser) -> None:
+    await call.answer("🆘 Управление тикетами — в разработке.", show_alert=True)
+
+
+@router.callback_query(F.data == "admin:settings:main")
+async def admin_settings_stub(call: CallbackQuery, admin: AdminUser) -> None:
+    await call.answer("⚙️ Настройки — в разработке.", show_alert=True)
+
+
+@router.callback_query(F.data == "admin:admins:list")
+async def admin_admins_stub(call: CallbackQuery, admin: AdminUser) -> None:
+    await call.answer("👮 Управление администраторами — в разработке.", show_alert=True)

@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from api.deps import CurrentUser, DbSession
 from api.schemas.cart import (
     AddToCartRequest,
+    CartItemOut,
     UpdateCartItemRequest,
     ApplyPromoRequest,
     CartOut,
@@ -18,9 +19,36 @@ async def get_cart(db: DbSession, user: CurrentUser):
     svc = CartService(db)
     cart = await svc.get_or_create_cart(user)
     summary = await svc.get_cart_summary(cart, user)
+
+    items_out = []
+    for item in cart.items:
+        product_name = item.product.name if item.product else ""
+        product_image = (
+            item.product.images[0] if item.product and item.product.images else None
+        )
+        lot_name = None
+        if item.lot_id and item.product:
+            lot = next((l for l in item.product.lots if l.id == item.lot_id), None)
+            lot_name = lot.name if lot else None
+
+        items_out.append(
+            CartItemOut(
+                id=item.id,
+                product_id=item.product_id,
+                lot_id=item.lot_id,
+                quantity=item.quantity,
+                price_snapshot=item.price_snapshot,
+                subtotal=item.subtotal,
+                input_data=item.input_data,
+                product_name=product_name,
+                product_image=product_image,
+                lot_name=lot_name,
+            )
+        )
+
     return CartOut(
         id=cart.id,
-        items=[],  # TODO: маппинг CartItem → CartItemOut
+        items=items_out,
         items_count=cart.items_count,
         subtotal=summary["subtotal"],
         discount_amount=summary["discount_amount"],

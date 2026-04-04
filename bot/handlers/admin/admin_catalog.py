@@ -146,7 +146,13 @@ async def admin_games_list(
 # ── Game Detail ───────────────────────────────────────────────────────────────
 
 
-@router.callback_query(F.data.startswith("admin:game:") & ~F.data.endswith(":add"))
+@router.callback_query(
+    F.data.startswith("admin:game:")
+    & ~F.data.startswith("admin:game:add")
+    & ~F.data.startswith("admin:game:toggle:")
+    & ~F.data.startswith("admin:game:edit:")
+    & ~F.data.startswith("admin:game:delete:")
+)
 @require_permission("games.view")
 async def admin_game_detail(
     call: CallbackQuery, db: AsyncSession, admin: AdminUser
@@ -593,6 +599,110 @@ async def admin_cat_set_parent(
     await state.update_data(parent_id=parent_id)
     await call.answer()
     await _save_category(call.message, state, db)
+
+
+# ── Edit Game (stub) ──────────────────────────────────────────────────────────
+
+
+@router.callback_query(F.data.startswith("admin:game:edit:"))
+@require_permission("games.edit")
+async def admin_game_edit_stub(
+    call: CallbackQuery, admin: AdminUser
+) -> None:
+    await call.answer(
+        "✏️ Редактирование игры — доступно через Mini App (этап 5).",
+        show_alert=True,
+    )
+
+
+# ── Delete Game ───────────────────────────────────────────────────────────────
+
+
+@router.callback_query(F.data.startswith("admin:game:delete:"))
+@require_permission("games.edit")
+async def admin_game_delete(
+    call: CallbackQuery, db: AsyncSession, admin: AdminUser
+) -> None:
+    game_id = call.data.split(":")[3]
+    game = await db.get(Game, game_id)
+    if not game:
+        await call.answer("Игра не найдена", show_alert=True)
+        return
+
+    await db.delete(game)
+    await call.answer(f"🗑 Игра «{game.name}» удалена")
+    await call.message.edit_text(
+        f"✅ Игра <b>{game.name}</b> удалена.",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[admin_back_btn("admin:catalog:games")]]
+        ),
+    )
+
+
+# ── Category Detail (stub) ────────────────────────────────────────────────────
+
+
+@router.callback_query(
+    F.data.startswith("admin:category:")
+    & ~F.data.startswith("admin:category:add:")
+)
+@require_permission("categories.view")
+async def admin_category_detail(
+    call: CallbackQuery, db: AsyncSession, admin: AdminUser
+) -> None:
+    cat_id = call.data.split(":")[2]
+    from shared.models import Category as Cat
+    cat = await db.get(Cat, cat_id)
+    if not cat:
+        await call.answer("Категория не найдена", show_alert=True)
+        return
+    await call.message.edit_text(
+        f"📂 <b>{cat.name}</b>\n\n"
+        f"Статус: {toggle_emoji(cat.is_active)} {'Активна' if cat.is_active else 'Скрыта'}",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(
+                        text="🔴 Скрыть" if cat.is_active else "✅ Активировать",
+                        callback_data=f"admin:category:toggle:{cat.id}",
+                    ),
+                ],
+                [admin_back_btn(f"admin:categories:{cat.game_id}")],
+            ]
+        ),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("admin:category:toggle:"))
+@require_permission("categories.edit")
+async def admin_category_toggle(
+    call: CallbackQuery, db: AsyncSession, admin: AdminUser
+) -> None:
+    cat_id = call.data.split(":")[3]
+    from shared.models import Category as Cat
+    cat = await db.get(Cat, cat_id)
+    if not cat:
+        await call.answer("Не найдена", show_alert=True)
+        return
+    cat.is_active = not cat.is_active
+    status = "активирована ✅" if cat.is_active else "скрыта 🔴"
+    await call.answer(f"Категория {status}")
+    await admin_category_detail(call, db, admin)
+
+
+# ── Add Product (stub — сообщение что функция в разработке) ──────────────────
+
+
+@router.callback_query(F.data.startswith("admin:product:add:"))
+@require_permission("products.create")
+async def admin_product_add_stub(
+    call: CallbackQuery, admin: AdminUser
+) -> None:
+    await call.answer(
+        "➕ Добавление товаров доступно через Mini App (этап 5).",
+        show_alert=True,
+    )
 
 
 async def _save_category(message: Message, state: FSMContext, db: AsyncSession) -> None:

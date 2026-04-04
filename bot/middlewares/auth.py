@@ -86,7 +86,10 @@ class AuthMiddleware(BaseMiddleware):
             data["user"] = user
             data["db"] = session
 
-            return await handler(event, data)
+            result = await handler(event, data)
+            # Фиксируем изменения сделанные в middleware (регистрация, обновление профиля)
+            await session.commit()
+            return result
 
     async def _register_user(
         self, session, tg_user: TgUser, data: dict, bot: Bot | None

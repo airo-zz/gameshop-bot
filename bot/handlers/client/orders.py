@@ -5,6 +5,8 @@ bot/handlers/client/orders.py
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+import uuid as _uuid
+
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import (
@@ -14,9 +16,10 @@ from aiogram.types import (
     Message,
 )
 from sqlalchemy import desc, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import Order, OrderStatus, User
+from shared.models import Order, OrderItem, OrderStatus, User
 from bot.utils.texts import texts
 
 router = Router(name="client:orders")
@@ -93,5 +96,51 @@ async def cb_orders_list(
     )
     orders = list(result.scalars().all())
     text, keyboard = await _render_orders(orders)
+    await call.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("order:detail:"))
+async def cb_order_detail(
+    call: CallbackQuery, user: User, db: AsyncSession
+) -> None:
+    order_id_str = call.data.split(":")[2]
+    try:
+        order_uuid = _uuid.UUID(order_id_str)
+    except (ValueError, IndexError):
+        await call.answer("Некорректный ID заказа", show_alert=True)
+        return
+
+    result = await db.execute(
+        select(Order)
+        .options(selectinload(Order.items))
+        .where(Order.id == order_uuid, Order.user_id == user.id)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        await call.answer("Заказ не найден", show_alert=True)
+        return
+
+    emoji = STATUS_EMOJI.get(order.status, "📋")
+    items_text = "\n".join(
+        f"  • {item.product_name}"
+        + (f" ({item.lot_name})" if item.lot_name else "")
+        + f" × {item.quantity} — {float(item.total_price):.0f} ₽"
+        for item in order.items
+    )
+
+    text = (
+        f"{emoji} <b>Заказ {order.order_number}</b>\n\n"
+        f"Статус: <b>{emoji} {order.status.value}</b>\n"
+        f"Дата: {order.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
+        f"<b>Состав:</b>\n{items_text}\n\n"
+        f"<b>Итого: {float(order.total_amount):.0f} ₽</b>"
+    )
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="◀️ К заказам", callback_data="orders:list")]
+        ]
+    )
     await call.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
     await call.answer()
