@@ -10,7 +10,7 @@ type View = 'list' | 'new'
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
   open:         { label: '🟢 Открыт',     color: '#34d399' },
-  in_progress:  { label: '⚙️ В работе',   color: '#818cf8' },
+  in_progress:  { label: '⚙️ В работе',   color: '#6b9de8' },
   waiting_user: { label: '⏳ Ожидаем вас', color: '#fbbf24' },
   resolved:     { label: '✅ Решён',       color: '#34d399' },
   closed:       { label: '⚫ Закрыт',      color: 'var(--hint)' },
@@ -59,7 +59,7 @@ export default function SupportPage() {
           <button
             onClick={() => setView('list')}
             className="flex items-center gap-1.5 text-sm font-medium"
-            style={{ color: '#818cf8' }}
+            style={{ color: '#6b9de8' }}
           >
             <ArrowLeft size={16} />
             Назад
@@ -73,7 +73,7 @@ export default function SupportPage() {
             onClick={() => setView('new')}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all active:scale-95"
             style={{
-              background: 'linear-gradient(135deg, #4f46e5, #4f46e5)',
+              background: 'linear-gradient(135deg, #2d58ad, #2d58ad)',
               color: '#fff',
             }}
           >

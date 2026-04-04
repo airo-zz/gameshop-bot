@@ -213,7 +213,7 @@ export default function CartPage() {
           disabled={!promoInput.trim() || promoApplying}
           className="px-4 py-3 rounded-2xl font-semibold text-sm transition-all active:scale-95 disabled:opacity-40"
           style={{
-            background: 'linear-gradient(135deg, #2563eb, #4f46e5)',
+            background: 'linear-gradient(135deg, #2563eb, #2d58ad)',
             color: '#fff',
           }}
         >

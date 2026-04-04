@@ -52,14 +52,14 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
         ) : (
           <div
             className="w-full h-full flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #13112a 0%, #1e1c3a 100%)' }}
+            style={{ background: 'linear-gradient(135deg, #060f1e 0%, #0a1428 100%)' }}
           >
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(129,140,248,0.4)"
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(107,157,232,0.4)"
                  strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <rect x="2" y="7" width="20" height="12" rx="5" />
               <path d="M7 13v-2m0 2v2m0-2h2m-2 0H5" />
-              <circle cx="16" cy="12" r="1.2" fill="rgba(129,140,248,0.4)" stroke="none" />
-              <circle cx="18.5" cy="14" r="1.2" fill="rgba(129,140,248,0.4)" stroke="none" />
+              <circle cx="16" cy="12" r="1.2" fill="rgba(107,157,232,0.4)" stroke="none" />
+              <circle cx="18.5" cy="14" r="1.2" fill="rgba(107,157,232,0.4)" stroke="none" />
             </svg>
           </div>
         )}
@@ -148,7 +148,7 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
         <p
           className="text-base font-bold mt-auto"
           style={{
-            background: 'linear-gradient(135deg, #818cf8, #6366f1)',
+            background: 'linear-gradient(135deg, #6b9de8, #4a7fd4)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',

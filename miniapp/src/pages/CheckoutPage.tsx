@@ -142,7 +142,7 @@ export default function CheckoutPage() {
         )}
         <div className="flex justify-between font-bold text-base">
           <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span style={{ color: '#818cf8' }}>{cart.total.toLocaleString('ru')} ₽</span>
+          <span style={{ color: '#6b9de8' }}>{cart.total.toLocaleString('ru')} ₽</span>
         </div>
 
         {/* Подсказка о прогрессе лояльности */}
@@ -167,10 +167,10 @@ export default function CheckoutPage() {
                 marginTop: 10,
                 padding: '7px 10px',
                 borderRadius: 10,
-                background: 'rgba(79,70,229,0.08)',
-                border: '1px solid rgba(79,70,229,0.18)',
+                background: 'rgba(45,88,173,0.08)',
+                border: '1px solid rgba(45,88,173,0.18)',
                 fontSize: 12,
-                color: '#818cf8',
+                color: '#6b9de8',
                 lineHeight: 1.4,
               }}
             >
@@ -198,15 +198,15 @@ export default function CheckoutPage() {
                 className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all duration-150 active:scale-[0.98]"
                 style={{
                   background: isSelected
-                    ? 'linear-gradient(135deg, rgba(79,70,229,0.28), rgba(79,70,229,0.25))'
+                    ? 'linear-gradient(135deg, rgba(45,88,173,0.28), rgba(45,88,173,0.25))'
                     : 'var(--bg2)',
                   border: isSelected
-                    ? '1.5px solid rgba(79,70,229,0.55)'
+                    ? '1.5px solid rgba(45,88,173,0.55)'
                     : '1.5px solid var(--border)',
                   opacity: isDisabled ? 0.5 : 1,
                 }}
               >
-                <span style={{ color: isSelected ? '#818cf8' : 'var(--hint)' }}>
+                <span style={{ color: isSelected ? '#6b9de8' : 'var(--hint)' }}>
                   {method.icon}
                 </span>
                 <div className="flex-1">
@@ -218,7 +218,7 @@ export default function CheckoutPage() {
                     }
                   </p>
                 </div>
-                {isSelected && <CheckCircle size={18} style={{ color: '#818cf8' }} />}
+                {isSelected && <CheckCircle size={18} style={{ color: '#6b9de8' }} />}
               </button>
             )
           })}

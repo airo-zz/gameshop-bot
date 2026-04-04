@@ -53,7 +53,7 @@ export default function GamePage() {
       <button
         onClick={() => refetchCats()}
         className="px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
-        style={{ background: 'rgba(79,70,229,0.16)', border: '1px solid rgba(79,70,229,0.38)', color: '#818cf8' }}
+        style={{ background: 'rgba(45,88,173,0.16)', border: '1px solid rgba(45,88,173,0.38)', color: '#6b9de8' }}
       >
         Повторить
       </button>
@@ -106,19 +106,19 @@ export default function GamePage() {
                   padding: '4px 12px',
                   borderRadius: 999,
                   border: selectedCatId === sub.id
-                    ? '1px solid rgba(79,70,229,0.55)'
+                    ? '1px solid rgba(45,88,173,0.55)'
                     : '1px solid var(--border)',
                   background: selectedCatId === sub.id
-                    ? 'rgba(79,70,229,0.22)'
+                    ? 'rgba(45,88,173,0.22)'
                     : 'var(--bg2)',
                   color: selectedCatId === sub.id
-                    ? '#a5b4fc'
+                    ? '#93b8f0'
                     : 'var(--hint)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap',
                   fontWeight: 500,
                   transition: 'all 0.15s',
-                  boxShadow: selectedCatId === sub.id ? '0 0 10px rgba(79,70,229,0.2)' : 'none',
+                  boxShadow: selectedCatId === sub.id ? '0 0 10px rgba(45,88,173,0.2)' : 'none',
                 }}
               >
                 {sub.name}
@@ -136,7 +136,7 @@ export default function GamePage() {
             <button
               onClick={() => refetchProducts()}
               className="px-5 py-2 rounded-2xl text-sm font-semibold transition-all active:scale-95"
-              style={{ background: 'rgba(79,70,229,0.16)', border: '1px solid rgba(79,70,229,0.38)', color: '#818cf8' }}
+              style={{ background: 'rgba(45,88,173,0.16)', border: '1px solid rgba(45,88,173,0.38)', color: '#6b9de8' }}
             >
               Повторить
             </button>

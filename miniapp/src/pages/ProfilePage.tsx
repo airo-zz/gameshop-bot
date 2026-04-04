@@ -66,7 +66,7 @@ function LoyaltyProgressBar({ totalSpent, discountPercent }: { totalSpent: numbe
     <div style={{ marginTop: 16 }}>
       {/* Метки уровней */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 500, color: '#818cf8' }}>
+        <span style={{ fontSize: 11, fontWeight: 500, color: '#6b9de8' }}>
           {current.emoji} {current.name}
         </span>
         {next ? (
@@ -85,8 +85,8 @@ function LoyaltyProgressBar({ totalSpent, discountPercent }: { totalSpent: numbe
           style={{
             height: '100%',
             borderRadius: 99,
-            background: 'linear-gradient(90deg, #4f46e5, #818cf8)',
-            boxShadow: '0 0 8px rgba(79,70,229,0.6)',
+            background: 'linear-gradient(90deg, #2d58ad, #6b9de8)',
+            boxShadow: '0 0 8px rgba(45,88,173,0.6)',
             transition: 'width 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
             width: 0,
           }}
@@ -98,7 +98,7 @@ function LoyaltyProgressBar({ totalSpent, discountPercent }: { totalSpent: numbe
         {next ? (
           <>
             До {next.emoji} {next.name}:{' '}
-            <span style={{ color: '#818cf8', fontWeight: 600 }}>
+            <span style={{ color: '#6b9de8', fontWeight: 600 }}>
               {remaining.toLocaleString('ru')} ₽
             </span>
             {next.nextDiscount > 0 && (
@@ -164,16 +164,16 @@ export default function ProfilePage() {
       src={avatarSrc!}
       alt=""
       className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-      style={{ boxShadow: '0 0 0 2px rgba(79,70,229,0.35)' }}
+      style={{ boxShadow: '0 0 0 2px rgba(45,88,173,0.35)' }}
       onError={() => setAvatarError(true)}
     />
   ) : (
     <div
       className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 text-2xl font-bold"
       style={{
-        background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
+        background: 'linear-gradient(135deg, #2d58ad, #7c3aed)',
         color: '#fff',
-        boxShadow: '0 0 0 2px rgba(79,70,229,0.35)',
+        boxShadow: '0 0 0 2px rgba(45,88,173,0.35)',
       }}
     >
       {avatarInitial}
@@ -195,9 +195,9 @@ export default function ProfilePage() {
         >
           <div
             className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(129,140,248,0.12)' }}
+            style={{ background: 'rgba(107,157,232,0.12)' }}
           >
-            <span style={{ color: '#818cf8' }}>{icon}</span>
+            <span style={{ color: '#6b9de8' }}>{icon}</span>
           </div>
           <span className="font-medium text-sm flex-1" style={{ color: 'var(--text)' }}>{label}</span>
           <ChevronRight size={16} style={{ color: 'var(--hint)' }} />
@@ -220,7 +220,7 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-        <div className="p-4 rounded-2xl" style={{ background: 'rgba(79,70,229,0.1)', border: '1px solid rgba(79,70,229,0.22)' }}>
+        <div className="p-4 rounded-2xl" style={{ background: 'rgba(45,88,173,0.1)', border: '1px solid rgba(45,88,173,0.22)' }}>
           <p className="text-sm" style={{ color: 'var(--hint)' }}>Данные профиля временно недоступны. Попробуй позже.</p>
         </div>
         <MenuBlock />
@@ -266,7 +266,7 @@ export default function ProfilePage() {
       {/* ── Статистика ── */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: 'Баланс',    value: `${Number(profile.balance).toLocaleString('ru')} ₽`, color: '#818cf8', icon: <Wallet size={14} /> },
+          { label: 'Баланс',    value: `${Number(profile.balance).toLocaleString('ru')} ₽`, color: '#6b9de8', icon: <Wallet size={14} /> },
           { label: 'Заказов',   value: String(profile.orders_count),   color: 'var(--text)', icon: <ShoppingBag size={14} /> },
           { label: 'Рефералов', value: String(profile.referrals_count), color: '#34d399',    icon: <Users size={14} /> },
         ].map(({ label, value, color, icon }) => (
@@ -285,8 +285,8 @@ export default function ProfilePage() {
       <div
         className="p-4 rounded-2xl"
         style={{
-          background: 'linear-gradient(135deg, rgba(79,70,229,0.16), rgba(79,70,229,0.08))',
-          border: '1px solid rgba(79,70,229,0.28)',
+          background: 'linear-gradient(135deg, rgba(45,88,173,0.16), rgba(45,88,173,0.08))',
+          border: '1px solid rgba(45,88,173,0.28)',
         }}
       >
         <p className="text-sm font-semibold mb-2" style={{ color: 'var(--text)' }}>
@@ -296,7 +296,7 @@ export default function ProfilePage() {
           <div className="flex gap-6">
             {profile.loyalty_discount_percent > 0 && (
               <div>
-                <p className="text-2xl font-extrabold" style={{ color: '#818cf8' }}>{profile.loyalty_discount_percent}%</p>
+                <p className="text-2xl font-extrabold" style={{ color: '#6b9de8' }}>{profile.loyalty_discount_percent}%</p>
                 <p className="text-xs" style={{ color: 'var(--hint)' }}>скидка</p>
               </div>
             )}
@@ -311,7 +311,7 @@ export default function ProfilePage() {
           <p className="text-sm" style={{ color: 'var(--hint)' }}>
             На уровне {nextLevel.emoji} {nextLevel.name} — скидка {nextLevel.nextDiscount}%.{' '}
             До него:{' '}
-            <span style={{ color: '#818cf8', fontWeight: 600 }}>
+            <span style={{ color: '#6b9de8', fontWeight: 600 }}>
               {remaining.toLocaleString('ru')} ₽
             </span>
           </p>
@@ -332,12 +332,12 @@ export default function ProfilePage() {
           className="flex items-center justify-between w-full p-3 rounded-xl active:scale-95 transition-transform"
           style={{ background: 'var(--bg3)', border: '1px solid var(--border)' }}
         >
-          <code className="text-xs font-bold truncate mr-2" style={{ color: '#818cf8', maxWidth: '65%' }}>
+          <code className="text-xs font-bold truncate mr-2" style={{ color: '#6b9de8', maxWidth: '65%' }}>
             t.me/{BOT_USERNAME}?start=REF_{profile.telegram_id}
           </code>
           <div
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg flex-shrink-0 text-xs font-medium"
-            style={{ background: 'rgba(79,70,229,0.2)', color: '#818cf8' }}
+            style={{ background: 'rgba(45,88,173,0.2)', color: '#6b9de8' }}
           >
             <Copy size={12} />
             Скопировать

@@ -124,7 +124,7 @@ export default function ProductPage() {
                 style={{
                   width: i === imgIdx ? 20 : 6,
                   height: 6,
-                  background: i === imgIdx ? '#4f46e5' : 'rgba(255,255,255,0.3)',
+                  background: i === imgIdx ? '#2d58ad' : 'rgba(255,255,255,0.3)',
                 }}
               />
             ))}
@@ -198,10 +198,10 @@ export default function ProductPage() {
                     className="p-3 rounded-2xl text-left transition-all duration-150 active:scale-95"
                     style={{
                       background: isSelected
-                        ? 'linear-gradient(135deg, rgba(79,70,229,0.32), rgba(79,70,229,0.3))'
+                        ? 'linear-gradient(135deg, rgba(45,88,173,0.32), rgba(45,88,173,0.3))'
                         : 'var(--bg2)',
                       border: isSelected
-                        ? '1.5px solid rgba(79,70,229,0.65)'
+                        ? '1.5px solid rgba(45,88,173,0.65)'
                         : '1.5px solid var(--border)',
                     }}
                   >
@@ -227,7 +227,7 @@ export default function ProductPage() {
                           {lot.original_price.toLocaleString('ru')} ₽
                         </span>
                       )}
-                      <span className="text-base font-bold" style={{ color: '#818cf8' }}>
+                      <span className="text-base font-bold" style={{ color: '#6b9de8' }}>
                         {lot.price.toLocaleString('ru')} ₽
                       </span>
                     </div>
@@ -280,7 +280,7 @@ export default function ProductPage() {
             className="p-4 rounded-2xl"
             style={{ background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)' }}
           >
-            <p className="text-xs font-semibold mb-1.5" style={{ color: '#a5b4fc' }}>ℹ️ Инструкция</p>
+            <p className="text-xs font-semibold mb-1.5" style={{ color: '#93b8f0' }}>ℹ️ Инструкция</p>
             <p className="text-sm" style={{ color: 'var(--hint)' }}>{product.instruction}</p>
           </div>
         )}

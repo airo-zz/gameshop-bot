@@ -9,8 +9,8 @@ import { useTelegram } from '@/hooks/useTelegram'
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string; emoji: string }> = {
   new:             { label: 'Новый',           color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', emoji: '🆕' },
   pending_payment: { label: 'Ожидает оплаты',  color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',  emoji: '⏳' },
-  paid:            { label: 'Оплачен',          color: '#818cf8', bg: 'rgba(79,70,229,0.12)',  emoji: '💚' },
-  processing:      { label: 'В обработке',      color: '#818cf8', bg: 'rgba(139,92,246,0.1)',  emoji: '⚙️' },
+  paid:            { label: 'Оплачен',          color: '#6b9de8', bg: 'rgba(45,88,173,0.12)',  emoji: '💚' },
+  processing:      { label: 'В обработке',      color: '#6b9de8', bg: 'rgba(139,92,246,0.1)',  emoji: '⚙️' },
   clarification:   { label: 'Нужно уточнение', color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',  emoji: '❓' },
   completed:       { label: 'Выполнен',         color: '#34d399', bg: 'rgba(16,185,129,0.1)',  emoji: '✅' },
   cancelled:       { label: 'Отменён',          color: '#f87171', bg: 'rgba(239,68,68,0.1)',   emoji: '❌' },
@@ -91,7 +91,7 @@ export default function OrderDetailPage() {
                   {item.quantity} шт. × {item.unit_price.toLocaleString('ru')} ₽
                 </p>
               </div>
-              <p className="font-bold text-sm flex-shrink-0" style={{ color: '#818cf8' }}>
+              <p className="font-bold text-sm flex-shrink-0" style={{ color: '#6b9de8' }}>
                 {item.total_price.toLocaleString('ru')} ₽
               </p>
             </div>
@@ -136,7 +136,7 @@ export default function OrderDetailPage() {
         )}
         <div className="flex justify-between font-bold">
           <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span style={{ color: '#818cf8' }}>{order.total_amount.toLocaleString('ru')} ₽</span>
+          <span style={{ color: '#6b9de8' }}>{order.total_amount.toLocaleString('ru')} ₽</span>
         </div>
       </div>
 
@@ -168,9 +168,9 @@ export default function OrderDetailPage() {
           onClick={() => navigate('/support')}
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm transition-all active:scale-95"
           style={{
-            background: 'rgba(79,70,229,0.14)',
-            border: '1px solid rgba(79,70,229,0.32)',
-            color: '#818cf8',
+            background: 'rgba(45,88,173,0.14)',
+            border: '1px solid rgba(45,88,173,0.32)',
+            color: '#6b9de8',
           }}
         >
           <MessageCircle size={17} />
