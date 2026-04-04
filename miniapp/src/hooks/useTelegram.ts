@@ -71,6 +71,8 @@ interface TelegramWebApp {
   openTelegramLink: (url: string) => void
   showAlert: (message: string, callback?: () => void) => void
   showConfirm: (message: string, callback: (confirmed: boolean) => void) => void
+  enableClosingConfirmation?: () => void
+  disableVerticalSwipes?: () => void
 }
 
 declare global {
@@ -97,6 +99,8 @@ export function useTelegram() {
     if (!tg) return
     tg.ready()
     tg.expand()
+    tg.enableClosingConfirmation?.()
+    tg.disableVerticalSwipes?.()
     // colorScheme читается один раз при инициализации;
     // Telegram WebApp не предоставляет event для смены темы во время сессии
   // eslint-disable-next-line react-hooks/exhaustive-deps
