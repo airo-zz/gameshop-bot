@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Heart, Package, Copy, MessageCircle, ChevronRight, Wallet, ShoppingBag, Users, Shield, Star, Crown, Gem, Gift, Info } from 'lucide-react'
+import { Heart, Package, Copy, MessageCircle, Wallet, ShoppingBag, Users, Shield, Star, Crown, Gem, Gift, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { profileApi } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -189,25 +189,34 @@ export default function ProfilePage() {
 
   // Меню-блок (общий)
   const MenuBlock = () => (
-    <div className="space-y-2">
-      <p className="text-xs font-semibold tracking-widest uppercase px-1 mt-2" style={{ color: 'var(--hint)' }}>
-        Навигация
-      </p>
+    <div className="grid grid-cols-3 gap-2">
       {MENU_ITEMS.map(({ to, icon, label }) => (
         <Link
           key={to}
           to={to}
-          className="flex items-center gap-3 p-4 rounded-2xl active:scale-[0.98] transition-transform"
-          style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+          className="flex flex-col items-center gap-2 py-4 px-2 rounded-2xl active:scale-[0.96] transition-transform"
+          style={{
+            background: 'var(--bg2)',
+            border: '1px solid var(--border)',
+            textDecoration: 'none',
+          }}
         >
           <div
-            className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(107,157,232,0.12)' }}
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{
+              background: 'rgba(107,157,232,0.12)',
+              border: '1px solid rgba(107,157,232,0.18)',
+              boxShadow: '0 0 12px rgba(107,157,232,0.08)',
+            }}
           >
             <span style={{ color: '#6b9de8' }}>{icon}</span>
           </div>
-          <span className="font-medium text-sm flex-1" style={{ color: 'var(--text)' }}>{label}</span>
-          <ChevronRight size={16} style={{ color: 'var(--hint)' }} />
+          <span
+            className="text-xs font-medium text-center leading-tight"
+            style={{ color: 'var(--text)' }}
+          >
+            {label}
+          </span>
         </Link>
       ))}
     </div>

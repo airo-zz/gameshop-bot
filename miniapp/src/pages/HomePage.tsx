@@ -1,5 +1,5 @@
 // src/pages/HomePage.tsx
-import { useState, useEffect, useRef } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { catalogApi, profileApi } from '@/api'
@@ -178,9 +178,9 @@ interface MenuItem {
   toggleKey?: string
 }
 
-// ── Dropdown Menu ─────────────────────────────────────────────────────────────
+// ── Menu Sheet (bottom sheet) ─────────────────────────────────────────────────
 
-interface DropdownMenuProps {
+interface MenuSheetProps {
   open: boolean
   onClose: () => void
   particlesEnabled: boolean
@@ -203,106 +203,130 @@ const MENU_GROUPS: MenuItem[][] = [
   ],
 ]
 
-function DropdownMenu({ open, onClose, particlesEnabled, onToggleParticles }: DropdownMenuProps) {
+function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuSheetProps) {
   const navigate = useNavigate()
   const handleNav = (path: string) => { onClose(); navigate(path) }
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 'calc(100% + 10px)',
-        right: 0,
-        minWidth: 230,
-        background: 'rgba(19,17,42,0.94)',
-        border: '1px solid rgba(45,88,173,0.32)',
-        borderRadius: 16,
-        boxShadow: '0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px rgba(45,88,173,0.08), inset 0 1px 0 rgba(255,255,255,0.05), 0 0 40px rgba(45,88,173,0.14)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        overflow: 'hidden',
-        zIndex: 100,
-        opacity: open ? 1 : 0,
-        transform: open
-          ? 'translateY(0) scale(1)'
-          : 'translateY(-8px) scale(0.94)',
-        transformOrigin: 'top right',
-        pointerEvents: open ? 'auto' : 'none',
-        transition: open
-          ? 'opacity 0.22s cubic-bezier(0.34,1.56,0.64,1), transform 0.22s cubic-bezier(0.34,1.56,0.64,1)'
-          : 'opacity 0.15s ease, transform 0.15s ease',
-      }}
-    >
-      {/* Caret */}
-      <div style={{ position: 'absolute', top: -6, right: 14, width: 12, height: 6, overflow: 'hidden' }}>
-        <div style={{
-          width: 12, height: 12,
-          background: 'rgba(19,17,42,0.94)',
-          border: '1px solid rgba(45,88,173,0.32)',
-          transform: 'rotate(45deg)',
-          transformOrigin: 'center',
-          marginTop: 6,
-        }} />
-      </div>
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.5)',
+          zIndex: 90,
+          opacity: open ? 1 : 0,
+          pointerEvents: open ? 'auto' : 'none',
+          transition: 'opacity 0.3s ease',
+        }}
+      />
 
-      {MENU_GROUPS.map((group, gi) => (
-        <div key={gi}>
-          {gi > 0 && (
-            <div style={{ height: 1, background: 'rgba(45,88,173,0.18)', margin: '0 12px' }} />
-          )}
-          {group.map((item) => {
-            const isToggle = !!item.toggle
-            const checked = item.toggleKey === 'particles' ? particlesEnabled : false
-
-            return (
-              <button
-                key={item.label}
-                onClick={() => {
-                  if (isToggle) {
-                    if (item.toggleKey === 'particles') onToggleParticles(!checked)
-                  } else if (item.path) {
-                    handleNav(item.path)
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  height: 50,
-                  padding: '0 16px',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text)',
-                  transition: 'background 0.15s',
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(45,88,173,0.12)' }}
-                onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-                onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(45,88,173,0.16)' }}
-                onTouchEnd={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-              >
-                <span style={{ color: 'rgba(107,157,232,0.75)', display: 'flex', flexShrink: 0, width: 20 }}>
-                  {item.icon}
-                </span>
-                <span style={{ flex: 1, textAlign: 'left', fontSize: 14, fontWeight: 500, letterSpacing: '-0.01em' }}>
-                  {item.label}
-                </span>
-                {isToggle ? (
-                  <ToggleSwitch checked={checked} onChange={v => {
-                    if (item.toggleKey === 'particles') onToggleParticles(v)
-                  }} />
-                ) : (
-                  <span style={{ color: 'rgba(107,157,232,0.35)', display: 'flex' }}>
-                    <IconChevronRight />
-                  </span>
-                )}
-              </button>
-            )
-          })}
+      {/* Panel */}
+      <div
+        style={{
+          position: 'fixed',
+          bottom: 0,
+          left: 0,
+          right: 0,
+          zIndex: 91,
+          background: 'rgba(16,14,38,0.97)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          borderTop: '1px solid rgba(45,88,173,0.28)',
+          borderRadius: '20px 20px 0 0',
+          boxShadow: '0 -8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(45,88,173,0.06)',
+          transform: open ? 'translateY(0)' : 'translateY(100%)',
+          transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        }}
+      >
+        {/* Drag handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4 }}>
+          <div style={{
+            width: 36,
+            height: 4,
+            borderRadius: 99,
+            background: 'rgba(255,255,255,0.18)',
+          }} />
         </div>
-      ))}
-    </div>
+
+        {/* Menu items */}
+        <div style={{ padding: '8px 0 16px' }}>
+          {MENU_GROUPS.map((group, gi) => (
+            <div key={gi}>
+              {gi > 0 && (
+                <div style={{ height: 1, background: 'rgba(45,88,173,0.15)', margin: '4px 16px' }} />
+              )}
+              {group.map((item) => {
+                const isToggle = !!item.toggle
+                const checked = item.toggleKey === 'particles' ? particlesEnabled : false
+
+                return (
+                  <button
+                    key={item.label}
+                    onClick={() => {
+                      if (isToggle) {
+                        if (item.toggleKey === 'particles') onToggleParticles(!checked)
+                      } else if (item.path) {
+                        handleNav(item.path)
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 14,
+                      minHeight: 52,
+                      padding: '0 20px',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text)',
+                      transition: 'background 0.15s',
+                    }}
+                    onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(45,88,173,0.12)' }}
+                    onTouchEnd={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(45,88,173,0.10)' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
+                  >
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: 34,
+                        height: 34,
+                        borderRadius: 10,
+                        background: 'rgba(107,157,232,0.10)',
+                        border: '1px solid rgba(107,157,232,0.15)',
+                        color: '#6b9de8',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {item.icon}
+                    </span>
+                    <span style={{ flex: 1, textAlign: 'left', fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em' }}>
+                      {item.label}
+                    </span>
+                    {isToggle ? (
+                      <ToggleSwitch checked={checked} onChange={v => {
+                        if (item.toggleKey === 'particles') onToggleParticles(v)
+                      }} />
+                    ) : (
+                      <span style={{ color: 'rgba(107,157,232,0.35)', display: 'flex' }}>
+                        <IconChevronRight />
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
   )
 }
 
@@ -310,7 +334,6 @@ function DropdownMenu({ open, onClose, particlesEnabled, onToggleParticles }: Dr
 
 export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
   const shopName = useShopStore(s => s.name)
   const { user } = useTelegram()
   const displayName = user?.first_name || user?.username || null
@@ -339,17 +362,16 @@ export default function HomePage() {
     staleTime: 5 * 60 * 1000,
   })
 
-  useEffect(() => {
-    if (!menuOpen) return
-    const handler = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [menuOpen])
-
   return (
     <div style={{ position: 'relative', zIndex: 1 }}>
+
+      {/* ── Bottom sheet menu ───────────────────────────────────────────── */}
+      <MenuSheet
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        particlesEnabled={particlesEnabled}
+        onToggleParticles={handleToggleParticles}
+      />
 
       {/* ── Fixed header ────────────────────────────────────────────────── */}
       <div
@@ -405,32 +427,24 @@ export default function HomePage() {
 
           {/* Right actions — только меню */}
           <div style={{ display: 'flex', alignItems: 'center' }}>
-            <div ref={menuRef} style={{ position: 'relative' }}>
-              <button
-                onClick={() => setMenuOpen(v => !v)}
-                style={{
-                  width: 40,
-                  height: 40,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderRadius: 12,
-                  background: menuOpen ? 'rgba(45,88,173,0.16)' : 'none',
-                  border: menuOpen ? '1px solid rgba(45,88,173,0.32)' : '1px solid transparent',
-                  color: menuOpen ? '#6b9de8' : 'rgba(255,255,255,0.45)',
-                  cursor: 'pointer',
-                  transition: 'background 0.15s, border-color 0.15s, color 0.15s',
-                }}
-              >
-                <IconMenu />
-              </button>
-              <DropdownMenu
-                open={menuOpen}
-                onClose={() => setMenuOpen(false)}
-                particlesEnabled={particlesEnabled}
-                onToggleParticles={handleToggleParticles}
-              />
-            </div>
+            <button
+              onClick={() => setMenuOpen(v => !v)}
+              style={{
+                width: 40,
+                height: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 12,
+                background: menuOpen ? 'rgba(45,88,173,0.16)' : 'none',
+                border: menuOpen ? '1px solid rgba(45,88,173,0.32)' : '1px solid transparent',
+                color: menuOpen ? '#6b9de8' : 'rgba(255,255,255,0.45)',
+                cursor: 'pointer',
+                transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+              }}
+            >
+              <IconMenu />
+            </button>
           </div>
         </div>
       </div>
@@ -456,13 +470,35 @@ export default function HomePage() {
           </h1>
 
           {profile && (
-            <div style={{ marginTop: 10 }}>
+            <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {/* Баланс */}
               <span
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 5,
-                  padding: '3px 12px 3px 8px',
+                  padding: '4px 12px 4px 10px',
+                  borderRadius: 999,
+                  background: 'rgba(45,88,173,0.16)',
+                  border: '1px solid rgba(45,88,173,0.32)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: '#93b8f0',
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#93b8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                  <rect x="2" y="5" width="20" height="14" rx="2"/>
+                  <line x1="2" y1="10" x2="22" y2="10"/>
+                </svg>
+                {Number(profile.balance).toLocaleString('ru')} ₽
+              </span>
+              {/* Уровень лояльности */}
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '4px 12px 4px 8px',
                   borderRadius: 999,
                   background: 'rgba(45,88,173,0.16)',
                   border: '1px solid rgba(45,88,173,0.32)',
