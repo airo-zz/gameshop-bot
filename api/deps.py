@@ -109,8 +109,8 @@ def verify_telegram_init_data(init_data: str) -> dict:
     if not hmac.compare_digest(computed_hash, received_hash):
         raise HTTPException(status_code=401, detail="Невалидная подпись initData")
 
-    # Проверяем свежесть (не старше 5 минут — защита от replay-атак)
-    MAX_AUTH_AGE = 300
+    # Проверяем свежесть (не старше 24 часов — рекомендация Telegram для Mini Apps)
+    MAX_AUTH_AGE = 86400
     auth_date = int(parsed.get("auth_date", 0))
     now = int(datetime.now(timezone.utc).timestamp())
     if now - auth_date > MAX_AUTH_AGE:
@@ -169,8 +169,7 @@ async def get_or_create_user(
         )
         db.add(user)
         await db.flush()
-        # Перезагружаем с relationships после flush, чтобы избежать lazy-load в async контексте
-        await db.refresh(user)
+        await db.commit()
         result2 = await db.execute(
             select(User)
             .options(
