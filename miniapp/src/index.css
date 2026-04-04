@@ -67,8 +67,8 @@ body   { overscroll-behavior: none; }
   .card-gaming {
     @apply rounded-2xl p-4;
     background: var(--bg2);
-    border: 1px solid var(--border-accent);
-    box-shadow: 0 0 20px rgba(45,88,173,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 4px 24px rgba(0,0,0,0.3);
   }
 
   /* Primary gradient button */
@@ -173,10 +173,9 @@ body   { overscroll-behavior: none; }
   }
   .pill:hover { border-color: rgba(45,88,173,0.45); color: rgba(255,255,255,0.7); }
   .pill-active {
-    background: rgba(45,88,173,0.22);
+    background: rgba(45,88,173,0.18);
     color: #6b9de8;
-    border-color: rgba(45,88,173,0.58);
-    box-shadow: 0 0 12px rgba(45,88,173,0.24);
+    border-color: rgba(45,88,173,0.40);
   }
 
   /* Glass search bar */
@@ -314,7 +313,7 @@ body   { overscroll-behavior: none; }
   transition: box-shadow 0.25s ease, transform 0.2s ease;
 }
 .product-card-hover:hover {
-  box-shadow: 0 0 24px rgba(45,88,173,0.30), 0 8px 32px rgba(0,0,0,0.4);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
   transform: translateY(-2px);
 }
 

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { catalogApi, profileApi } from '@/api'
-import { useShopStore, useUIStore, useHistoryStore } from '@/store'
+import { useShopStore, useUIStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
 
 // ── Inline SVG icons ─────────────────────────────────────────────────────────
@@ -319,8 +319,6 @@ export default function HomePage() {
   const particlesEnabled = useUIStore(s => s.particlesEnabled)
   const setParticlesEnabled = useUIStore(s => s.setParticlesEnabled)
 
-  const recentlyViewed = useHistoryStore(s => s.recentlyViewed)
-
   const handleToggleParticles = (v: boolean) => {
     setParticlesEnabled(v)
   }
@@ -473,98 +471,17 @@ export default function HomePage() {
                   color: '#93b8f0',
                 }}
               >
-                <span style={{ fontSize: 13 }}>{profile.loyalty_level_emoji || '⭐'}</span>
+                <span style={{ display: 'flex', width: 13, height: 13, flexShrink: 0 }}>
+                  {profile.loyalty_level_emoji
+                    ? <span style={{ fontSize: 13, lineHeight: 1 }}>{profile.loyalty_level_emoji}</span>
+                    : <svg width="13" height="13" viewBox="0 0 24 24" fill="#93b8f0" stroke="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
+                  }
+                </span>
                 {profile.loyalty_level_name || 'Базовый'}
               </span>
             </div>
           )}
         </div>
-
-        {/* ── Recently viewed ──────────────────────────────────────────────── */}
-        {recentlyViewed.length > 0 && (
-          <section className="mb-6 animate-fade-in">
-            <h2
-              style={{
-                margin: '0 0 10px',
-                fontWeight: 700,
-                fontSize: '1rem',
-                color: 'var(--text)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 7,
-              }}
-            >
-              <span style={{ fontSize: 15 }}>👁</span>
-              Недавно смотрел
-            </h2>
-
-            <div
-              className="no-scrollbar"
-              style={{
-                display: 'flex',
-                gap: 8,
-                overflowX: 'auto',
-                marginLeft: -16,
-                marginRight: -16,
-                paddingLeft: 16,
-                paddingRight: 16,
-                paddingBottom: 2,
-              }}
-            >
-              {recentlyViewed.map(product => {
-                const minPrice = product.lots.length
-                  ? Math.min(...product.lots.map((l: { price: number }) => l.price))
-                  : product.price
-                return (
-                  <Link
-                    key={product.id}
-                    to={`/product/${product.id}`}
-                    className="flex-shrink-0 active:scale-95 transition-transform"
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 2,
-                      padding: '6px 12px',
-                      borderRadius: 20,
-                      background: 'rgba(45,88,173,0.12)',
-                      border: '1px solid rgba(45,88,173,0.25)',
-                      textDecoration: 'none',
-                      width: 110,
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 600,
-                        color: 'rgba(255,255,255,0.85)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        maxWidth: 100,
-                        display: 'block',
-                      }}
-                    >
-                      {product.name}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        background: 'linear-gradient(135deg, #6b9de8, #4a7fd4)',
-                        WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent',
-                        backgroundClip: 'text',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {minPrice.toLocaleString('ru')} ₽
-                    </span>
-                  </Link>
-                )
-              })}
-            </div>
-          </section>
-        )}
 
         {/* ── Games horizontal scroll ──────────────────────────────────────── */}
         <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(45,88,173,0.2) 30%, rgba(45,88,173,0.2) 70%, transparent)', marginBottom: 24 }} />
@@ -817,10 +734,7 @@ export default function HomePage() {
                           margin: '2px 0 0',
                           fontSize: 12,
                           fontWeight: 700,
-                          background: 'linear-gradient(135deg, #6b9de8, #4a7fd4)',
-                          WebkitBackgroundClip: 'text',
-                          WebkitTextFillColor: 'transparent',
-                          backgroundClip: 'text',
+                          color: 'rgba(255,255,255,0.9)',
                         }}
                       >
                         от {minPrice.toLocaleString('ru')} ₽

@@ -118,7 +118,7 @@ export default function Layout() {
               left: 8,
               width: `calc((100% - 16px) / ${NAV.length})`,
               transform: `translateX(calc(${safeActiveIndex} * 100%))`,
-              transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: 'transform 0.4s cubic-bezier(0.34, 1.2, 0.64, 1)',
               background: 'rgba(45,88,173,0.22)',
               border: '1px solid rgba(45,88,173,0.35)',
               borderRadius: '20px',

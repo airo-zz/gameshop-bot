@@ -148,10 +148,7 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
         <p
           className="text-base font-bold mt-auto"
           style={{
-            background: 'linear-gradient(135deg, #6b9de8, #4a7fd4)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
+            color: 'rgba(255,255,255,0.9)',
           }}
         >
           от {minPrice.toLocaleString('ru')} ₽
