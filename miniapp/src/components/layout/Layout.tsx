@@ -118,7 +118,7 @@ export default function Layout() {
               left: 8,
               width: `calc((100% - 16px) / ${NAV.length})`,
               transform: `translateX(calc(${safeActiveIndex} * 100%))`,
-              transition: 'transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+              transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
               background: 'rgba(45,88,173,0.22)',
               border: '1px solid rgba(45,88,173,0.35)',
               borderRadius: '20px',
@@ -178,15 +178,15 @@ export default function Layout() {
                 <span
                   className="text-[10px] font-medium leading-none select-none"
                   style={{
-                    color: '#6b9de8',
-                    opacity: isActive ? 1 : 0,
-                    maxHeight: isActive ? '14px' : '0px',
-                    marginTop: isActive ? '3px' : '0px',
+                    color: 'rgba(255,255,255,0.35)',
+                    opacity: isActive ? 0 : 1,
+                    maxHeight: isActive ? '0px' : '14px',
+                    marginTop: isActive ? '0px' : '3px',
                     overflow: 'hidden',
                     transition: 'opacity 0.2s ease, max-height 0.2s ease, margin-top 0.2s ease',
                     whiteSpace: 'nowrap',
                   }}
-                  aria-hidden={!isActive}
+                  aria-hidden={isActive}
                 >
                   {label}
                 </span>
