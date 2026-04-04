@@ -157,15 +157,16 @@ jobs:
             set -e
             cd ${{ secrets.VPS_APP_DIR }}
 
-            # Обновляем miniapp/dist — сначала очищаем старые файлы
-            rm -rf miniapp/dist
-            mkdir -p miniapp/dist
-            cp -r /tmp/redonate-deploy/miniapp/dist/. miniapp/dist/
-            rm -rf /tmp/redonate-deploy
-
             # Получаем свежий код
             git fetch origin main
             git reset --hard origin/main
+
+            # Обновляем miniapp/dist — очищаем содержимое БЕЗ удаления самой папки
+            # (удаление папки ломает Docker bind mount до рестарта контейнера)
+            mkdir -p miniapp/dist
+            find miniapp/dist -mindepth 1 -delete
+            cp -r /tmp/redonate-deploy/miniapp/dist/. miniapp/dist/
+            rm -rf /tmp/redonate-deploy
 
             # Собираем и перезапускаем контейнеры
             docker compose pull --quiet
@@ -175,7 +176,7 @@ jobs:
             sleep 10
             curl -sf http://localhost:8000/health || echo "Health check failed"
 
-            # Перезагружаем nginx
+            # Перезагружаем nginx (подхватывает новые файлы в bind mount)
             docker compose exec -T nginx nginx -s reload
 
             echo "Deploy completed: $(date)"
