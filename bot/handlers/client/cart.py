@@ -17,7 +17,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import Cart, CartItem, User
+import uuid
+from decimal import Decimal
+
+from shared.models import Cart, CartItem, User, Product, ProductLot
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit
 
@@ -100,6 +103,69 @@ async def cmd_cart(message: Message, user: User, db: AsyncSession) -> None:
 @router.callback_query(F.data == "cart:view")
 async def cb_cart_view(call: CallbackQuery, user: User, db: AsyncSession) -> None:
     await _show_cart(call, user, db)
+
+
+@router.callback_query(F.data.startswith("cart:add:"))
+async def cb_cart_add(call: CallbackQuery, user: User, db: AsyncSession) -> None:
+    parts = call.data.split(":")
+    # Формат: cart:add:{product_id} или cart:add:{product_id}:{lot_id}
+    try:
+        product_id = uuid.UUID(parts[2])
+        lot_id = uuid.UUID(parts[3]) if len(parts) > 3 else None
+    except (IndexError, ValueError):
+        await call.answer("Ошибка: некорректные данные товара", show_alert=True)
+        return
+
+    product = await db.get(Product, product_id)
+    if not product or not product.is_active:
+        await call.answer("❌ Товар недоступен", show_alert=True)
+        return
+
+    lot: ProductLot | None = None
+    if lot_id:
+        lot = await db.get(ProductLot, lot_id)
+        if not lot or not lot.is_active:
+            await call.answer("❌ Вариант товара недоступен", show_alert=True)
+            return
+
+    price = Decimal(str(lot.price if lot else product.price))
+
+    # Получаем или создаём корзину
+    result = await db.execute(select(Cart).where(Cart.user_id == user.id))
+    cart = result.scalar_one_or_none()
+    if not cart:
+        cart = Cart(user_id=user.id)
+        db.add(cart)
+        await db.flush()
+
+    # Проверяем, есть ли уже такой товар+лот в корзине
+    existing_result = await db.execute(
+        select(CartItem).where(
+            CartItem.cart_id == cart.id,
+            CartItem.product_id == product_id,
+            CartItem.lot_id == lot_id,
+        )
+    )
+    existing = existing_result.scalar_one_or_none()
+
+    if existing:
+        existing.quantity += 1
+        existing.price_snapshot = price
+    else:
+        item = CartItem(
+            cart_id=cart.id,
+            product_id=product_id,
+            lot_id=lot_id,
+            quantity=1,
+            price_snapshot=price,
+            input_data={},
+        )
+        db.add(item)
+
+    await db.commit()
+
+    lot_name = f" ({lot.name})" if lot else ""
+    await call.answer(f"✅ {product.name}{lot_name} добавлен в корзину!")
 
 
 @router.callback_query(F.data == "cart:clear")
