@@ -45,11 +45,8 @@ class AdminAuthMiddleware(BaseMiddleware):
             admin = result.scalar_one_or_none()
 
             if admin is None:
-                # Не администратор — игнорируем
-                if isinstance(event, Message):
-                    await event.answer("🚫 Доступ запрещён.")
-                elif isinstance(event, CallbackQuery):
-                    await event.answer("🚫 Доступ запрещён.", show_alert=True)
+                # Не администратор — пропускаем молча, чтобы событие
+                # продолжило обработку в клиентских роутерах
                 return
 
             data["admin"] = admin

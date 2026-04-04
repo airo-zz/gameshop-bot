@@ -49,8 +49,7 @@ export default function ProductPage() {
   const canAdd = !!(
     product &&
     product.stock !== 0 &&
-    (product.lots.length === 0 || selectedLot) &&
-    product.input_fields.every(f => !f.required || inputData[f.key])
+    (product.lots.length === 0 || selectedLot)
   )
 
   useEffect(() => {
@@ -250,7 +249,6 @@ export default function ProductPage() {
                 <div key={field.key}>
                   <label className="text-xs mb-1.5 block font-medium" style={{ color: 'var(--hint)' }}>
                     {field.label}
-                    {field.required && <span style={{ color: '#f87171' }}> *</span>}
                   </label>
                   {field.type === 'select' ? (
                     <select

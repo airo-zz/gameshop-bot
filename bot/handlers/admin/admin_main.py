@@ -6,7 +6,7 @@ bot/handlers/admin/admin_main.py
 """
 
 from aiogram import Router, F
-from aiogram.filters import CommandStart
+from aiogram.filters import Command
 from aiogram.types import (
     Message,
     CallbackQuery,
@@ -107,7 +107,7 @@ def get_admin_menu(admin: AdminUser) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-@router.message(CommandStart())
+@router.message(Command("admin"))
 async def admin_start(message: Message, admin: AdminUser) -> None:
     role_emoji = ROLE_EMOJI.get(admin.role, "👤")
     await message.answer(

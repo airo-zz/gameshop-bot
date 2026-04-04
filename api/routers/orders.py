@@ -25,6 +25,15 @@ async def create_order(body: CreateOrderRequest, db: DbSession, user: CurrentUse
     order = await order_svc.create_from_cart(
         user, cart, body.payment_method, body.promo_code
     )
+    await db.flush()
+
+    # Перезагружаем заказ с позициями, чтобы избежать lazy-load в async-контексте
+    result = await db.execute(
+        select(Order)
+        .options(selectinload(Order.items))
+        .where(Order.id == order.id)
+    )
+    order = result.scalar_one()
     return order
 
 
