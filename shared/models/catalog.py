@@ -108,7 +108,7 @@ class Category(Base, UUIDMixin, TimestampMixin):
         overlaps="parent",
     )
     products: Mapped[list["Product"]] = relationship(
-        "Product", back_populates="category"
+        "Product", back_populates="category", passive_deletes=True
     )
 
     def __repr__(self) -> str:
