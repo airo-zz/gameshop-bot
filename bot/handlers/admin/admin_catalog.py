@@ -11,6 +11,7 @@ FSM-диалоги для каждого шага добавления.
 """
 
 import re
+import uuid as _uuid
 
 from aiogram import Router, F
 from aiogram.filters import StateFilter
@@ -22,7 +23,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     InlineKeyboardButton,
 )
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Game, Category, AdminUser
@@ -152,6 +153,7 @@ async def admin_games_list(
     & ~F.data.startswith("admin:game:toggle:")
     & ~F.data.startswith("admin:game:edit:")
     & ~F.data.startswith("admin:game:delete:")
+    & ~F.data.startswith("admin:game:force_delete:")
 )
 @require_permission("games.view")
 async def admin_game_detail(
@@ -251,10 +253,12 @@ async def admin_game_add_name(message: Message, state: FSMContext) -> None:
         await message.answer("❌ Название слишком короткое. Минимум 2 символа.")
         return
 
-    # Авто-генерация slug
-
+    # Авто-генерация slug (только a-z0-9, дефис)
     slug = re.sub(r"[^a-z0-9-]", "-", name.lower().replace(" ", "-"))
     slug = re.sub(r"-+", "-", slug).strip("-")
+    # Если имя полностью кириллическое/нелатинское — генерируем short UUID
+    if not slug:
+        slug = "game-" + _uuid.uuid4().hex[:8]
 
     await state.update_data(name=name, slug=slug)
     await message.answer(
@@ -418,8 +422,14 @@ async def admin_game_save(
         is_active=False,  # Создаём неактивной
     )
     db.add(game)
-    await db.commit()
-    await db.refresh(game)
+    try:
+        await db.commit()
+        await db.refresh(game)
+    except Exception as e:
+        await db.rollback()
+        err_msg = str(e.orig) if hasattr(e, "orig") else str(e)
+        await call.answer(f"❌ Ошибка БД: {err_msg[:200]}", show_alert=True)
+        return
 
     await state.clear()
 
@@ -434,6 +444,7 @@ async def admin_game_save(
         game.id,
         after_data={"name": game.name, "slug": game.slug},
     )
+    await db.commit()
 
     await call.message.edit_text(
         f"✅ Игра <b>{game.name}</b> создана!\n\n"
@@ -629,10 +640,98 @@ async def admin_game_delete(
         await call.answer("Игра не найдена", show_alert=True)
         return
 
+    from shared.models import Category as Cat, Product, OrderItem
+    product_count_result = await db.execute(
+        select(func.count(Product.id))
+        .join(Cat, Product.category_id == Cat.id)
+        .where(Cat.game_id == game.id)
+    )
+    product_count = product_count_result.scalar_one()
+
+    if product_count > 0:
+        # Проверяем есть ли заказы с товарами этой игры
+        orders_count_result = await db.execute(
+            select(func.count(OrderItem.id))
+            .join(Product, OrderItem.product_id == Product.id)
+            .join(Cat, Product.category_id == Cat.id)
+            .where(Cat.game_id == game.id)
+        )
+        orders_count = orders_count_result.scalar_one()
+        if orders_count > 0:
+            await call.answer(
+                f"❌ Нельзя удалить — в игре {orders_count} позиций в заказах. "
+                f"Удаление невозможно из-за истории заказов.",
+                show_alert=True,
+            )
+            return
+        # Есть товары, но нет заказов — предлагаем принудительное удаление
+        await call.message.edit_text(
+            f"⚠️ <b>Игра «{game.name}»</b>\n\n"
+            f"В игре есть <b>{product_count} товаров</b>.\n"
+            f"Они будут удалены вместе с игрой.\n\n"
+            f"Подтвердить удаление?",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [
+                        InlineKeyboardButton(
+                            text="🗑 Да, удалить всё",
+                            callback_data=f"admin:game:force_delete:{game_id}",
+                        ),
+                    ],
+                    [admin_back_btn(f"admin:game:{game_id}")],
+                ]
+            ),
+        )
+        await call.answer()
+        return
+
     await db.delete(game)
+    await db.commit()
     await call.answer(f"🗑 Игра «{game.name}» удалена")
     await call.message.edit_text(
         f"✅ Игра <b>{game.name}</b> удалена.",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[admin_back_btn("admin:catalog:games")]]
+        ),
+    )
+
+
+# ── Force Delete Game ─────────────────────────────────────────────────────────
+
+
+@router.callback_query(F.data.startswith("admin:game:force_delete:"))
+@require_permission("games.edit")
+async def admin_game_force_delete(
+    call: CallbackQuery, db: AsyncSession, admin: AdminUser
+) -> None:
+    game_id = call.data.split(":")[3]
+    game = await db.get(Game, game_id)
+    if not game:
+        await call.answer("Игра не найдена", show_alert=True)
+        return
+
+    from shared.models import Category as Cat, Product
+
+    # Удаляем все товары в категориях этой игры (лоты/ключи каскадятся на уровне БД)
+    products_result = await db.execute(
+        select(Product)
+        .join(Cat, Product.category_id == Cat.id)
+        .where(Cat.game_id == game.id)
+    )
+    products = products_result.scalars().all()
+    for product in products:
+        await db.delete(product)
+
+    # Сбрасываем changes до удаления игры
+    await db.flush()
+
+    game_name = game.name
+    await db.delete(game)
+    await db.commit()
+
+    await call.answer(f"🗑 Игра «{game_name}» и все товары удалены")
+    await call.message.edit_text(
+        f"✅ Игра <b>{game_name}</b> удалена вместе со всеми товарами.",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[[admin_back_btn("admin:catalog:games")]]
         ),
