@@ -1,5 +1,5 @@
 // src/pages/HomePage.tsx
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { Shield, Star, Crown, Gem } from 'lucide-react'
@@ -229,6 +229,18 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
   const handleNav = (path: string) => { onClose(); navigate(path) }
   const touchStartY = useRef<number>(0)
 
+  // Lock scroll on main while sheet is open
+  useEffect(() => {
+    const main = document.querySelector('main') as HTMLElement | null
+    if (!main) return
+    if (open) {
+      main.style.overflow = 'hidden'
+    } else {
+      main.style.overflow = ''
+    }
+    return () => { main.style.overflow = '' }
+  }, [open])
+
   return (
     <>
       {/* Backdrop */}
@@ -247,8 +259,6 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
 
       {/* Panel */}
       <div
-        onTouchStart={e => { touchStartY.current = e.touches[0].clientY }}
-        onTouchEnd={e => { if (e.changedTouches[0].clientY - touchStartY.current > 60) onClose() }}
         style={{
           position: 'fixed',
           bottom: 0,
@@ -263,11 +273,15 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
           boxShadow: '0 -8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(45,88,173,0.06)',
           transform: open ? 'translateY(0)' : 'translateY(100%)',
           transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
         }}
       >
-        {/* Drag handle */}
-        <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4 }}>
+        {/* Drag handle — swipe down here to close */}
+        <div
+          onTouchStart={e => { touchStartY.current = e.touches[0].clientY }}
+          onTouchEnd={e => { if (e.changedTouches[0].clientY - touchStartY.current > 48) onClose() }}
+          style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4, cursor: 'grab' }}
+        >
           <div style={{
             width: 36,
             height: 4,

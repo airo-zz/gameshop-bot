@@ -108,7 +108,8 @@ export default function Layout() {
 
       {/* ── Floating bottom navigation ─────────────────────────────────── */}
       <nav
-        className="fixed bottom-4 left-3 right-3 z-50"
+        className="fixed bottom-4 left-3 right-3"
+        style={{ zIndex: 110 }}
         style={{
           background: 'rgba(8,14,28,0.97)',
           backdropFilter: 'blur(20px)',
