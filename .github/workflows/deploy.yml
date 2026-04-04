@@ -152,7 +152,7 @@ jobs:
           host:        ${{ secrets.VPS_HOST }}
           username:    ${{ secrets.VPS_USER }}
           password:    ${{ secrets.VPS_PASSWORD }}
-          timeout:     120s
+          timeout:     300s
           script: |
             set -e
             cd ${{ secrets.VPS_APP_DIR }}
@@ -172,8 +172,20 @@ jobs:
             docker compose pull --quiet
             DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker compose up -d --build --remove-orphans
 
-            # Ждём API
-            sleep 10
+            # Ждём пока все контейнеры поднимутся
+            echo "Waiting for containers..."
+            for i in $(seq 1 30); do
+              sleep 3
+              STATUS=$(docker compose ps --format json 2>/dev/null | grep -c '"State":"running"' || true)
+              RESTARTING=$(docker compose ps --format json 2>/dev/null | grep -c '"State":"restarting"' || true)
+              if [ "$RESTARTING" -eq 0 ] && [ "$STATUS" -gt 0 ]; then
+                echo "All containers stable after ${i}x3s"
+                break
+              fi
+              echo "Attempt $i: running=$STATUS restarting=$RESTARTING"
+            done
+
+            # Health check
             curl -sf http://localhost:8000/health || echo "Health check failed"
 
             # Перезагружаем nginx (подхватывает новые файлы в bind mount)
