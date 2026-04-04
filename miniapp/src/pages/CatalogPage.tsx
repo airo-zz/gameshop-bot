@@ -206,7 +206,7 @@ export default function CatalogPage() {
                     }
                   </div>
                   <div className="px-2 py-1.5">
-                    <p className="text-xs font-semibold text-center truncate" style={{ color: 'var(--text)' }}>
+                    <p className="text-xs font-semibold text-center leading-tight" style={{ color: 'var(--text)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {game.name}
                     </p>
                   </div>
