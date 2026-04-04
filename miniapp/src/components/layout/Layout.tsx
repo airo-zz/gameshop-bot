@@ -81,22 +81,9 @@ export default function Layout() {
   const safeActiveIndex = activeIndex === -1 ? 0 : activeIndex
 
   return (
-    <div className="flex flex-col h-full" style={{ background: 'var(--bg)' }}>
+    <div className="flex flex-col h-full" style={{ background: '#0c0b1d' }}>
       {/* Star particle background */}
       {particlesEnabled && <ParticleCanvas />}
-
-      {/* Safe area top fill — sits behind the sticky header, covers overscroll gap */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px) + 56px)',
-        background: 'rgba(12,11,29,0.92)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        zIndex: 30,
-      }} />
 
       {/* Page content — padded so it sits above the floating nav */}
       <main
