@@ -80,10 +80,6 @@ def create_dispatcher() -> Dispatcher:
     dp.callback_query.middleware(LoggingMiddleware())
     dp.message.middleware(AuthMiddleware())
     dp.callback_query.middleware(AuthMiddleware())
-    dp.message.middleware(ThrottleMiddleware(rate_limit=settings.RATE_LIMIT_CLIENT))
-    dp.callback_query.middleware(
-        ThrottleMiddleware(rate_limit=settings.RATE_LIMIT_CLIENT)
-    )
 
     # ── Lifecycle ─────────────────────────────────────────────────────────────
     dp.startup.register(on_startup)
@@ -108,13 +104,15 @@ def create_dispatcher() -> Dispatcher:
         except Exception:
             pass
 
-    # ── Client routers ────────────────────────────────────────────────────────
-    dp.include_router(start.router)
-    dp.include_router(catalog.router)
-    dp.include_router(cart.router)
-    dp.include_router(orders.router)
-    dp.include_router(profile.router)
-    dp.include_router(support.router)
+    # ── Client routers (с rate limiting для клиентов) ─────────────────────────
+    _client_routers = [
+        start.router, catalog.router, cart.router,
+        orders.router, profile.router, support.router,
+    ]
+    for _r in _client_routers:
+        _r.message.middleware(ThrottleMiddleware(rate_limit=settings.RATE_LIMIT_CLIENT))
+        _r.callback_query.middleware(ThrottleMiddleware(rate_limit=settings.RATE_LIMIT_CLIENT))
+        dp.include_router(_r)
 
     # ── Admin routers ─────────────────────────────────────────────────────────
     _admin_routers = [
