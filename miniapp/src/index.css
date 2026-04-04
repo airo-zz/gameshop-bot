@@ -24,7 +24,6 @@ html, body, #root {
 }
 
 button { user-select: none; }
-html, body { overscroll-behavior: none; }
 
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar       { width: 2px; height: 2px; }

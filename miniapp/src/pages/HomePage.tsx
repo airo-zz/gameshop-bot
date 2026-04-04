@@ -228,6 +228,8 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
   const navigate = useNavigate()
   const handleNav = (path: string) => { onClose(); navigate(path) }
   const touchStartY = useRef<number>(0)
+  const dragDelta = useRef<number>(0)
+  const panelRef = useRef<HTMLDivElement>(null)
 
   // Lock scroll on main while sheet is open
   useEffect(() => {
@@ -240,6 +242,39 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
     }
     return () => { main.style.overflow = '' }
   }, [open])
+
+  // Reset panel transform when open state changes
+  useEffect(() => {
+    if (panelRef.current) {
+      panelRef.current.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)'
+      panelRef.current.style.transform = open ? 'translateY(0)' : 'translateY(100%)'
+    }
+  }, [open])
+
+  const handleDragStart = (e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY
+    dragDelta.current = 0
+    if (panelRef.current) panelRef.current.style.transition = 'none'
+  }
+
+  const handleDragMove = (e: React.TouchEvent) => {
+    const delta = e.touches[0].clientY - touchStartY.current
+    if (delta < 0) return
+    dragDelta.current = delta
+    if (panelRef.current) panelRef.current.style.transform = `translateY(${delta}px)`
+  }
+
+  const handleDragEnd = () => {
+    if (panelRef.current) {
+      panelRef.current.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)'
+    }
+    if (dragDelta.current > 80) {
+      onClose()
+    } else {
+      if (panelRef.current) panelRef.current.style.transform = 'translateY(0)'
+    }
+    dragDelta.current = 0
+  }
 
   return (
     <>
@@ -259,6 +294,7 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
 
       {/* Panel */}
       <div
+        ref={panelRef}
         style={{
           position: 'fixed',
           bottom: 0,
@@ -278,9 +314,10 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
       >
         {/* Drag handle — swipe down here to close */}
         <div
-          onTouchStart={e => { touchStartY.current = e.touches[0].clientY }}
-          onTouchEnd={e => { if (e.changedTouches[0].clientY - touchStartY.current > 48) onClose() }}
-          style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 4, cursor: 'grab' }}
+          onTouchStart={handleDragStart}
+          onTouchMove={handleDragMove}
+          onTouchEnd={handleDragEnd}
+          style={{ display: 'flex', justifyContent: 'center', paddingTop: 12, paddingBottom: 12, cursor: 'grab' }}
         >
           <div style={{
             width: 36,
