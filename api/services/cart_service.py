@@ -20,16 +20,7 @@ class CartService:
 
     async def get_or_create_cart(self, user: User) -> Cart:
         """Возвращает корзину пользователя или создаёт новую."""
-        result = await self.db.execute(
-            select(Cart)
-            .options(
-                selectinload(Cart.items)
-                .selectinload(CartItem.product)
-                .selectinload(Product.lots)
-            )
-            .where(Cart.user_id == user.id)
-        )
-        cart = result.scalar_one_or_none()
+        cart = await self._load_cart(user.id)
 
         if cart is None:
             cart = Cart(
@@ -39,8 +30,26 @@ class CartService:
             )
             self.db.add(cart)
             await self.db.flush()
+            # После flush загружаем объект через тот же запрос с selectinload,
+            # чтобы cart.items была eagerly-loaded коллекцией, а не lazy-атрибутом.
+            # Без этого любое обращение к cart.items в async-контексте
+            # вызывает MissingGreenlet.
+            cart = await self._load_cart(user.id)
 
         return cart
+
+    async def _load_cart(self, user_id: uuid.UUID) -> Cart | None:
+        """Загружает корзину со всеми нужными relationship через selectinload."""
+        result = await self.db.execute(
+            select(Cart)
+            .options(
+                selectinload(Cart.items)
+                .selectinload(CartItem.product)
+                .selectinload(Product.lots)
+            )
+            .where(Cart.user_id == user_id)
+        )
+        return result.scalar_one_or_none()
 
     async def add_item(
         self,
