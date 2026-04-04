@@ -88,7 +88,7 @@ export default function Layout() {
       {/* Page content — padded so it sits above the floating nav */}
       <main
         className="flex-1 overflow-y-auto"
-        style={{ position: 'relative', paddingBottom: '96px', paddingTop: 'var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px))' }}
+        style={{ position: 'relative', paddingBottom: '96px', paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))' }}
       >
         <Outlet />
       </main>
