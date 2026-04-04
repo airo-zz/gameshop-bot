@@ -88,7 +88,7 @@ export default function Layout() {
       {/* Page content — padded so it sits above the floating nav */}
       <main
         className="flex-1 overflow-y-auto"
-        style={{ position: 'relative', zIndex: 1, paddingBottom: '96px' }}
+        style={{ position: 'relative', paddingBottom: '96px' }}
       >
         <Outlet />
       </main>

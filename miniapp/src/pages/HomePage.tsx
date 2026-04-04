@@ -1,7 +1,8 @@
 // src/pages/HomePage.tsx
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
+import { Shield, Star, Crown, Gem } from 'lucide-react'
 import { catalogApi, profileApi } from '@/api'
 import { useShopStore, useUIStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -135,6 +136,17 @@ function IconSparkle() {
   )
 }
 
+// ── Loyalty icon helper ───────────────────────────────────────────────────────
+
+function getLoyaltyIcon(levelName: string | null) {
+  switch (levelName?.toLowerCase()) {
+    case 'silver':   return <Star size={12} />
+    case 'gold':     return <Crown size={12} />
+    case 'platinum': return <Gem size={12} />
+    default:         return <Shield size={12} />
+  }
+}
+
 // ── Toggle switch ─────────────────────────────────────────────────────────────
 
 function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -206,6 +218,7 @@ const MENU_GROUPS: MenuItem[][] = [
 function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuSheetProps) {
   const navigate = useNavigate()
   const handleNav = (path: string) => { onClose(); navigate(path) }
+  const touchStartY = useRef<number>(0)
 
   return (
     <>
@@ -225,6 +238,8 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
 
       {/* Panel */}
       <div
+        onTouchStart={e => { touchStartY.current = e.touches[0].clientY }}
+        onTouchEnd={e => { if (e.changedTouches[0].clientY - touchStartY.current > 60) onClose() }}
         style={{
           position: 'fixed',
           bottom: 0,
@@ -507,11 +522,8 @@ export default function HomePage() {
                   color: '#93b8f0',
                 }}
               >
-                <span style={{ display: 'flex', width: 13, height: 13, flexShrink: 0 }}>
-                  {profile.loyalty_level_emoji
-                    ? <span style={{ fontSize: 13, lineHeight: 1 }}>{profile.loyalty_level_emoji}</span>
-                    : <svg width="13" height="13" viewBox="0 0 24 24" fill="#93b8f0" stroke="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z"/></svg>
-                  }
+                <span style={{ display: 'flex', width: 13, height: 13, flexShrink: 0, color: '#93b8f0' }}>
+                  {getLoyaltyIcon(profile.loyalty_level_name ?? null)}
                 </span>
                 {profile.loyalty_level_name || 'Базовый'}
               </span>
