@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { Heart, Package, Copy, MessageCircle, ChevronRight, Wallet, ShoppingBag, Users } from 'lucide-react'
+import { Heart, Package, Copy, MessageCircle, ChevronRight, Wallet, ShoppingBag, Users, Shield, Star, Crown, Gem, Gift, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { profileApi } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -11,7 +11,7 @@ import { useTelegram } from '@/hooks/useTelegram'
 
 interface LoyaltyLevel {
   name: string
-  emoji: string
+  icon: React.ReactNode
   min: number
   max: number | null
   nextDiscount: number
@@ -21,10 +21,10 @@ interface LoyaltyLevel {
 }
 
 const LOYALTY_LEVELS: LoyaltyLevel[] = [
-  { name: 'Bronze',   emoji: '🥉', min: 0,     max: 1000,  nextDiscount: 3,  color: '#f59e0b', bg: 'rgba(245,158,11,0.15)',  border: 'rgba(245,158,11,0.25)' },
-  { name: 'Silver',   emoji: '🥈', min: 1000,  max: 5000,  nextDiscount: 5,  color: '#94a3b8', bg: 'rgba(148,163,184,0.15)', border: 'rgba(148,163,184,0.25)' },
-  { name: 'Gold',     emoji: '🥇', min: 5000,  max: 15000, nextDiscount: 10, color: '#eab308', bg: 'rgba(234,179,8,0.15)',   border: 'rgba(234,179,8,0.25)' },
-  { name: 'Platinum', emoji: '💎', min: 15000, max: null,  nextDiscount: 0,  color: '#a78bfa', bg: 'rgba(167,139,250,0.15)', border: 'rgba(167,139,250,0.25)' },
+  { name: 'Bronze',   icon: <Shield size={12} />,  min: 0,     max: 1000,  nextDiscount: 3,  color: '#f59e0b', bg: 'rgba(245,158,11,0.15)',  border: 'rgba(245,158,11,0.25)' },
+  { name: 'Silver',   icon: <Star size={12} />,    min: 1000,  max: 5000,  nextDiscount: 5,  color: '#94a3b8', bg: 'rgba(148,163,184,0.15)', border: 'rgba(148,163,184,0.25)' },
+  { name: 'Gold',     icon: <Crown size={12} />,   min: 5000,  max: 15000, nextDiscount: 10, color: '#eab308', bg: 'rgba(234,179,8,0.15)',   border: 'rgba(234,179,8,0.25)' },
+  { name: 'Platinum', icon: <Gem size={12} />,     min: 15000, max: null,  nextDiscount: 0,  color: '#a78bfa', bg: 'rgba(167,139,250,0.15)', border: 'rgba(167,139,250,0.25)' },
 ]
 
 function getLoyaltyProgress(totalSpent: number) {
@@ -66,12 +66,14 @@ function LoyaltyProgressBar({ totalSpent, discountPercent }: { totalSpent: numbe
     <div style={{ marginTop: 16 }}>
       {/* Метки уровней */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 500, color: '#6b9de8' }}>
-          {current.emoji} {current.name}
+        <span style={{ fontSize: 11, fontWeight: 500, color: '#6b9de8', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ display: 'flex', color: current.color }}>{current.icon}</span>
+          {current.name}
         </span>
         {next ? (
-          <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--hint)' }}>
-            {next.emoji} {next.name}
+          <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--hint)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ display: 'flex', color: next.color }}>{next.icon}</span>
+            {next.name}
           </span>
         ) : (
           <span style={{ fontSize: 11, fontWeight: 500, color: '#f59e0b' }}>MAX</span>
@@ -94,10 +96,15 @@ function LoyaltyProgressBar({ totalSpent, discountPercent }: { totalSpent: numbe
       </div>
 
       {/* Подпись */}
-      <div style={{ marginTop: 6, fontSize: 11, color: 'var(--hint)' }}>
+      <div style={{ marginTop: 6, fontSize: 11, color: 'var(--hint)', display: 'flex', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
         {next ? (
           <>
-            До {next.emoji} {next.name}:{' '}
+            До{' '}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+              <span style={{ display: 'flex', color: next.color }}>{next.icon}</span>
+              {next.name}:
+            </span>
+            {' '}
             <span style={{ color: '#6b9de8', fontWeight: 600 }}>
               {remaining.toLocaleString('ru')} ₽
             </span>
@@ -127,6 +134,7 @@ const MENU_ITEMS = [
 export default function ProfilePage() {
   const { user, haptic } = useTelegram()
   const [avatarError, setAvatarError] = useState(false)
+  const [showLevels, setShowLevels] = useState(false)
   const { data: profile, isLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: profileApi.get,
@@ -148,7 +156,6 @@ export default function ProfilePage() {
   const showAvatar = avatarSrc !== null && !avatarError
 
   const loyaltyInfo = profile ? getLoyaltyProgress(profile.total_spent) : null
-  const levelData = loyaltyInfo?.current ?? LOYALTY_LEVELS[0]
 
   if (isLoading) return (
     <div className="px-4 pt-5 space-y-3">
@@ -228,9 +235,6 @@ export default function ProfilePage() {
     )
   }
 
-  const { next: nextLevel, remaining } = loyaltyInfo!
-  const hasPrivileges = profile.loyalty_discount_percent > 0 || profile.loyalty_cashback_percent > 0
-
   return (
     <div className="px-4 pt-5 pb-6 space-y-3 animate-fade-in">
 
@@ -246,21 +250,59 @@ export default function ProfilePage() {
             {profile.username && (
               <p className="text-sm truncate" style={{ color: 'var(--hint)' }}>@{profile.username}</p>
             )}
-            {/* Бейдж уровня */}
-            <span
-              className="inline-flex items-center gap-1 mt-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold"
-              style={{ background: levelData.bg, color: levelData.color, border: `1px solid ${levelData.border}` }}
-            >
-              {profile.loyalty_level_emoji} {profile.loyalty_level_name}
-            </span>
           </div>
         </div>
 
         {/* Прогресс-бар на всю ширину */}
-        <LoyaltyProgressBar
-          totalSpent={profile.total_spent}
-          discountPercent={profile.loyalty_discount_percent}
-        />
+        <div
+          onClick={() => setShowLevels(v => !v)}
+          style={{ cursor: 'pointer', userSelect: 'none' }}
+        >
+          <LoyaltyProgressBar
+            totalSpent={profile.total_spent}
+            discountPercent={profile.loyalty_discount_percent}
+          />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+            <span style={{ fontSize: 10, color: 'var(--hint)', display: 'flex', alignItems: 'center', gap: 3 }}>
+              <Info size={10} />
+              {showLevels ? 'Скрыть уровни' : 'Все уровни'}
+            </span>
+          </div>
+        </div>
+
+        {/* Коллапсируемый список уровней */}
+        {showLevels && (
+          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {LOYALTY_LEVELS.map(level => (
+              <div
+                key={level.name}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '8px 10px',
+                  borderRadius: 10,
+                  background: level.bg,
+                  border: `1px solid ${level.border}`,
+                }}
+              >
+                <span style={{ display: 'flex', color: level.color, flexShrink: 0 }}>{level.icon}</span>
+                <span style={{ fontWeight: 600, fontSize: 12, color: level.color, flex: 1 }}>{level.name}</span>
+                <span style={{ fontSize: 11, color: 'var(--hint)' }}>
+                  от {level.min.toLocaleString('ru')} ₽
+                </span>
+                {level.nextDiscount > 0 && (
+                  <span style={{ fontSize: 11, fontWeight: 600, color: level.color }}>
+                    −{level.nextDiscount}%
+                  </span>
+                )}
+                {level.max === null && (
+                  <span style={{ fontSize: 11, fontWeight: 600, color: level.color }}>MAX</span>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Статистика ── */}
@@ -281,47 +323,10 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* ── Привилегии лояльности (всегда видны) ── */}
-      <div
-        className="p-4 rounded-2xl"
-        style={{
-          background: 'linear-gradient(135deg, rgba(45,88,173,0.16), rgba(45,88,173,0.08))',
-          border: '1px solid rgba(45,88,173,0.28)',
-        }}
-      >
-        <p className="text-sm font-semibold mb-2" style={{ color: 'var(--text)' }}>
-          {profile.loyalty_level_emoji} Привилегии {profile.loyalty_level_name}
-        </p>
-        {hasPrivileges ? (
-          <div className="flex gap-6">
-            {profile.loyalty_discount_percent > 0 && (
-              <div>
-                <p className="text-2xl font-extrabold" style={{ color: '#6b9de8' }}>{profile.loyalty_discount_percent}%</p>
-                <p className="text-xs" style={{ color: 'var(--hint)' }}>скидка</p>
-              </div>
-            )}
-            {profile.loyalty_cashback_percent > 0 && (
-              <div>
-                <p className="text-2xl font-extrabold" style={{ color: '#34d399' }}>{profile.loyalty_cashback_percent}%</p>
-                <p className="text-xs" style={{ color: 'var(--hint)' }}>кэшбек</p>
-              </div>
-            )}
-          </div>
-        ) : nextLevel ? (
-          <p className="text-sm" style={{ color: 'var(--hint)' }}>
-            На уровне {nextLevel.emoji} {nextLevel.name} — скидка {nextLevel.nextDiscount}%.{' '}
-            До него:{' '}
-            <span style={{ color: '#6b9de8', fontWeight: 600 }}>
-              {remaining.toLocaleString('ru')} ₽
-            </span>
-          </p>
-        ) : null}
-      </div>
-
       {/* ── Реферальная программа ── */}
       <div className="card">
         <div className="flex items-center gap-2 mb-1">
-          <span className="text-base">🎁</span>
+          <Gift size={16} style={{ color: '#6b9de8' }} />
           <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>Реферальная программа</p>
         </div>
         <p className="text-xs mb-3" style={{ color: 'var(--hint)' }}>
