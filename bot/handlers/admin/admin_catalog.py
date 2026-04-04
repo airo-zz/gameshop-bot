@@ -566,6 +566,8 @@ async def admin_category_add_name(
 
     slug = re.sub(r"[^a-z0-9-]", "-", name.lower().replace(" ", "-"))
     slug = re.sub(r"-+", "-", slug).strip("-")
+    if not slug:
+        slug = "cat-" + _uuid.uuid4().hex[:8]
 
     await state.update_data(name=name, slug=slug)
 
@@ -1123,9 +1125,10 @@ async def _save_category(message: Message, state: FSMContext, db: AsyncSession) 
     from decimal import Decimal
     data = await state.get_data()
 
+    parent_id_raw = data.get("parent_id")
     cat = Category(
-        game_id=data["game_id"],
-        parent_id=data.get("parent_id"),
+        game_id=_uuid.UUID(data["game_id"]),
+        parent_id=_uuid.UUID(parent_id_raw) if parent_id_raw else None,
         name=data["name"],
         slug=data["slug"],
         is_active=True,
