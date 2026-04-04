@@ -13,7 +13,7 @@ FSM-диалоги для каждого шага добавления.
 import re
 import uuid as _uuid
 
-from aiogram import Router, F
+from aiogram import Bot, Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -376,11 +376,15 @@ async def admin_game_skip_img(
 
 @router.message(StateFilter(AddGameFSM.image), F.photo)
 async def admin_game_add_image(
-    message: Message, state: FSMContext, db: AsyncSession
+    message: Message, state: FSMContext, db: AsyncSession, bot: Bot
 ) -> None:
-    # Берём наибольшее фото
     photo = message.photo[-1]
-    await state.update_data(image_url=photo.file_id)
+    try:
+        file = await bot.get_file(photo.file_id)
+        image_url = f"https://api.telegram.org/file/bot{bot.token}/{file.file_path}"
+    except Exception:
+        image_url = None
+    await state.update_data(image_url=image_url)
     await _confirm_game(message, state, db)
 
 
