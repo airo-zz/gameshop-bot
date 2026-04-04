@@ -180,7 +180,7 @@ async def admin_promo_toggle(call: CallbackQuery, db: AsyncSession, admin: Admin
 
 @router.callback_query(F.data == "admin:promo:add")
 @require_permission("discounts.*")
-async def admin_promo_add_start(call: CallbackQuery, state: FSMContext) -> None:
+async def admin_promo_add_start(call: CallbackQuery, state: FSMContext, admin: AdminUser) -> None:
     await call.message.edit_text(
         "➕ <b>Создание промокода</b>\n\n"
         "Шаг 1/6\n\n"

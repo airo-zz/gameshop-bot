@@ -248,7 +248,7 @@ async def admin_game_toggle(
 
 @router.callback_query(F.data == "admin:game:add")
 @require_permission("games.create")
-async def admin_game_add_start(call: CallbackQuery, state: FSMContext) -> None:
+async def admin_game_add_start(call: CallbackQuery, state: FSMContext, admin: AdminUser) -> None:
     await call.message.edit_text(
         "➕ <b>Добавление игры</b>\n\nШаг 1/4\n\nВведи <b>название</b> игры:\n"
         "<i>Пример: Brawl Stars</i>",
@@ -541,7 +541,7 @@ async def admin_categories_list(
 
 @router.callback_query(F.data.startswith("admin:category:add:"))
 @require_permission("categories.create")
-async def admin_category_add_start(call: CallbackQuery, state: FSMContext) -> None:
+async def admin_category_add_start(call: CallbackQuery, state: FSMContext, admin: AdminUser) -> None:
     game_id = call.data.split(":")[3]
     await state.update_data(game_id=game_id)
     await call.message.edit_text(
@@ -705,11 +705,12 @@ async def admin_game_delete(
         await call.answer()
         return
 
+    game_name = game.name
     await db.delete(game)
     await db.commit()
-    await call.answer(f"🗑 Игра «{game.name}» удалена")
+    await call.answer(f"🗑 Игра «{game_name}» удалена")
     await call.message.edit_text(
-        f"✅ Игра <b>{game.name}</b> удалена.",
+        f"✅ Игра <b>{game_name}</b> удалена.",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[[admin_back_btn("admin:catalog:games")]]
         ),

@@ -202,7 +202,7 @@ async def admin_user_view(call: CallbackQuery, db: AsyncSession, admin: AdminUse
 
 @router.callback_query(F.data.startswith("admin:user:balance:"))
 @require_permission("users.edit")
-async def admin_balance_start(call: CallbackQuery, state: FSMContext) -> None:
+async def admin_balance_start(call: CallbackQuery, state: FSMContext, admin: AdminUser) -> None:
     parts = call.data.split(":")
     action  = parts[4]   # "add" или "sub"
     user_id = parts[5]
@@ -339,7 +339,7 @@ async def _execute_balance_adjust(
 
 @router.callback_query(F.data.startswith("admin:user:block:"))
 @require_permission("users.edit")
-async def admin_block_start(call: CallbackQuery, state: FSMContext) -> None:
+async def admin_block_start(call: CallbackQuery, state: FSMContext, admin: AdminUser) -> None:
     user_id = call.data.split(":")[3]
     await state.update_data(user_id=user_id)
     await call.message.edit_text(
