@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Cart, CartItem, User
 from bot.utils.texts import texts
+from bot.utils.helpers import safe_edit
 
 router = Router(name="client:cart")
 
@@ -84,7 +85,7 @@ async def _show_cart(
         keyboard = _cart_keyboard(has_items=True)
 
     if isinstance(event, CallbackQuery):
-        await event.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+        await safe_edit(event.message, text, reply_markup=keyboard)
         await event.answer()
     else:
         await event.answer(text, reply_markup=keyboard, parse_mode="HTML")

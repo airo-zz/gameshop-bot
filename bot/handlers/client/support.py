@@ -16,6 +16,7 @@ from aiogram.types import (
 
 from shared.config import settings
 from bot.utils.texts import texts
+from bot.utils.helpers import safe_edit
 
 router = Router(name="client:support")
 
@@ -47,23 +48,17 @@ async def cmd_support(message: Message) -> None:
 
 @router.callback_query(F.data == "support:main")
 async def cb_support_main(call: CallbackQuery) -> None:
-    await call.message.edit_text(
-        texts.support_header,
-        reply_markup=_support_keyboard(),
-        parse_mode="HTML",
-    )
+    await safe_edit(call.message, texts.support_header, reply_markup=_support_keyboard())
     await call.answer()
 
 
 @router.callback_query(F.data == "faq:main")
 async def cb_faq(call: CallbackQuery) -> None:
-    await call.message.edit_text(
+    await safe_edit(
+        call.message,
         texts.faq(),
         reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[
-                [InlineKeyboardButton(text="◀️ Назад", callback_data="support:main")]
-            ]
+            inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="support:main")]]
         ),
-        parse_mode="HTML",
     )
     await call.answer()

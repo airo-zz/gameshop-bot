@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Order, OrderItem, OrderStatus, User
 from bot.utils.texts import texts
+from bot.utils.helpers import safe_edit
 
 router = Router(name="client:orders")
 
@@ -96,7 +97,7 @@ async def cb_orders_list(
     )
     orders = list(result.scalars().all())
     text, keyboard = await _render_orders(orders)
-    await call.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+    await safe_edit(call.message, text, reply_markup=keyboard)
     await call.answer()
 
 
@@ -142,5 +143,5 @@ async def cb_order_detail(
             [InlineKeyboardButton(text="◀️ К заказам", callback_data="orders:list")]
         ]
     )
-    await call.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+    await safe_edit(call.message, text, reply_markup=keyboard)
     await call.answer()

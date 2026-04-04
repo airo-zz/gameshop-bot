@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Game
 from bot.utils.texts import texts
+from bot.utils.helpers import safe_edit
 
 router = Router(name="client:catalog")
 
@@ -50,7 +51,7 @@ async def show_games_list(event: Message | CallbackQuery, db: AsyncSession) -> N
         keyboard = _games_keyboard(games)
 
     if isinstance(event, CallbackQuery):
-        await event.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+        await safe_edit(event.message, text, reply_markup=keyboard)
         await event.answer()
     else:
         await event.answer(text, reply_markup=keyboard, parse_mode="HTML")

@@ -19,6 +19,7 @@ from sqlalchemy import select, func
 from shared.config import settings
 from shared.models import User
 from bot.utils.texts import texts
+from bot.utils.helpers import safe_edit
 
 router = Router(name="client:profile")
 
@@ -103,9 +104,7 @@ async def cb_profile_view(
     call: CallbackQuery, user: User, db: AsyncSession
 ) -> None:
     text = await _build_profile_text(user, db)
-    await call.message.edit_text(
-        text, reply_markup=_profile_keyboard(), parse_mode="HTML"
-    )
+    await safe_edit(call.message, text, reply_markup=_profile_keyboard())
     await call.answer()
 
 
@@ -138,15 +137,16 @@ async def cb_balance_topup(
                 [IKB(text="◀️ Профиль", callback_data="profile:view")],
             ]
         )
-        await call.message.edit_text(
+        await safe_edit(
+            call.message,
             f"💰 <b>Пополнение баланса</b>\n\n"
             f"Текущий баланс: <b>{float(user.balance):.2f} ₽</b>\n\n"
             f"Пополни баланс через Mini App:",
             reply_markup=keyboard,
-            parse_mode="HTML",
         )
     else:
-        await call.message.edit_text(
+        await safe_edit(
+            call.message,
             f"💰 <b>Пополнение баланса</b>\n\n"
             f"Текущий баланс: <b>{float(user.balance):.2f} ₽</b>\n\n"
             f"Для пополнения обратись в поддержку: {_settings.support_link}",
@@ -155,7 +155,6 @@ async def cb_balance_topup(
                     [InlineKeyboardButton(text="◀️ Профиль", callback_data="profile:view")]
                 ]
             ),
-            parse_mode="HTML",
         )
     await call.answer()
 
@@ -166,9 +165,5 @@ async def cb_referral_show(
 ) -> None:
     """Inline-кнопка реферальной программы."""
     text, ref_link = await _build_referral_text(user, db)
-    await call.message.edit_text(
-        text,
-        reply_markup=_referral_keyboard(ref_link),
-        parse_mode="HTML",
-    )
+    await safe_edit(call.message, text, reply_markup=_referral_keyboard(ref_link))
     await call.answer()
