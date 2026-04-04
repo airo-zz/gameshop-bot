@@ -13,6 +13,8 @@ FSM-диалоги для каждого шага добавления.
 import re
 import uuid as _uuid
 
+import httpx
+import structlog
 from aiogram import Bot, Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -27,8 +29,39 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.config import settings
 from shared.models import Game, Category, Product, ProductLot, DeliveryType, AdminUser
 from bot.middlewares.admin_auth import require_permission
+
+log = structlog.get_logger()
+
+
+async def _upload_image_to_api(bot: Bot, file_id: str) -> str | None:
+    """
+    Скачивает файл из Telegram и загружает на внутренний API.
+    Возвращает постоянный URL /static/uploads/... или None при ошибке.
+    """
+    try:
+        file_bytes_io = await bot.download(file_id)
+        if file_bytes_io is None:
+            log.warning("admin_catalog.upload: bot.download вернул None", file_id=file_id)
+            return None
+
+        file_bytes = file_bytes_io.read() if hasattr(file_bytes_io, "read") else bytes(file_bytes_io)
+
+        api_url = f"{settings.INTERNAL_API_BASE_URL}/api/v1/admin/upload"
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                api_url,
+                files={"file": ("image.jpg", file_bytes, "image/jpeg")},
+                headers={"x-internal-token": settings.INTERNAL_API_KEY},
+            )
+            response.raise_for_status()
+            return response.json()["url"]
+    except Exception as exc:
+        log.error("admin_catalog.upload: ошибка загрузки изображения", error=str(exc))
+        return None
+
 
 router = Router(name="admin:catalog")
 
@@ -380,11 +413,11 @@ async def admin_game_add_image(
     message: Message, state: FSMContext, db: AsyncSession, bot: Bot
 ) -> None:
     photo = message.photo[-1]
-    try:
-        file = await bot.get_file(photo.file_id)
-        image_url = f"https://api.telegram.org/file/bot{bot.token}/{file.file_path}"
-    except Exception:
-        image_url = None
+    image_url = await _upload_image_to_api(bot, photo.file_id)
+    if image_url is None:
+        await message.answer(
+            "⚠️ Не удалось загрузить изображение. Продолжаем без обложки."
+        )
     await state.update_data(image_url=image_url)
     await _confirm_game(message, state, db)
 

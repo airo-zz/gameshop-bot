@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse
 from shared.config import settings
 from shared.database.session import engine
 
-from api.routers import catalog, cart, orders, payments, profile, support, webhooks
+from api.routers import catalog, cart, orders, payments, profile, support, webhooks, uploads
 
 log = structlog.get_logger()
 
@@ -72,6 +72,7 @@ def create_app() -> FastAPI:
     app.include_router(profile.router, prefix=f"{prefix}/profile", tags=["Profile"])
     app.include_router(support.router, prefix=f"{prefix}/support", tags=["Support"])
     app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
+    app.include_router(uploads.router, prefix=f"{prefix}/admin", tags=["Admin Uploads"])
 
     # ── Health check ──────────────────────────────────────────────────────────
     @app.get("/health", include_in_schema=False)

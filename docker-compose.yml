@@ -87,6 +87,7 @@ services:
       retries: 3
     volumes:
       - media_data:/app/media
+      - static_files:/static
 
   # ── Telegram Bot ────────────────────────────
   bot:
@@ -104,6 +105,8 @@ services:
         condition: service_completed_successfully
       api:
         condition: service_healthy
+    volumes:
+      - static_files:/static
 
   # ── Celery Worker ───────────────────────────
   worker:
@@ -156,6 +159,7 @@ services:
       - ./miniapp/dist:/usr/share/nginx/html/app:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro
+      - static_files:/usr/share/nginx/static:ro
     depends_on:
       - api
 
@@ -175,5 +179,6 @@ volumes:
   postgres_data:
   redis_data:
   media_data:
+  static_files:
   certbot_data:
   certbot_www:

@@ -122,6 +122,8 @@ class SecuritySettings(BaseSettings):
     ENCRYPTION_KEY: str = ""           # Fernet key для шифрования ключей выдачи
     RATE_LIMIT_CLIENT: int = 30        # req/min
     RATE_LIMIT_ADMIN: int = 100
+    INTERNAL_API_KEY: str = ""         # Токен для межсервисных запросов (bot → api)
+    INTERNAL_API_BASE_URL: str = "http://api:8000"  # Адрес API внутри Docker-сети
 
     @field_validator("ENCRYPTION_KEY")
     @classmethod
