@@ -12,6 +12,8 @@ bot/handlers/admin/admin_users.py
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+import uuid as _uuid
+
 from aiogram import Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -182,7 +184,11 @@ async def admin_users_search_exec(
 @router.callback_query(F.data.startswith("admin:user:view:"))
 @require_permission("users.view")
 async def admin_user_view(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
-    user_id = call.data.split(":")[3]
+    try:
+        user_id = _uuid.UUID(call.data.split(":")[3])
+    except ValueError:
+        await call.answer("Некорректный ID пользователя", show_alert=True)
+        return
     user = await db.get(User, user_id)
     if not user:
         await call.answer("Пользователь не найден", show_alert=True)
@@ -259,7 +265,7 @@ async def _execute_balance_adjust(
     data = await state.get_data()
     await state.clear()
 
-    user = await db.get(User, data["user_id"])
+    user = await db.get(User, _uuid.UUID(data["user_id"]))
     if not user:
         await message.answer("❌ Пользователь не найден")
         return
@@ -354,7 +360,7 @@ async def admin_block_execute(
     data = await state.get_data()
     await state.clear()
 
-    user = await db.get(User, data["user_id"])
+    user = await db.get(User, _uuid.UUID(data["user_id"]))
     if not user:
         await message.answer("Пользователь не найден")
         return
@@ -380,7 +386,11 @@ async def admin_block_execute(
 @router.callback_query(F.data.startswith("admin:user:unblock:"))
 @require_permission("users.edit")
 async def admin_unblock(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
-    user_id = call.data.split(":")[3]
+    try:
+        user_id = _uuid.UUID(call.data.split(":")[3])
+    except ValueError:
+        await call.answer("Некорректный ID", show_alert=True)
+        return
     user = await db.get(User, user_id)
     if not user:
         await call.answer("Не найден", show_alert=True)
@@ -427,7 +437,12 @@ async def admin_loyalty_start(call: CallbackQuery, db: AsyncSession, admin: Admi
 @require_permission("users.edit")
 async def admin_loyalty_set(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
     parts = call.data.split(":")
-    user_id, level_id = parts[4], parts[5]
+    try:
+        user_id  = _uuid.UUID(parts[4])
+        level_id = _uuid.UUID(parts[5])
+    except ValueError:
+        await call.answer("Некорректные данные", show_alert=True)
+        return
 
     user  = await db.get(User, user_id)
     level = await db.get(LoyaltyLevel, level_id)
@@ -455,7 +470,11 @@ async def admin_loyalty_set(call: CallbackQuery, db: AsyncSession, admin: AdminU
 @router.callback_query(F.data.startswith("admin:user:cart:"))
 @require_permission("users.view")
 async def admin_user_cart(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
-    user_id = call.data.split(":")[3]
+    try:
+        user_id = _uuid.UUID(call.data.split(":")[3])
+    except ValueError:
+        await call.answer("Некорректный ID", show_alert=True)
+        return
 
     result = await db.execute(
         select(Cart).options(
@@ -491,7 +510,11 @@ async def admin_user_cart(call: CallbackQuery, db: AsyncSession, admin: AdminUse
 @router.callback_query(F.data.startswith("admin:user:orders:"))
 @require_permission("orders.view")
 async def admin_user_orders(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
-    user_id = call.data.split(":")[3]
+    try:
+        user_id = _uuid.UUID(call.data.split(":")[3])
+    except ValueError:
+        await call.answer("Некорректный ID", show_alert=True)
+        return
 
     result = await db.execute(
         select(Order)

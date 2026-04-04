@@ -159,7 +159,11 @@ async def admin_games_list(
 async def admin_game_detail(
     call: CallbackQuery, db: AsyncSession, admin: AdminUser
 ) -> None:
-    game_id = call.data.split(":")[2]
+    try:
+        game_id = _uuid.UUID(call.data.split(":")[2])
+    except ValueError:
+        await call.answer("Некорректный ID игры", show_alert=True)
+        return
     game = await db.get(Game, game_id)
     if not game:
         await call.answer("Игра не найдена", show_alert=True)
@@ -204,7 +208,11 @@ async def admin_game_detail(
     )
 
     await call.message.edit_text(text, reply_markup=keyboard)
-    await call.answer()
+    from aiogram.exceptions import TelegramBadRequest
+    try:
+        await call.answer()
+    except TelegramBadRequest:
+        pass  # уже отвечено вызывающим хендлером
 
 
 # ── Toggle Game Active ────────────────────────────────────────────────────────
@@ -215,7 +223,11 @@ async def admin_game_detail(
 async def admin_game_toggle(
     call: CallbackQuery, db: AsyncSession, admin: AdminUser
 ) -> None:
-    game_id = call.data.split(":")[3]
+    try:
+        game_id = _uuid.UUID(call.data.split(":")[3])
+    except ValueError:
+        await call.answer("Некорректный ID игры", show_alert=True)
+        return
     game = await db.get(Game, game_id)
     if not game:
         await call.answer("Игра не найдена", show_alert=True)
@@ -479,7 +491,11 @@ async def admin_game_save(
 async def admin_categories_list(
     call: CallbackQuery, db: AsyncSession, admin: AdminUser
 ) -> None:
-    game_id = call.data.split(":")[2]
+    try:
+        game_id = _uuid.UUID(call.data.split(":")[2])
+    except ValueError:
+        await call.answer("Некорректный ID игры", show_alert=True)
+        return
     game = await db.get(Game, game_id)
     if not game:
         await call.answer("Игра не найдена", show_alert=True)
@@ -634,7 +650,11 @@ async def admin_game_edit_stub(
 async def admin_game_delete(
     call: CallbackQuery, db: AsyncSession, admin: AdminUser
 ) -> None:
-    game_id = call.data.split(":")[3]
+    try:
+        game_id = _uuid.UUID(call.data.split(":")[3])
+    except ValueError:
+        await call.answer("Некорректный ID игры", show_alert=True)
+        return
     game = await db.get(Game, game_id)
     if not game:
         await call.answer("Игра не найдена", show_alert=True)
@@ -704,7 +724,11 @@ async def admin_game_delete(
 async def admin_game_force_delete(
     call: CallbackQuery, db: AsyncSession, admin: AdminUser
 ) -> None:
-    game_id = call.data.split(":")[3]
+    try:
+        game_id = _uuid.UUID(call.data.split(":")[3])
+    except ValueError:
+        await call.answer("Некорректный ID игры", show_alert=True)
+        return
     game = await db.get(Game, game_id)
     if not game:
         await call.answer("Игра не найдена", show_alert=True)
@@ -749,7 +773,11 @@ async def admin_game_force_delete(
 async def admin_category_detail(
     call: CallbackQuery, db: AsyncSession, admin: AdminUser
 ) -> None:
-    cat_id = call.data.split(":")[2]
+    try:
+        cat_id = _uuid.UUID(call.data.split(":")[2])
+    except ValueError:
+        await call.answer("Некорректный ID категории", show_alert=True)
+        return
     from shared.models import Category as Cat
     cat = await db.get(Cat, cat_id)
     if not cat:
@@ -770,7 +798,11 @@ async def admin_category_detail(
             ]
         ),
     )
-    await call.answer()
+    from aiogram.exceptions import TelegramBadRequest
+    try:
+        await call.answer()
+    except TelegramBadRequest:
+        pass
 
 
 @router.callback_query(F.data.startswith("admin:category:toggle:"))
@@ -778,7 +810,11 @@ async def admin_category_detail(
 async def admin_category_toggle(
     call: CallbackQuery, db: AsyncSession, admin: AdminUser
 ) -> None:
-    cat_id = call.data.split(":")[3]
+    try:
+        cat_id = _uuid.UUID(call.data.split(":")[3])
+    except ValueError:
+        await call.answer("Некорректный ID категории", show_alert=True)
+        return
     from shared.models import Category as Cat
     cat = await db.get(Cat, cat_id)
     if not cat:

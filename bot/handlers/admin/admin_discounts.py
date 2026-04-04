@@ -13,7 +13,11 @@ from aiogram.types import (
     CallbackQuery, Message,
     InlineKeyboardMarkup, InlineKeyboardButton,
 )
+import uuid as _uuid
+
+from aiogram.exceptions import TelegramBadRequest
 from sqlalchemy import select, desc
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import AdminUser, DiscountRule, DiscountType, DiscountValueType, PromoCode
@@ -95,9 +99,17 @@ async def admin_promos_list(call: CallbackQuery, db: AsyncSession, admin: AdminU
 )
 @require_permission("discounts.*")
 async def admin_promo_detail(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
-    promo_id = call.data.split(":")[2]
+    promo_id_str = call.data.split(":")[2]
+    try:
+        promo_uuid = _uuid.UUID(promo_id_str)
+    except ValueError:
+        await call.answer("Некорректный ID промокода", show_alert=True)
+        return
+
     result = await db.execute(
-        select(PromoCode).where(PromoCode.id == promo_id)
+        select(PromoCode)
+        .options(selectinload(PromoCode.discount_rule))
+        .where(PromoCode.id == promo_uuid)
     )
     promo = result.scalar_one_or_none()
     if not promo:
@@ -130,14 +142,25 @@ async def admin_promo_detail(call: CallbackQuery, db: AsyncSession, admin: Admin
         [back_btn("admin:promos:list")],
     ])
     await call.message.edit_text(text, reply_markup=keyboard)
-    await call.answer()
+    try:
+        await call.answer()
+    except TelegramBadRequest:
+        pass  # уже отвечено вызывающим хендлером
 
 
 @router.callback_query(F.data.startswith("admin:promo:toggle:"))
 @require_permission("discounts.*")
 async def admin_promo_toggle(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
-    promo_id = call.data.split(":")[3]
-    result = await db.execute(select(PromoCode).where(PromoCode.id == promo_id))
+    try:
+        promo_uuid = _uuid.UUID(call.data.split(":")[3])
+    except ValueError:
+        await call.answer("Некорректный ID", show_alert=True)
+        return
+    result = await db.execute(
+        select(PromoCode)
+        .options(selectinload(PromoCode.discount_rule))
+        .where(PromoCode.id == promo_uuid)
+    )
     promo = result.scalar_one_or_none()
     if not promo:
         await call.answer("Не найден", show_alert=True)

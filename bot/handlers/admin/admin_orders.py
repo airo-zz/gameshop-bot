@@ -62,6 +62,7 @@ async def admin_orders_list(
     call: CallbackQuery, db: AsyncSession, admin: AdminUser
 ) -> None:
     await _show_orders_by_status(call, db, status_filter=None, page=0)
+    await call.answer()
 
 
 @router.callback_query(F.data.startswith("admin:orders:filter:"))
@@ -241,7 +242,11 @@ async def admin_order_detail(
         text,
         reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
     )
-    await call.answer()
+    from aiogram.exceptions import TelegramBadRequest
+    try:
+        await call.answer()
+    except TelegramBadRequest:
+        pass  # уже отвечено вызывающим хендлером
 
 
 # ── Change Status ─────────────────────────────────────────────────────────────
