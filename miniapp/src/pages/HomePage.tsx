@@ -644,33 +644,26 @@ export default function HomePage() {
           </div>
 
           <div
-            className="no-scrollbar"
             style={{
-              display: 'flex',
-              gap: 12,
-              overflowX: 'auto',
-              marginLeft: -16,
-              marginRight: -16,
-              paddingLeft: 16,
-              paddingRight: 16,
-              paddingBottom: 4,
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 10,
             }}
           >
             {gamesLoading
-              ? Array(5).fill(0).map((_, i) => (
+              ? Array(6).fill(0).map((_, i) => (
                   <div
                     key={i}
-                    className="skeleton flex-shrink-0"
-                    style={{ width: 110, height: 138, borderRadius: 18 }}
+                    className="skeleton"
+                    style={{ aspectRatio: '1 / 1.25', borderRadius: 18 }}
                   />
                 ))
               : games.map(game => (
                   <Link
                     key={game.id}
                     to={`/catalog/${game.slug}`}
-                    className="flex-shrink-0 active:scale-95 transition-transform"
+                    className="active:scale-95 transition-transform"
                     style={{
-                      width: 110,
                       borderRadius: 18,
                       overflow: 'hidden',
                       border: '1px solid rgba(255,255,255,0.08)',
@@ -683,8 +676,8 @@ export default function HomePage() {
                   >
                     <div
                       style={{
-                        width: 110,
-                        height: 110,
+                        width: '100%',
+                        aspectRatio: '1 / 1',
                         background: 'var(--bg3)',
                         position: 'relative',
                         overflow: 'hidden',
