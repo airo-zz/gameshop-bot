@@ -24,9 +24,10 @@ from aiogram.types import (
     InlineKeyboardButton,
 )
 from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import Game, Category, AdminUser
+from shared.models import Game, Category, Product, ProductLot, DeliveryType, AdminUser
 from bot.middlewares.admin_auth import require_permission
 
 router = Router(name="admin:catalog")
@@ -773,6 +774,7 @@ async def admin_game_force_delete(
 @router.callback_query(
     F.data.startswith("admin:category:")
     & ~F.data.startswith("admin:category:add:")
+    & ~F.data.startswith("admin:category:toggle:")
 )
 @require_permission("categories.view")
 async def admin_category_detail(
@@ -783,13 +785,19 @@ async def admin_category_detail(
     except ValueError:
         await call.answer("Некорректный ID категории", show_alert=True)
         return
-    from shared.models import Category as Cat
-    cat = await db.get(Cat, cat_id)
+    cat = await db.get(Category, cat_id)
     if not cat:
         await call.answer("Категория не найдена", show_alert=True)
         return
+
+    products_result = await db.execute(
+        select(func.count(Product.id)).where(Product.category_id == cat_id)
+    )
+    products_count = products_result.scalar_one()
+
     await call.message.edit_text(
         f"📂 <b>{cat.name}</b>\n\n"
+        f"Товаров: {products_count}\n"
         f"Статус: {toggle_emoji(cat.is_active)} {'Активна' if cat.is_active else 'Скрыта'}",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
@@ -797,6 +805,12 @@ async def admin_category_detail(
                     InlineKeyboardButton(
                         text="🔴 Скрыть" if cat.is_active else "✅ Активировать",
                         callback_data=f"admin:category:toggle:{cat.id}",
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text=f"📦 Товары ({products_count})",
+                        callback_data=f"admin:products:{cat.id}",
                     ),
                 ],
                 [admin_back_btn(f"admin:categories:{cat.game_id}")],
@@ -820,29 +834,595 @@ async def admin_category_toggle(
     except ValueError:
         await call.answer("Некорректный ID категории", show_alert=True)
         return
-    from shared.models import Category as Cat
-    cat = await db.get(Cat, cat_id)
+    cat = await db.get(Category, cat_id)
     if not cat:
         await call.answer("Не найдена", show_alert=True)
         return
     cat.is_active = not cat.is_active
+    await db.commit()
     status = "активирована ✅" if cat.is_active else "скрыта 🔴"
     await call.answer(f"Категория {status}")
-    await admin_category_detail(call, db, admin)
 
-
-# ── Add Product (stub — сообщение что функция в разработке) ──────────────────
-
-
-@router.callback_query(F.data.startswith("admin:product:add:"))
-@require_permission("products.create")
-async def admin_product_add_stub(
-    call: CallbackQuery, admin: AdminUser
-) -> None:
-    await call.answer(
-        "➕ Добавление товаров доступно через Mini App (этап 5).",
-        show_alert=True,
+    # Refresh UI — подменяем call.data чтобы detail корректно распарсил id
+    products_result = await db.execute(
+        select(func.count(Product.id)).where(Product.category_id == cat_id)
     )
+    products_count = products_result.scalar_one()
+    from aiogram.exceptions import TelegramBadRequest
+    try:
+        await call.message.edit_text(
+            f"📂 <b>{cat.name}</b>\n\n"
+            f"Товаров: {products_count}\n"
+            f"Статус: {toggle_emoji(cat.is_active)} {'Активна' if cat.is_active else 'Скрыта'}",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(
+                    text="🔴 Скрыть" if cat.is_active else "✅ Активировать",
+                    callback_data=f"admin:category:toggle:{cat.id}",
+                )],
+                [InlineKeyboardButton(
+                    text=f"📦 Товары ({products_count})",
+                    callback_data=f"admin:products:{cat.id}",
+                )],
+                [admin_back_btn(f"admin:categories:{cat.game_id}")],
+            ]),
+        )
+    except TelegramBadRequest:
+        pass
+
+
+# ── Products List ─────────────────────────────────────────────────────────────
+
+
+@router.callback_query(F.data.startswith("admin:products:"))
+@require_permission("products.view")
+async def admin_products_list(
+    call: CallbackQuery, db: AsyncSession, admin: AdminUser
+) -> None:
+    try:
+        cat_id = _uuid.UUID(call.data.split(":")[2])
+    except ValueError:
+        await call.answer("Некорректный ID категории", show_alert=True)
+        return
+    cat = await db.get(Category, cat_id)
+    if not cat:
+        await call.answer("Категория не найдена", show_alert=True)
+        return
+
+    result = await db.execute(
+        select(Product)
+        .where(Product.category_id == cat_id)
+        .order_by(Product.sort_order, Product.name)
+    )
+    products = result.scalars().all()
+
+    text = f"📦 <b>Товары — {cat.name}</b> ({len(products)} шт.)"
+    buttons = [
+        [InlineKeyboardButton(
+            text=f"{toggle_emoji(p.is_active)} {p.name} — {p.price} ₽",
+            callback_data=f"admin:product:{p.id}",
+        )]
+        for p in products
+    ]
+    buttons.append([InlineKeyboardButton(
+        text="➕ Добавить товар", callback_data=f"admin:product:add:{cat_id}",
+    )])
+    buttons.append([admin_back_btn(f"admin:category:{cat_id}")])
+    await call.message.edit_text(
+        text, reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons)
+    )
+    await call.answer()
+
+
+# ── Add Product FSM ───────────────────────────────────────────────────────────
+
+
+@router.callback_query(
+    F.data.startswith("admin:product:add:")
+    & ~F.data.startswith("admin:product:add:skip")
+    & ~F.data.startswith("admin:product:add:delivery")
+    & ~F.data.startswith("admin:product:add:save")
+)
+@require_permission("products.create")
+async def admin_product_add_start(
+    call: CallbackQuery, state: FSMContext, admin: AdminUser
+) -> None:
+    cat_id = call.data.split(":")[3]
+    await state.update_data(category_id=cat_id)
+    await call.message.edit_text(
+        "➕ <b>Добавление товара</b>\n\nШаг 1/5\n\nВведи <b>название</b>:\n"
+        "<i>Пример: Гемы Brawl Stars, Battle Pass Season 1</i>",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[cancel_btn()]]),
+    )
+    await state.set_state(AddProductFSM.name)
+    await call.answer()
+
+
+@router.message(StateFilter(AddProductFSM.name))
+async def admin_product_name(message: Message, state: FSMContext) -> None:
+    name = message.text.strip()
+    if len(name) < 2:
+        await message.answer("❌ Слишком короткое название. Минимум 2 символа.")
+        return
+    await state.update_data(name=name)
+    await message.answer(
+        f"Название: <b>{name}</b>\n\nШаг 2/5\n\nВведи <b>краткое описание</b> или пропусти:\n"
+        "<i>Пример: Внутриигровая валюта для Brawl Stars</i>",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⏭ Пропустить", callback_data="admin:product:add:skip_sdesc")],
+            [cancel_btn()],
+        ]),
+    )
+    await state.set_state(AddProductFSM.short_description)
+
+
+@router.callback_query(F.data == "admin:product:add:skip_sdesc", StateFilter(AddProductFSM.short_description))
+async def admin_product_skip_sdesc(call: CallbackQuery, state: FSMContext) -> None:
+    await state.update_data(short_description=None)
+    await call.answer()
+    await _ask_product_price(call.message, state)
+
+
+@router.message(StateFilter(AddProductFSM.short_description))
+async def admin_product_sdesc(message: Message, state: FSMContext) -> None:
+    await state.update_data(short_description=message.text.strip())
+    await _ask_product_price(message, state)
+
+
+async def _ask_product_price(message: Message, state: FSMContext) -> None:
+    await message.answer(
+        "Шаг 3/5\n\nВведи <b>базовую цену</b> в рублях:\n"
+        "<i>Если товар продаётся лотами — укажи минимальную цену лота.</i>",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[cancel_btn()]]),
+    )
+    await state.set_state(AddProductFSM.price)
+
+
+@router.message(StateFilter(AddProductFSM.price))
+async def admin_product_price(message: Message, state: FSMContext) -> None:
+    try:
+        price = float(message.text.replace(",", "."))
+        if price <= 0:
+            raise ValueError
+    except ValueError:
+        await message.answer("❌ Введи корректную цену (положительное число)")
+        return
+    await state.update_data(price=price)
+    await message.answer(
+        "Шаг 4/5\n\n<b>Тип доставки</b>:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🤖 Авто (ключ/код из БД)", callback_data="admin:product:add:delivery:auto")],
+            [InlineKeyboardButton(text="👤 Вручную (оператор выдаёт)", callback_data="admin:product:add:delivery:manual")],
+            [cancel_btn()],
+        ]),
+    )
+    await state.set_state(AddProductFSM.delivery_type)
+
+
+@router.callback_query(F.data.startswith("admin:product:add:delivery:"), StateFilter(AddProductFSM.delivery_type))
+async def admin_product_delivery(call: CallbackQuery, state: FSMContext) -> None:
+    dtype = call.data.split(":")[4]
+    await state.update_data(delivery_type=dtype)
+    await call.answer()
+    await message_ask_product_image(call.message, state)
+
+
+async def message_ask_product_image(message: Message, state: FSMContext) -> None:
+    await message.answer(
+        "Шаг 5/5\n\nОтправь <b>изображение</b> товара или пропусти:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⏭ Пропустить", callback_data="admin:product:add:skip_img")],
+            [cancel_btn()],
+        ]),
+    )
+    await state.set_state(AddProductFSM.image)
+
+
+@router.callback_query(F.data == "admin:product:add:skip_img", StateFilter(AddProductFSM.image))
+async def admin_product_skip_img(call: CallbackQuery, state: FSMContext) -> None:
+    await state.update_data(image_url=None)
+    await call.answer()
+    await _confirm_product(call.message, state)
+
+
+@router.message(StateFilter(AddProductFSM.image), F.photo)
+async def admin_product_image(message: Message, state: FSMContext, bot: Bot) -> None:
+    photo = message.photo[-1]
+    try:
+        file = await bot.get_file(photo.file_id)
+        image_url = f"https://api.telegram.org/file/bot{bot.token}/{file.file_path}"
+    except Exception:
+        image_url = None
+    await state.update_data(image_url=image_url)
+    await _confirm_product(message, state)
+
+
+async def _confirm_product(message: Message, state: FSMContext) -> None:
+    data = await state.get_data()
+    dtype_label = "🤖 Авто" if data.get("delivery_type") == "auto" else "👤 Вручную"
+    text = (
+        f"📋 <b>Подтверждение</b>\n\n"
+        f"Название: <b>{data['name']}</b>\n"
+        f"Краткое описание: {data.get('short_description') or '—'}\n"
+        f"Цена: <b>{data['price']} ₽</b>\n"
+        f"Доставка: {dtype_label}\n"
+        f"Изображение: {'✅ загружено' if data.get('image_url') else '—'}\n\n"
+        f"Статус после создания: 🔴 Скрыт\n\n"
+        f"Создать товар?"
+    )
+    await message.answer(
+        text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="✅ Создать", callback_data="admin:product:add:save"),
+            InlineKeyboardButton(text="❌ Отмена", callback_data="admin:catalog:main"),
+        ]]),
+    )
+    await state.set_state(AddProductFSM.confirm)
+
+
+@router.callback_query(F.data == "admin:product:add:save", StateFilter(AddProductFSM.confirm))
+@require_permission("products.create")
+async def admin_product_save(
+    call: CallbackQuery, state: FSMContext, db: AsyncSession, admin: AdminUser
+) -> None:
+    from decimal import Decimal
+    from bot.utils.admin_log import log_admin_action
+
+    data = await state.get_data()
+    await state.clear()
+
+    images = [data["image_url"]] if data.get("image_url") else []
+    product = Product(
+        category_id=_uuid.UUID(data["category_id"]),
+        name=data["name"],
+        short_description=data.get("short_description"),
+        price=Decimal(str(data["price"])),
+        delivery_type=data.get("delivery_type", "manual"),
+        images=images,
+        is_active=False,
+    )
+    db.add(product)
+    try:
+        await db.commit()
+        await db.refresh(product)
+    except Exception as e:
+        await db.rollback()
+        err_msg = str(e.orig) if hasattr(e, "orig") else str(e)
+        await call.answer(f"❌ Ошибка БД: {err_msg[:200]}", show_alert=True)
+        return
+
+    await log_admin_action(
+        db, admin, "product.create", "product", product.id,
+        after_data={"name": product.name, "price": str(product.price)},
+    )
+    await db.commit()
+
+    await call.message.edit_text(
+        f"✅ Товар <b>{product.name}</b> создан!\n\n"
+        f"Статус: 🔴 Скрыт. Добавь лоты с ценами, затем активируй.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="➕ Добавить лот", callback_data=f"admin:lot:add:{product.id}")],
+            [InlineKeyboardButton(text="✅ Активировать сейчас", callback_data=f"admin:product:toggle:{product.id}")],
+            [admin_back_btn(f"admin:products:{data['category_id']}")],
+        ]),
+    )
+    await call.answer("✅ Товар создан!")
+
+
+# ── Product Detail ─────────────────────────────────────────────────────────────
+
+
+@router.callback_query(
+    F.data.startswith("admin:product:")
+    & ~F.data.startswith("admin:product:add")
+    & ~F.data.startswith("admin:product:toggle:")
+)
+@require_permission("products.view")
+async def admin_product_detail(
+    call: CallbackQuery, db: AsyncSession, admin: AdminUser
+) -> None:
+    try:
+        product_id = _uuid.UUID(call.data.split(":")[2])
+    except ValueError:
+        await call.answer("Некорректный ID товара", show_alert=True)
+        return
+
+    result = await db.execute(
+        select(Product)
+        .options(selectinload(Product.lots))
+        .where(Product.id == product_id)
+    )
+    product = result.scalar_one_or_none()
+    if not product:
+        await call.answer("Товар не найден", show_alert=True)
+        return
+
+    await _render_product_detail(call.message, product)
+    from aiogram.exceptions import TelegramBadRequest
+    try:
+        await call.answer()
+    except TelegramBadRequest:
+        pass
+
+
+async def _render_product_detail(message: Message, product: Product) -> None:
+    dtype_label = "🤖 Авто" if product.delivery_type == DeliveryType.auto else "👤 Вручную"
+    text = (
+        f"📦 <b>{product.name}</b>\n\n"
+        f"Цена: {product.price} ₽\n"
+        f"Доставка: {dtype_label}\n"
+        f"Статус: {toggle_emoji(product.is_active)} {'Активен' if product.is_active else 'Скрыт'}"
+    )
+    lot_buttons = [
+        [InlineKeyboardButton(
+            text=f"{toggle_emoji(l.is_active)} {l.name} — {l.price} ₽",
+            callback_data=f"admin:lot:{l.id}",
+        )]
+        for l in product.lots
+    ]
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text="🔴 Скрыть" if product.is_active else "✅ Активировать",
+            callback_data=f"admin:product:toggle:{product.id}",
+        )],
+        *lot_buttons,
+        [InlineKeyboardButton(text="➕ Добавить лот", callback_data=f"admin:lot:add:{product.id}")],
+        [admin_back_btn(f"admin:products:{product.category_id}")],
+    ])
+    await message.edit_text(text, reply_markup=keyboard)
+
+
+@router.callback_query(F.data.startswith("admin:product:toggle:"))
+@require_permission("products.edit")
+async def admin_product_toggle(
+    call: CallbackQuery, db: AsyncSession, admin: AdminUser
+) -> None:
+    try:
+        product_id = _uuid.UUID(call.data.split(":")[3])
+    except ValueError:
+        await call.answer("Некорректный ID товара", show_alert=True)
+        return
+    product = await db.get(Product, product_id)
+    if not product:
+        await call.answer("Товар не найден", show_alert=True)
+        return
+    product.is_active = not product.is_active
+    await db.commit()
+    status = "активирован ✅" if product.is_active else "скрыт 🔴"
+    await call.answer(f"Товар {status}")
+
+    result = await db.execute(
+        select(Product).options(selectinload(Product.lots)).where(Product.id == product_id)
+    )
+    product = result.scalar_one_or_none()
+    from aiogram.exceptions import TelegramBadRequest
+    try:
+        await _render_product_detail(call.message, product)
+    except TelegramBadRequest:
+        pass
+
+
+# ── Add Lot FSM ────────────────────────────────────────────────────────────────
+
+
+@router.callback_query(
+    F.data.startswith("admin:lot:add:")
+    & ~F.data.startswith("admin:lot:add:skip")
+    & ~F.data.startswith("admin:lot:add:badge")
+)
+@require_permission("products.edit")
+async def admin_lot_add_start(
+    call: CallbackQuery, state: FSMContext, admin: AdminUser
+) -> None:
+    product_id = call.data.split(":")[3]
+    await state.update_data(product_id=product_id)
+    await call.message.edit_text(
+        "➕ <b>Добавление лота</b>\n\nШаг 1/4\n\nВведи <b>название лота</b>:\n"
+        "<i>Пример: 80 гемов, 170 гемов, Battle Pass</i>",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[cancel_btn()]]),
+    )
+    await state.set_state(AddLotFSM.name)
+    await call.answer()
+
+
+@router.message(StateFilter(AddLotFSM.name))
+async def admin_lot_name(message: Message, state: FSMContext) -> None:
+    name = message.text.strip()
+    if not name:
+        await message.answer("❌ Введи название лота")
+        return
+    await state.update_data(name=name)
+    await message.answer(
+        f"Лот: <b>{name}</b>\n\nШаг 2/4\n\nВведи <b>цену</b> в рублях:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[cancel_btn()]]),
+    )
+    await state.set_state(AddLotFSM.price)
+
+
+@router.message(StateFilter(AddLotFSM.price))
+async def admin_lot_price(message: Message, state: FSMContext) -> None:
+    try:
+        price = float(message.text.replace(",", "."))
+        if price <= 0:
+            raise ValueError
+    except ValueError:
+        await message.answer("❌ Введи корректную цену")
+        return
+    await state.update_data(price=price)
+    await message.answer(
+        "Шаг 3/4\n\nВведи <b>старую цену</b> (перечёркнутая в UI) или пропусти:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="⏭ Без старой цены", callback_data="admin:lot:add:skip_orig")],
+            [cancel_btn()],
+        ]),
+    )
+    await state.set_state(AddLotFSM.original_price)
+
+
+@router.callback_query(F.data == "admin:lot:add:skip_orig", StateFilter(AddLotFSM.original_price))
+async def admin_lot_skip_orig(call: CallbackQuery, state: FSMContext) -> None:
+    await state.update_data(original_price=None)
+    await call.answer()
+    await _ask_lot_badge(call.message, state)
+
+
+@router.message(StateFilter(AddLotFSM.original_price))
+async def admin_lot_orig_price(message: Message, state: FSMContext) -> None:
+    try:
+        price = float(message.text.replace(",", "."))
+        if price <= 0:
+            raise ValueError
+    except ValueError:
+        await message.answer("❌ Введи корректную цену")
+        return
+    await state.update_data(original_price=price)
+    await _ask_lot_badge(message, state)
+
+
+async def _ask_lot_badge(message: Message, state: FSMContext) -> None:
+    await message.answer(
+        "Шаг 4/4\n\n<b>Бейдж</b> (ярлык на лоте) или пропусти:",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🔥 ХИТ", callback_data="admin:lot:add:badge:ХИТ"),
+                InlineKeyboardButton(text="💰 ВЫГОДНО", callback_data="admin:lot:add:badge:ВЫГОДНО"),
+            ],
+            [
+                InlineKeyboardButton(text="🆕 NEW", callback_data="admin:lot:add:badge:NEW"),
+                InlineKeyboardButton(text="⏭ Без бейджа", callback_data="admin:lot:add:badge:none"),
+            ],
+        ]),
+    )
+    await state.set_state(AddLotFSM.badge)
+
+
+@router.callback_query(F.data.startswith("admin:lot:add:badge:"), StateFilter(AddLotFSM.badge))
+async def admin_lot_badge(
+    call: CallbackQuery, state: FSMContext, db: AsyncSession, admin: AdminUser
+) -> None:
+    badge_val = call.data.split(":")[4]
+    badge = None if badge_val == "none" else badge_val
+    await state.update_data(badge=badge)
+    await call.answer()
+    await _save_lot(call, state, db, admin)
+
+
+async def _save_lot(
+    call: CallbackQuery, state: FSMContext, db: AsyncSession, admin: AdminUser
+) -> None:
+    from decimal import Decimal
+    from bot.utils.admin_log import log_admin_action
+
+    data = await state.get_data()
+    await state.clear()
+
+    lot = ProductLot(
+        product_id=_uuid.UUID(data["product_id"]),
+        name=data["name"],
+        price=Decimal(str(data["price"])),
+        original_price=Decimal(str(data["original_price"])) if data.get("original_price") else None,
+        quantity=1,
+        badge=data.get("badge"),
+        is_active=True,
+    )
+    db.add(lot)
+    try:
+        await db.commit()
+        await db.refresh(lot)
+    except Exception as e:
+        await db.rollback()
+        err_msg = str(e.orig) if hasattr(e, "orig") else str(e)
+        await call.answer(f"❌ Ошибка БД: {err_msg[:200]}", show_alert=True)
+        return
+
+    await log_admin_action(
+        db, admin, "lot.create", "product_lot", lot.id,
+        after_data={"name": lot.name, "price": str(lot.price)},
+    )
+    await db.commit()
+
+    orig_str = f" (было {data['original_price']} ₽)" if data.get("original_price") else ""
+    badge_str = f" [{lot.badge}]" if lot.badge else ""
+    await call.message.edit_text(
+        f"✅ Лот добавлен!\n\n"
+        f"<b>{lot.name}</b> — {lot.price} ₽{orig_str}{badge_str}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="➕ Ещё лот", callback_data=f"admin:lot:add:{data['product_id']}")],
+            [admin_back_btn(f"admin:product:{data['product_id']}")],
+        ]),
+    )
+
+
+# ── Lot Detail ─────────────────────────────────────────────────────────────────
+
+
+@router.callback_query(
+    F.data.startswith("admin:lot:")
+    & ~F.data.startswith("admin:lot:add:")
+    & ~F.data.startswith("admin:lot:toggle:")
+)
+@require_permission("products.view")
+async def admin_lot_detail(
+    call: CallbackQuery, db: AsyncSession, admin: AdminUser
+) -> None:
+    try:
+        lot_id = _uuid.UUID(call.data.split(":")[2])
+    except ValueError:
+        await call.answer("Некорректный ID лота", show_alert=True)
+        return
+    lot = await db.get(ProductLot, lot_id)
+    if not lot:
+        await call.answer("Лот не найден", show_alert=True)
+        return
+
+    await _render_lot_detail(call.message, lot)
+    from aiogram.exceptions import TelegramBadRequest
+    try:
+        await call.answer()
+    except TelegramBadRequest:
+        pass
+
+
+async def _render_lot_detail(message: Message, lot: ProductLot) -> None:
+    orig_str = f"\nСтарая цена: {lot.original_price} ₽" if lot.original_price else ""
+    badge_str = f"\nБейдж: {lot.badge}" if lot.badge else ""
+    text = (
+        f"📦 <b>Лот: {lot.name}</b>\n\n"
+        f"Цена: {lot.price} ₽{orig_str}{badge_str}\n"
+        f"Статус: {toggle_emoji(lot.is_active)} {'Активен' if lot.is_active else 'Скрыт'}"
+    )
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(
+            text="🔴 Скрыть" if lot.is_active else "✅ Активировать",
+            callback_data=f"admin:lot:toggle:{lot.id}",
+        )],
+        [admin_back_btn(f"admin:product:{lot.product_id}")],
+    ])
+    await message.edit_text(text, reply_markup=keyboard)
+
+
+@router.callback_query(F.data.startswith("admin:lot:toggle:"))
+@require_permission("products.edit")
+async def admin_lot_toggle(
+    call: CallbackQuery, db: AsyncSession, admin: AdminUser
+) -> None:
+    try:
+        lot_id = _uuid.UUID(call.data.split(":")[3])
+    except ValueError:
+        await call.answer("Некорректный ID лота", show_alert=True)
+        return
+    lot = await db.get(ProductLot, lot_id)
+    if not lot:
+        await call.answer("Лот не найден", show_alert=True)
+        return
+    lot.is_active = not lot.is_active
+    await db.commit()
+    status = "активирован ✅" if lot.is_active else "скрыт 🔴"
+    await call.answer(f"Лот {status}")
+    from aiogram.exceptions import TelegramBadRequest
+    try:
+        await _render_lot_detail(call.message, lot)
+    except TelegramBadRequest:
+        pass
 
 
 async def _save_category(message: Message, state: FSMContext, db: AsyncSession) -> None:
