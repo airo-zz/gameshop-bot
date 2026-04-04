@@ -529,6 +529,7 @@ export default function HomePage() {
                       background: 'rgba(79,70,229,0.12)',
                       border: '1px solid rgba(79,70,229,0.25)',
                       textDecoration: 'none',
+                      width: 110,
                     }}
                   >
                     <span
