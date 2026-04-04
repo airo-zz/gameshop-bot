@@ -284,8 +284,14 @@ export default function ProfilePage() {
         </div>
 
         {/* Коллапсируемый список уровней */}
-        {showLevels && (
-          <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{
+          overflow: 'hidden',
+          maxHeight: showLevels ? '400px' : '0px',
+          opacity: showLevels ? 1 : 0,
+          transition: 'max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease',
+          marginTop: showLevels ? 8 : 0,
+        }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {LOYALTY_LEVELS.map(level => (
               <div
                 key={level.name}
@@ -315,7 +321,7 @@ export default function ProfilePage() {
               </div>
             ))}
           </div>
-        )}
+        </div>
       </div>
 
       {/* ── Статистика ── */}
@@ -349,7 +355,7 @@ export default function ProfilePage() {
           <button
             onClick={handleCopyLink}
             className="flex items-center flex-1 p-3 rounded-xl active:scale-95 transition-transform"
-            style={{ background: 'var(--bg3)', border: '1px solid var(--border)' }}
+            style={{ background: 'var(--bg3)', border: '1px solid var(--border)', minWidth: 0 }}
           >
             <code className="text-xs font-bold truncate" style={{ color: '#6b9de8' }}>
               t.me/{BOT_USERNAME}?start=REF_{profile.telegram_id}
