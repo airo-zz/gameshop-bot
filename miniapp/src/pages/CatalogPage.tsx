@@ -187,36 +187,29 @@ export default function CatalogPage() {
 
       {/* ── Normal catalog ─────────────────────────────────────────────── */}
       {!isSearching && (
-        <div className="space-y-2 pt-1">
+        <div className="grid grid-cols-3 gap-3 pt-1">
           {isLoading
             ? Array(6).fill(0).map((_, i) => (
-                <div key={i} className="skeleton h-[72px] rounded-2xl" />
+                <div key={i} className="skeleton rounded-2xl aspect-square" />
               ))
             : games.map(game => (
                 <Link
                   key={game.id}
                   to={`/catalog/${game.slug}`}
-                  className="flex items-center gap-3 p-3 rounded-2xl active:scale-[0.98] transition-transform"
+                  className="flex flex-col rounded-2xl overflow-hidden active:scale-[0.96] transition-transform"
                   style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
                 >
-                  <div
-                    className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0"
-                    style={{ background: 'var(--bg3)' }}
-                  >
+                  <div className="aspect-square w-full overflow-hidden" style={{ background: 'var(--bg3)' }}>
                     {game.image_url
                       ? <img src={game.image_url} alt={game.name} className="w-full h-full object-cover" loading="lazy" />
-                      : <div className="w-full h-full flex items-center justify-center text-2xl">🎮</div>
+                      : <div className="w-full h-full flex items-center justify-center text-4xl">🎮</div>
                     }
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate" style={{ color: 'var(--text)' }}>{game.name}</p>
-                    {game.description && (
-                      <p className="text-xs truncate mt-0.5" style={{ color: 'var(--hint)' }}>
-                        {game.description}
-                      </p>
-                    )}
+                  <div className="px-2 py-1.5">
+                    <p className="text-xs font-semibold text-center truncate" style={{ color: 'var(--text)' }}>
+                      {game.name}
+                    </p>
                   </div>
-                  <ChevronRight size={16} style={{ color: 'var(--hint)' }} />
                 </Link>
               ))
           }
