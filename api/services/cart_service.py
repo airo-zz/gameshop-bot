@@ -98,6 +98,7 @@ class CartService:
             input_data=input_data,
         )
         self.db.add(item)
+        await self.db.flush()  # Получаем item.id сразу, не ждём commit
         self._extend_cart_expiry(cart)
         return item
 

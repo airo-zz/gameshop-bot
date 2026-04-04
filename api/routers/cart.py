@@ -1,6 +1,6 @@
 """api/routers/cart.py"""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, status
 from api.deps import CurrentUser, DbSession
 from api.schemas.cart import (
     AddToCartRequest,
@@ -58,17 +58,20 @@ async def get_cart(db: DbSession, user: CurrentUser):
     )
 
 
-@router.post("/items")
+@router.post("/items", status_code=status.HTTP_200_OK)
 async def add_to_cart(body: AddToCartRequest, db: DbSession, user: CurrentUser):
     svc = CartService(db)
     cart = await svc.get_or_create_cart(user)
-    item = await svc.add_item(
-        cart, body.product_id, body.lot_id, body.quantity, body.input_data
-    )
+    try:
+        item = await svc.add_item(
+            cart, body.product_id, body.lot_id, body.quantity, body.input_data
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return {
         "ok": True,
         "item_id": str(item.id),
-        "cart_items_count": cart.items_count + 1,
+        "item_quantity": item.quantity,
     }
 
 
@@ -80,7 +83,10 @@ async def update_cart_item(
 
     svc = CartService(db)
     cart = await svc.get_or_create_cart(user)
-    item = await svc.update_item(cart, uuid.UUID(item_id), body.quantity)
+    try:
+        item = await svc.update_item(cart, uuid.UUID(item_id), body.quantity)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return {"ok": True, "deleted": item is None}
 
 

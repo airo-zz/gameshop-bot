@@ -174,7 +174,7 @@ export const cartApi = {
     apiClient.get<Cart>('/cart').then(r => r.data),
 
   addItem: (data: { product_id: string; lot_id?: string; quantity: number; input_data: Record<string, string> }) =>
-    apiClient.post<{ ok: boolean; item_id: string; cart_items_count: number }>('/cart/items', data).then(r => r.data),
+    apiClient.post<{ ok: boolean; item_id: string; item_quantity: number }>('/cart/items', data).then(r => r.data),
 
   updateItem: (itemId: string, quantity: number) =>
     apiClient.put<{ ok: boolean; deleted: boolean }>(`/cart/items/${itemId}`, { quantity }).then(r => r.data),
