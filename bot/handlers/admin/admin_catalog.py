@@ -82,6 +82,11 @@ class EditGameFSM(StatesGroup):
     enter_value = State()
 
 
+class EditLotFSM(StatesGroup):
+    choose_field = State()
+    enter_value = State()
+
+
 class AddCategoryFSM(StatesGroup):
     game_id = State()
     name = State()
@@ -668,18 +673,169 @@ async def admin_cat_set_parent(
     await _save_category(call.message, state, db)
 
 
-# ── Edit Game (stub) ──────────────────────────────────────────────────────────
+# ── Edit Game ─────────────────────────────────────────────────────────────────
 
 
-@router.callback_query(F.data.startswith("admin:game:edit:"))
+@router.callback_query(
+    F.data.startswith("admin:game:edit:")
+    & ~F.data.startswith("admin:game:edit:field:")
+)
 @require_permission("games.edit")
-async def admin_game_edit_stub(
-    call: CallbackQuery, admin: AdminUser
+async def admin_game_edit(
+    call: CallbackQuery, db: AsyncSession, state: FSMContext, admin: AdminUser
 ) -> None:
-    await call.answer(
-        "✏️ Редактирование игры — доступно через Mini App (этап 5).",
-        show_alert=True,
-    )
+    try:
+        game_id = _uuid.UUID(call.data.split(":")[3])
+    except ValueError:
+        await call.answer("Некорректный ID игры", show_alert=True)
+        return
+    game = await db.get(Game, game_id)
+    if not game:
+        await call.answer("Игра не найдена", show_alert=True)
+        return
+
+    await state.set_state(EditGameFSM.choose_field)
+    await state.update_data(game_id=str(game_id))
+
+    text = f"✏️ <b>Редактирование игры: {game.name}</b>\n\nВыбери поле:"
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="📛 Название",
+                callback_data=f"admin:game:edit:field:{game_id}:name",
+            ),
+            InlineKeyboardButton(
+                text="📝 Описание",
+                callback_data=f"admin:game:edit:field:{game_id}:description",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="🖼 Обложку",
+                callback_data=f"admin:game:edit:field:{game_id}:image",
+            ),
+            InlineKeyboardButton(
+                text="❌ Отмена",
+                callback_data=f"admin:game:{game_id}",
+            ),
+        ],
+    ])
+    await call.message.edit_text(text, reply_markup=keyboard)
+    from aiogram.exceptions import TelegramBadRequest
+    try:
+        await call.answer()
+    except TelegramBadRequest:
+        pass
+
+
+@router.callback_query(
+    F.data.startswith("admin:game:edit:field:"),
+    StateFilter(EditGameFSM.choose_field),
+)
+@require_permission("games.edit")
+async def admin_game_edit_field_choose(
+    call: CallbackQuery, state: FSMContext, admin: AdminUser
+) -> None:
+    parts = call.data.split(":")
+    # admin:game:edit:field:{game_id}:{field}
+    try:
+        game_id = parts[4]
+        field = parts[5]
+    except IndexError:
+        await call.answer("Некорректные данные", show_alert=True)
+        return
+
+    await state.update_data(game_id=game_id, field=field)
+    await state.set_state(EditGameFSM.enter_value)
+
+    prompts = {
+        "name": "Введи новое <b>название</b> игры:",
+        "description": "Введи новое <b>описание</b> игры (или «нет» чтобы очистить):",
+        "image": "Отправь новую <b>обложку</b> игры (фото):",
+    }
+    prompt = prompts.get(field, "Введи новое значение:")
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Отмена", callback_data=f"admin:game:{game_id}")]
+    ])
+    await call.message.edit_text(prompt, reply_markup=keyboard)
+    await call.answer()
+
+
+@router.message(StateFilter(EditGameFSM.enter_value), F.text)
+async def admin_game_edit_value(
+    message: Message, state: FSMContext, db: AsyncSession
+) -> None:
+    data = await state.get_data()
+    game_id = _uuid.UUID(data["game_id"])
+    field = data["field"]
+
+    if field == "image":
+        await message.answer(
+            "⚠️ Ожидается фото, а не текст. Отправь изображение."
+        )
+        return
+
+    game = await db.get(Game, game_id)
+    if not game:
+        await state.clear()
+        await message.answer("Игра не найдена.")
+        return
+
+    value = message.text.strip()
+    if field == "name":
+        game.name = value
+        result_text = "✅ <b>Название обновлено.</b>"
+    elif field == "description":
+        game.description = None if value.lower() in ("нет", "0", "-") else value
+        result_text = "✅ <b>Описание обновлено.</b>"
+    else:
+        await state.clear()
+        await message.answer("Неизвестное поле.")
+        return
+
+    await db.commit()
+    await state.clear()
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [admin_back_btn(f"admin:game:{game_id}")]
+    ])
+    await message.answer(result_text, reply_markup=keyboard)
+
+
+@router.message(StateFilter(EditGameFSM.enter_value), F.photo)
+async def admin_game_edit_image(
+    message: Message, state: FSMContext, db: AsyncSession, bot: Bot
+) -> None:
+    data = await state.get_data()
+    game_id = _uuid.UUID(data["game_id"])
+    field = data["field"]
+
+    if field != "image":
+        await message.answer(
+            "⚠️ Ожидается текстовое значение, а не фото."
+        )
+        return
+
+    game = await db.get(Game, game_id)
+    if not game:
+        await state.clear()
+        await message.answer("Игра не найдена.")
+        return
+
+    photo = message.photo[-1]
+    image_url = await _upload_image_to_api(bot, photo.file_id)
+    if image_url is None:
+        await message.answer("⚠️ Не удалось загрузить изображение. Попробуй снова.")
+        return
+
+    game.image_url = image_url
+    await db.commit()
+    await state.clear()
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [admin_back_btn(f"admin:game:{game_id}")]
+    ])
+    await message.answer("✅ <b>Обложка обновлена.</b>", reply_markup=keyboard)
 
 
 # ── Delete Game ───────────────────────────────────────────────────────────────
@@ -1084,6 +1240,7 @@ async def _save_lot(
     F.data.startswith("admin:lot:")
     & ~F.data.startswith("admin:lot:add:")
     & ~F.data.startswith("admin:lot:toggle:")
+    & ~F.data.startswith("admin:lot:edit:")
 )
 @require_permission("products.view")
 async def admin_lot_detail(
@@ -1120,6 +1277,10 @@ async def _render_lot_detail(message: Message, lot: ProductLot, cat_id) -> None:
     back_cb = f"admin:category:{cat_id}" if cat_id else "admin:catalog:main"
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(
+            text="✏️ Редактировать",
+            callback_data=f"admin:lot:edit:{lot.id}",
+        )],
+        [InlineKeyboardButton(
             text="🔴 Скрыть" if lot.is_active else "✅ Активировать",
             callback_data=f"admin:lot:toggle:{lot.id}",
         )],
@@ -1153,6 +1314,153 @@ async def admin_lot_toggle(
         await _render_lot_detail(call.message, lot, cat_id)
     except TelegramBadRequest:
         pass
+
+
+# ── Edit Lot ──────────────────────────────────────────────────────────────────
+
+
+@router.callback_query(
+    F.data.startswith("admin:lot:edit:")
+    & ~F.data.startswith("admin:lot:edit:field:")
+)
+@require_permission("products.edit")
+async def admin_lot_edit_start(
+    call: CallbackQuery, db: AsyncSession, state: FSMContext, admin: AdminUser
+) -> None:
+    try:
+        lot_id = _uuid.UUID(call.data.split(":")[3])
+    except ValueError:
+        await call.answer("Некорректный ID лота", show_alert=True)
+        return
+    lot = await db.get(ProductLot, lot_id)
+    if not lot:
+        await call.answer("Лот не найден", show_alert=True)
+        return
+
+    await state.set_state(EditLotFSM.choose_field)
+    await state.update_data(lot_id=str(lot_id))
+
+    text = f"✏️ <b>Редактирование лота: {lot.name}</b>\n\nВыбери поле:"
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="📛 Название",
+                callback_data=f"admin:lot:edit:field:{lot_id}:name",
+            ),
+            InlineKeyboardButton(
+                text="💰 Цена",
+                callback_data=f"admin:lot:edit:field:{lot_id}:price",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="🏷 Старая цена",
+                callback_data=f"admin:lot:edit:field:{lot_id}:original_price",
+            ),
+            InlineKeyboardButton(
+                text="🎖 Бейдж",
+                callback_data=f"admin:lot:edit:field:{lot_id}:badge",
+            ),
+        ],
+        [
+            InlineKeyboardButton(
+                text="❌ Отмена",
+                callback_data=f"admin:lot:{lot_id}",
+            ),
+        ],
+    ])
+    await call.message.edit_text(text, reply_markup=keyboard)
+    from aiogram.exceptions import TelegramBadRequest
+    try:
+        await call.answer()
+    except TelegramBadRequest:
+        pass
+
+
+@router.callback_query(
+    F.data.startswith("admin:lot:edit:field:"),
+    StateFilter(EditLotFSM.choose_field),
+)
+@require_permission("products.edit")
+async def admin_lot_edit_field_choose(
+    call: CallbackQuery, state: FSMContext, admin: AdminUser
+) -> None:
+    parts = call.data.split(":")
+    # admin:lot:edit:field:{lot_id}:{field}
+    try:
+        lot_id = parts[4]
+        field = parts[5]
+    except IndexError:
+        await call.answer("Некорректные данные", show_alert=True)
+        return
+
+    await state.update_data(lot_id=lot_id, field=field)
+    await state.set_state(EditLotFSM.enter_value)
+
+    prompts = {
+        "name": "Введи новое <b>название</b> лота:",
+        "price": "Введи новую <b>цену</b> лота (число, например <code>199.99</code>):",
+        "original_price": (
+            "Введи <b>старую цену</b> лота (число) или «нет»/«0» чтобы убрать:"
+        ),
+        "badge": "Введи текст <b>бейджа</b> (например «Хит») или «нет»/«0» чтобы убрать:",
+    }
+    prompt = prompts.get(field, "Введи новое значение:")
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Отмена", callback_data=f"admin:lot:{lot_id}")]
+    ])
+    await call.message.edit_text(prompt, reply_markup=keyboard)
+    await call.answer()
+
+
+@router.message(StateFilter(EditLotFSM.enter_value), F.text)
+async def admin_lot_edit_value(
+    message: Message, state: FSMContext, db: AsyncSession
+) -> None:
+    from decimal import Decimal, InvalidOperation
+
+    data = await state.get_data()
+    lot_id = _uuid.UUID(data["lot_id"])
+    field = data["field"]
+
+    lot = await db.get(ProductLot, lot_id)
+    if not lot:
+        await state.clear()
+        await message.answer("Лот не найден.")
+        return
+
+    value = message.text.strip()
+
+    if field == "name":
+        lot.name = value
+    elif field == "price":
+        try:
+            lot.price = Decimal(value.replace(",", "."))
+        except InvalidOperation:
+            await message.answer("⚠️ Некорректное число. Введи цену ещё раз (например <code>199.99</code>).")
+            return
+    elif field == "original_price":
+        if value.lower() in ("нет", "0", "-"):
+            lot.original_price = None
+        else:
+            try:
+                lot.original_price = Decimal(value.replace(",", "."))
+            except InvalidOperation:
+                await message.answer("⚠️ Некорректное число. Введи старую цену или «нет» чтобы убрать.")
+                return
+    elif field == "badge":
+        lot.badge = None if value.lower() in ("нет", "0", "-") else value
+    else:
+        await state.clear()
+        await message.answer("Неизвестное поле.")
+        return
+
+    await db.commit()
+    await state.clear()
+
+    product = await db.get(Product, lot.product_id)
+    cat_id = product.category_id if product else None
+    await _render_lot_detail(message, lot, cat_id)
 
 
 async def _save_category(message: Message, state: FSMContext, db: AsyncSession) -> None:
