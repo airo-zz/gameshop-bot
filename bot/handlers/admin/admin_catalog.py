@@ -825,7 +825,7 @@ async def _render_category_detail(message: Message, cat: Category, product: Prod
         *lot_buttons,
         [InlineKeyboardButton(
             text="➕ Добавить пакет",
-            callback_data=f"admin:lot:add:{product.id}:{cat.id}",
+            callback_data=f"admin:lot:add:{product.id}",
         )],
         [admin_back_btn(f"admin:categories:{cat.game_id}")],
     ])
@@ -897,12 +897,13 @@ async def admin_category_toggle(
 )
 @require_permission("products.edit")
 async def admin_lot_add_start(
-    call: CallbackQuery, state: FSMContext, admin: AdminUser
+    call: CallbackQuery, state: FSMContext, admin: AdminUser, db: AsyncSession
 ) -> None:
-    parts = call.data.split(":")
-    product_id = parts[3]
-    cat_id = parts[4] if len(parts) > 4 else None
-    await state.update_data(product_id=product_id, cat_id=cat_id)
+    product_id_str = call.data.split(":")[3]
+    # Загружаем product чтобы получить category_id для навигации "Назад"
+    product = await db.get(Product, _uuid.UUID(product_id_str))
+    cat_id = str(product.category_id) if product else None
+    await state.update_data(product_id=product_id_str, cat_id=cat_id)
     await call.message.edit_text(
         "➕ <b>Добавление лота</b>\n\nШаг 1/4\n\nВведи <b>название лота</b>:\n"
         "<i>Пример: 80 гемов, 170 гемов, Battle Pass</i>",
@@ -1031,7 +1032,7 @@ async def _save_lot(
     orig_str = f" (было {data['original_price']} ₽)" if data.get("original_price") else ""
     badge_str = f" [{lot.badge}]" if lot.badge else ""
     cat_id = data.get("cat_id")
-    add_more_cb = f"admin:lot:add:{data['product_id']}:{cat_id}" if cat_id else f"admin:lot:add:{data['product_id']}"
+    add_more_cb = f"admin:lot:add:{data['product_id']}"
     back_cb = f"admin:category:{cat_id}" if cat_id else f"admin:lot:{lot.id}"
     await call.message.edit_text(
         f"✅ Пакет добавлен!\n\n"
@@ -1172,7 +1173,7 @@ async def _save_category(message: Message, state: FSMContext, db: AsyncSession) 
                 [
                     InlineKeyboardButton(
                         text="➕ Добавить пакет",
-                        callback_data=f"admin:lot:add:{product_id}:{cat_id}",
+                        callback_data=f"admin:lot:add:{product_id}",
                     )
                 ],
                 [admin_back_btn(f"admin:categories:{game_id_str}")],
