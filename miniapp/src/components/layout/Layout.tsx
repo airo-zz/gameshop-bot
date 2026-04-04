@@ -85,14 +85,16 @@ export default function Layout() {
       {/* Star particle background */}
       {particlesEnabled && <ParticleCanvas />}
 
-      {/* Safe area top fill — extends page background under status bar / close button */}
+      {/* Safe area top fill — extends header background under status bar / close button */}
       <div style={{
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         height: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))',
-        background: 'var(--bg)',
+        background: 'rgba(12,11,29,0.92)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
         zIndex: 49,
       }} />
 
