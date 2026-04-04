@@ -39,6 +39,7 @@ interface TelegramWebApp {
   isExpanded: boolean
   viewportHeight: number
   viewportStableHeight: number
+  platform: string
   requestFullscreen?: () => void
   MainButton: {
     text: string
@@ -100,7 +101,8 @@ export function useTelegram() {
     if (!tg) return
     tg.ready()
     tg.expand()
-    tg.requestFullscreen?.()
+    const isMobile = ['ios', 'android', 'android_x'].includes(tg.platform)
+    if (isMobile) tg.requestFullscreen?.()
     tg.enableClosingConfirmation?.()
     tg.disableVerticalSwipes?.()
     // colorScheme читается один раз при инициализации;
