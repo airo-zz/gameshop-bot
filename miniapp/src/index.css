@@ -4,10 +4,10 @@
 
 /* ── Gaming dark theme — deep space indigo/violet (VoxiProxy palette) ───── */
 :root {
-  --bg:          #080810;
-  --bg2:         #0d0c1f;
-  --bg3:         #0f0e22;
-  --bg4:         #141228;
+  --bg:          #020202;
+  --bg2:         #0c0b1a;
+  --bg3:         #0f0e20;
+  --bg4:         #131122;
   --text:        #ffffff;
   --hint:        #a0a0b8;
   --link:        #818cf8;
@@ -24,7 +24,7 @@
   --radius:      18px;
 
   /* Glassmorphism tokens */
-  --glass-bg:     rgba(13,12,31,0.85);
+  --glass-bg:     rgba(8,8,20,0.80);
   --glass-border: rgba(255,255,255,0.08);
   --glass-blur:   16px;
 
@@ -71,7 +71,9 @@ body   { overscroll-behavior: none; }
   .card {
     @apply rounded-2xl p-4;
     background: var(--bg2);
-    border: 1px solid var(--border);
+    border: 1px solid rgba(255,255,255,0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   /* Glassmorphism card */
@@ -81,6 +83,14 @@ body   { overscroll-behavior: none; }
     border: 1px solid var(--glass-border);
     backdrop-filter: blur(var(--glass-blur));
     -webkit-backdrop-filter: blur(var(--glass-blur));
+  }
+
+  /* Stronger glass — use on overlay elements */
+  .glass-card {
+    background: rgba(12,11,26,0.75);
+    border: 1px solid rgba(255,255,255,0.07);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
   /* Gaming card with accent border */
