@@ -354,7 +354,7 @@ export default function ProfilePage() {
             <code className="text-xs font-bold truncate" style={{ color: '#6b9de8' }}>
               t.me/{BOT_USERNAME}?start=REF_{profile.telegram_id}
             </code>
-          </div>
+          </button>
           <button
             onClick={handleShareTelegram}
             className="flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
