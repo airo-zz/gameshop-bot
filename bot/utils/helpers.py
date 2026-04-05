@@ -12,17 +12,28 @@ async def safe_edit(
     parse_mode: str = "HTML",
 ) -> None:
     """
-    Пытается отредактировать сообщение. Если не получается (нет текста, удалено)
-    — отправляет новое и удаляет старое.
+    Пытается отредактировать сообщение.
+    Порядок: edit_text → edit_caption (фото/видео) → delete + answer.
     """
     try:
         await message.edit_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+        return
     except TelegramBadRequest:
-        try:
-            await message.delete()
-        except TelegramBadRequest:
-            pass
-        await message.answer(text, reply_markup=reply_markup, parse_mode=parse_mode)
+        pass
+
+    # Для фото/видео сообщений — редактируем подпись, не удаляя сообщение
+    try:
+        await message.edit_caption(caption=text, reply_markup=reply_markup, parse_mode=parse_mode)
+        return
+    except TelegramBadRequest:
+        pass
+
+    # Крайний случай: удалить старое и отправить новое
+    try:
+        await message.delete()
+    except TelegramBadRequest:
+        pass
+    await message.answer(text, reply_markup=reply_markup, parse_mode=parse_mode)
 
 
 async def nav_edit(

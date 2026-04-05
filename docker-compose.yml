@@ -169,8 +169,6 @@ services:
     depends_on:
       api:
         condition: service_healthy
-      bot:
-        condition: service_healthy
 
   # ── Certbot (SSL) ────────────────────────────
   certbot:
