@@ -641,91 +641,36 @@ export default function HomePage() {
           </div>
 
           {featured.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ background: 'var(--bg2)', borderRadius: 12, overflow: 'hidden' }}>
               {featured.slice(0, 6).map((product, i) => (
                 <Link
                   key={product.id}
                   to={`/product/${product.id}`}
-                  className={`animate-fade-in delay-${Math.min(i * 50, 300)}`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: 12,
-                    padding: '12px 14px',
-                    background: 'rgba(10,9,22,0.45)',
-                    backdropFilter: 'blur(12px)',
-                    WebkitBackdropFilter: 'blur(12px)',
-                    border: '1px solid rgba(45,88,173,0.20)',
-                    borderRadius: 16,
+                    justifyContent: 'space-between',
+                    padding: '0 16px',
+                    height: 64,
                     textDecoration: 'none',
-                    transition: 'transform 0.15s',
+                    borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                    transition: 'background 0.15s',
+                    WebkitTapHighlightColor: 'transparent',
                   }}
+                  onTouchStart={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)' }}
+                  onTouchEnd={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
                 >
-                  <div
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: 10,
-                      overflow: 'hidden',
-                      flexShrink: 0,
-                      background: 'var(--bg3)',
-                    }}
-                  >
-                    {product.images?.[0] ? (
-                      <img
-                        src={product.images[0]}
-                        alt={product.name}
-                        loading="lazy"
-                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: 'linear-gradient(135deg, #060f1e, #0a1428)',
-                          color: 'rgba(107,157,232,0.4)',
-                        }}
-                      >
-                        <IconGamepadSmall />
-                      </div>
-                    )}
-                  </div>
-
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontSize: 13,
-                        fontWeight: 600,
-                        color: 'rgba(255,255,255,0.9)',
-                        overflow: 'hidden',
-                        whiteSpace: 'nowrap',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <p style={{ margin: 0, fontSize: 15, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                       {product.name}
                     </p>
                     {product.game_name && (
-                      <p
-                        style={{
-                          margin: '2px 0 0',
-                          fontSize: 12,
-                          color: 'rgba(255,255,255,0.45)',
-                          overflow: 'hidden',
-                          whiteSpace: 'nowrap',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
+                      <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--hint)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                         {product.game_name}
                       </p>
                     )}
                   </div>
-
-                  <span style={{ color: 'rgba(107,157,232,0.4)', display: 'flex', flexShrink: 0 }}>
+                  <span style={{ color: 'rgba(255,255,255,0.2)', display: 'flex', flexShrink: 0, marginLeft: 8 }}>
                     <IconChevronRight />
                   </span>
                 </Link>
