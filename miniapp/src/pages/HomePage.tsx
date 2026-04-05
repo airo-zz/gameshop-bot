@@ -245,16 +245,23 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
   const dragDelta = useRef<number>(0)
   const panelRef = useRef<HTMLDivElement>(null)
 
-  // Lock scroll on main while sheet is open
+  // Lock scroll while sheet is open
   useEffect(() => {
     const main = document.querySelector('main') as HTMLElement | null
-    if (!main) return
     if (open) {
-      main.style.overflow = 'hidden'
+      if (main) main.style.overflow = 'hidden'
+      document.body.style.overflow = 'hidden'
+      document.documentElement.style.overflow = 'hidden'
     } else {
-      main.style.overflow = ''
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+      document.documentElement.style.overflow = ''
     }
-    return () => { main.style.overflow = '' }
+    return () => {
+      if (main) main.style.overflow = ''
+      document.body.style.overflow = ''
+      document.documentElement.style.overflow = ''
+    }
   }, [open])
 
   // Reset panel transform when open state changes
@@ -515,14 +522,14 @@ export default function HomePage() {
             <button
               onClick={() => setMenuOpen(v => !v)}
               style={{
-                width: 46,
-                height: 46,
+                width: 48,
+                height: 48,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: 12,
-                background: menuOpen ? 'rgba(45,88,173,0.18)' : 'rgba(255,255,255,0.04)',
-                border: menuOpen ? '1px solid rgba(45,88,173,0.38)' : '1px solid rgba(255,255,255,0.08)',
+                background: menuOpen ? 'rgba(45,88,173,0.18)' : 'transparent',
+                border: menuOpen ? '1px solid rgba(45,88,173,0.38)' : '1px solid transparent',
                 color: menuOpen ? '#6b9de8' : 'rgba(255,255,255,0.6)',
                 cursor: 'pointer',
                 transition: 'background 0.2s, border-color 0.2s, color 0.2s',
