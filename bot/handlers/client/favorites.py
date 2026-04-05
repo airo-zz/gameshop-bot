@@ -20,7 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import User, UserFavorite, Product
+from shared.models import User, UserFavorite, Product, Category, Game
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, nav_edit
 from bot.handlers.client.catalog import _show_product
@@ -31,10 +31,16 @@ router = Router(name="client:favorites")
 def _favorites_keyboard(products: list[Product]) -> InlineKeyboardMarkup:
     buttons = []
     for product in products:
+        game_name = (
+            product.category.game.name
+            if product.category and product.category.game
+            else None
+        )
+        label = f"{product.name} ({game_name})" if game_name else product.name
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text=product.name,
+                    text=label,
                     callback_data=f"catalog:product:{product.id}",
                 )
             ]
@@ -67,7 +73,11 @@ async def _show_favorites(
 ) -> None:
     result = await db.execute(
         select(UserFavorite)
-        .options(selectinload(UserFavorite.product))
+        .options(
+            selectinload(UserFavorite.product)
+            .selectinload(Product.category)
+            .selectinload(Category.game)
+        )
         .where(UserFavorite.user_id == user.id)
     )
     favorites = result.scalars().all()
