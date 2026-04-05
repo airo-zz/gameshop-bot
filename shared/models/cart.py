@@ -56,7 +56,8 @@ class Cart(Base, UUIDMixin):
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="cart")
     items: Mapped[list["CartItem"]] = relationship(
-        "CartItem", back_populates="cart", cascade="all, delete-orphan"
+        "CartItem", back_populates="cart", cascade="all, delete-orphan",
+        order_by="CartItem.added_at",
     )
     promo_code: Mapped["PromoCode | None"] = relationship("PromoCode")
 

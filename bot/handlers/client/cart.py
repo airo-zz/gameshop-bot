@@ -64,7 +64,7 @@ def _cart_keyboard(items: list, has_promo: bool = False) -> InlineKeyboardMarkup
         )
 
     # Промокод
-    promo_text = "🏷 Промокод ✅" if has_promo else "🏷 Промокод"
+    promo_text = "🏷 Ввести промокод ✅" if has_promo else "🏷 Ввести промокод"
     buttons.append(
         [InlineKeyboardButton(text=promo_text, callback_data="cart:promo")]
     )
@@ -249,17 +249,28 @@ async def cb_cart_qty(call: CallbackQuery, user: User, db: AsyncSession) -> None
 # ── Handlers: очистка корзины ─────────────────────────────────────────────────
 
 @router.callback_query(F.data == "cart:clear")
-async def cb_cart_clear(call: CallbackQuery, user: User, db: AsyncSession) -> None:
+async def cb_cart_clear(call: CallbackQuery) -> None:
+    """Запрашивает подтверждение очистки корзины."""
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="✅ Да, очистить", callback_data="cart:clear:confirm", style="danger"),
+            InlineKeyboardButton(text="❌ Отмена", callback_data="cart:view"),
+        ]
+    ])
+    await safe_edit(call.message, "🗑 <b>Очистить корзину?</b>\n\nВсе товары будут удалены.", reply_markup=keyboard)
+    await call.answer()
+
+
+@router.callback_query(F.data == "cart:clear:confirm")
+async def cb_cart_clear_confirm(call: CallbackQuery, user: User, db: AsyncSession) -> None:
     cart_svc = CartService(db)
     cart = await cart_svc.get_or_create_cart(user)
     if not cart.is_empty:
         await cart_svc.clear_cart(cart)
         await db.commit()
-        await call.answer("🗑 Корзина очищена")
+        await _show_cart(call, user, db, answer_text="🗑 Корзина очищена")
     else:
-        await call.answer("Корзина уже пуста")
-
-    await _show_cart(call, user, db)
+        await _show_cart(call, user, db, answer_text="Корзина уже пуста")
 
 
 # ── Промокод FSM ──────────────────────────────────────────────────────────────

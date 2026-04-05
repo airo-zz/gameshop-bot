@@ -74,7 +74,7 @@ class BotTexts:
     ) -> str:
         delivery_text = {
             "auto": "⚡ Автоматически",
-            "manual": "👤 Вручную (до 24ч)",
+            "manual": "👤 Вручную",
             "mixed": "📦 Зависит от лота",
         }.get(delivery_type, delivery_type)
 
@@ -281,7 +281,7 @@ class BotTexts:
         total_spent: float,
         loyalty_name: str,
         loyalty_emoji: str,
-        referral_code: str,
+        referral_code: str = "",
         next_level_name: str | None = None,
         next_level_need: float | None = None,
     ) -> str:
@@ -300,8 +300,7 @@ class BotTexts:
             f"Баланс: <b>{balance:.2f} ₽</b>\n"
             f"Заказов: <b>{orders_count}</b>\n"
             f"Уровень: {loyalty_emoji} <b>{loyalty_name}</b>"
-            f"{progress_text}\n"
-            f"Реферальный код: <code>{referral_code}</code>"
+            f"{progress_text}"
         )
 
     def balance_info(self, balance: float, orders_count: int, total_spent: float) -> str:
@@ -330,20 +329,26 @@ class BotTexts:
 
     def referral_info(
         self,
-        referral_code: str,
         ref_link: str,
         referrals_count: int,
+        referral_code: str = "",
     ) -> str:
         return (
             f"🎁 <b>Реферальная программа</b>\n"
             f"━━━━━━━━━━━━━━━\n"
             f"Приглашай друзей и получай бонусы за каждого!\n\n"
-            f"👥 Приглашено: <b>{referrals_count}</b>\n"
-            f"🔑 Твой код: <code>{referral_code}</code>\n\n"
+            f"👥 Приглашено: <b>{referrals_count}</b>\n\n"
             f"🔗 Твоя ссылка:\n"
             f"<code>{ref_link}</code>\n\n"
             f"Поделись ссылкой с друзьями — когда они совершат первую покупку, "
             f"ты получишь бонус на баланс!"
+        )
+
+    def balance_topup_methods(self, balance: float) -> str:
+        return (
+            f"💰 <b>Пополнение баланса</b>\n\n"
+            f"Текущий баланс: <b>{balance:.2f} ₽</b>\n\n"
+            f"Выбери способ пополнения:"
         )
 
     # ── Поддержка ─────────────────────────────────────────────────────────────

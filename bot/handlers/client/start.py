@@ -77,7 +77,10 @@ def get_start_inline_keyboard() -> InlineKeyboardMarkup:
     buttons = [
         [entry_button],
         [
-            InlineKeyboardButton(text="🎮 Каталог игр", callback_data="catalog:main"),
+            InlineKeyboardButton(text="🎮 Игры", callback_data="catalog:main"),
+            InlineKeyboardButton(text="🔧 Сервисы", callback_data="catalog:services"),
+        ],
+        [
             InlineKeyboardButton(text="🛒 Корзина", callback_data="cart:view"),
         ],
         [

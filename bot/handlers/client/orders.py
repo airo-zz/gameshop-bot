@@ -27,14 +27,25 @@ from bot.utils.helpers import safe_edit, nav_edit
 router = Router(name="client:orders")
 
 STATUS_EMOJI = {
-    OrderStatus.new: "🆕",
+    OrderStatus.new: "⏳",
     OrderStatus.pending_payment: "⏳",
     OrderStatus.paid: "💚",
-    OrderStatus.processing: "⚙️",
-    OrderStatus.clarification: "❓",
+    OrderStatus.processing: "💚",
+    OrderStatus.clarification: "💚",
     OrderStatus.completed: "✅",
-    OrderStatus.cancelled: "❌",
-    OrderStatus.dispute: "⚠️",
+    OrderStatus.cancelled: "↩️",
+    OrderStatus.dispute: "↩️",
+}
+
+STATUS_LABEL = {
+    OrderStatus.new: "Ожидает оплаты",
+    OrderStatus.pending_payment: "Ожидает оплаты",
+    OrderStatus.paid: "Оплачен",
+    OrderStatus.processing: "Оплачен",
+    OrderStatus.clarification: "Оплачен",
+    OrderStatus.completed: "Завершён",
+    OrderStatus.cancelled: "Возврат",
+    OrderStatus.dispute: "Возврат",
 }
 
 PAGE_SIZE = 10
@@ -57,13 +68,14 @@ async def _render_orders(
     buttons = []
     for order in orders:
         emoji = STATUS_EMOJI.get(order.status, "📋")
+        label = STATUS_LABEL.get(order.status, order.status.value)
         lines.append(
-            f"{emoji} <b>{order.order_number}</b> — {order.total_amount:.0f} ₽"
+            f"{emoji} <b>{order.order_number}</b> — {order.total_amount:.0f} ₽ · {label}"
         )
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text=f"{emoji} {order.order_number} — {order.total_amount:.0f} ₽",
+                    text=f"{emoji} {order.order_number} — {order.total_amount:.0f} ₽ · {label}",
                     callback_data=f"order:detail:{order.id}",
                 )
             ]
@@ -127,6 +139,7 @@ async def cb_order_detail(
         return
 
     emoji = STATUS_EMOJI.get(order.status, "📋")
+    label = STATUS_LABEL.get(order.status, order.status.value)
     items_text = "\n".join(
         f"  • {item.product_name}"
         + (f" ({item.lot_name})" if item.lot_name else "")
@@ -136,7 +149,7 @@ async def cb_order_detail(
 
     text = (
         f"{emoji} <b>Заказ {order.order_number}</b>\n\n"
-        f"Статус: <b>{emoji} {order.status.value}</b>\n"
+        f"Статус: <b>{emoji} {label}</b>\n"
         f"Дата: {order.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
         f"<b>Состав:</b>\n{items_text}\n\n"
         f"<b>Итого: {float(order.total_amount):.0f} ₽</b>"

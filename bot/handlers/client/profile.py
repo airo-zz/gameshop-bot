@@ -112,7 +112,6 @@ async def _build_referral_text(user: User, db: AsyncSession) -> tuple[str, str]:
     ref_link = f"https://t.me/{settings.BOT_USERNAME}?start=REF_{user.telegram_id}"
 
     text = texts.referral_info(
-        referral_code=user.referral_code,
         ref_link=ref_link,
         referrals_count=referrals_count,
     )
@@ -161,42 +160,66 @@ async def cmd_referral(message: Message, user: User, db: AsyncSession, state: FS
 async def cb_balance_topup(
     call: CallbackQuery, user: User
 ) -> None:
-    """Пополнение баланса — направляет в Mini App или сообщает способы."""
+    """Пополнение баланса — методы оплаты в боте + MiniApp."""
     from shared.config import settings as _settings
 
+    buttons = []
     if _settings.MINIAPP_URL:
-        from aiogram.types import InlineKeyboardButton as IKB, InlineKeyboardMarkup as IKM, WebAppInfo
-        keyboard = IKM(
-            inline_keyboard=[
-                [IKB(
-                    text=f"💳 Открыть {_settings.SHOP_NAME}",
-                    web_app=WebAppInfo(url=_settings.MINIAPP_URL),
-                    style="primary",
-                )],
-                [
-                    IKB(text="◀️ Профиль", callback_data="profile:view"),
-                    IKB(text="🏠 Меню", callback_data="menu:main"),
-                ],
-            ]
-        )
-        await safe_edit(
-            call.message,
-            texts.balance_topup_miniapp(float(user.balance)),
-            reply_markup=keyboard,
-        )
-    else:
-        await safe_edit(
-            call.message,
-            texts.balance_topup_support(float(user.balance)),
-            reply_markup=InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [
-                        InlineKeyboardButton(text="◀️ Профиль", callback_data="profile:view"),
-                        InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
-                    ]
-                ]
-            ),
-        )
+        from aiogram.types import WebAppInfo
+        buttons.append([InlineKeyboardButton(
+            text=f"🛍 Открыть {_settings.SHOP_NAME}",
+            web_app=WebAppInfo(url=_settings.MINIAPP_URL),
+            style="primary",
+        )])
+    buttons += [
+        [InlineKeyboardButton(text="💳 Банковская карта", callback_data="balance:topup:card")],
+        [InlineKeyboardButton(text="₮ USDT TRC-20", callback_data="balance:topup:usdt")],
+        [InlineKeyboardButton(text="💎 TON", callback_data="balance:topup:ton")],
+        [
+            InlineKeyboardButton(text="◀️ Профиль", callback_data="profile:view"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+        ],
+    ]
+    await safe_edit(
+        call.message,
+        texts.balance_topup_methods(float(user.balance)),
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+    )
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("balance:topup:"))
+async def cb_balance_topup_method(
+    call: CallbackQuery, user: User
+) -> None:
+    """Показывает реквизиты / инструкцию для конкретного способа пополнения."""
+    from shared.config import settings as _settings
+
+    method = call.data.split(":")[2]
+    method_names = {
+        "card": "💳 Банковская карта",
+        "usdt": "₮ USDT TRC-20",
+        "ton": "💎 TON",
+    }
+    method_label = method_names.get(method, method)
+
+    text = (
+        f"💰 <b>Пополнение через {method_label}</b>\n\n"
+        f"Для пополнения баланса обратись в поддержку:\n"
+        f"@{_settings.SHOP_SUPPORT_USERNAME}\n\n"
+        f"Укажи:\n"
+        f"• Способ: {method_label}\n"
+        f"• Сумму пополнения\n"
+        f"• Свой Telegram ID: <code>{user.telegram_id}</code>"
+    )
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text=f"💬 Написать в поддержку", url=f"https://t.me/{_settings.SHOP_SUPPORT_USERNAME}")],
+        [
+            InlineKeyboardButton(text="◀️ Назад", callback_data="balance:topup"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+        ],
+    ])
+    await safe_edit(call.message, text, reply_markup=keyboard)
     await call.answer()
 
 

@@ -22,6 +22,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Game, Category, Product, ProductLot, Cart, CartItem, User
+from shared.config import settings
 from api.services.cart_service import CartService
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, nav_edit
@@ -86,20 +87,41 @@ async def show_games_list(
     event: Message | CallbackQuery,
     db: AsyncSession,
     state: FSMContext | None = None,
+    services: bool = False,
 ) -> None:
-    result = await db.execute(
-        select(Game)
-        .where(Game.is_active == True)
-        .order_by(Game.sort_order.asc(), Game.name.asc())
-    )
+    """Показывает список игр (services=False) или сервисов (services=True)."""
+    if services:
+        result = await db.execute(
+            select(Game)
+            .where(Game.is_active == True, Game.tags.contains(["service"]))
+            .order_by(Game.sort_order.asc(), Game.name.asc())
+        )
+    else:
+        result = await db.execute(
+            select(Game)
+            .where(Game.is_active == True, ~Game.tags.contains(["service"]))
+            .order_by(Game.sort_order.asc(), Game.name.asc())
+        )
     games = list(result.scalars().all())
+
+    if services:
+        header_text = f"🔧 <b>Сервисы {settings.SHOP_NAME}</b>\n\nВыбери сервис:"
+        back_btn = InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")
+    else:
+        header_text = texts.catalog_header
+        back_btn = InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")
 
     if not games:
         text = texts.catalog_empty
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[])
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[[back_btn]])
     else:
-        text = texts.catalog_header
-        keyboard = _games_keyboard(games)
+        buttons = [
+            [InlineKeyboardButton(text=game.name, callback_data=f"catalog:game:{game.id}")]
+            for game in games
+        ]
+        buttons.append([back_btn])
+        text = header_text
+        keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
 
     if isinstance(event, CallbackQuery):
         await safe_edit(event.message, text, reply_markup=keyboard)
@@ -117,6 +139,11 @@ async def show_games_list(
 @router.callback_query(F.data == "open_catalog")
 async def cb_catalog_main(call: CallbackQuery, db: AsyncSession) -> None:
     await show_games_list(call, db)
+
+
+@router.callback_query(F.data == "catalog:services")
+async def cb_catalog_services(call: CallbackQuery, db: AsyncSession) -> None:
+    await show_games_list(call, db, services=True)
 
 
 @router.callback_query(F.data.startswith("catalog:game:"))
@@ -207,6 +234,12 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession, user: User)
     cart_row = _cart_button(cart_total)
     if cart_row:
         buttons.append(cart_row)
+    if cart_total:
+        buttons.append([InlineKeyboardButton(
+            text="🗑 Сброс",
+            callback_data=f"catalog:cat:reset:{category_id}",
+            style="danger",
+        )])
     buttons.append(
         [
             InlineKeyboardButton(
@@ -223,6 +256,36 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession, user: User)
         reply_markup=keyboard,
     )
     await call.answer()
+
+
+@router.callback_query(F.data.startswith("catalog:cat:reset:"))
+async def cb_catalog_cat_reset(call: CallbackQuery, db: AsyncSession, user: User) -> None:
+    """Удаляет из корзины все товары, принадлежащие данному разделу."""
+    category_id_str = call.data.split(":")[3]
+    try:
+        category_id = uuid.UUID(category_id_str)
+    except ValueError:
+        await call.answer("Ошибка", show_alert=True)
+        return
+
+    cart_svc = CartService(db)
+    cart = await cart_svc.get_or_create_cart(user)
+
+    removed = 0
+    for item in list(cart.items):
+        if item.product and item.product.category_id == category_id:
+            await cart_svc.update_item(cart, item.id, 0)
+            removed += 1
+
+    if removed:
+        await db.commit()
+        await call.answer(f"🗑 Убрано {removed} поз. из раздела")
+    else:
+        await call.answer("В корзине нет товаров из этого раздела")
+
+    # Перерисовываем экран категории
+    call.data = f"catalog:cat:{category_id}"
+    await cb_catalog_category(call, db, user)
 
 
 async def _show_product(
@@ -664,7 +727,6 @@ async def _add_to_cart_message(
 
 @router.message(F.text == "🛍 reDonate")
 async def btn_shop(message: Message, db: AsyncSession, state: FSMContext) -> None:
-    from shared.config import settings
     from aiogram.types import WebAppInfo
 
     if settings.MINIAPP_URL:
