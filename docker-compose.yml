@@ -105,6 +105,12 @@ services:
         condition: service_completed_successfully
       api:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
     volumes:
       - static_files:/static
 
@@ -161,7 +167,10 @@ services:
       - certbot_www:/var/www/certbot:ro
       - static_files:/usr/share/nginx/static:ro
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+      bot:
+        condition: service_healthy
 
   # ── Certbot (SSL) ────────────────────────────
   certbot:

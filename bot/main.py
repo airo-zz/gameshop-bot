@@ -150,6 +150,10 @@ async def run_polling() -> None:
     await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
 
 
+async def health_handler(request: web.Request) -> web.Response:
+    return web.Response(text="ok")
+
+
 def run_webhook() -> None:
     """Режим продакшена — webhook через aiohttp."""
     bot = create_bot()
@@ -163,6 +167,9 @@ def run_webhook() -> None:
     )
     handler.register(app, path=settings.WEBHOOK_PATH)
     setup_application(app, dp, bot=bot)
+
+    # Health endpoint для Docker healthcheck и nginx depends_on
+    app.router.add_get("/health", health_handler)
 
     log.info("bot.webhook_start", path=settings.WEBHOOK_PATH)
     web.run_app(app, host="0.0.0.0", port=8080)
