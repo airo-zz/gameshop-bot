@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models import User, UserFavorite, Product
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, nav_edit
+from bot.handlers.client.catalog import _show_product
 
 router = Router(name="client:favorites")
 
@@ -130,9 +131,12 @@ async def cb_favorites_toggle(
     if existing:
         await db.delete(existing)
         await db.commit()
-        await call.answer(texts.favorite_removed(product.name), show_alert=False)
+        answer_text = texts.favorite_removed(product.name)
     else:
         fav = UserFavorite(user_id=user.id, product_id=product_id)
         db.add(fav)
         await db.commit()
-        await call.answer(texts.favorite_added(product.name), show_alert=False)
+        answer_text = texts.favorite_added(product.name)
+
+    # Перерисовываем карточку товара с актуальным состоянием кнопки избранного
+    await _show_product(call, product_id, db, user=user, answer_text=answer_text)

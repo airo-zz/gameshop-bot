@@ -151,6 +151,7 @@ async def _show_cart(
     user: User,
     db: AsyncSession,
     state: FSMContext | None = None,
+    answer_text: str = "",
 ) -> None:
     cart_svc = CartService(db)
     cart = await cart_svc.get_or_create_cart(user)
@@ -166,7 +167,7 @@ async def _show_cart(
 
     if isinstance(event, CallbackQuery):
         await safe_edit(event.message, text, reply_markup=keyboard)
-        await event.answer()
+        await event.answer(answer_text)
     else:
         if state is not None:
             await nav_edit(event, state, text, reply_markup=keyboard)
@@ -222,25 +223,26 @@ async def cb_cart_qty(call: CallbackQuery, user: User, db: AsyncSession) -> None
         await call.answer("Позиция не найдена", show_alert=True)
         return
 
+    answer_text = ""
     if action == "inc":
         new_qty = item.quantity + 1
         await cart_svc.update_item(cart, item.id, new_qty)
         await db.commit()
-        await call.answer(f"Количество: {new_qty}")
+        answer_text = f"Количество: {new_qty}"
     elif action == "dec":
         if item.quantity <= 1:
             # Удаляем позицию
             await cart_svc.update_item(cart, item.id, 0)
             await db.commit()
-            await call.answer("Позиция удалена из корзины")
+            answer_text = "Позиция удалена из корзины"
         else:
             new_qty = item.quantity - 1
             await cart_svc.update_item(cart, item.id, new_qty)
             await db.commit()
-            await call.answer(f"Количество: {new_qty}")
+            answer_text = f"Количество: {new_qty}"
 
-    # Перерисовываем корзину
-    await _show_cart(call, user, db)
+    # Перерисовываем корзину; answer_text передаётся в event.answer() внутри _show_cart
+    await _show_cart(call, user, db, answer_text=answer_text)
 
 
 # ── Handlers: очистка корзины ─────────────────────────────────────────────────

@@ -21,7 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import Game, Category, Product, ProductLot, Cart, CartItem, User
+from shared.models import Game, Category, Product, ProductLot, Cart, CartItem, User, UserFavorite
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, nav_edit
 
@@ -151,7 +151,7 @@ async def cb_catalog_game(call: CallbackQuery, db: AsyncSession) -> None:
 
 
 @router.callback_query(F.data.startswith("catalog:cat:"))
-async def cb_catalog_category(call: CallbackQuery, db: AsyncSession) -> None:
+async def cb_catalog_category(call: CallbackQuery, db: AsyncSession, user: User) -> None:
     category_id_str = call.data.split(":")[2]
     try:
         category_id = uuid.UUID(category_id_str)
@@ -177,7 +177,7 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession) -> None:
 
     # Если товар один — открываем сразу, без промежуточного экрана выбора
     if len(products) == 1:
-        return await _show_product(call, products[0].id, db)
+        return await _show_product(call, products[0].id, db, user=user)
 
     game = await db.get(Game, category.game_id)
     game_name = game.name if game else "Игра"
@@ -204,7 +204,13 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession) -> None:
     await call.answer()
 
 
-async def _show_product(call: CallbackQuery, product_id: uuid.UUID, db: AsyncSession) -> None:
+async def _show_product(
+    call: CallbackQuery,
+    product_id: uuid.UUID,
+    db: AsyncSession,
+    user: User | None = None,
+    answer_text: str = "",
+) -> None:
     """Показывает карточку товара. Используется из cb_catalog_product и cb_catalog_category."""
     result = await db.execute(
         select(Product)
@@ -229,6 +235,17 @@ async def _show_product(call: CallbackQuery, product_id: uuid.UUID, db: AsyncSes
         max_price=max(prices),
     )
 
+    # Проверяем, в избранном ли товар у пользователя
+    is_favorite = False
+    if user is not None:
+        fav_result = await db.execute(
+            select(UserFavorite).where(
+                UserFavorite.user_id == user.id,
+                UserFavorite.product_id == product.id,
+            )
+        )
+        is_favorite = fav_result.scalar_one_or_none() is not None
+
     buttons = []
     if active_lots:
         for lot in active_lots:
@@ -251,10 +268,11 @@ async def _show_product(call: CallbackQuery, product_id: uuid.UUID, db: AsyncSes
             ]
         )
 
+    fav_text = "❤️ В избранном" if is_favorite else "🤍 В избранное"
     buttons.append(
         [
             InlineKeyboardButton(
-                text="❤️ В избранное",
+                text=fav_text,
                 callback_data=f"favorites:toggle:{product.id}",
             )
         ]
@@ -270,18 +288,18 @@ async def _show_product(call: CallbackQuery, product_id: uuid.UUID, db: AsyncSes
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
 
     await safe_edit(call.message, text, reply_markup=keyboard)
-    await call.answer()
+    await call.answer(answer_text)
 
 
 @router.callback_query(F.data.startswith("catalog:product:"))
-async def cb_catalog_product(call: CallbackQuery, db: AsyncSession) -> None:
+async def cb_catalog_product(call: CallbackQuery, db: AsyncSession, user: User) -> None:
     product_id_str = call.data.split(":")[2]
     try:
         product_id = uuid.UUID(product_id_str)
     except ValueError:
         await call.answer("Некорректный ID товара", show_alert=True)
         return
-    await _show_product(call, product_id, db)
+    await _show_product(call, product_id, db, user=user)
 
 
 # ── FSM: сбор input_fields ────────────────────────────────────────────────────

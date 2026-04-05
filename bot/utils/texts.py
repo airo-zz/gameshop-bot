@@ -71,32 +71,28 @@ class BotTexts:
         min_price: float | None = None,
         max_price: float | None = None,
     ) -> str:
-        stock_text = (
-            "♾ Неограничено"
-            if stock is None
-            else (f"✅ В наличии: {stock}" if stock > 0 else "❌ Нет в наличии")
-        )
         delivery_text = {
             "auto": "⚡ Автоматически",
             "manual": "👤 Вручную (до 24ч)",
             "mixed": "📦 Зависит от лота",
         }.get(delivery_type, delivery_type)
 
-        # Ценовой диапазон
+        # Всегда показываем минимальную цену
         _min = min_price if min_price is not None else price
-        _max = max_price if max_price is not None else price
-        if _min != _max:
-            price_text = f"от <b>{_min:.0f}</b> до <b>{_max:.0f} ₽</b>"
-        else:
-            price_text = f"<b>{_min:.0f} ₽</b>"
+        price_text = f"<b>{_min:.0f} ₽</b>"
 
-        return (
+        lines = [
             f"<b>{name}</b>\n\n"
             f"{description}\n\n"
             f"💰 Цена: {price_text}\n"
-            f"📦 Доставка: {delivery_text}\n"
-            f"🗃 Наличие: {stock_text}"
-        )
+            f"📦 Доставка: {delivery_text}"
+        ]
+        # Наличие показываем только если ограничено
+        if stock is not None:
+            stock_text = f"✅ В наличии: {stock}" if stock > 0 else "❌ Нет в наличии"
+            lines.append(f"\n🗃 Наличие: {stock_text}")
+
+        return "".join(lines)
 
     # ── Корзина ───────────────────────────────────────────────────────────────
     @property
