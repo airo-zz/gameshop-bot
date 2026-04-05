@@ -39,7 +39,12 @@ class CartService:
         return cart
 
     async def _load_cart(self, user_id: uuid.UUID) -> Cart | None:
-        """Загружает корзину со всеми нужными relationship через selectinload."""
+        """Загружает корзину со всеми нужными relationship через selectinload.
+
+        populate_existing=True нужен потому что session_factory использует
+        expire_on_commit=False — без этого SQLAlchemy возвращает стale-объект
+        из identity map после commit вместо свежих данных из БД.
+        """
         result = await self.db.execute(
             select(Cart)
             .options(
@@ -48,6 +53,7 @@ class CartService:
                 .selectinload(Product.lots)
             )
             .where(Cart.user_id == user_id)
+            .execution_options(populate_existing=True)
         )
         return result.scalar_one_or_none()
 
