@@ -1,7 +1,7 @@
 // src/pages/ProductPage.tsx
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ShoppingCart, Star, Zap, Clock, ChevronLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -16,6 +16,7 @@ export default function ProductPage() {
   const { showMainButton, hideMainButton, haptic, showBackButton, hideBackButton } = useTelegram()
   const { increment } = useCartStore()
   const { addRecentlyViewed } = useHistoryStore()
+  const queryClient = useQueryClient()
 
   const [selectedLot, setSelectedLot] = useState<Lot | null>(null)
   const [inputData, setInputData] = useState<Record<string, string>>({})
@@ -75,6 +76,7 @@ export default function ProductPage() {
         input_data: inputData,
       })
       increment()
+      queryClient.invalidateQueries({ queryKey: ['cart'] })
       haptic.success()
       toast.success('Добавлено в корзину!')
     } catch (e: any) {

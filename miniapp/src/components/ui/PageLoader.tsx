@@ -7,7 +7,7 @@ interface PageLoaderProps {
   delay?: number
 }
 
-export default function PageLoader({ delay = 500 }: PageLoaderProps) {
+export default function PageLoader({ delay = 1000 }: PageLoaderProps) {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
