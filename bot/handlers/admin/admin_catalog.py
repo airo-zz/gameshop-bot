@@ -706,13 +706,13 @@ async def admin_game_edit(
             ),
             InlineKeyboardButton(
                 text="📝 Описание",
-                callback_data=f"admin:game:edit:field:{game_id}:description",
+                callback_data=f"admin:game:edit:field:{game_id}:desc",
             ),
         ],
         [
             InlineKeyboardButton(
                 text="🖼 Обложку",
-                callback_data=f"admin:game:edit:field:{game_id}:image",
+                callback_data=f"admin:game:edit:field:{game_id}:img",
             ),
             InlineKeyboardButton(
                 text="❌ Отмена",
@@ -750,8 +750,8 @@ async def admin_game_edit_field_choose(
 
     prompts = {
         "name": "Введи новое <b>название</b> игры:",
-        "description": "Введи новое <b>описание</b> игры (или «нет» чтобы очистить):",
-        "image": "Отправь новую <b>обложку</b> игры (фото):",
+        "desc": "Введи новое <b>описание</b> игры (или «нет» чтобы очистить):",
+        "img": "Отправь новую <b>обложку</b> игры (фото):",
     }
     prompt = prompts.get(field, "Введи новое значение:")
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -769,7 +769,7 @@ async def admin_game_edit_value(
     game_id = _uuid.UUID(data["game_id"])
     field = data["field"]
 
-    if field == "image":
+    if field == "img":
         await message.answer(
             "⚠️ Ожидается фото, а не текст. Отправь изображение."
         )
@@ -785,7 +785,7 @@ async def admin_game_edit_value(
     if field == "name":
         game.name = value
         result_text = "✅ <b>Название обновлено.</b>"
-    elif field == "description":
+    elif field == "desc":
         game.description = None if value.lower() in ("нет", "0", "-") else value
         result_text = "✅ <b>Описание обновлено.</b>"
     else:
@@ -810,7 +810,7 @@ async def admin_game_edit_image(
     game_id = _uuid.UUID(data["game_id"])
     field = data["field"]
 
-    if field != "image":
+    if field != "img":
         await message.answer(
             "⚠️ Ожидается текстовое значение, а не фото."
         )
@@ -1355,7 +1355,7 @@ async def admin_lot_edit_start(
         [
             InlineKeyboardButton(
                 text="🏷 Старая цена",
-                callback_data=f"admin:lot:edit:field:{lot_id}:original_price",
+                callback_data=f"admin:lot:edit:field:{lot_id}:oprice",
             ),
             InlineKeyboardButton(
                 text="🎖 Бейдж",
@@ -1400,7 +1400,7 @@ async def admin_lot_edit_field_choose(
     prompts = {
         "name": "Введи новое <b>название</b> лота:",
         "price": "Введи новую <b>цену</b> лота (число, например <code>199.99</code>):",
-        "original_price": (
+        "oprice": (
             "Введи <b>старую цену</b> лота (число) или «нет»/«0» чтобы убрать:"
         ),
         "badge": "Введи текст <b>бейджа</b> (например «Хит») или «нет»/«0» чтобы убрать:",
@@ -1439,7 +1439,7 @@ async def admin_lot_edit_value(
         except InvalidOperation:
             await message.answer("⚠️ Некорректное число. Введи цену ещё раз (например <code>199.99</code>).")
             return
-    elif field == "original_price":
+    elif field == "oprice":
         if value.lower() in ("нет", "0", "-"):
             lot.original_price = None
         else:
