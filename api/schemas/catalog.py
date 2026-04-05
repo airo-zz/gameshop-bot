@@ -64,6 +64,7 @@ class ProductListOut(BaseModel):
     delivery_type: str
     stock: int | None
     lots: list[LotOut] = []
+    game_name: str | None = None
 
 
 class InputFieldSchema(BaseModel):
@@ -94,6 +95,7 @@ class ProductDetailOut(BaseModel):
     lots: list[LotOut]
     tags: list[str]
     is_featured: bool
+    game_name: str | None = None
     # Агрегаты (вычисляются в сервисе)
     avg_rating: float | None = None
     reviews_count: int = 0

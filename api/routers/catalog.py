@@ -7,7 +7,7 @@ from api.schemas.catalog import (
     ProductListOut,
     ProductDetailOut,
 )
-from api.services.catalog_service import CatalogService
+from api.services.catalog_service import CatalogService, _product_to_list_out
 
 router = APIRouter()
 
@@ -29,6 +29,13 @@ async def list_categories(slug: str, db: DbSession):
     return await svc.get_categories_by_game(game.id)
 
 
+@router.get("/products/trending", response_model=list[ProductListOut])
+async def get_trending(db: DbSession):
+    svc = CatalogService(db)
+    products = await svc.get_trending(limit=6)
+    return [_product_to_list_out(p) for p in products]
+
+
 @router.get("/products", response_model=list[ProductListOut])
 async def list_products(
     db: DbSession,
@@ -41,7 +48,7 @@ async def list_products(
     svc = CatalogService(db)
     cat_uuid = uuid.UUID(category_id) if category_id else None
     products, _ = await svc.get_products_by_category(cat_uuid, page, page_size)
-    return products
+    return [_product_to_list_out(p) for p in products]
 
 
 @router.get("/products/search", response_model=list[ProductListOut])
@@ -52,7 +59,7 @@ async def search_products(
 ):
     svc = CatalogService(db)
     products, _ = await svc.search_products(q, page=page)
-    return products
+    return [_product_to_list_out(p) for p in products]
 
 
 @router.get("/products/{product_id}", response_model=ProductDetailOut)
@@ -67,9 +74,13 @@ async def get_product(product_id: str, db: DbSession, user: OptionalUser = None)
     if user:
         await svc.track_view(user.id, product.id)
     avg, count = await svc.get_product_avg_rating(product.id)
+    game_name: str | None = None
+    if product.category and product.category.game:
+        game_name = product.category.game.name
     result = ProductDetailOut.model_validate(product)
     result.avg_rating = avg
     result.reviews_count = count
+    result.game_name = game_name
     return result
 
 
@@ -85,10 +96,12 @@ async def toggle_favorite(product_id: str, db: DbSession, user: CurrentUser):
 @router.get("/favorites", response_model=list[ProductListOut])
 async def get_favorites(db: DbSession, user: CurrentUser):
     svc = CatalogService(db)
-    return await svc.get_favorites(user.id)
+    products = await svc.get_favorites(user.id)
+    return [_product_to_list_out(p) for p in products]
 
 
 @router.get("/recently-viewed", response_model=list[ProductListOut])
 async def get_recently_viewed(db: DbSession, user: CurrentUser):
     svc = CatalogService(db)
-    return await svc.get_recently_viewed(user.id)
+    products = await svc.get_recently_viewed(user.id)
+    return [_product_to_list_out(p) for p in products]

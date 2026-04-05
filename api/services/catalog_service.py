@@ -6,6 +6,7 @@ api/services/catalog_service.py
 """
 
 import uuid
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy import func, select
@@ -15,7 +16,35 @@ from sqlalchemy.orm import selectinload
 from shared.models import (
     Category, Game, Product, ProductLot, Review,
     UserFavorite, UserViewedProduct,
+    Order, OrderItem,
 )
+
+from api.schemas.catalog import ProductListOut
+
+
+def _product_to_list_out(product: Product) -> ProductListOut:
+    """Конвертирует ORM-объект Product в ProductListOut, включая game_name.
+
+    Требует, чтобы product.category и product.category.game были уже загружены
+    (через selectinload).
+    """
+    game_name: str | None = None
+    if product.category and product.category.game:
+        game_name = product.category.game.name
+
+    return ProductListOut(
+        id=product.id,
+        name=product.name,
+        short_description=product.short_description,
+        price=product.price,
+        currency=product.currency,
+        images=product.images,
+        is_featured=product.is_featured,
+        delivery_type=product.delivery_type,
+        stock=product.stock,
+        lots=product.lots,
+        game_name=game_name,
+    )
 
 
 class CatalogService:
@@ -66,7 +95,10 @@ class CatalogService:
         """Возвращает (товары, total_count)."""
         base_query = (
             select(Product)
-            .options(selectinload(Product.lots))
+            .options(
+                selectinload(Product.lots),
+                selectinload(Product.category).selectinload(Category.game),
+            )
             .where(
                 Product.category_id == category_id,
                 Product.is_active == True,
@@ -127,7 +159,10 @@ class CatalogService:
         """Полнотекстовый поиск по каталогу."""
         q = (
             select(Product)
-            .options(selectinload(Product.lots))
+            .options(
+                selectinload(Product.lots),
+                selectinload(Product.category).selectinload(Category.game),
+            )
             .where(Product.is_active == True)
         )
 
@@ -165,7 +200,10 @@ class CatalogService:
         result = await self.db.execute(
             select(Product)
             .join(UserFavorite, UserFavorite.product_id == Product.id)
-            .options(selectinload(Product.lots))
+            .options(
+                selectinload(Product.lots),
+                selectinload(Product.category).selectinload(Category.game),
+            )
             .where(UserFavorite.user_id == user_id, Product.is_active == True)
             .order_by(UserFavorite.added_at.desc())
         )
@@ -232,9 +270,44 @@ class CatalogService:
         result = await self.db.execute(
             select(Product)
             .join(UserViewedProduct, UserViewedProduct.product_id == Product.id)
-            .options(selectinload(Product.lots))
+            .options(
+                selectinload(Product.lots),
+                selectinload(Product.category).selectinload(Category.game),
+            )
             .where(UserViewedProduct.user_id == user_id, Product.is_active == True)
             .order_by(UserViewedProduct.viewed_at.desc())
             .limit(limit)
+        )
+        return result.scalars().all()
+
+    # ── Trending ──────────────────────────────────────────────────────────────
+
+    async def get_trending(self, limit: int = 6) -> list[Product]:
+        """Топ-N товаров по количеству заказов за последние 3 дня."""
+        since = datetime.now(timezone.utc) - timedelta(days=3)
+
+        # Подзапрос: product_id → кол-во позиций в заказах за 3 дня
+        trending_subq = (
+            select(
+                OrderItem.product_id,
+                func.count(OrderItem.id).label("order_count"),
+            )
+            .join(Order, Order.id == OrderItem.order_id)
+            .where(Order.created_at >= since)
+            .group_by(OrderItem.product_id)
+            .order_by(func.count(OrderItem.id).desc())
+            .limit(limit)
+            .subquery()
+        )
+
+        result = await self.db.execute(
+            select(Product)
+            .join(trending_subq, trending_subq.c.product_id == Product.id)
+            .options(
+                selectinload(Product.lots),
+                selectinload(Product.category).selectinload(Category.game),
+            )
+            .where(Product.is_active == True)
+            .order_by(trending_subq.c.order_count.desc())
         )
         return result.scalars().all()

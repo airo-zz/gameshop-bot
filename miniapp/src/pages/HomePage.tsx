@@ -427,8 +427,8 @@ export default function HomePage() {
   })
 
   const { data: featured = [] } = useQuery({
-    queryKey: ['featured'],
-    queryFn: () => catalogApi.search('', 0),
+    queryKey: ['trending'],
+    queryFn: catalogApi.getTrending,
   })
 
   const { data: profile } = useQuery({

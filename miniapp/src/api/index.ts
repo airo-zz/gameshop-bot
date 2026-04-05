@@ -158,6 +158,9 @@ export const catalogApi = {
   search: (q: string, page = 0) =>
     apiClient.get<Product[]>('/catalog/products/search', { params: { q, page } }).then(r => r.data),
 
+  getTrending: () =>
+    apiClient.get<Product[]>('/catalog/products/trending').then(r => r.data),
+
   toggleFavorite: (productId: string) =>
     apiClient.post<{ added: boolean }>(`/catalog/products/${productId}/favorite`).then(r => r.data),
 
