@@ -1,12 +1,20 @@
 # .github/workflows/deploy.yml
 # ─────────────────────────────────────────────────────────────────────────────
-# CI/CD: тесты → сборка → деплой на VPS
+# CI/CD: тесты → сборка → selective deploy на VPS
+#
+# Логика деплоя:
+#   miniapp/ изменился              → deploy-miniapp (npm build + rsync)
+#   bot/ api/ worker/ и т.д.        → deploy-backend (docker compose up --build)
+#   оба направления изменились      → оба деплоя параллельно
+#   workflow_dispatch (ручной)      → деплоится всё принудительно
 #
 # Secrets в GitHub (Settings → Secrets):
-#   VPS_HOST      — IP или домен VPS
-#   VPS_USER      — пользователь SSH (redonate)
-#   VPS_SSH_KEY   — приватный SSH ключ
-#   VPS_APP_DIR   — путь к проекту (/opt/redonate)
+#   VPS_HOST        — IP или домен VPS
+#   VPS_USER        — пользователь SSH (redonate)
+#   VPS_SSH_KEY     — приватный SSH ключ
+#   VPS_APP_DIR     — путь к проекту (/opt/redonate)
+#   TELEGRAM_BOT_TOKEN  — токен бота для уведомлений
+#   TELEGRAM_CHAT_ID    — chat_id для уведомлений
 # ─────────────────────────────────────────────────────────────────────────────
 
 name: Deploy reDonate Bot
@@ -14,7 +22,16 @@ name: Deploy reDonate Bot
 on:
   push:
     branches: [main]
-  workflow_dispatch:    # ручной запуск из GitHub UI
+  workflow_dispatch:
+    inputs:
+      force_miniapp:
+        description: "Force deploy miniapp (yes/no)"
+        required: false
+        default: "yes"
+      force_backend:
+        description: "Force deploy backend (yes/no)"
+        required: false
+        default: "yes"
 
 env:
   PYTHON_VERSION: "3.12"
@@ -22,10 +39,42 @@ env:
 
 jobs:
 
+  # ─── Определяем что изменилось ───────────────────────────────────────────────
+  detect-changes:
+    name: Detect Changed Paths
+    runs-on: ubuntu-latest
+    outputs:
+      miniapp:  ${{ steps.filter.outputs.miniapp }}
+      backend:  ${{ steps.filter.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Path filter
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            miniapp:
+              - 'miniapp/**'
+            backend:
+              - 'bot/**'
+              - 'api/**'
+              - 'worker/**'
+              - 'shared/**'
+              - 'migrations/**'
+              - 'requirements/**'
+              - 'Dockerfile.api'
+              - 'Dockerfile.bot'
+              - 'docker-compose.yml'
+              - 'alembic.ini'
+
   # ─── Линтинг и тесты ────────────────────────────────────────────────────────
   test:
     name: Tests & Lint
     runs-on: ubuntu-latest
+    # Тесты всегда запускаются при push, пропускаются только если ни один
+    # из деплоев не будет запущен — но мы запускаем их безусловно для safety
+    needs: detect-changes
 
     services:
       postgres:
@@ -67,7 +116,7 @@ jobs:
 
       - name: Create test .env
         run: |
-          cat > .env << EOF
+          cat > .env << 'EOF'
           BOT_TOKEN=0000000000:test_token_for_ci
           POSTGRES_PASSWORD=test
           DATABASE_URL=postgresql+asyncpg://test:test@localhost:5432/test
@@ -93,6 +142,11 @@ jobs:
   build-miniapp:
     name: Build Mini App
     runs-on: ubuntu-latest
+    needs: detect-changes
+    # Собираем только если изменился miniapp/ ИЛИ ручной запуск с force
+    if: |
+      needs.detect-changes.outputs.miniapp == 'true' ||
+      github.event.inputs.force_miniapp == 'yes'
 
     steps:
       - uses: actions/checkout@v4
@@ -120,85 +174,177 @@ jobs:
           path: miniapp/dist/
           retention-days: 1
 
-  # ─── Деплой на VPS ───────────────────────────────────────────────────────────
-  deploy:
-    name: Deploy to VPS
+  # ─── Деплой Mini App ─────────────────────────────────────────────────────────
+  deploy-miniapp:
+    name: Deploy Mini App to VPS
     runs-on: ubuntu-latest
-    needs: [test, build-miniapp]
-    if: github.ref == 'refs/heads/main'
+    needs: [detect-changes, test, build-miniapp]
+    if: |
+      needs.detect-changes.outputs.miniapp == 'true' ||
+      github.event.inputs.force_miniapp == 'yes'
 
     steps:
-      - uses: actions/checkout@v4
-
       - name: Download Mini App build
         uses: actions/download-artifact@v4
         with:
           name: miniapp-dist
-          path: miniapp/dist/
+          path: miniapp-dist/
 
-      # SCP копирует dist во временную папку с предсказуемым путём
-      - name: Copy Mini App dist
+      - name: Copy dist to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host:        ${{ secrets.VPS_HOST }}
           username:    ${{ secrets.VPS_USER }}
-          password:    ${{ secrets.VPS_PASSWORD }}
-          source:      "miniapp/dist"
-          target:      "/tmp/redonate-deploy/"
+          key:         ${{ secrets.VPS_SSH_KEY }}
+          source:      "miniapp-dist/"
+          target:      "/tmp/redonate-miniapp/"
+          strip_components: 1
 
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host:        ${{ secrets.VPS_HOST }}
-          username:    ${{ secrets.VPS_USER }}
-          password:    ${{ secrets.VPS_PASSWORD }}
-          timeout:     300s
-          script: |
-            set -e
-            cd ${{ secrets.VPS_APP_DIR }}
-
-            # Получаем свежий код
-            git fetch origin main
-            git reset --hard origin/main
-
-            # Обновляем miniapp/dist — очищаем содержимое БЕЗ удаления самой папки
-            # (удаление папки ломает Docker bind mount до рестарта контейнера)
-            mkdir -p miniapp/dist
-            find miniapp/dist -mindepth 1 -delete
-            cp -r /tmp/redonate-deploy/miniapp/dist/. miniapp/dist/
-            rm -rf /tmp/redonate-deploy
-
-            # Собираем и перезапускаем контейнеры
-            docker compose pull --quiet
-            DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 docker compose up -d --build --remove-orphans
-
-            # Ждём пока все контейнеры поднимутся
-            echo "Waiting for containers..."
-            for i in $(seq 1 30); do
-              sleep 3
-              STATUS=$(docker compose ps --format json 2>/dev/null | grep -c '"State":"running"' || true)
-              RESTARTING=$(docker compose ps --format json 2>/dev/null | grep -c '"State":"restarting"' || true)
-              if [ "$RESTARTING" -eq 0 ] && [ "$STATUS" -gt 0 ]; then
-                echo "All containers stable after ${i}x3s"
-                break
-              fi
-              echo "Attempt $i: running=$STATUS restarting=$RESTARTING"
-            done
-
-            # Health check
-            curl -sf http://localhost:8000/health || echo "Health check failed"
-
-            # Перезагружаем nginx (подхватывает новые файлы в bind mount)
-            docker compose exec -T nginx nginx -s reload
-
-            echo "Deploy completed: $(date)"
-
-      - name: Notify on failure
-        if: failure()
+      - name: Swap dist on VPS and reload nginx
         uses: appleboy/ssh-action@v1.0.3
         with:
           host:     ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key:      ${{ secrets.VPS_SSH_KEY }}
+          timeout:  60s
           script: |
-            echo "❌ Deploy FAILED at $(date)" >> /var/log/redonate-deploys.log
+            set -e
+            APP_DIR="${{ secrets.VPS_APP_DIR }}"
+
+            # Обновляем miniapp/dist без удаления самой папки
+            # (удаление ломает Docker bind mount до рестарта nginx)
+            mkdir -p "$APP_DIR/miniapp/dist"
+            find "$APP_DIR/miniapp/dist" -mindepth 1 -delete
+            cp -r /tmp/redonate-miniapp/. "$APP_DIR/miniapp/dist/"
+            rm -rf /tmp/redonate-miniapp
+
+            # Перезагружаем nginx — он подхватывает новые файлы из bind mount
+            docker compose -f "$APP_DIR/docker-compose.yml" exec -T nginx nginx -s reload
+
+            echo "miniapp deployed at $(date)"
+
+  # ─── Деплой Backend ──────────────────────────────────────────────────────────
+  deploy-backend:
+    name: Deploy Backend to VPS
+    runs-on: ubuntu-latest
+    needs: [detect-changes, test]
+    # Деплоим если изменился backend ИЛИ ручной запуск с force
+    # build-miniapp НЕ является зависимостью — backend деплоится независимо
+    if: |
+      needs.detect-changes.outputs.backend == 'true' ||
+      github.event.inputs.force_backend == 'yes'
+
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host:     ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key:      ${{ secrets.VPS_SSH_KEY }}
+          timeout:  300s
+          script: |
+            set -e
+            cd "${{ secrets.VPS_APP_DIR }}"
+
+            # Получаем свежий код
+            git fetch origin main
+            git reset --hard origin/main
+
+            # Пересобираем и перезапускаем только backend-контейнеры
+            # nginx, db, redis, certbot не трогаем — они не изменились
+            DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 \
+              docker compose up -d --build --remove-orphans \
+              migrations api bot worker beat flower
+
+            # Ждём стабилизации контейнеров
+            echo "Waiting for containers..."
+            for i in $(seq 1 30); do
+              sleep 3
+              RUNNING=$(docker compose ps --format json 2>/dev/null \
+                | grep -c '"State":"running"' || true)
+              RESTARTING=$(docker compose ps --format json 2>/dev/null \
+                | grep -c '"State":"restarting"' || true)
+              if [ "$RESTARTING" -eq 0 ] && [ "$RUNNING" -gt 0 ]; then
+                echo "Containers stable after ${i}x3s"
+                break
+              fi
+              echo "Attempt $i: running=$RUNNING restarting=$RESTARTING"
+            done
+
+            # Health check API
+            sleep 2
+            curl -sf http://localhost:8000/health || echo "WARNING: health check failed"
+
+            echo "backend deployed at $(date)"
+
+  # ─── Уведомления ─────────────────────────────────────────────────────────────
+  notify:
+    name: Notify Deploy Result
+    runs-on: ubuntu-latest
+    # Запускается после всех деплоев, даже если они были пропущены (skipped)
+    needs: [detect-changes, deploy-miniapp, deploy-backend]
+    if: always() && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Determine deploy summary
+        id: summary
+        run: |
+          MINIAPP_STATUS="${{ needs.deploy-miniapp.result }}"
+          BACKEND_STATUS="${{ needs.deploy-backend.result }}"
+          MINIAPP_CHANGED="${{ needs.detect-changes.outputs.miniapp }}"
+          BACKEND_CHANGED="${{ needs.detect-changes.outputs.backend }}"
+
+          PARTS=""
+          FAILED=false
+
+          if [ "$MINIAPP_STATUS" = "success" ]; then
+            PARTS="miniapp"
+          elif [ "$MINIAPP_STATUS" = "failure" ]; then
+            PARTS="miniapp(FAILED)"
+            FAILED=true
+          fi
+
+          if [ "$BACKEND_STATUS" = "success" ]; then
+            PARTS="${PARTS:+$PARTS, }backend"
+          elif [ "$BACKEND_STATUS" = "failure" ]; then
+            PARTS="${PARTS:+$PARTS, }backend(FAILED)"
+            FAILED=true
+          fi
+
+          if [ -z "$PARTS" ]; then
+            PARTS="nothing (no relevant changes)"
+          fi
+
+          echo "parts=$PARTS"        >> "$GITHUB_OUTPUT"
+          echo "failed=$FAILED"      >> "$GITHUB_OUTPUT"
+
+      - name: Send Telegram notification
+        env:
+          BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          CHAT_ID:   ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          FAILED="${{ steps.summary.outputs.failed }}"
+          PARTS="${{ steps.summary.outputs.parts }}"
+          COMMIT="${{ github.sha }}"
+          SHORT="${COMMIT:0:7}"
+          ACTOR="${{ github.actor }}"
+          REF="${{ github.ref_name }}"
+
+          if [ "$FAILED" = "true" ]; then
+            ICON="X"
+            STATUS="FAILED"
+          else
+            ICON="OK"
+            STATUS="SUCCESS"
+          fi
+
+          MSG="[$ICON] Deploy $STATUS%0A"
+          MSG="${MSG}Branch: $REF%0A"
+          MSG="${MSG}Commit: $SHORT by $ACTOR%0A"
+          MSG="${MSG}Deployed: $PARTS"
+
+          curl -s -X POST \
+            "https://api.telegram.org/bot${BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${CHAT_ID}" \
+            -d "text=${MSG}" \
+            -d "parse_mode=HTML" || echo "Telegram notify failed (non-fatal)"
