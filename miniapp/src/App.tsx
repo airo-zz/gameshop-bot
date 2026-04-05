@@ -72,6 +72,9 @@ export default function App() {
     <BrowserRouter basename="/app">
       <Toaster
         position="top-center"
+        containerStyle={{
+          top: 'calc(56px + var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px) + 8px)',
+        }}
         toastOptions={{
           style: {
             background: '#060f1e',

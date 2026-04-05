@@ -596,9 +596,147 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* ── Games horizontal scroll ──────────────────────────────────────── */}
+        {/* ── Featured products ────────────────────────────────────────────── */}
         <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(45,88,173,0.2) 30%, rgba(45,88,173,0.2) 70%, transparent)', marginBottom: 24 }} />
         <section className="mb-8 animate-fade-in delay-150">
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 12,
+            }}
+          >
+            <h2
+              style={{
+                margin: 0,
+                fontWeight: 700,
+                fontSize: '1.05rem',
+                color: 'var(--text)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <span style={{ color: '#fbbf24', display: 'flex' }}>
+                <IconZap />
+              </span>
+              Популярное
+            </h2>
+            <Link
+              to="/catalog"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3,
+                fontSize: 13,
+                fontWeight: 500,
+                color: '#6b9de8',
+                textDecoration: 'none',
+              }}
+            >
+              Все
+              <IconChevronRight />
+            </Link>
+          </div>
+
+          {featured.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {featured.slice(0, 6).map((product, i) => (
+                <Link
+                  key={product.id}
+                  to={`/product/${product.id}`}
+                  className={`animate-fade-in delay-${Math.min(i * 50, 300)}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 12,
+                    padding: '12px 14px',
+                    background: 'rgba(10,9,22,0.45)',
+                    backdropFilter: 'blur(12px)',
+                    WebkitBackdropFilter: 'blur(12px)',
+                    border: '1px solid rgba(45,88,173,0.20)',
+                    borderRadius: 16,
+                    textDecoration: 'none',
+                    transition: 'transform 0.15s',
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 10,
+                      overflow: 'hidden',
+                      flexShrink: 0,
+                      background: 'var(--bg3)',
+                    }}
+                  >
+                    {product.images?.[0] ? (
+                      <img
+                        src={product.images[0]}
+                        alt={product.name}
+                        loading="lazy"
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'linear-gradient(135deg, #060f1e, #0a1428)',
+                          color: 'rgba(107,157,232,0.4)',
+                        }}
+                      >
+                        <IconGamepadSmall />
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p
+                      style={{
+                        margin: 0,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: 'rgba(255,255,255,0.9)',
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
+                      {product.name}
+                    </p>
+                    {product.game_name && (
+                      <p
+                        style={{
+                          margin: '2px 0 0',
+                          fontSize: 12,
+                          color: 'rgba(255,255,255,0.45)',
+                          overflow: 'hidden',
+                          whiteSpace: 'nowrap',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {product.game_name}
+                      </p>
+                    )}
+                  </div>
+
+                  <span style={{ color: 'rgba(107,157,232,0.4)', display: 'flex', flexShrink: 0 }}>
+                    <IconChevronRight />
+                  </span>
+                </Link>
+              ))}
+            </div>
+          ) : null}
+        </section>
+
+        {/* ── Games horizontal scroll ──────────────────────────────────────── */}
+        <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(45,88,173,0.2) 30%, rgba(45,88,173,0.2) 70%, transparent)', marginBottom: 24 }} />
+        <section className="animate-fade-in delay-225">
           <div
             style={{
               display: 'flex',
@@ -723,151 +861,6 @@ export default function HomePage() {
                 ))
             }
           </div>
-        </section>
-
-        {/* ── Featured products ────────────────────────────────────────────── */}
-        <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(45,88,173,0.2) 30%, rgba(45,88,173,0.2) 70%, transparent)', marginBottom: 24 }} />
-        <section className="animate-fade-in delay-225">
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 12,
-            }}
-          >
-            <h2
-              style={{
-                margin: 0,
-                fontWeight: 700,
-                fontSize: '1.05rem',
-                color: 'var(--text)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <span style={{ color: '#fbbf24', display: 'flex' }}>
-                <IconZap />
-              </span>
-              Популярное
-            </h2>
-            <Link
-              to="/catalog"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 3,
-                fontSize: 13,
-                fontWeight: 500,
-                color: '#6b9de8',
-                textDecoration: 'none',
-              }}
-            >
-              Все
-              <IconChevronRight />
-            </Link>
-          </div>
-
-          {featured.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {featured.slice(0, 6).map((product, i) => {
-                const minPrice = product.lots.length
-                  ? Math.min(...product.lots.map((l: { price: number }) => l.price))
-                  : product.price
-                return (
-                  <Link
-                    key={product.id}
-                    to={`/product/${product.id}`}
-                    className={`animate-fade-in delay-${Math.min(i * 50, 300)}`}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '12px 14px',
-                      background: 'rgba(10,9,22,0.45)',
-                      backdropFilter: 'blur(12px)',
-                      WebkitBackdropFilter: 'blur(12px)',
-                      border: '1px solid rgba(45,88,173,0.20)',
-                      borderRadius: 16,
-                      textDecoration: 'none',
-                      transition: 'transform 0.15s',
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 10,
-                        overflow: 'hidden',
-                        flexShrink: 0,
-                        background: 'var(--bg3)',
-                      }}
-                    >
-                      {product.images?.[0] ? (
-                        <img
-                          src={product.images[0]}
-                          alt={product.name}
-                          loading="lazy"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: 'linear-gradient(135deg, #060f1e, #0a1428)',
-                            color: 'rgba(107,157,232,0.4)',
-                          }}
-                        >
-                          <IconGamepadSmall />
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p
-                        style={{
-                          margin: 0,
-                          fontSize: 13,
-                          fontWeight: 600,
-                          color: 'rgba(255,255,255,0.9)',
-                          overflow: 'hidden',
-                          whiteSpace: 'nowrap',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {product.name}
-                      </p>
-                      <p
-                        style={{
-                          margin: '2px 0 0',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: 'rgba(255,255,255,0.9)',
-                        }}
-                      >
-                        от {minPrice.toLocaleString('ru')} ₽
-                      </p>
-                    </div>
-
-                    <span style={{ color: 'rgba(107,157,232,0.4)', display: 'flex', flexShrink: 0 }}>
-                      <IconChevronRight />
-                    </span>
-                  </Link>
-                )
-              })}
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {Array(4).fill(0).map((_, i) => (
-                <div key={i} className="skeleton rounded-2xl" style={{ height: 68 }} />
-              ))}
-            </div>
-          )}
         </section>
 
         {/* ── Open catalog CTA ─────────────────────────────────────────── */}
