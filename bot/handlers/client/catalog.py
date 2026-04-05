@@ -45,7 +45,7 @@ def _cart_button(cart_total: float | None) -> list[InlineKeyboardButton] | None:
     return None
 
 
-def _games_keyboard(games: list[Game], cart_total: float | None = None) -> InlineKeyboardMarkup:
+def _games_keyboard(games: list[Game]) -> InlineKeyboardMarkup:
     buttons = [
         [
             InlineKeyboardButton(
@@ -55,9 +55,6 @@ def _games_keyboard(games: list[Game], cart_total: float | None = None) -> Inlin
         ]
         for game in games
     ]
-    cart_row = _cart_button(cart_total)
-    if cart_row:
-        buttons.append(cart_row)
     buttons.append(
         [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")]
     )
@@ -88,7 +85,6 @@ async def show_games_list(
     event: Message | CallbackQuery,
     db: AsyncSession,
     state: FSMContext | None = None,
-    user: User | None = None,
 ) -> None:
     result = await db.execute(
         select(Game)
@@ -97,18 +93,12 @@ async def show_games_list(
     )
     games = list(result.scalars().all())
 
-    cart_total: float | None = None
-    if user is not None:
-        cart = await CartService(db).get_or_create_cart(user)
-        if not cart.is_empty:
-            cart_total = float(cart.total)
-
     if not games:
         text = texts.catalog_empty
         keyboard = InlineKeyboardMarkup(inline_keyboard=[])
     else:
         text = texts.catalog_header
-        keyboard = _games_keyboard(games, cart_total=cart_total)
+        keyboard = _games_keyboard(games)
 
     if isinstance(event, CallbackQuery):
         await safe_edit(event.message, text, reply_markup=keyboard)
@@ -124,10 +114,8 @@ async def show_games_list(
 
 @router.callback_query(F.data == "catalog:main")
 @router.callback_query(F.data == "open_catalog")
-async def cb_catalog_main(
-    call: CallbackQuery, db: AsyncSession, user: User
-) -> None:
-    await show_games_list(call, db, user=user)
+async def cb_catalog_main(call: CallbackQuery, db: AsyncSession) -> None:
+    await show_games_list(call, db)
 
 
 @router.callback_query(F.data.startswith("catalog:game:"))
@@ -210,8 +198,10 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession, user: User)
     cart_total = float(cart.total) if not cart.is_empty else None
 
     # Если товар один — открываем сразу, без промежуточного экрана выбора
+    # back_to указывает на уровень игры, чтобы не зациклиться на этой же категории
     if len(products) == 1:
-        return await _show_product(call, products[0].id, db, user=user, cart_total=cart_total)
+        back_to = f"catalog:game:{category.game_id}"
+        return await _show_product(call, products[0].id, db, cart=cart, back_to=back_to)
 
     game = await db.get(Game, category.game_id)
     game_name = game.name if game else "Игра"
@@ -247,7 +237,8 @@ async def _show_product(
     db: AsyncSession,
     user: User | None = None,
     answer_text: str = "",
-    cart_total: float | None = None,
+    cart=None,
+    back_to: str | None = None,
 ) -> None:
     """Показывает карточку товара. Используется из cb_catalog_product и cb_catalog_category."""
     result = await db.execute(
@@ -263,6 +254,8 @@ async def _show_product(
     active_lots = [lot for lot in product.lots if lot.is_active]
     prices = [float(lot.price) for lot in active_lots] if active_lots else [float(product.price)]
 
+    cart_total = float(cart.total) if cart and not cart.is_empty else None
+
     text = texts.product_card(
         name=product.name,
         description=product.description or "",
@@ -274,33 +267,45 @@ async def _show_product(
         cart_total=cart_total,
     )
 
+    # Количество данного лота / товара уже в корзине
+    def _lot_qty(lot_id) -> int:
+        if not cart:
+            return 0
+        for item in cart.items:
+            if item.product_id == product.id and item.lot_id == lot_id:
+                return item.quantity
+        return 0
+
     buttons = []
     if active_lots:
         for lot in active_lots:
             badge = f" [{lot.badge}]" if lot.badge else ""
+            qty = _lot_qty(lot.id)
+            qty_text = f" (×{qty})" if qty > 0 else ""
             buttons.append(
                 [
                     InlineKeyboardButton(
-                        text=f"🛒 {lot.name} — {float(lot.price):.0f} ₽{badge}",
+                        text=f"🛒 {lot.name} — {float(lot.price):.0f} ₽{badge}{qty_text}",
                         callback_data=f"cart:add:{product.id}:{str(lot.id)[:8]}",
                     )
                 ]
             )
     else:
+        qty = _lot_qty(None)
+        qty_text = f" (×{qty})" if qty > 0 else ""
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text=f"🛒 В корзину — {float(product.price):.0f} ₽",
+                    text=f"🛒 В корзину — {float(product.price):.0f} ₽{qty_text}",
                     callback_data=f"cart:add:{product.id}",
                 )
             ]
         )
 
+    back_cb = back_to or f"catalog:cat:{product.category_id}"
     buttons.append(
         [
-            InlineKeyboardButton(
-                text="◀️ Назад", callback_data=f"catalog:cat:{product.category_id}"
-            ),
+            InlineKeyboardButton(text="◀️ Назад", callback_data=back_cb),
             InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
         ]
     )
@@ -319,8 +324,7 @@ async def cb_catalog_product(call: CallbackQuery, db: AsyncSession, user: User) 
         await call.answer("Некорректный ID товара", show_alert=True)
         return
     cart = await CartService(db).get_or_create_cart(user)
-    cart_total = float(cart.total) if not cart.is_empty else None
-    await _show_product(call, product_id, db, user=user, cart_total=cart_total)
+    await _show_product(call, product_id, db, cart=cart)
 
 
 # ── FSM: сбор input_fields ────────────────────────────────────────────────────
@@ -606,15 +610,14 @@ async def _add_to_cart(
         await call.answer("Ошибка при добавлении в корзину", show_alert=True)
         return
 
-    # Получаем актуальную сумму корзины для отображения на карточке
+    # Получаем актуальную корзину (с позициями) для отображения количества и суммы
     cart = await CartService(db).get_or_create_cart(user)
-    cart_total = float(cart.total)
 
     lot_name = f" ({lot.name})" if lot else ""
     toast = f"✅ {product.name}{lot_name} — в корзине!"
 
     # Перерисовываем карточку товара — можно сразу добавить ещё
-    await _show_product(call, product.id, db, user=user, answer_text=toast, cart_total=cart_total)
+    await _show_product(call, product.id, db, cart=cart, answer_text=toast)
 
 
 async def _add_to_cart_message(
@@ -651,7 +654,7 @@ async def _add_to_cart_message(
 # ── Кнопка магазина в reply-клавиатуре ───────────────────────────────────────
 
 @router.message(F.text == "🛍 reDonate")
-async def btn_shop(message: Message, db: AsyncSession, state: FSMContext, user: User) -> None:
+async def btn_shop(message: Message, db: AsyncSession, state: FSMContext) -> None:
     from shared.config import settings
     from aiogram.types import WebAppInfo
 
@@ -673,4 +676,4 @@ async def btn_shop(message: Message, db: AsyncSession, state: FSMContext, user: 
             ),
         )
     else:
-        await show_games_list(message, db, state=state, user=user)
+        await show_games_list(message, db, state=state)
