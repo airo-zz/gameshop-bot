@@ -175,13 +175,18 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession) -> None:
         await call.answer("Нет доступных товаров", show_alert=True)
         return
 
+    # Если товар один — открываем сразу, без промежуточного экрана выбора
+    if len(products) == 1:
+        call.data = f"catalog:product:{products[0].id}"
+        return await cb_catalog_product(call, db)
+
+    game = await db.get(Game, category.game_id)
+    game_name = game.name if game else "Игра"
+
     buttons = [
         [InlineKeyboardButton(text=p.name, callback_data=f"catalog:product:{p.id}")]
         for p in products
     ]
-    game = await db.get(Game, category.game_id)
-    game_name = game.name if game else "Игра"
-
     buttons.append(
         [
             InlineKeyboardButton(
