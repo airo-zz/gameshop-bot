@@ -33,7 +33,7 @@ function IconChevronRight() {
 
 function IconMenu() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
          strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <line x1="3" y1="6"  x2="21" y2="6" />
       <line x1="3" y1="12" x2="21" y2="12" />
@@ -472,8 +472,8 @@ export default function HomePage() {
             />
             <span
               style={{
-                fontWeight: 700,
-                fontSize: '1.05rem',
+                fontWeight: 800,
+                fontSize: '1.25rem',
                 letterSpacing: '-0.01em',
                 background: 'linear-gradient(135deg, #ffffff, #93b8f0)',
                 WebkitBackgroundClip: 'text',
@@ -490,8 +490,8 @@ export default function HomePage() {
             <button
               onClick={() => setMenuOpen(v => !v)}
               style={{
-                width: 40,
-                height: 40,
+                width: 44,
+                height: 44,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
