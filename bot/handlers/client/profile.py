@@ -8,6 +8,7 @@ bot/handlers/client/profile.py
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -23,6 +24,28 @@ from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, nav_edit
 
 router = Router(name="client:profile")
+
+_TOPUP_AMOUNTS = [100, 200, 300, 500, 1000, 1500, 2000, 5000, 10000]
+
+
+class TopupFSM(StatesGroup):
+    waiting_amount = State()
+
+
+def _topup_amounts_keyboard() -> InlineKeyboardMarkup:
+    buttons = []
+    row = []
+    for i, amount in enumerate(_TOPUP_AMOUNTS):
+        label = f"{amount:,} ₽".replace(",", " ")
+        row.append(InlineKeyboardButton(text=label, callback_data=f"balance:amount:{amount}"))
+        if len(row) == 3:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
+    buttons.append([InlineKeyboardButton(text="✏️ Указать свою сумму", callback_data="balance:amount:custom")])
+    buttons.append([InlineKeyboardButton(text="❌ Отмена", callback_data="balance:topup", style="danger")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def _profile_keyboard() -> InlineKeyboardMarkup:
@@ -157,70 +180,96 @@ async def cmd_referral(message: Message, user: User, db: AsyncSession, state: FS
 
 
 @router.callback_query(F.data == "balance:topup")
-async def cb_balance_topup(
-    call: CallbackQuery, user: User
-) -> None:
-    """Пополнение баланса — методы оплаты в боте + MiniApp."""
-    from shared.config import settings as _settings
-
-    buttons = []
-    if _settings.MINIAPP_URL:
-        from aiogram.types import WebAppInfo
-        buttons.append([InlineKeyboardButton(
-            text=f"🛍 Открыть {_settings.SHOP_NAME}",
-            web_app=WebAppInfo(url=_settings.MINIAPP_URL),
-            style="primary",
-        )])
-    buttons += [
-        [InlineKeyboardButton(text="💳 Банковская карта", callback_data="balance:topup:card")],
-        [InlineKeyboardButton(text="₮ USDT TRC-20", callback_data="balance:topup:usdt")],
-        [InlineKeyboardButton(text="💎 TON", callback_data="balance:topup:ton")],
-        [
-            InlineKeyboardButton(text="◀️ Профиль", callback_data="profile:view"),
-            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
-        ],
-    ]
+async def cb_balance_topup(call: CallbackQuery, user: User, state: FSMContext) -> None:
+    """Управление балансом."""
+    await state.clear()
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💳 Пополнить баланс", callback_data="balance:fill", style="success")],
+        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu:main", style="primary")],
+    ])
     await safe_edit(
         call.message,
         texts.balance_topup_methods(float(user.balance)),
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+        reply_markup=keyboard,
     )
     await call.answer()
 
 
-@router.callback_query(F.data.startswith("balance:topup:"))
-async def cb_balance_topup_method(
-    call: CallbackQuery, user: User
-) -> None:
-    """Показывает реквизиты / инструкцию для конкретного способа пополнения."""
-    from shared.config import settings as _settings
-
-    method = call.data.split(":")[2]
-    method_names = {
-        "card": "💳 Банковская карта",
-        "usdt": "₮ USDT TRC-20",
-        "ton": "💎 TON",
-    }
-    method_label = method_names.get(method, method)
-
-    text = (
-        f"💰 <b>Пополнение через {method_label}</b>\n\n"
-        f"Для пополнения баланса обратись в поддержку:\n"
-        f"@{_settings.SHOP_SUPPORT_USERNAME}\n\n"
-        f"Укажи:\n"
-        f"• Способ: {method_label}\n"
-        f"• Сумму пополнения\n"
-        f"• Свой Telegram ID: <code>{user.telegram_id}</code>"
+@router.callback_query(F.data == "balance:fill")
+async def cb_balance_fill(call: CallbackQuery) -> None:
+    """Экран выбора суммы пополнения."""
+    await safe_edit(
+        call.message,
+        "💳 <b>Пополнение баланса</b>\n\nВыбери сумму или укажи свою:",
+        reply_markup=_topup_amounts_keyboard(),
     )
+    await call.answer()
+
+
+@router.callback_query(F.data.startswith("balance:amount:"))
+async def cb_balance_amount(call: CallbackQuery, user: User, state: FSMContext) -> None:
+    value = call.data.split(":")[2]
+
+    if value == "custom":
+        await state.set_state(TopupFSM.waiting_amount)
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="balance:fill", style="danger")]
+        ])
+        await safe_edit(call.message, "✏️ <b>Введи сумму пополнения</b> (в рублях):", reply_markup=keyboard)
+        await call.answer()
+        return
+
+    try:
+        amount = int(value)
+    except ValueError:
+        await call.answer("Ошибка", show_alert=True)
+        return
+
+    await _show_topup_contact(call, user, amount)
+
+
+@router.message(TopupFSM.waiting_amount)
+async def fsm_topup_custom_amount(message: Message, user: User, state: FSMContext) -> None:
+    raw = (message.text or "").strip().replace(" ", "").replace(",", "")
+    if not raw.isdigit() or int(raw) <= 0:
+        await message.answer("❌ Введи целое число больше 0:", parse_mode="HTML")
+        return
+    await state.clear()
+    amount = int(raw)
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=f"💬 Написать в поддержку", url=f"https://t.me/{_settings.SHOP_SUPPORT_USERNAME}")],
+        [InlineKeyboardButton(text=f"💬 Написать в поддержку", url=f"https://t.me/{settings.SHOP_SUPPORT_USERNAME}")],
         [
-            InlineKeyboardButton(text="◀️ Назад", callback_data="balance:topup"),
+            InlineKeyboardButton(text="◀️ Назад", callback_data="balance:fill"),
             InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
         ],
     ])
-    await safe_edit(call.message, text, reply_markup=keyboard)
+    await message.answer(
+        _topup_contact_text(user, amount),
+        reply_markup=keyboard,
+        parse_mode="HTML",
+    )
+
+
+async def _show_topup_contact(call: CallbackQuery, user: User, amount: int) -> None:
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💬 Написать в поддержку", url=f"https://t.me/{settings.SHOP_SUPPORT_USERNAME}")],
+        [
+            InlineKeyboardButton(text="◀️ Назад", callback_data="balance:fill"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
+        ],
+    ])
+    await safe_edit(call.message, _topup_contact_text(user, amount), reply_markup=keyboard)
     await call.answer()
+
+
+def _topup_contact_text(user: User, amount: int) -> str:
+    return (
+        f"💳 <b>Пополнение баланса</b>\n\n"
+        f"Сумма: <b>{amount:,} ₽</b>\n\n".replace(",", " ") +
+        f"Обратись в поддержку @{settings.SHOP_SUPPORT_USERNAME} и укажи:\n"
+        f"• Сумму: <b>{amount:,} ₽</b>\n".replace(",", " ") +
+        f"• Твой Telegram ID: <code>{user.telegram_id}</code>"
+    )
 
 
 @router.callback_query(F.data == "referral:show")
