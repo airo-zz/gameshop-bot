@@ -220,7 +220,8 @@ async def cb_cart_qty(call: CallbackQuery, user: User, db: AsyncSession) -> None
     cart, item = await _resolve_item_id(cart_svc, user, item_id_short)
 
     if not item:
-        await call.answer("Позиция не найдена", show_alert=True)
+        # Позиция уже удалена — перерисовываем корзину чтобы UI был актуален
+        await _show_cart(call, user, db, answer_text="Позиция уже удалена")
         return
 
     answer_text = ""
