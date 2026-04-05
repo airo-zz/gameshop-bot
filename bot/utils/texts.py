@@ -56,7 +56,7 @@ class BotTexts:
         return "😔 Каталог пуст. Скоро добавим товары!"
 
     def game_header(self, game_name: str) -> str:
-        return f"🎮 <b>{game_name}</b>\n\nВыбери категорию:"
+        return f"🎮 <b>{game_name}</b>\n\nВыбери раздел:"
 
     def category_header(self, game_name: str, category_name: str) -> str:
         return f"🎮 {game_name} › <b>{category_name}</b>\n\nВыбери товар:"

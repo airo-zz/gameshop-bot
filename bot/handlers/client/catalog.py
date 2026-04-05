@@ -119,7 +119,7 @@ async def cb_catalog_main(call: CallbackQuery, db: AsyncSession) -> None:
 
 
 @router.callback_query(F.data.startswith("catalog:game:"))
-async def cb_catalog_game(call: CallbackQuery, db: AsyncSession, user: User) -> None:
+async def cb_catalog_game(call: CallbackQuery, db: AsyncSession) -> None:
     game_id_str = call.data.split(":")[2]
     try:
         game_id = uuid.UUID(game_id_str)
@@ -147,16 +147,10 @@ async def cb_catalog_game(call: CallbackQuery, db: AsyncSession, user: User) -> 
         await call.answer("Нет доступных категорий", show_alert=True)
         return
 
-    cart = await CartService(db).get_or_create_cart(user)
-    cart_total = float(cart.total) if not cart.is_empty else None
-
     buttons = [
         [InlineKeyboardButton(text=cat.name, callback_data=f"catalog:cat:{cat.id}")]
         for cat in categories
     ]
-    cart_row = _cart_button(cart_total)
-    if cart_row:
-        buttons.append(cart_row)
     buttons.append(
         [
             InlineKeyboardButton(text="◀️ Каталог", callback_data="catalog:main"),
@@ -285,7 +279,7 @@ async def _show_product(
             buttons.append(
                 [
                     InlineKeyboardButton(
-                        text=f"🛒 {lot.name} — {float(lot.price):.0f} ₽{badge}{qty_text}",
+                        text=f"{lot.name} — {float(lot.price):.0f} ₽{badge}{qty_text}",
                         callback_data=f"cart:add:{product.id}:{str(lot.id)[:8]}",
                     )
                 ]
@@ -296,11 +290,15 @@ async def _show_product(
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text=f"🛒 В корзину — {float(product.price):.0f} ₽{qty_text}",
+                    text=f"В корзину — {float(product.price):.0f} ₽{qty_text}",
                     callback_data=f"cart:add:{product.id}",
                 )
             ]
         )
+
+    cart_row = _cart_button(cart_total)
+    if cart_row:
+        buttons.append(cart_row)
 
     back_cb = back_to or f"catalog:cat:{product.category_id}"
     buttons.append(
