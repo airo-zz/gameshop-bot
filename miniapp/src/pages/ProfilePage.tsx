@@ -71,6 +71,7 @@ function LoyaltyProgressBar({ totalSpent, discountPercent }: { totalSpent: numbe
         <span style={{ fontSize: 11, fontWeight: 500, color: '#6b9de8', display: 'flex', alignItems: 'center', gap: 4 }}>
           <span style={{ display: 'flex', color: current.color }}>{current.icon}</span>
           {current.name}
+          <span style={{ color: 'var(--hint)', fontWeight: 400 }}>(ваш статус)</span>
         </span>
         {next ? (
           <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--hint)', display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -291,12 +292,13 @@ export default function ProfilePage() {
 
         {/* Коллапсируемый список уровней */}
         <div style={{
-          overflow: 'hidden',
-          maxHeight: showLevels ? '400px' : '0px',
+          display: 'grid',
+          gridTemplateRows: showLevels ? '1fr' : '0fr',
           opacity: showLevels ? 1 : 0,
-          transition: 'max-height 0.35s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease',
           marginTop: showLevels ? 8 : 0,
+          transition: 'grid-template-rows 0.32s cubic-bezier(0.4,0,0.2,1), opacity 0.28s ease, margin-top 0.32s ease',
         }}>
+          <div style={{ overflow: 'hidden' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {LOYALTY_LEVELS.map(level => (
               <div
@@ -326,6 +328,7 @@ export default function ProfilePage() {
                 )}
               </div>
             ))}
+          </div>
           </div>
         </div>
       </div>
