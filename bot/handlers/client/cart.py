@@ -71,12 +71,12 @@ def _cart_keyboard(items: list, has_promo: bool = False) -> InlineKeyboardMarkup
 
     # Оформить
     buttons.append(
-        [InlineKeyboardButton(text="✅ Оформить заказ", callback_data="checkout:start")]
+        [InlineKeyboardButton(text="✅ Оформить заказ", callback_data="checkout:start", style="success")]
     )
 
     # Очистить
     buttons.append(
-        [InlineKeyboardButton(text="🗑 Очистить", callback_data="cart:clear")]
+        [InlineKeyboardButton(text="🗑 Очистить", callback_data="cart:clear", style="danger")]
     )
 
     buttons.append(

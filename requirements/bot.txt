@@ -1,6 +1,6 @@
 # requirements/bot.txt
 -r base.txt
-aiogram==3.17.0
+aiogram==3.26.0
 cachetools==5.5.0
 httpx==0.28.1
 aiofiles==24.1.0

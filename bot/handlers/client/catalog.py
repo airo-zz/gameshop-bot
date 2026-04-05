@@ -17,7 +17,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     Message,
 )
-from sqlalchemy import select
+from sqlalchemy import select, func as sa_func
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -41,6 +41,7 @@ def _cart_button(cart_total: float | None) -> list[InlineKeyboardButton] | None:
         return [InlineKeyboardButton(
             text=f"🛒 Корзина: {cart_total:.0f} ₽",
             callback_data="cart:view",
+            style="success",
         )]
     return None
 
@@ -194,8 +195,7 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession, user: User)
     # Если товар один — открываем сразу, без промежуточного экрана выбора
     # back_to указывает на уровень игры, чтобы не зациклиться на этой же категории
     if len(products) == 1:
-        back_to = f"catalog:game:{category.game_id}"
-        return await _show_product(call, products[0].id, db, cart=cart, back_to=back_to)
+        return await _show_product(call, products[0].id, db, cart=cart)
 
     game = await db.get(Game, category.game_id)
     game_name = game.name if game else "Игра"
@@ -232,12 +232,11 @@ async def _show_product(
     user: User | None = None,
     answer_text: str = "",
     cart=None,
-    back_to: str | None = None,
 ) -> None:
     """Показывает карточку товара. Используется из cb_catalog_product и cb_catalog_category."""
     result = await db.execute(
         select(Product)
-        .options(selectinload(Product.lots))
+        .options(selectinload(Product.lots), selectinload(Product.category))
         .where(Product.id == product_id)
     )
     product = result.scalar_one_or_none()
@@ -300,7 +299,19 @@ async def _show_product(
     if cart_row:
         buttons.append(cart_row)
 
-    back_cb = back_to or f"catalog:cat:{product.category_id}"
+    # Автоматически вычисляем куда вести кнопку «Назад»:
+    # если в категории только этот товар — идём на уровень игры, иначе на категорию
+    product_count = await db.scalar(
+        select(sa_func.count(Product.id)).where(
+            Product.category_id == product.category_id,
+            Product.is_active == True,
+        )
+    )
+    if product_count == 1 and product.category:
+        back_cb = f"catalog:game:{product.category.game_id}"
+    else:
+        back_cb = f"catalog:cat:{product.category_id}"
+
     buttons.append(
         [
             InlineKeyboardButton(text="◀️ Назад", callback_data=back_cb),
