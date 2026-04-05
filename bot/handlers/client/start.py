@@ -12,8 +12,9 @@ from datetime import datetime, timezone, timedelta
 
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import (
-    FSInputFile, Message, InlineKeyboardMarkup, InlineKeyboardButton,
+    CallbackQuery, FSInputFile, Message, InlineKeyboardMarkup, InlineKeyboardButton,
     WebAppInfo, ReplyKeyboardMarkup, KeyboardButton,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,6 +23,7 @@ from sqlalchemy import select
 from shared.config import settings
 from shared.models import User
 from bot.utils.texts import texts
+from bot.utils.helpers import safe_edit, nav_edit
 
 router = Router(name="client:start")
 
@@ -54,19 +56,24 @@ def get_main_keyboard() -> ReplyKeyboardMarkup:
 def get_start_inline_keyboard() -> InlineKeyboardMarkup:
     """
     Inline-кнопки под приветственным сообщением.
-    Главная — открыть Mini App.
+    Главная — открыть Mini App (если настроен) или каталог (fallback).
+    БАГ 4 ИСПРАВЛЕН: кнопка строится явно через if/else, без передачи
+    web_app=None и callback_data=None в один конструктор.
     """
+    # Кнопка входа: Mini App или каталог
+    if settings.MINIAPP_URL:
+        entry_button = InlineKeyboardButton(
+            text=f"🛍 Открыть {settings.SHOP_NAME}",
+            web_app=WebAppInfo(url=settings.MINIAPP_URL),
+        )
+    else:
+        entry_button = InlineKeyboardButton(
+            text=f"🛍 Открыть {settings.SHOP_NAME}",
+            callback_data="open_catalog",
+        )
+
     buttons = [
-        [
-            InlineKeyboardButton(
-                text=f"🛍 Открыть {settings.SHOP_NAME}",
-                web_app=WebAppInfo(url=settings.MINIAPP_URL)
-                if settings.MINIAPP_URL
-                else None,
-                # Fallback если Mini App не настроен
-                callback_data="open_catalog" if not settings.MINIAPP_URL else None,
-            )
-        ],
+        [entry_button],
         [
             InlineKeyboardButton(text="🎮 Каталог игр", callback_data="catalog:main"),
             InlineKeyboardButton(text="🛒 Корзина", callback_data="cart:view"),
@@ -84,18 +91,7 @@ def get_start_inline_keyboard() -> InlineKeyboardMarkup:
         ],
     ]
 
-    # Убираем None значения из кнопок
-    cleaned = []
-    for row in buttons:
-        cleaned_row = []
-        for btn in row:
-            if btn.web_app is None and btn.callback_data is None:
-                continue
-            cleaned_row.append(btn)
-        if cleaned_row:
-            cleaned.append(cleaned_row)
-
-    return InlineKeyboardMarkup(inline_keyboard=cleaned)
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 async def _apply_referral(user: User, start_param: str, db: AsyncSession) -> float:
@@ -133,7 +129,7 @@ async def _apply_referral(user: User, start_param: str, db: AsyncSession) -> flo
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, user: User, db: AsyncSession) -> None:
+async def cmd_start(message: Message, user: User, db: AsyncSession, state: FSMContext) -> None:
     """
     Обработчик /start.
     AuthMiddleware уже зарегистрировал/обновил пользователя
@@ -173,14 +169,15 @@ async def cmd_start(message: Message, user: User, db: AsyncSession) -> None:
         os.path.dirname(__file__), "..", "..", "assets", "welcome.jpg"
     )
     if os.path.exists(assets_path):
-        await message.answer_photo(
+        sent = await message.answer_photo(
             photo=FSInputFile(assets_path),
             caption=welcome_text,
             reply_markup=keyboard,
             parse_mode="HTML",
         )
     else:
-        await message.answer(welcome_text, reply_markup=keyboard, parse_mode="HTML")
+        sent = await message.answer(welcome_text, reply_markup=keyboard, parse_mode="HTML")
+    await state.update_data(nav_msg_id=sent.message_id)
 
 
 async def _show_product_from_start(
@@ -263,11 +260,20 @@ async def _show_product_from_start(
     )
 
 
+@router.callback_query(F.data == "menu:main")
+async def cb_menu_main(call: CallbackQuery, user: User, state: FSMContext) -> None:
+    text = texts.greeting(user.first_name)
+    keyboard = get_start_inline_keyboard()
+    await safe_edit(call.message, text, reply_markup=keyboard)
+    await state.update_data(nav_msg_id=call.message.message_id)
+    await call.answer()
+
+
 @router.message(F.text == "❓ FAQ")
-async def btn_faq(message: Message) -> None:
-    await message.answer(texts.faq())
+async def btn_faq(message: Message, state: FSMContext) -> None:
+    await nav_edit(message, state, texts.faq())
 
 
 @router.message(Command("help"))
-async def cmd_help(message: Message) -> None:
-    await message.answer(texts.help_text())
+async def cmd_help(message: Message, state: FSMContext) -> None:
+    await nav_edit(message, state, texts.help_text())

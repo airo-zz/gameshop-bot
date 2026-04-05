@@ -38,7 +38,10 @@ def _favorites_keyboard(products: list[Product]) -> InlineKeyboardMarkup:
             ]
         )
     buttons.append(
-        [InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main")]
+        [
+            InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+        ]
     )
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -46,7 +49,10 @@ def _favorites_keyboard(products: list[Product]) -> InlineKeyboardMarkup:
 def _favorites_empty_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main")]
+            [
+                InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
+                InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+            ]
         ]
     )
 

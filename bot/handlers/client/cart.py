@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models import User
 from api.services.cart_service import CartService
 from bot.utils.texts import texts
-from bot.utils.helpers import safe_edit
+from bot.utils.helpers import safe_edit, nav_edit
 
 router = Router(name="client:cart")
 
@@ -80,7 +80,10 @@ def _cart_keyboard(items: list, has_promo: bool = False) -> InlineKeyboardMarkup
     )
 
     buttons.append(
-        [InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main")]
+        [
+            InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+        ]
     )
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -89,7 +92,10 @@ def _cart_keyboard(items: list, has_promo: bool = False) -> InlineKeyboardMarkup
 def _empty_cart_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="🎮 Перейти в каталог", callback_data="catalog:main")]
+            [
+                InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
+                InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+            ]
         ]
     )
 
@@ -104,7 +110,7 @@ def _promo_cancel_keyboard() -> InlineKeyboardMarkup:
 
 # ── Построение текста корзины ─────────────────────────────────────────────────
 
-async def _build_cart_text(cart, summary: dict) -> str:
+def _build_cart_text(cart, summary: dict) -> str:
     """Формирует текст корзины с позициями и итогами."""
     items_count = len(cart.items)
     lines = [f"🛒 <b>Корзина</b> ({items_count} поз.)\n━━━━━━━━━━━━━━━"]
@@ -144,6 +150,7 @@ async def _show_cart(
     event: Message | CallbackQuery,
     user: User,
     db: AsyncSession,
+    state: FSMContext | None = None,
 ) -> None:
     cart_svc = CartService(db)
     cart = await cart_svc.get_or_create_cart(user)
@@ -153,7 +160,7 @@ async def _show_cart(
         keyboard = _empty_cart_keyboard()
     else:
         summary = await cart_svc.get_cart_summary(cart, user)
-        text = await _build_cart_text(cart, summary)
+        text = _build_cart_text(cart, summary)
         has_promo = bool(cart.promo_code_id)
         keyboard = _cart_keyboard(cart.items, has_promo=has_promo)
 
@@ -161,15 +168,18 @@ async def _show_cart(
         await safe_edit(event.message, text, reply_markup=keyboard)
         await event.answer()
     else:
-        await event.answer(text, reply_markup=keyboard, parse_mode="HTML")
+        if state is not None:
+            await nav_edit(event, state, text, reply_markup=keyboard)
+        else:
+            await event.answer(text, reply_markup=keyboard, parse_mode="HTML")
 
 
 # ── Handlers: просмотр корзины ────────────────────────────────────────────────
 
 @router.message(Command("cart"))
 @router.message(F.text == "🛒 Корзина")
-async def cmd_cart(message: Message, user: User, db: AsyncSession) -> None:
-    await _show_cart(message, user, db)
+async def cmd_cart(message: Message, user: User, db: AsyncSession, state: FSMContext) -> None:
+    await _show_cart(message, user, db, state=state)
 
 
 @router.callback_query(F.data == "cart:view")
@@ -310,7 +320,7 @@ async def fsm_promo_code_input(
 
     # Показываем обновлённую корзину
     summary = await cart_svc.get_cart_summary(cart, user)
-    text = await _build_cart_text(cart, summary)
+    text = _build_cart_text(cart, summary)
     has_promo = bool(cart.promo_code_id)
     keyboard = _cart_keyboard(cart.items, has_promo=has_promo)
     await message.answer(text, reply_markup=keyboard, parse_mode="HTML")

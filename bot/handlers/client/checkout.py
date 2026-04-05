@@ -8,6 +8,7 @@ bot/handlers/client/checkout.py
 import uuid
 
 from aiogram import Router, F
+from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
@@ -19,7 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config import settings
-from shared.models import Order, OrderStatus, User
+from shared.models import Order, OrderStatus, PaymentMethod, User
 from api.services.cart_service import CartService
 from api.services.order_service import OrderService
 from api.services.payment_service import PaymentService
@@ -62,7 +63,6 @@ def _insufficient_balance_keyboard() -> InlineKeyboardMarkup:
             [
                 InlineKeyboardButton(
                     text="💰 Пополнить баланс",
-                    web_app=None,
                     url=settings.MINIAPP_URL,
                 )
             ],
@@ -91,6 +91,7 @@ def _order_success_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text="📋 Мои заказы", callback_data="orders:list")],
             [InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main")],
+            [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
         ]
     )
 
@@ -133,11 +134,11 @@ async def cb_checkout_start(
 
     order_svc = OrderService(db)
     try:
-        # Создаём заказ с временным методом оплаты balance (уточним при оплате)
+        # payment_method=None: реальный метод фиксируется в хендлере оплаты
         order = await order_svc.create_from_cart(
             user=user,
             cart=cart,
-            payment_method="balance",
+            payment_method=None,
             promo_code_str=promo_code_str,
         )
         await db.commit()
@@ -193,6 +194,9 @@ async def cb_pay_balance(
         )
         await call.answer("✅ Оплачено!")
     except ValueError:
+        # БАГ 5 ИСПРАВЛЕН: обновляем объект user из БД — pay_with_balance
+        # мог изменить состояние сессии до исключения.
+        await db.refresh(user)
         needed = float(order.total_amount)
         balance = float(user.balance)
         await safe_edit(
@@ -223,6 +227,8 @@ async def cb_pay_card(
     payment_svc = PaymentService(db)
     try:
         result = await payment_svc.pay_yukassa(order, user)
+        # БАГ 3 ИСПРАВЛЕН: фиксируем реальный метод оплаты в заказе
+        order.payment_method = PaymentMethod.card_yukassa
         await db.commit()
     except ValueError as exc:
         await call.answer(str(exc), show_alert=True)
@@ -263,6 +269,8 @@ async def cb_pay_usdt(
     payment_svc = PaymentService(db)
     try:
         result = await payment_svc.pay_crypto(order, user, currency="USDT")
+        # БАГ 3 ИСПРАВЛЕН: фиксируем реальный метод оплаты в заказе
+        order.payment_method = PaymentMethod.usdt
         await db.commit()
     except ValueError as exc:
         await call.answer(str(exc), show_alert=True)
@@ -303,6 +311,8 @@ async def cb_pay_ton(
     payment_svc = PaymentService(db)
     try:
         result = await payment_svc.pay_crypto(order, user, currency="TON")
+        # БАГ 3 ИСПРАВЛЕН: фиксируем реальный метод оплаты в заказе
+        order.payment_method = PaymentMethod.ton
         await db.commit()
     except ValueError as exc:
         await call.answer(str(exc), show_alert=True)
@@ -371,7 +381,10 @@ async def cb_checkout_check(
 
 # ── Отмена заказа ─────────────────────────────────────────────────────────────
 
+# БАГ 2 ИСПРАВЛЕН: добавлен StateFilter — хендлер срабатывает только в состояниях
+# CheckoutFSM, не перехватывая FSM других модулей (PromoCodeFSM, InputFieldsFSM).
 @router.callback_query(
+    StateFilter(CheckoutFSM.selecting_method, CheckoutFSM.waiting_external),
     F.data == "checkout:cancel",
 )
 async def cb_checkout_cancel(

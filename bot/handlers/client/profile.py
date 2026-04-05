@@ -7,6 +7,7 @@ bot/handlers/client/profile.py
 
 from aiogram import Router, F
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -19,7 +20,7 @@ from sqlalchemy import select, func
 from shared.config import settings
 from shared.models import User, LoyaltyLevel
 from bot.utils.texts import texts
-from bot.utils.helpers import safe_edit
+from bot.utils.helpers import safe_edit, nav_edit
 
 router = Router(name="client:profile")
 
@@ -31,6 +32,7 @@ def _profile_keyboard() -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text="❤️ Избранное", callback_data="favorites:list")],
             [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="balance:topup")],
             [InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="referral:show")],
+            [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
         ]
     )
 
@@ -44,7 +46,10 @@ def _referral_keyboard(ref_link: str) -> InlineKeyboardMarkup:
                     switch_inline_query=ref_link,
                 )
             ],
-            [InlineKeyboardButton(text="◀️ Назад в профиль", callback_data="profile:view")],
+            [
+                InlineKeyboardButton(text="◀️ Профиль", callback_data="profile:view"),
+                InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+            ],
         ]
     )
 
@@ -117,9 +122,9 @@ async def _build_referral_text(user: User, db: AsyncSession) -> tuple[str, str]:
 
 @router.message(Command("profile"))
 @router.message(F.text == "👤 Профиль")
-async def cmd_profile(message: Message, user: User, db: AsyncSession) -> None:
+async def cmd_profile(message: Message, user: User, db: AsyncSession, state: FSMContext) -> None:
     text = await _build_profile_text(user, db)
-    await message.answer(text, reply_markup=_profile_keyboard(), parse_mode="HTML")
+    await nav_edit(message, state, text, reply_markup=_profile_keyboard())
 
 
 @router.callback_query(F.data == "profile:view")
@@ -132,14 +137,10 @@ async def cb_profile_view(
 
 
 @router.message(Command("referral"))
-async def cmd_referral(message: Message, user: User, db: AsyncSession) -> None:
+async def cmd_referral(message: Message, user: User, db: AsyncSession, state: FSMContext) -> None:
     """Команда /referral — показать реферальную ссылку."""
     text, ref_link = await _build_referral_text(user, db)
-    await message.answer(
-        text,
-        reply_markup=_referral_keyboard(ref_link),
-        parse_mode="HTML",
-    )
+    await nav_edit(message, state, text, reply_markup=_referral_keyboard(ref_link))
 
 
 @router.callback_query(F.data == "balance:topup")
@@ -157,7 +158,10 @@ async def cb_balance_topup(
                     text=f"💳 Открыть {_settings.SHOP_NAME}",
                     web_app=WebAppInfo(url=_settings.MINIAPP_URL),
                 )],
-                [IKB(text="◀️ Профиль", callback_data="profile:view")],
+                [
+                    IKB(text="◀️ Профиль", callback_data="profile:view"),
+                    IKB(text="🏠 Меню", callback_data="menu:main"),
+                ],
             ]
         )
         await safe_edit(
@@ -175,7 +179,10 @@ async def cb_balance_topup(
             f"Для пополнения обратись в поддержку: @{_settings.SHOP_SUPPORT_USERNAME}",
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [InlineKeyboardButton(text="◀️ Профиль", callback_data="profile:view")]
+                    [
+                        InlineKeyboardButton(text="◀️ Профиль", callback_data="profile:view"),
+                        InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+                    ]
                 ]
             ),
         )

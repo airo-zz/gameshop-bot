@@ -9,6 +9,7 @@ import uuid as _uuid
 
 from aiogram import Router, F
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -21,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Order, OrderItem, OrderStatus, User
 from bot.utils.texts import texts
-from bot.utils.helpers import safe_edit
+from bot.utils.helpers import safe_edit, nav_edit
 
 router = Router(name="client:orders")
 
@@ -45,7 +46,10 @@ async def _render_orders(
     if not orders:
         return texts.orders_empty, InlineKeyboardMarkup(
             inline_keyboard=[
-                [InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main")]
+                [
+                    InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
+                    InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+                ]
             ]
         )
 
@@ -66,14 +70,14 @@ async def _render_orders(
         )
 
     buttons.append(
-        [InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main")]
+        [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")]
     )
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 @router.message(Command("orders"))
 @router.message(F.text == "📋 Мои заказы")
-async def cmd_orders(message: Message, user: User, db: AsyncSession) -> None:
+async def cmd_orders(message: Message, user: User, db: AsyncSession, state: FSMContext) -> None:
     result = await db.execute(
         select(Order)
         .where(Order.user_id == user.id)
@@ -82,7 +86,7 @@ async def cmd_orders(message: Message, user: User, db: AsyncSession) -> None:
     )
     orders = list(result.scalars().all())
     text, keyboard = await _render_orders(orders)
-    await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+    await nav_edit(message, state, text, reply_markup=keyboard)
 
 
 @router.callback_query(F.data == "orders:list")
@@ -140,7 +144,10 @@ async def cb_order_detail(
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="◀️ К заказам", callback_data="orders:list")]
+            [
+                InlineKeyboardButton(text="◀️ К заказам", callback_data="orders:list"),
+                InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+            ]
         ]
     )
     await safe_edit(call.message, text, reply_markup=keyboard)

@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Game, Category, Product, ProductLot, Cart, CartItem, User
 from bot.utils.texts import texts
-from bot.utils.helpers import safe_edit
+from bot.utils.helpers import safe_edit, nav_edit
 
 router = Router(name="client:catalog")
 
@@ -44,13 +44,17 @@ def _games_keyboard(games: list[Game]) -> InlineKeyboardMarkup:
         ]
         for game in games
     ]
+    buttons.append(
+        [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")]
+    )
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def _cancel_fsm_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="❌ Отмена", callback_data="fsm:cancel")]
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="fsm:cancel")],
+            [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
         ]
     )
 
@@ -66,7 +70,7 @@ def _select_field_keyboard(options: list[str]) -> InlineKeyboardMarkup:
 
 # ── Показ списка игр ──────────────────────────────────────────────────────────
 
-async def show_games_list(event: Message | CallbackQuery, db: AsyncSession) -> None:
+async def show_games_list(event: Message | CallbackQuery, db: AsyncSession, state: FSMContext | None = None) -> None:
     result = await db.execute(
         select(Game)
         .where(Game.is_active == True)
@@ -85,7 +89,10 @@ async def show_games_list(event: Message | CallbackQuery, db: AsyncSession) -> N
         await safe_edit(event.message, text, reply_markup=keyboard)
         await event.answer()
     else:
-        await event.answer(text, reply_markup=keyboard, parse_mode="HTML")
+        if state is not None:
+            await nav_edit(event, state, text, reply_markup=keyboard)
+        else:
+            await event.answer(text, reply_markup=keyboard, parse_mode="HTML")
 
 
 # ── Handlers: навигация по каталогу ──────────────────────────────────────────
@@ -132,7 +139,10 @@ async def cb_catalog_game(call: CallbackQuery, db: AsyncSession) -> None:
         for cat in categories
     ]
     buttons.append(
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="catalog:main")]
+        [
+            InlineKeyboardButton(text="◀️ Каталог", callback_data="catalog:main"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+        ]
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -169,17 +179,18 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession) -> None:
         [InlineKeyboardButton(text=p.name, callback_data=f"catalog:product:{p.id}")]
         for p in products
     ]
+    game = await db.get(Game, category.game_id)
+    game_name = game.name if game else "Игра"
+
     buttons.append(
         [
             InlineKeyboardButton(
-                text="◀️ Назад", callback_data=f"catalog:game:{category.game_id}"
-            )
+                text=f"◀️ {game_name}", callback_data=f"catalog:game:{category.game_id}"
+            ),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
         ]
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
-
-    game = await db.get(Game, category.game_id)
-    game_name = game.name if game else "Игра"
 
     await safe_edit(
         call.message,
@@ -257,7 +268,8 @@ async def cb_catalog_product(call: CallbackQuery, db: AsyncSession) -> None:
         [
             InlineKeyboardButton(
                 text="◀️ Назад", callback_data=f"catalog:cat:{product.category_id}"
-            )
+            ),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
         ]
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -451,11 +463,9 @@ async def fsm_collect_select_field(
         await _add_to_cart(call, user, db, product, lot, input_data=collected)
     else:
         await state.update_data(current_idx=next_idx, collected=collected)
-        await safe_edit(
-            call.message,
-            texts.input_field_saved(current_field["label"], value, remaining),
-        )
-        await _ask_field(call.message, fields[next_idx], edit=False)
+        # ЗАМЕЧАНИЕ 8 ИСПРАВЛЕНО: вместо safe_edit + _ask_field(edit=False) (два сообщения)
+        # редактируем текущее сообщение сразу в следующий вопрос через edit=True.
+        await _ask_field(call.message, fields[next_idx], edit=True)
 
 
 @router.callback_query(F.data == "fsm:cancel")
@@ -468,7 +478,10 @@ async def fsm_cancel(call: CallbackQuery, state: FSMContext) -> None:
             "❌ Действие отменено.",
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[
-                    [InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main")]
+                    [
+                        InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
+                        InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+                    ]
                 ]
             ),
         )
@@ -594,12 +607,14 @@ async def _add_to_cart_message(
 # ── Кнопка магазина в reply-клавиатуре ───────────────────────────────────────
 
 @router.message(F.text == "🛍 reDonate")
-async def btn_shop(message: Message, db: AsyncSession) -> None:
+async def btn_shop(message: Message, db: AsyncSession, state: FSMContext) -> None:
     from shared.config import settings
     from aiogram.types import WebAppInfo
 
     if settings.MINIAPP_URL:
-        await message.answer(
+        await nav_edit(
+            message,
+            state,
             texts.open_shop,
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[
@@ -608,9 +623,10 @@ async def btn_shop(message: Message, db: AsyncSession) -> None:
                             text=f"🛍 Открыть {settings.SHOP_NAME}",
                             web_app=WebAppInfo(url=settings.MINIAPP_URL),
                         )
-                    ]
+                    ],
+                    [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
                 ]
             ),
         )
     else:
-        await show_games_list(message, db)
+        await show_games_list(message, db, state=state)

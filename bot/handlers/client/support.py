@@ -7,6 +7,7 @@ bot/handlers/client/support.py
 
 from aiogram import Router, F
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -16,7 +17,7 @@ from aiogram.types import (
 
 from shared.config import settings
 from bot.utils.texts import texts
-from bot.utils.helpers import safe_edit
+from bot.utils.helpers import safe_edit, nav_edit
 
 router = Router(name="client:support")
 
@@ -32,18 +33,17 @@ def _support_keyboard() -> InlineKeyboardMarkup:
         [
             InlineKeyboardButton(text="❓ FAQ", callback_data="faq:main"),
         ],
+        [
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+        ],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 @router.message(Command("support"))
 @router.message(F.text == "🆘 Поддержка")
-async def cmd_support(message: Message) -> None:
-    await message.answer(
-        texts.support_header,
-        reply_markup=_support_keyboard(),
-        parse_mode="HTML",
-    )
+async def cmd_support(message: Message, state: FSMContext) -> None:
+    await nav_edit(message, state, texts.support_header, reply_markup=_support_keyboard())
 
 
 @router.callback_query(F.data == "support:main")
@@ -58,7 +58,12 @@ async def cb_faq(call: CallbackQuery) -> None:
         call.message,
         texts.faq(),
         reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[[InlineKeyboardButton(text="◀️ Назад", callback_data="support:main")]]
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(text="◀️ Назад", callback_data="support:main"),
+                    InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+                ]
+            ]
         ),
     )
     await call.answer()

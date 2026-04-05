@@ -16,6 +16,7 @@ from aiogram.types import (
 
 from shared.models import AdminUser, AdminRole
 from bot.utils.texts import texts
+from bot.utils.helpers import safe_edit
 
 router = Router(name="admin:main")
 
@@ -113,7 +114,8 @@ async def admin_start(message: Message, admin: AdminUser) -> None:
 
 @router.callback_query(F.data == "admin:catalog:main")
 async def admin_catalog_main(call: CallbackQuery, admin: AdminUser) -> None:
-    await call.message.edit_text(
+    await safe_edit(
+        call.message,
         texts.admin_catalog_header,
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
@@ -136,7 +138,8 @@ async def admin_catalog_main(call: CallbackQuery, admin: AdminUser) -> None:
 @router.callback_query(F.data == "admin:main")
 async def admin_back_to_main(call: CallbackQuery, admin: AdminUser) -> None:
     role_emoji = ROLE_EMOJI.get(admin.role, "👤")
-    await call.message.edit_text(
+    await safe_edit(
+        call.message,
         texts.admin_panel_short(role_emoji, admin.role.value.capitalize()),
         reply_markup=get_admin_menu(admin),
     )
