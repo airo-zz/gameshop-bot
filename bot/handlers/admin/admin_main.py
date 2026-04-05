@@ -74,15 +74,6 @@ def get_admin_menu(admin: AdminUser) -> InlineKeyboardMarkup:
             ]
         )
 
-    if admin.has_permission("support.*"):
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    text="🆘 Тикеты", callback_data="admin:tickets:list"
-                ),
-            ]
-        )
-
     if admin.has_permission("analytics.view"):
         buttons.append(
             [
@@ -150,11 +141,6 @@ async def admin_back_to_main(call: CallbackQuery, admin: AdminUser) -> None:
         reply_markup=get_admin_menu(admin),
     )
     await call.answer()
-
-
-@router.callback_query(F.data == "admin:tickets:list")
-async def admin_tickets_list_stub(call: CallbackQuery, admin: AdminUser) -> None:
-    await call.answer("🆘 Управление тикетами — в разработке.", show_alert=True)
 
 
 @router.callback_query(F.data == "admin:settings:main")

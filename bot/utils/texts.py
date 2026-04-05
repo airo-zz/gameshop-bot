@@ -182,6 +182,90 @@ class BotTexts:
             f"Статус изменён: <b>{status_names.get(new_status, new_status)}</b>"
         )
 
+    # ── Чекаут ────────────────────────────────────────────────────────────────
+    def checkout_summary(
+        self, order_number: str, total: float, discount: float = 0
+    ) -> str:
+        discount_text = (
+            f"💸 Скидка: <b>-{discount:.0f} ₽</b>\n" if discount > 0 else ""
+        )
+        return (
+            f"🧾 <b>Заказ {order_number}</b>\n"
+            f"━━━━━━━━━━━━━━━\n"
+            f"{discount_text}"
+            f"💰 К оплате: <b>{total:.0f} ₽</b>"
+        )
+
+    def checkout_select_method(
+        self, order_number: str, total: float, balance: float
+    ) -> str:
+        balance_text = (
+            f"✅ Хватает" if balance >= total else f"❌ Не хватает {total - balance:.0f} ₽"
+        )
+        return (
+            f"🧾 <b>Заказ {order_number}</b> — <b>{total:.0f} ₽</b>\n\n"
+            f"💳 Твой баланс: <b>{balance:.0f} ₽</b> ({balance_text})\n\n"
+            f"Выбери способ оплаты:"
+        )
+
+    def payment_insufficient_balance(self, balance: float, needed: float) -> str:
+        return (
+            f"❌ <b>Недостаточно средств</b>\n\n"
+            f"На балансе: <b>{balance:.0f} ₽</b>\n"
+            f"Нужно: <b>{needed:.0f} ₽</b>\n"
+            f"Не хватает: <b>{needed - balance:.0f} ₽</b>"
+        )
+
+    def payment_waiting_external(
+        self, method: str, amount: float, url: str
+    ) -> str:
+        method_names = {
+            "card": "💳 Банковская карта",
+            "usdt": "₮ USDT TRC-20",
+            "ton": "💎 TON",
+        }
+        method_label = method_names.get(method, method)
+        return (
+            f"💳 <b>Оплата через {method_label}</b>\n\n"
+            f"Сумма: <b>{amount:.0f} ₽</b>\n\n"
+            f"Нажми кнопку ниже для оплаты. После оплаты нажми «✅ Я оплатил»."
+        )
+
+    # ── Инпут-поля (FSM) ──────────────────────────────────────────────────────
+    def input_field_prompt(self, label: str, placeholder: str = "") -> str:
+        hint = f"\n\n<i>Например: {placeholder}</i>" if placeholder else ""
+        return f"✏️ <b>{label}</b>{hint}\n\nВведи значение:"
+
+    def input_field_select_prompt(self, label: str) -> str:
+        return f"🔽 <b>{label}</b>\n\nВыбери один из вариантов:"
+
+    def input_field_saved(
+        self, label: str, value: str, remaining: int
+    ) -> str:
+        remaining_text = (
+            f"Осталось полей: <b>{remaining}</b>" if remaining > 0 else "Все поля заполнены!"
+        )
+        return (
+            f"✅ <b>{label}</b>: <code>{value}</code>\n\n{remaining_text}"
+        )
+
+    # ── Избранное ─────────────────────────────────────────────────────────────
+    @property
+    def favorites_empty(self) -> str:
+        return (
+            "❤️ <b>Избранное</b>\n\n"
+            "У тебя нет избранных товаров. Добавляй через каталог!"
+        )
+
+    def favorites_header(self, count: int) -> str:
+        return f"❤️ <b>Избранное</b> ({count} товаров)\n━━━━━━━━━━━━━━━"
+
+    def favorite_added(self, product_name: str) -> str:
+        return f"❤️ <b>{product_name}</b> добавлен в избранное!"
+
+    def favorite_removed(self, product_name: str) -> str:
+        return f"🗑 <b>{product_name}</b> убран из избранного."
+
     # ── Профиль ───────────────────────────────────────────────────────────────
     def profile(
         self,
@@ -192,15 +276,25 @@ class BotTexts:
         loyalty_name: str,
         loyalty_emoji: str,
         referral_code: str,
+        next_level_name: str | None = None,
+        next_level_need: float | None = None,
     ) -> str:
+        if next_level_name and next_level_need is not None and next_level_need > 0:
+            progress_text = (
+                f"\nПотрачено: <b>{total_spent:.0f} ₽</b> → "
+                f"до {next_level_name} нужно ещё <b>{next_level_need:.0f} ₽</b>"
+            )
+        else:
+            progress_text = f"\nПотрачено: <b>{total_spent:.0f} ₽</b>"
+
         return (
             f"👤 <b>Профиль</b>\n"
             f"━━━━━━━━━━━━━━━\n"
             f"Имя: {escape(first_name)}\n"
             f"Баланс: <b>{balance:.2f} ₽</b>\n"
             f"Заказов: <b>{orders_count}</b>\n"
-            f"Потрачено: <b>{total_spent:.0f} ₽</b>\n"
-            f"Уровень: {loyalty_emoji} <b>{loyalty_name}</b>\n"
+            f"Уровень: {loyalty_emoji} <b>{loyalty_name}</b>"
+            f"{progress_text}\n"
             f"Реферальный код: <code>{referral_code}</code>"
         )
 
@@ -229,19 +323,9 @@ class BotTexts:
     def support_header(self) -> str:
         return (
             f"💬 <b>Поддержка {S.SHOP_NAME}</b>\n\n"
-            f"Опиши проблему — мы ответим в ближайшее время.\n"
-            f"Также можно написать напрямую: {S.support_link}"
+            f"Для помощи обратись в наш бот поддержки.\n"
+            f"Время ответа: обычно до 4 часов."
         )
-
-    def ticket_created(self, ticket_id: str) -> str:
-        return (
-            f"✅ Обращение <b>#{ticket_id[:8]}</b> создано!\n"
-            f"Обычно мы отвечаем в течение 1–4 часов.\n\n"
-            f"Все ответы придут сюда, в бота."
-        )
-
-    def ticket_answered(self, operator_name: str, text: str) -> str:
-        return f"💬 Ответ оператора <b>{operator_name}</b>:\n\n{text}"
 
     # ── Брошенная корзина ─────────────────────────────────────────────────────
     @staticmethod
@@ -310,7 +394,7 @@ class BotTexts:
             f"<b>Какие способы оплаты?</b>\n"
             f"Баланс бота, банковская карта, USDT, TON.\n\n"
             f"<b>Что делать если товар не пришёл?</b>\n"
-            f"Открой тикет в разделе «Поддержка».\n\n"
+            f"Напиши в бот поддержки @{S.SHOP_SUPPORT_USERNAME}.\n\n"
             f"<b>Есть ли скидки?</b>\n"
             f"Да! Программа лояльности Bronze → Silver → Gold → VIP.\n"
             f"Чем больше покупаешь — тем больше скидка.\n\n"
@@ -325,6 +409,7 @@ class BotTexts:
             f"/orders — мои заказы\n"
             f"/balance — мой баланс\n"
             f"/support — поддержка\n"
+            f"/favorites — избранное\n"
             f"/help — эта справка"
         )
 
@@ -333,7 +418,7 @@ class BotTexts:
     def error_general(self) -> str:
         return (
             f"😔 Что-то пошло не так.\n\n"
-            f"Попробуй позже или обратись в поддержку: {S.support_link}"
+            f"Попробуй позже или обратись в поддержку: @{S.SHOP_SUPPORT_USERNAME}"
         )
 
     @property
@@ -349,7 +434,7 @@ class BotTexts:
 
     @property
     def error_blocked(self) -> str:
-        return f"🚫 Твой аккаунт заблокирован. Обратись в поддержку: {S.support_link}"
+        return f"🚫 Твой аккаунт заблокирован. Обратись в поддержку: @{S.SHOP_SUPPORT_USERNAME}"
 
 
 # Синглтон — импортируй и используй

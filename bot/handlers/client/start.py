@@ -138,13 +138,21 @@ async def cmd_start(message: Message, user: User, db: AsyncSession) -> None:
     Обработчик /start.
     AuthMiddleware уже зарегистрировал/обновил пользователя
     и передал его в data["user"].
-    Обрабатывает реферальный параметр REF_<telegram_id>.
+    Обрабатывает параметры:
+      - REF_<telegram_id> — реферальная программа
+      - product_<uuid>    — показ карточки товара
     """
-    # Парсим start_param для реферальной программы
-    referral_bonus = 0.0
+    # Парсим start_param
     start_param = None
     if message.text and len(message.text.split()) > 1:
         start_param = message.text.split(maxsplit=1)[1].strip()
+
+    # Показ карточки товара из inline-режима
+    if start_param and start_param.startswith("product_"):
+        await _show_product_from_start(message, start_param, db)
+        return
+
+    referral_bonus = 0.0
 
     # Определяем — новый пользователь или вернулся (зарегистрирован менее 5 минут назад)
     is_new = (
@@ -173,6 +181,86 @@ async def cmd_start(message: Message, user: User, db: AsyncSession) -> None:
         )
     else:
         await message.answer(welcome_text, reply_markup=keyboard, parse_mode="HTML")
+
+
+async def _show_product_from_start(
+    message: Message, start_param: str, db: AsyncSession
+) -> None:
+    """Показывает карточку товара при /start product_{uuid}."""
+    import uuid as uuid_mod
+    from sqlalchemy.orm import selectinload
+    from shared.models import Product
+    from bot.utils.texts import texts as _texts
+
+    product_id_str = start_param[len("product_"):]
+    try:
+        product_id = uuid_mod.UUID(product_id_str)
+    except ValueError:
+        await message.answer("❌ Товар не найден.", parse_mode="HTML")
+        return
+
+    result = await db.execute(
+        select(Product)
+        .options(selectinload(Product.lots))
+        .where(Product.id == product_id, Product.is_active == True)
+    )
+    product = result.scalar_one_or_none()
+    if not product:
+        await message.answer("❌ Товар не найден или недоступен.", parse_mode="HTML")
+        return
+
+    active_lots = [lot for lot in product.lots if lot.is_active]
+    prices = [float(lot.price) for lot in active_lots] if active_lots else [float(product.price)]
+
+    card_text = _texts.product_card(
+        name=product.name,
+        description=product.description or "",
+        price=float(product.price),
+        stock=product.stock,
+        delivery_type=product.delivery_type.value,
+        min_price=min(prices),
+        max_price=max(prices),
+    )
+
+    buttons = []
+    if active_lots:
+        for lot in active_lots:
+            badge = f" [{lot.badge}]" if lot.badge else ""
+            buttons.append(
+                [
+                    InlineKeyboardButton(
+                        text=f"🛒 {lot.name} — {float(lot.price):.0f} ₽{badge}",
+                        callback_data=f"cart:add:{product.id}:{lot.id}",
+                    )
+                ]
+            )
+    else:
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=f"🛒 В корзину — {float(product.price):.0f} ₽",
+                    callback_data=f"cart:add:{product.id}",
+                )
+            ]
+        )
+
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="❤️ В избранное",
+                callback_data=f"favorites:toggle:{product.id}",
+            )
+        ]
+    )
+    buttons.append(
+        [InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main")]
+    )
+
+    await message.answer(
+        card_text,
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
+        parse_mode="HTML",
+    )
 
 
 @router.message(F.text == "❓ FAQ")

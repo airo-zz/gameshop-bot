@@ -25,7 +25,10 @@ from bot.middlewares.admin_auth import AdminAuthMiddleware
 from bot.middlewares.throttle import ThrottleMiddleware
 from bot.middlewares.logging import LoggingMiddleware
 
-from bot.handlers.client import start, catalog, cart, orders, profile, support
+from bot.handlers.client import (
+    start, catalog, cart, orders, profile, support,
+    checkout, favorites, inline_search,
+)
 from bot.handlers.admin import (
     admin_main,
     admin_catalog,
@@ -108,11 +111,18 @@ def create_dispatcher() -> Dispatcher:
     _client_routers = [
         start.router, catalog.router, cart.router,
         orders.router, profile.router, support.router,
+        checkout.router, favorites.router,
     ]
     for _r in _client_routers:
         _r.message.middleware(ThrottleMiddleware(rate_limit=settings.RATE_LIMIT_CLIENT))
         _r.callback_query.middleware(ThrottleMiddleware(rate_limit=settings.RATE_LIMIT_CLIENT))
         dp.include_router(_r)
+
+    # ── Inline search router (отдельно — свой middleware) ─────────────────────
+    inline_search.router.inline_query.middleware(
+        ThrottleMiddleware(rate_limit=settings.RATE_LIMIT_CLIENT)
+    )
+    dp.include_router(inline_search.router)
 
     # ── Admin routers ─────────────────────────────────────────────────────────
     _admin_routers = [

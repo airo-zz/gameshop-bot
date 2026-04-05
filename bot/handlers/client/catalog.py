@@ -1,13 +1,16 @@
 """
 bot/handlers/client/catalog.py
 ─────────────────────────────────────────────────────────────────────────────
-Каталог игр и товаров.
+Каталог игр и товаров. FSM для сбора input_fields перед добавлением в корзину.
 ─────────────────────────────────────────────────────────────────────────────
 """
 
 import uuid
+from decimal import Decimal
 
 from aiogram import Router, F
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -18,12 +21,18 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import Game, Category, Product, ProductLot
+from shared.models import Game, Category, Product, ProductLot, Cart, CartItem, User
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit
 
 router = Router(name="client:catalog")
 
+
+class InputFieldsFSM(StatesGroup):
+    collecting = State()
+
+
+# ── Вспомогательные функции клавиатур ─────────────────────────────────────────
 
 def _games_keyboard(games: list[Game]) -> InlineKeyboardMarkup:
     buttons = [
@@ -37,6 +46,25 @@ def _games_keyboard(games: list[Game]) -> InlineKeyboardMarkup:
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
+
+def _cancel_fsm_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="fsm:cancel")]
+        ]
+    )
+
+
+def _select_field_keyboard(options: list[str]) -> InlineKeyboardMarkup:
+    buttons = [
+        [InlineKeyboardButton(text=opt, callback_data=f"field:select:{opt}")]
+        for opt in options
+    ]
+    buttons.append([InlineKeyboardButton(text="❌ Отмена", callback_data="fsm:cancel")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+# ── Показ списка игр ──────────────────────────────────────────────────────────
 
 async def show_games_list(event: Message | CallbackQuery, db: AsyncSession) -> None:
     result = await db.execute(
@@ -59,6 +87,8 @@ async def show_games_list(event: Message | CallbackQuery, db: AsyncSession) -> N
     else:
         await event.answer(text, reply_markup=keyboard, parse_mode="HTML")
 
+
+# ── Handlers: навигация по каталогу ──────────────────────────────────────────
 
 @router.callback_query(F.data == "catalog:main")
 @router.callback_query(F.data == "open_catalog")
@@ -213,6 +243,16 @@ async def cb_catalog_product(call: CallbackQuery, db: AsyncSession) -> None:
             ]
         )
 
+    # Кнопка избранного
+    buttons.append(
+        [
+            InlineKeyboardButton(
+                text="❤️ В избранное",
+                callback_data=f"favorites:toggle:{product.id}",
+            )
+        ]
+    )
+
     buttons.append(
         [
             InlineKeyboardButton(
@@ -225,6 +265,333 @@ async def cb_catalog_product(call: CallbackQuery, db: AsyncSession) -> None:
     await safe_edit(call.message, text, reply_markup=keyboard)
     await call.answer()
 
+
+# ── FSM: сбор input_fields ────────────────────────────────────────────────────
+
+@router.callback_query(F.data.startswith("cart:add:"))
+async def cb_cart_add_with_fields(
+    call: CallbackQuery,
+    user: User,
+    db: AsyncSession,
+    state: FSMContext,
+) -> None:
+    """
+    Перехватывает cart:add перед обычным обработчиком корзины.
+    Если у товара есть input_fields — запускает FSM. Иначе — добавляет сразу.
+    """
+    parts = call.data.split(":")
+    # Формат: cart:add:{product_id} или cart:add:{product_id}:{lot_id}
+    try:
+        product_id = uuid.UUID(parts[2])
+        lot_id = uuid.UUID(parts[3]) if len(parts) > 3 else None
+    except (IndexError, ValueError):
+        await call.answer("Ошибка: некорректные данные товара", show_alert=True)
+        return
+
+    result = await db.execute(
+        select(Product)
+        .options(selectinload(Product.lots))
+        .where(Product.id == product_id, Product.is_active == True)
+    )
+    product = result.scalar_one_or_none()
+    if not product:
+        await call.answer("❌ Товар недоступен", show_alert=True)
+        return
+
+    lot: ProductLot | None = None
+    if lot_id:
+        lot = await db.get(ProductLot, lot_id)
+        if not lot or not lot.is_active:
+            await call.answer("❌ Вариант товара недоступен", show_alert=True)
+            return
+
+    input_fields: list[dict] = product.input_fields or []
+
+    if not input_fields:
+        # Нет полей — добавляем сразу в корзину
+        await _add_to_cart(call, user, db, product, lot, input_data={})
+        return
+
+    # Есть поля — запускаем FSM
+    await state.set_state(InputFieldsFSM.collecting)
+    await state.update_data(
+        product_id=str(product_id),
+        lot_id=str(lot_id) if lot_id else None,
+        fields=input_fields,
+        current_idx=0,
+        collected={},
+    )
+
+    await _ask_field(call.message, input_fields[0], edit=True)
+    await call.answer()
+
+
+async def _ask_field(
+    message: Message,
+    field: dict,
+    edit: bool = False,
+) -> None:
+    """Показывает запрос на ввод одного поля."""
+    label: str = field.get("label", "Поле")
+    field_type: str = field.get("type", "text")
+    placeholder: str = field.get("placeholder", "")
+    options: list[str] = field.get("options", [])
+
+    if field_type == "select" and options:
+        text = texts.input_field_select_prompt(label)
+        keyboard = _select_field_keyboard(options)
+    else:
+        text = texts.input_field_prompt(label, placeholder)
+        keyboard = _cancel_fsm_keyboard()
+
+    if edit:
+        await safe_edit(message, text, reply_markup=keyboard)
+    else:
+        await message.answer(text, reply_markup=keyboard, parse_mode="HTML")
+
+
+@router.message(InputFieldsFSM.collecting)
+async def fsm_collect_text_field(
+    message: Message,
+    user: User,
+    db: AsyncSession,
+    state: FSMContext,
+) -> None:
+    """Принимает текстовый ввод поля."""
+    data = await state.get_data()
+    fields: list[dict] = data["fields"]
+    current_idx: int = data["current_idx"]
+    collected: dict = data["collected"]
+
+    current_field = fields[current_idx]
+
+    # Валидация: если поле required и ввод пустой
+    value = (message.text or "").strip()
+    if current_field.get("required", False) and not value:
+        await message.answer(
+            "❌ Это поле обязательно для заполнения. Введи значение:",
+            reply_markup=_cancel_fsm_keyboard(),
+            parse_mode="HTML",
+        )
+        return
+
+    collected[current_field["key"]] = value
+    next_idx = current_idx + 1
+    remaining = len(fields) - next_idx
+
+    # Показываем подтверждение
+    await message.answer(
+        texts.input_field_saved(current_field["label"], value, remaining),
+        parse_mode="HTML",
+    )
+
+    if next_idx >= len(fields):
+        # Все поля собраны — добавляем в корзину
+        await state.clear()
+        product_id = uuid.UUID(data["product_id"])
+        lot_id = uuid.UUID(data["lot_id"]) if data.get("lot_id") else None
+
+        result = await db.execute(
+            select(Product)
+            .options(selectinload(Product.lots))
+            .where(Product.id == product_id)
+        )
+        product = result.scalar_one_or_none()
+        lot = await db.get(ProductLot, lot_id) if lot_id else None
+
+        if not product:
+            await message.answer("❌ Товар не найден.", parse_mode="HTML")
+            return
+
+        await _add_to_cart_message(message, user, db, product, lot, input_data=collected)
+    else:
+        # Следующее поле
+        await state.update_data(current_idx=next_idx, collected=collected)
+        await _ask_field(message, fields[next_idx], edit=False)
+
+
+@router.callback_query(InputFieldsFSM.collecting, F.data.startswith("field:select:"))
+async def fsm_collect_select_field(
+    call: CallbackQuery,
+    user: User,
+    db: AsyncSession,
+    state: FSMContext,
+) -> None:
+    """Принимает выбор варианта из select-поля."""
+    value = call.data[len("field:select:"):]
+    data = await state.get_data()
+    fields: list[dict] = data["fields"]
+    current_idx: int = data["current_idx"]
+    collected: dict = data["collected"]
+
+    current_field = fields[current_idx]
+    collected[current_field["key"]] = value
+    next_idx = current_idx + 1
+    remaining = len(fields) - next_idx
+
+    await call.answer(f"✅ Выбрано: {value}")
+
+    if next_idx >= len(fields):
+        await state.clear()
+        product_id = uuid.UUID(data["product_id"])
+        lot_id = uuid.UUID(data["lot_id"]) if data.get("lot_id") else None
+
+        result = await db.execute(
+            select(Product)
+            .options(selectinload(Product.lots))
+            .where(Product.id == product_id)
+        )
+        product = result.scalar_one_or_none()
+        lot = await db.get(ProductLot, lot_id) if lot_id else None
+
+        if not product:
+            await safe_edit(call.message, "❌ Товар не найден.")
+            return
+
+        await _add_to_cart(call, user, db, product, lot, input_data=collected)
+    else:
+        await state.update_data(current_idx=next_idx, collected=collected)
+        await safe_edit(
+            call.message,
+            texts.input_field_saved(current_field["label"], value, remaining),
+        )
+        await _ask_field(call.message, fields[next_idx], edit=False)
+
+
+@router.callback_query(F.data == "fsm:cancel")
+async def fsm_cancel(call: CallbackQuery, state: FSMContext) -> None:
+    current = await state.get_state()
+    if current is not None:
+        await state.clear()
+        await safe_edit(
+            call.message,
+            "❌ Действие отменено.",
+            reply_markup=InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main")]
+                ]
+            ),
+        )
+        await call.answer("Отменено")
+    else:
+        await call.answer()
+
+
+# ── Добавление в корзину ──────────────────────────────────────────────────────
+
+async def _add_to_cart(
+    call: CallbackQuery,
+    user: User,
+    db: AsyncSession,
+    product: Product,
+    lot: ProductLot | None,
+    input_data: dict,
+) -> None:
+    """Добавляет товар в корзину и отвечает answer()."""
+    price = Decimal(str(lot.price if lot else product.price))
+
+    cart_result = await db.execute(select(Cart).where(Cart.user_id == user.id))
+    cart = cart_result.scalar_one_or_none()
+    if not cart:
+        cart = Cart(user_id=user.id)
+        db.add(cart)
+        await db.flush()
+
+    lot_id = lot.id if lot else None
+    existing_result = await db.execute(
+        select(CartItem).where(
+            CartItem.cart_id == cart.id,
+            CartItem.product_id == product.id,
+            CartItem.lot_id == lot_id,
+        )
+    )
+    existing = existing_result.scalar_one_or_none()
+
+    if existing:
+        existing.quantity += 1
+        existing.price_snapshot = price
+        if input_data:
+            existing.input_data = input_data
+    else:
+        item = CartItem(
+            cart_id=cart.id,
+            product_id=product.id,
+            lot_id=lot_id,
+            quantity=1,
+            price_snapshot=price,
+            input_data=input_data,
+        )
+        db.add(item)
+
+    await db.commit()
+
+    lot_name = f" ({lot.name})" if lot else ""
+    await call.answer(f"✅ {product.name}{lot_name} добавлен в корзину!")
+
+
+async def _add_to_cart_message(
+    message: Message,
+    user: User,
+    db: AsyncSession,
+    product: Product,
+    lot: ProductLot | None,
+    input_data: dict,
+) -> None:
+    """Добавляет товар в корзину и отвечает message.answer()."""
+    price = Decimal(str(lot.price if lot else product.price))
+
+    cart_result = await db.execute(select(Cart).where(Cart.user_id == user.id))
+    cart = cart_result.scalar_one_or_none()
+    if not cart:
+        cart = Cart(user_id=user.id)
+        db.add(cart)
+        await db.flush()
+
+    lot_id = lot.id if lot else None
+    existing_result = await db.execute(
+        select(CartItem).where(
+            CartItem.cart_id == cart.id,
+            CartItem.product_id == product.id,
+            CartItem.lot_id == lot_id,
+        )
+    )
+    existing = existing_result.scalar_one_or_none()
+
+    if existing:
+        existing.quantity += 1
+        existing.price_snapshot = price
+        if input_data:
+            existing.input_data = input_data
+    else:
+        item = CartItem(
+            cart_id=cart.id,
+            product_id=product.id,
+            lot_id=lot_id,
+            quantity=1,
+            price_snapshot=price,
+            input_data=input_data,
+        )
+        db.add(item)
+
+    await db.commit()
+
+    lot_name = f" ({lot.name})" if lot else ""
+    await message.answer(
+        f"✅ <b>{product.name}{lot_name}</b> добавлен в корзину!\n\n"
+        f"💰 Цена: <b>{float(price):.0f} ₽</b>",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[
+                [
+                    InlineKeyboardButton(text="🛒 Корзина", callback_data="cart:view"),
+                    InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
+                ]
+            ]
+        ),
+        parse_mode="HTML",
+    )
+
+
+# ── Кнопка магазина в reply-клавиатуре ───────────────────────────────────────
 
 @router.message(F.text == "🛍 reDonate")
 async def btn_shop(message: Message, db: AsyncSession) -> None:

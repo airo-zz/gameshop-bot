@@ -17,7 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from shared.config import settings
-from shared.models import User
+from shared.models import User, LoyaltyLevel
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit
 
@@ -28,6 +28,7 @@ def _profile_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="📋 Мои заказы", callback_data="orders:list")],
+            [InlineKeyboardButton(text="❤️ Избранное", callback_data="favorites:list")],
             [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="balance:topup")],
             [InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="referral:show")],
         ]
@@ -49,19 +50,40 @@ def _referral_keyboard(ref_link: str) -> InlineKeyboardMarkup:
 
 
 async def _build_profile_text(user: User, db: AsyncSession) -> str:
-    # Подгружаем loyalty_level если не загружен
     loyalty_name = "Bronze"
     loyalty_emoji = "🥉"
+    current_priority = 0
+    current_min_spent = 0.0
+
     if user.loyalty_level_id:
-        from sqlalchemy import select as sa_select
-        from shared.models import LoyaltyLevel
         result = await db.execute(
-            sa_select(LoyaltyLevel).where(LoyaltyLevel.id == user.loyalty_level_id)
+            select(LoyaltyLevel).where(LoyaltyLevel.id == user.loyalty_level_id)
         )
         level = result.scalar_one_or_none()
         if level:
             loyalty_name = level.name
             loyalty_emoji = level.icon_emoji
+            current_priority = level.priority
+            current_min_spent = float(level.min_spent)
+
+    # Ищем следующий уровень по priority
+    next_level_name: str | None = None
+    next_level_need: float | None = None
+
+    result = await db.execute(
+        select(LoyaltyLevel)
+        .where(
+            LoyaltyLevel.is_active == True,
+            LoyaltyLevel.priority > current_priority,
+        )
+        .order_by(LoyaltyLevel.priority.asc())
+        .limit(1)
+    )
+    next_level = result.scalar_one_or_none()
+    if next_level:
+        next_level_name = next_level.name
+        need = float(next_level.min_spent) - float(user.total_spent)
+        next_level_need = max(0.0, need)
 
     return texts.profile(
         first_name=user.first_name,
@@ -71,12 +93,13 @@ async def _build_profile_text(user: User, db: AsyncSession) -> str:
         loyalty_name=loyalty_name,
         loyalty_emoji=loyalty_emoji,
         referral_code=user.referral_code,
+        next_level_name=next_level_name,
+        next_level_need=next_level_need,
     )
 
 
 async def _build_referral_text(user: User, db: AsyncSession) -> tuple[str, str]:
     """Возвращает (текст, реф-ссылка)."""
-    # Считаем количество рефералов
     result = await db.execute(
         select(func.count()).where(User.referred_by_id == user.id)
     )
@@ -149,7 +172,7 @@ async def cb_balance_topup(
             call.message,
             f"💰 <b>Пополнение баланса</b>\n\n"
             f"Текущий баланс: <b>{float(user.balance):.2f} ₽</b>\n\n"
-            f"Для пополнения обратись в поддержку: {_settings.support_link}",
+            f"Для пополнения обратись в поддержку: @{_settings.SHOP_SUPPORT_USERNAME}",
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[
                     [InlineKeyboardButton(text="◀️ Профиль", callback_data="profile:view")]
