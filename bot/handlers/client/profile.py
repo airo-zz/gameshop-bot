@@ -29,7 +29,7 @@ def _profile_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="📋 Мои заказы", callback_data="orders:list")],
-            [InlineKeyboardButton(text="💰 Управление балансом", callback_data="balance:topup")],
+            [InlineKeyboardButton(text="💰 Баланс", callback_data="balance:topup")],
             [InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="referral:show")],
             [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
         ]
@@ -127,7 +127,7 @@ async def cmd_balance(message: Message, user: User, db: AsyncSession, state: FSM
         total_spent=float(user.total_spent),
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💰 Управление балансом", callback_data="balance:topup")],
+        [InlineKeyboardButton(text="💰 Баланс", callback_data="balance:topup")],
         [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
     ])
     await nav_edit(message, state, text, reply_markup=keyboard)
