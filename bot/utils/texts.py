@@ -115,7 +115,7 @@ class BotTexts:
 
     def cart_item_added(self, product_name: str, lot_name: str, price: float) -> str:
         return (
-            f"✅ <b>{product_name}{lot_name}</b> добавлен в корзину!\n\n"
+            f"✅ В корзину добавлено:\n<b>{product_name}{lot_name}</b>\n\n"
             f"💰 Цена: <b>{price:.0f} ₽</b>"
         )
 
