@@ -7,6 +7,7 @@ bot/handlers/admin/admin_main.py
 
 from aiogram import Router, F
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     Message,
     CallbackQuery,
@@ -113,7 +114,8 @@ async def admin_start(message: Message, admin: AdminUser) -> None:
 
 
 @router.callback_query(F.data == "admin:catalog:main")
-async def admin_catalog_main(call: CallbackQuery, admin: AdminUser) -> None:
+async def admin_catalog_main(call: CallbackQuery, admin: AdminUser, state: FSMContext) -> None:
+    await state.clear()
     await safe_edit(
         call.message,
         texts.admin_catalog_header,

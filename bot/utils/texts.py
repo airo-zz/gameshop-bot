@@ -304,6 +304,28 @@ class BotTexts:
             f"Реферальный код: <code>{referral_code}</code>"
         )
 
+    def balance_info(self, balance: float, orders_count: int, total_spent: float) -> str:
+        return (
+            f"💰 <b>Баланс</b>\n\n"
+            f"Текущий баланс: <b>{balance:.2f} ₽</b>\n"
+            f"Заказов: <b>{orders_count}</b>\n"
+            f"Потрачено всего: <b>{total_spent:.0f} ₽</b>"
+        )
+
+    def balance_topup_miniapp(self, balance: float) -> str:
+        return (
+            f"💰 <b>Пополнение баланса</b>\n\n"
+            f"Текущий баланс: <b>{balance:.2f} ₽</b>\n\n"
+            f"Пополни баланс через Mini App:"
+        )
+
+    def balance_topup_support(self, balance: float) -> str:
+        return (
+            f"💰 <b>Пополнение баланса</b>\n\n"
+            f"Текущий баланс: <b>{balance:.2f} ₽</b>\n\n"
+            f"Для пополнения обратись в поддержку: @{S.SHOP_SUPPORT_USERNAME}"
+        )
+
     # ── Реферальная программа ─────────────────────────────────────────────────
 
     def referral_info(

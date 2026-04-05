@@ -45,8 +45,9 @@ def back_btn(data: str) -> InlineKeyboardButton:
 
 @router.callback_query(F.data == "admin:discounts:list")
 @require_permission("discounts.*")
-async def admin_discounts_list(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
+async def admin_discounts_list(call: CallbackQuery, db: AsyncSession, admin: AdminUser, state: FSMContext) -> None:
     """Список правил скидок (DiscountRule)."""
+    await state.clear()
     result = await db.execute(
         select(DiscountRule)
         .order_by(desc(DiscountRule.created_at))
@@ -76,7 +77,8 @@ async def admin_discounts_list(call: CallbackQuery, db: AsyncSession, admin: Adm
 
 @router.callback_query(F.data == "admin:promos:list")
 @require_permission("discounts.*")
-async def admin_promos_list(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
+async def admin_promos_list(call: CallbackQuery, db: AsyncSession, admin: AdminUser, state: FSMContext) -> None:
+    await state.clear()
     result = await db.execute(
         select(PromoCode)
         .order_by(desc(PromoCode.created_at))

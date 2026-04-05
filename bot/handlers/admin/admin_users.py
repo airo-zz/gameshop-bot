@@ -14,6 +14,8 @@ bot/handlers/admin/admin_users.py
 
 import uuid as _uuid
 
+import structlog
+
 from aiogram import Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -34,6 +36,7 @@ from bot.middlewares.admin_auth import require_permission
 from bot.utils.admin_log import log_admin_action
 
 router = Router(name="admin:users")
+log = structlog.get_logger()
 
 
 class UserSearchFSM(StatesGroup):
@@ -116,7 +119,8 @@ def _user_keyboard(user: User) -> InlineKeyboardMarkup:
 
 @router.callback_query(F.data == "admin:users:list")
 @require_permission("users.view")
-async def admin_users_list(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
+async def admin_users_list(call: CallbackQuery, db: AsyncSession, admin: AdminUser, state: FSMContext) -> None:
+    await state.clear()
     # Показываем последних 5 пользователей + кнопку поиска
     result = await db.execute(
         select(User).order_by(desc(User.created_at)).limit(5)
@@ -183,7 +187,8 @@ async def admin_users_search_exec(
 
 @router.callback_query(F.data.startswith("admin:user:view:"))
 @require_permission("users.view")
-async def admin_user_view(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
+async def admin_user_view(call: CallbackQuery, db: AsyncSession, admin: AdminUser, state: FSMContext) -> None:
+    await state.clear()
     try:
         user_id = _uuid.UUID(call.data.split(":")[3])
     except ValueError:
@@ -216,6 +221,23 @@ async def admin_balance_start(call: CallbackQuery, state: FSMContext, admin: Adm
         ]]),
     )
     await state.set_state(BalanceAdjustFSM.waiting_amount)
+    await call.answer()
+
+
+@router.callback_query(StateFilter(BalanceAdjustFSM.waiting_amount), F.data.startswith("admin:user:view:"))
+async def cb_balance_adjust_cancel(call: CallbackQuery, state: FSMContext, db: AsyncSession, admin: AdminUser) -> None:
+    await state.clear()
+    try:
+        user_id = _uuid.UUID(call.data.split(":")[3])
+    except ValueError:
+        await call.answer("Некорректный ID пользователя", show_alert=True)
+        return
+    user = await db.get(User, user_id)
+    if not user:
+        await call.answer("Пользователь не найден", show_alert=True)
+        return
+    await db.refresh(user, ["loyalty_level"])
+    await call.message.edit_text(_fmt_user(user), reply_markup=_user_keyboard(user))
     await call.answer()
 
 
@@ -331,8 +353,8 @@ async def _execute_balance_adjust(
                 json={"chat_id": user.telegram_id, "text": msg, "parse_mode": "HTML"},
                 timeout=5.0,
             )
-    except Exception:
-        pass
+    except Exception as e:
+        log.warning("admin.users.notify_failed", user_id=str(user.telegram_id), exc=str(e))
 
 
 # ── Блокировка ────────────────────────────────────────────────────────────────

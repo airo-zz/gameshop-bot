@@ -12,6 +12,8 @@ bot/handlers/admin/admin_orders.py
 
 import uuid as _uuid
 
+import structlog
+
 from aiogram import Bot, Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -30,6 +32,7 @@ from bot.middlewares.admin_auth import require_permission
 from bot.utils.admin_log import log_admin_action
 
 router = Router(name="admin:orders")
+log = structlog.get_logger()
 
 PAGE_SIZE = 10
 
@@ -324,8 +327,8 @@ async def admin_order_change_status(
             order.user.telegram_id,
             texts.order_status_changed(order.order_number, new_status.value),
         )
-    except Exception:
-        pass  # Не критично если уведомление не дошло
+    except Exception as e:
+        log.warning("admin.order.notify_failed", order_id=str(order.id), exc=str(e))
 
     await call.answer(f"✅ Статус изменён на {STATUS_NAMES.get(new_status)}", show_alert=False)
     await admin_order_detail(call, db, admin)
@@ -339,9 +342,10 @@ async def admin_order_deliver(
     call: CallbackQuery, db: AsyncSession, admin: AdminUser
 ) -> None:
     await call.answer(
-        "📦 Ручная выдача: введи данные в поле заметки и смени статус на «Выполнен».",
+        "Функция ручной выдачи в разработке. Используйте панель управления.",
         show_alert=True,
     )
+    await admin_order_detail(call, db, admin)
 
 
 # ── Order Note ────────────────────────────────────────────────────────────────

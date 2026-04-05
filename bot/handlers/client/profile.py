@@ -123,11 +123,10 @@ async def _build_referral_text(user: User, db: AsyncSession) -> tuple[str, str]:
 @router.message(Command("balance"))
 async def cmd_balance(message: Message, user: User, db: AsyncSession, state: FSMContext) -> None:
     """Показывает текущий баланс с кнопкой пополнения."""
-    text = (
-        f"💰 <b>Баланс</b>\n\n"
-        f"Текущий баланс: <b>{float(user.balance):.2f} ₽</b>\n"
-        f"Заказов: <b>{user.orders_count}</b>\n"
-        f"Потрачено всего: <b>{float(user.total_spent):.0f} ₽</b>"
+    text = texts.balance_info(
+        balance=float(user.balance),
+        orders_count=user.orders_count,
+        total_spent=float(user.total_spent),
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💳 Пополнить баланс", callback_data="balance:topup")],
@@ -182,17 +181,13 @@ async def cb_balance_topup(
         )
         await safe_edit(
             call.message,
-            f"💰 <b>Пополнение баланса</b>\n\n"
-            f"Текущий баланс: <b>{float(user.balance):.2f} ₽</b>\n\n"
-            f"Пополни баланс через Mini App:",
+            texts.balance_topup_miniapp(float(user.balance)),
             reply_markup=keyboard,
         )
     else:
         await safe_edit(
             call.message,
-            f"💰 <b>Пополнение баланса</b>\n\n"
-            f"Текущий баланс: <b>{float(user.balance):.2f} ₽</b>\n\n"
-            f"Для пополнения обратись в поддержку: @{_settings.SHOP_SUPPORT_USERNAME}",
+            texts.balance_topup_support(float(user.balance)),
             reply_markup=InlineKeyboardMarkup(
                 inline_keyboard=[
                     [

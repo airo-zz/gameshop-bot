@@ -262,6 +262,7 @@ async def _show_product_from_start(
 
 @router.callback_query(F.data == "menu:main")
 async def cb_menu_main(call: CallbackQuery, user: User, state: FSMContext) -> None:
+    await state.clear()
     text = texts.greeting(user.first_name)
     keyboard = get_start_inline_keyboard()
     await safe_edit(call.message, text, reply_markup=keyboard)

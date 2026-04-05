@@ -9,6 +9,7 @@ import uuid
 
 from aiogram import Router, F
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
 from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -21,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User, UserFavorite, Product
 from bot.utils.texts import texts
-from bot.utils.helpers import safe_edit
+from bot.utils.helpers import safe_edit, nav_edit
 
 router = Router(name="client:favorites")
 
@@ -61,6 +62,7 @@ async def _show_favorites(
     event: Message | CallbackQuery,
     user: User,
     db: AsyncSession,
+    state: FSMContext | None = None,
 ) -> None:
     result = await db.execute(
         select(UserFavorite)
@@ -84,12 +86,15 @@ async def _show_favorites(
         await safe_edit(event.message, text, reply_markup=keyboard)
         await event.answer()
     else:
-        await event.answer(text, reply_markup=keyboard, parse_mode="HTML")
+        if state is not None:
+            await nav_edit(event, state, text, reply_markup=keyboard)
+        else:
+            await event.answer(text, reply_markup=keyboard, parse_mode="HTML")
 
 
 @router.message(Command("favorites"))
-async def cmd_favorites(message: Message, user: User, db: AsyncSession) -> None:
-    await _show_favorites(message, user, db)
+async def cmd_favorites(message: Message, user: User, db: AsyncSession, state: FSMContext) -> None:
+    await _show_favorites(message, user, db, state)
 
 
 @router.callback_query(F.data == "favorites:list")

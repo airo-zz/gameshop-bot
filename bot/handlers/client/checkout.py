@@ -7,6 +7,8 @@ bot/handlers/client/checkout.py
 
 import uuid
 
+import structlog
+
 from aiogram import Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -28,6 +30,7 @@ from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit
 
 router = Router(name="client:checkout")
+log = structlog.get_logger()
 
 
 class CheckoutFSM(StatesGroup):
@@ -411,8 +414,10 @@ async def cb_checkout_cancel(
                     reason="Отменён пользователем",
                 )
                 await db.commit()
-        except (ValueError, Exception):
-            pass
+        except Exception as e:
+            log.warning("checkout.cancel_error", exc=str(e))
+            await call.answer("Не удалось отменить заказ", show_alert=True)
+            return
 
     await state.clear()
 
