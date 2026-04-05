@@ -58,7 +58,7 @@ def _games_keyboard(games: list[Game]) -> InlineKeyboardMarkup:
         for game in games
     ]
     buttons.append(
-        [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")]
+        [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary")]
     )
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -67,7 +67,7 @@ def _cancel_fsm_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="❌ Отмена", callback_data="fsm:cancel")],
-            [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
+            [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary")],
         ]
     )
 
@@ -106,10 +106,10 @@ async def show_games_list(
 
     if services:
         header_text = f"🔧 <b>Сервисы {settings.SHOP_NAME}</b>\n\nВыбери сервис:"
-        back_btn = InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")
+        back_btn = InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary")
     else:
         header_text = texts.catalog_header
-        back_btn = InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")
+        back_btn = InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary")
 
     if not games:
         text = texts.catalog_empty
@@ -182,7 +182,7 @@ async def cb_catalog_game(call: CallbackQuery, db: AsyncSession) -> None:
     buttons.append(
         [
             InlineKeyboardButton(text="◀️ Каталог", callback_data="catalog:main"),
-            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
         ]
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -245,7 +245,7 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession, user: User)
             InlineKeyboardButton(
                 text=f"◀️ {game_name}", callback_data=f"catalog:game:{category.game_id}"
             ),
-            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
         ]
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -376,7 +376,7 @@ async def _show_product(
     buttons.append(
         [
             InlineKeyboardButton(text="◀️ Назад", callback_data=back_cb),
-            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
         ]
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -607,7 +607,7 @@ async def fsm_cancel(call: CallbackQuery, state: FSMContext) -> None:
                 inline_keyboard=[
                     [
                         InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
-                        InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+                        InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
                     ]
                 ]
             ),
@@ -741,7 +741,7 @@ async def btn_shop(message: Message, db: AsyncSession, state: FSMContext) -> Non
                             style="primary",
                         )
                     ],
-                    [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
+                    [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary")],
                 ]
             ),
         )

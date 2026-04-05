@@ -94,7 +94,7 @@ def _order_success_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [InlineKeyboardButton(text="📋 Мои заказы", callback_data="orders:list")],
             [InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main")],
-            [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
+            [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary")],
         ]
     )
 

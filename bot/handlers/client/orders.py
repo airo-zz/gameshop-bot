@@ -59,7 +59,7 @@ async def _render_orders(
             inline_keyboard=[
                 [
                     InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
-                    InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+                    InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
                 ]
             ]
         )
@@ -82,7 +82,7 @@ async def _render_orders(
         )
 
     buttons.append(
-        [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")]
+        [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary")]
     )
     return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -159,7 +159,7 @@ async def cb_order_detail(
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="◀️ К заказам", callback_data="orders:list"),
-                InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+                InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
             ]
         ]
     )

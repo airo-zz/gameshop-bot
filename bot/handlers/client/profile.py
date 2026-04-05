@@ -31,7 +31,7 @@ def _profile_keyboard() -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text="📋 Мои заказы", callback_data="orders:list")],
             [InlineKeyboardButton(text="💰 Баланс", callback_data="balance:topup")],
             [InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="referral:show")],
-            [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
+            [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary")],
         ]
     )
 
@@ -47,7 +47,7 @@ def _referral_keyboard(ref_link: str) -> InlineKeyboardMarkup:
             ],
             [
                 InlineKeyboardButton(text="◀️ Профиль", callback_data="profile:view"),
-                InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+                InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
             ],
         ]
     )
@@ -128,7 +128,7 @@ async def cmd_balance(message: Message, user: User, db: AsyncSession, state: FSM
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💰 Баланс", callback_data="balance:topup")],
-        [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
+        [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary")],
     ])
     await nav_edit(message, state, text, reply_markup=keyboard)
 
@@ -177,7 +177,7 @@ async def cb_balance_topup(
         [InlineKeyboardButton(text="💎 TON", callback_data="balance:topup:ton")],
         [
             InlineKeyboardButton(text="◀️ Профиль", callback_data="profile:view"),
-            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
         ],
     ]
     await safe_edit(
@@ -216,7 +216,7 @@ async def cb_balance_topup_method(
         [InlineKeyboardButton(text=f"💬 Написать в поддержку", url=f"https://t.me/{_settings.SHOP_SUPPORT_USERNAME}")],
         [
             InlineKeyboardButton(text="◀️ Назад", callback_data="balance:topup"),
-            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
         ],
     ])
     await safe_edit(call.message, text, reply_markup=keyboard)
