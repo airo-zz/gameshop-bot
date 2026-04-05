@@ -65,11 +65,13 @@ def get_start_inline_keyboard() -> InlineKeyboardMarkup:
         entry_button = InlineKeyboardButton(
             text=f"🛍 Открыть {settings.SHOP_NAME}",
             web_app=WebAppInfo(url=settings.MINIAPP_URL),
+            style="primary",
         )
     else:
         entry_button = InlineKeyboardButton(
             text=f"🛍 Открыть {settings.SHOP_NAME}",
             callback_data="open_catalog",
+            style="primary",
         )
 
     buttons = [

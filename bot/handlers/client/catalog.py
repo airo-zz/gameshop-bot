@@ -678,6 +678,7 @@ async def btn_shop(message: Message, db: AsyncSession, state: FSMContext) -> Non
                         InlineKeyboardButton(
                             text=f"🛍 Открыть {settings.SHOP_NAME}",
                             web_app=WebAppInfo(url=settings.MINIAPP_URL),
+                            style="primary",
                         )
                     ],
                     [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],

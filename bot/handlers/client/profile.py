@@ -171,6 +171,7 @@ async def cb_balance_topup(
                 [IKB(
                     text=f"💳 Открыть {_settings.SHOP_NAME}",
                     web_app=WebAppInfo(url=_settings.MINIAPP_URL),
+                    style="primary",
                 )],
                 [
                     IKB(text="◀️ Профиль", callback_data="profile:view"),
