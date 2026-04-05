@@ -515,12 +515,12 @@ export default function HomePage() {
             <button
               onClick={() => setMenuOpen(v => !v)}
               style={{
-                width: 48,
-                height: 48,
+                width: 46,
+                height: 46,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: 14,
+                borderRadius: 12,
                 background: menuOpen ? 'rgba(45,88,173,0.18)' : 'rgba(255,255,255,0.04)',
                 border: menuOpen ? '1px solid rgba(45,88,173,0.38)' : '1px solid rgba(255,255,255,0.08)',
                 color: menuOpen ? '#6b9de8' : 'rgba(255,255,255,0.6)',
