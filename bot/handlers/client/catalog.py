@@ -21,7 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import Game, Category, Product, ProductLot, Cart, CartItem, User, UserFavorite
+from shared.models import Game, Category, Product, ProductLot, Cart, CartItem, User
 from api.services.cart_service import CartService
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, nav_edit
@@ -274,17 +274,6 @@ async def _show_product(
         cart_total=cart_total,
     )
 
-    # Проверяем, в избранном ли товар у пользователя
-    is_favorite = False
-    if user is not None:
-        fav_result = await db.execute(
-            select(UserFavorite).where(
-                UserFavorite.user_id == user.id,
-                UserFavorite.product_id == product.id,
-            )
-        )
-        is_favorite = fav_result.scalar_one_or_none() is not None
-
     buttons = []
     if active_lots:
         for lot in active_lots:
@@ -307,15 +296,6 @@ async def _show_product(
             ]
         )
 
-    fav_text = "❤️ В избранном" if is_favorite else "🤍 В избранное"
-    buttons.append(
-        [
-            InlineKeyboardButton(
-                text=fav_text,
-                callback_data=f"favorites:toggle:{product.id}",
-            )
-        ]
-    )
     buttons.append(
         [
             InlineKeyboardButton(

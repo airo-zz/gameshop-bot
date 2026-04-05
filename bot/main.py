@@ -28,7 +28,7 @@ from bot.middlewares.logging import LoggingMiddleware
 
 from bot.handlers.client import (
     start, catalog, cart, orders, profile, support,
-    checkout, favorites, inline_search,
+    checkout, inline_search,
 )
 from bot.handlers.admin import (
     admin_main,
@@ -112,7 +112,7 @@ def create_dispatcher() -> Dispatcher:
     _client_routers = [
         start.router, catalog.router, cart.router,
         orders.router, profile.router, support.router,
-        checkout.router, favorites.router,
+        checkout.router,
     ]
     for _r in _client_routers:
         _r.message.middleware(ThrottleMiddleware(rate_limit=settings.RATE_LIMIT_CLIENT))

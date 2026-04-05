@@ -29,7 +29,6 @@ def _profile_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="📋 Мои заказы", callback_data="orders:list")],
-            [InlineKeyboardButton(text="❤️ Избранное", callback_data="favorites:list")],
             [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="balance:topup")],
             [InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="referral:show")],
             [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
