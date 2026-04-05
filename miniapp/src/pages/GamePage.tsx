@@ -81,7 +81,7 @@ export default function GamePage() {
       {/* Категории */}
       <div className="flex gap-2 px-4 pt-3 overflow-x-auto pb-2 no-scrollbar">
         {catsLoading
-          ? <PageLoader delay={300} />
+          ? <PageLoader />
           : rootCats(categories).map(cat => (
               <button
                 key={cat.id}
