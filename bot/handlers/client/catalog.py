@@ -358,9 +358,7 @@ async def _show_product(
             ]
         )
 
-    cart_row = _cart_button(cart_total)
-    if cart_row:
-        buttons.append(cart_row)
+    buttons.append([InlineKeyboardButton(text="🛒 Корзина", callback_data="cart:view", style="success")])
 
     # Автоматически вычисляем куда вести кнопку «Назад»:
     # если в категории только этот товар — идём на уровень игры, иначе на категорию
