@@ -24,6 +24,7 @@ export default function CatalogPage() {
   const { data: games = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['games'],
     queryFn: catalogApi.getGames,
+    staleTime: 5 * 60 * 1000,
   })
 
   const { data: searchResults, isLoading: searching } = useQuery({
@@ -61,9 +62,9 @@ export default function CatalogPage() {
   return (
     <motion.div
       className="px-4 pt-5 pb-4 space-y-3"
-      initial={{ opacity: 0, filter: 'blur(6px)' }}
-      animate={{ opacity: 1, filter: 'blur(0px)' }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
     >
       <h1 className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--text)' }}>
         🎮 Каталог игр

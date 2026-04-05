@@ -66,7 +66,7 @@ const randS = (n: number) => n - rand(2 * n)
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768
-const TARGET_FPS = IS_MOBILE ? 30 : 60
+const TARGET_FPS = IS_MOBILE ? 24 : 60
 const FRAME_MS   = 1000 / TARGET_FPS
 
 function getDPR() {
@@ -74,7 +74,7 @@ function getDPR() {
 }
 
 // Particle settings — magenta/pink palette
-const PARTICLE_COUNT = IS_MOBILE ? 75  : 300
+const PARTICLE_COUNT = IS_MOBILE ? 40  : 150
 const RANGE_Y        = 100
 const BASE_HUE       = 295   // pink-magenta base (#d946ef territory)
 const RANGE_SPEED    = 1.2
@@ -244,6 +244,7 @@ export default function ParticleCanvas() {
         display: 'block',
         contain: 'strict',
         backfaceVisibility: 'hidden',
+        willChange: 'contents',
       }}
     />
   )

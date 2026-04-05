@@ -6,20 +6,9 @@ import { Shield, Star, Crown, Gem } from 'lucide-react'
 import { catalogApi, profileApi } from '@/api'
 import { useShopStore, useUIStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
+import logoSrc from '@/assets/logo.png'
 
 // ── Inline SVG icons ─────────────────────────────────────────────────────────
-
-function IconGamepadLogo() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white"
-         strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="7" width="20" height="12" rx="5" />
-      <path d="M7 13v-2m0 2v2m0-2h2m-2 0H5" stroke="white" />
-      <circle cx="16" cy="12" r="1.2" fill="white" stroke="none" />
-      <circle cx="18.5" cy="14" r="1.2" fill="white" stroke="none" />
-    </svg>
-  )
-}
 
 function IconGamepadSmall() {
   return (
@@ -424,11 +413,13 @@ export default function HomePage() {
   const { data: games = [], isLoading: gamesLoading } = useQuery({
     queryKey: ['games'],
     queryFn: catalogApi.getGames,
+    staleTime: 5 * 60 * 1000,
   })
 
   const { data: featured = [] } = useQuery({
     queryKey: ['trending'],
     queryFn: catalogApi.getTrending,
+    staleTime: 2 * 60 * 1000,
   })
 
   const { data: profile } = useQuery({
@@ -475,7 +466,7 @@ export default function HomePage() {
           {/* Logo + name */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <img
-              src="/logo.svg"
+              src={logoSrc}
               alt="logo"
               style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'block' }}
             />
@@ -719,15 +710,7 @@ export default function HomePage() {
               gap: 10,
             }}
           >
-            {gamesLoading
-              ? Array(6).fill(0).map((_, i) => (
-                  <div
-                    key={i}
-                    className="skeleton"
-                    style={{ aspectRatio: '1 / 1.25', borderRadius: 18 }}
-                  />
-                ))
-              : games.map(game => (
+            {games.map(game => (
                   <Link
                     key={game.id}
                     to={`/catalog/${game.slug}`}

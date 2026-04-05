@@ -30,8 +30,9 @@ export default function OrderDetailPage() {
     queryKey: ['order', id],
     queryFn: () => ordersApi.get(id!),
     enabled: !!id,
+    staleTime: 8_000,
     refetchInterval: (query) =>
-      query.state.data && ['completed', 'cancelled'].includes(query.state.data.status) ? false : 5000,
+      query.state.data && ['completed', 'cancelled'].includes(query.state.data.status) ? false : 8000,
   })
 
   const copyToClipboard = (text: string) => {
@@ -40,12 +41,7 @@ export default function OrderDetailPage() {
     toast.success('Скопировано!')
   }
 
-  if (isLoading) return (
-    <div className="px-4 pt-5 space-y-3">
-      <div className="skeleton h-32 rounded-2xl" />
-      <div className="skeleton h-48 rounded-2xl" />
-    </div>
-  )
+  if (isLoading) return null
   if (!order) return null
 
   const statusInfo = STATUS_LABEL[order.status] ?? { label: order.status, color: 'var(--hint)', bg: 'var(--bg2)', emoji: '📋' }

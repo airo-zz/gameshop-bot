@@ -15,7 +15,7 @@
  * ─────────────────────────────────────────────────────────────────────────
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 // Тип для window.Telegram.WebApp (упрощённый)
 interface TelegramWebApp {
@@ -170,14 +170,14 @@ export function useTelegram() {
   )
 
   // ── Haptics ────────────────────────────────────────────────────────────────
-  const haptic = {
+  const haptic = useMemo(() => ({
     impact: (style: 'light' | 'medium' | 'heavy' = 'light') =>
       tg?.HapticFeedback.impactOccurred(style),
     success: () => tg?.HapticFeedback.notificationOccurred('success'),
     error:   () => tg?.HapticFeedback.notificationOccurred('error'),
     warning: () => tg?.HapticFeedback.notificationOccurred('warning'),
     select:  () => tg?.HapticFeedback.selectionChanged(),
-  }
+  }), [tg])
 
   // ── Dialogs ────────────────────────────────────────────────────────────────
   const showConfirm = useCallback(

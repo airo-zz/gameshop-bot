@@ -24,6 +24,7 @@ export default function GamePage() {
     queryKey: ['categories', slug],
     queryFn: () => catalogApi.getCategories(slug!),
     enabled: !!slug,
+    staleTime: 5 * 60 * 1000,
   })
 
   const activeCatId = selectedCatId ?? categories[0]?.id ?? null
@@ -32,6 +33,7 @@ export default function GamePage() {
     queryKey: ['products', activeCatId],
     queryFn: () => catalogApi.getProducts(activeCatId!),
     enabled: !!activeCatId,
+    staleTime: 2 * 60 * 1000,
   })
 
   // Реальное название из API, fallback на slug
@@ -64,9 +66,9 @@ export default function GamePage() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, filter: 'blur(6px)' }}
-      animate={{ opacity: 1, filter: 'blur(0px)' }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
     >
       {/* Заголовок */}
       <div

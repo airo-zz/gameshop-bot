@@ -24,6 +24,7 @@ export default function SearchPage() {
     queryKey: ['recently-viewed'],
     queryFn: catalogApi.getRecentlyViewed,
     enabled: debouncedQ.length < 2,
+    staleTime: 60_000,
   })
 
   return (
@@ -69,13 +70,7 @@ export default function SearchPage() {
       {/* Результаты */}
       {debouncedQ.length >= 2 && (
         <section>
-          {isFetching ? (
-            <div className="grid grid-cols-2 gap-3">
-              {Array(4).fill(0).map((_, i) => (
-                <div key={i} className="skeleton rounded-2xl" style={{ height: 220 }} />
-              ))}
-            </div>
-          ) : results.length === 0 ? (
+          {isFetching ? null : results.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-5xl mb-3">🔍</p>
               <p className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Ничего не найдено</p>

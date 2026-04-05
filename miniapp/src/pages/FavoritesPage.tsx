@@ -10,6 +10,7 @@ export default function FavoritesPage() {
   const { data: favorites = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['favorites'],
     queryFn: catalogApi.getFavorites,
+    staleTime: 60_000,
   })
 
   if (isError) return (
@@ -30,11 +31,7 @@ export default function FavoritesPage() {
     qc.invalidateQueries({ queryKey: ['favorites'] })
   }
 
-  if (isLoading) return (
-    <div className="px-4 pt-5 grid grid-cols-2 gap-3">
-      {Array(4).fill(0).map((_, i) => <div key={i} className="skeleton rounded-2xl" style={{ height: 220 }} />)}
-    </div>
-  )
+  if (isLoading) return null
 
   return (
     <div className="px-4 pt-5 pb-4 space-y-4 animate-fade-in">

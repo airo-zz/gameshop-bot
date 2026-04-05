@@ -21,6 +21,7 @@ export default function CartPage() {
   const { data: cart, isLoading, refetch } = useQuery({
     queryKey: ['cart'],
     queryFn: cartApi.get,
+    staleTime: 30_000,
   })
 
   const refreshCart = async () => {
@@ -92,11 +93,7 @@ export default function CartPage() {
     }
   }
 
-  if (isLoading) return (
-    <div className="px-4 pt-5 space-y-3">
-      {Array(3).fill(0).map((_, i) => <div key={i} className="skeleton h-24 rounded-2xl" />)}
-    </div>
-  )
+  if (isLoading) return null
 
   if (!cart || cart.items.length === 0) return (
     <div className="flex flex-col items-center justify-center h-full gap-5 px-8 text-center pt-16">

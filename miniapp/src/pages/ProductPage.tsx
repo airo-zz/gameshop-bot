@@ -27,6 +27,7 @@ export default function ProductPage() {
     queryKey: ['product', id],
     queryFn: () => catalogApi.getProduct(id!),
     enabled: !!id,
+    staleTime: 2 * 60 * 1000,
   })
 
   useEffect(() => {
@@ -54,6 +55,10 @@ export default function ProductPage() {
     (product.lots.length === 0 || selectedLot)
   )
 
+  // inputData намеренно исключён из deps — он нужен только внутри handleAddToCart
+  // при вызове, а не для отображения кнопки. Изменение inputData не должно
+  // перерегистрировать MainButton при каждом нажатии клавиши.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!product) return
     const handler = () => handleAddToCart()
@@ -62,7 +67,7 @@ export default function ProductPage() {
       showMainButton(`В корзину · ${price.toLocaleString('ru')} ₽`, handler)
     }
     return () => hideMainButton(handler)
-  }, [product, selectedLot, canAdd, inputData])
+  }, [product, selectedLot, canAdd])
 
   const handleAddToCart = async () => {
     if (!product || adding) return
@@ -98,9 +103,9 @@ export default function ProductPage() {
   return (
     <motion.div
       className="pb-8"
-      initial={{ opacity: 0, filter: 'blur(6px)' }}
-      animate={{ opacity: 1, filter: 'blur(0px)' }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
     >
       {/* Изображения */}
       <div className="relative">

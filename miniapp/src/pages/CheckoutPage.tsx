@@ -15,47 +15,6 @@ const PAYMENT_METHODS = [
   { id: 'ton',          label: 'TON',               icon: <span className="text-lg">💎</span>, description: 'Telegram монеты' },
 ]
 
-function CheckoutSkeleton() {
-  return (
-    <div className="px-4 pt-5 pb-8 space-y-5">
-      <div className="skeleton h-7 w-40 rounded-xl" />
-
-      {/* Cart items skeleton */}
-      <div
-        className="rounded-2xl p-4 space-y-3"
-        style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
-      >
-        <div className="skeleton h-3 w-32 rounded-lg" />
-        {Array(3).fill(0).map((_, i) => (
-          <div key={i} className="flex justify-between items-center">
-            <div className="skeleton h-4 rounded-lg flex-1 mr-4" style={{ maxWidth: '60%' }} />
-            <div className="skeleton h-4 w-16 rounded-lg flex-shrink-0" />
-          </div>
-        ))}
-        <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
-        <div className="flex justify-between">
-          <div className="skeleton h-5 w-16 rounded-lg" />
-          <div className="skeleton h-5 w-20 rounded-lg" />
-        </div>
-      </div>
-
-      {/* Payment methods skeleton */}
-      <div className="space-y-2">
-        <div className="skeleton h-3 w-28 rounded-lg" />
-        {Array(4).fill(0).map((_, i) => (
-          <div
-            key={i}
-            className="skeleton rounded-2xl"
-            style={{ height: 68 }}
-          />
-        ))}
-      </div>
-
-      {/* Button skeleton */}
-      <div className="skeleton rounded-2xl" style={{ height: 52 }} />
-    </div>
-  )
-}
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
@@ -110,8 +69,7 @@ export default function CheckoutPage() {
     }
   }
 
-  if (cartLoading) return <CheckoutSkeleton />
-  if (!cart) return <CheckoutSkeleton />
+  if (cartLoading || !cart) return null
 
   return (
     <div className="px-4 pt-5 pb-8 space-y-5 animate-slide-up">

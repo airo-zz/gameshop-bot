@@ -29,6 +29,7 @@ export default function OrdersPage() {
   const { data: orders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['orders'],
     queryFn: () => ordersApi.list(),
+    staleTime: 30_000,
   })
 
   if (isError) return (
@@ -50,9 +51,9 @@ export default function OrdersPage() {
   return (
     <motion.div
       className="px-4 pt-5 pb-4 space-y-3"
-      initial={{ opacity: 0, filter: 'blur(6px)' }}
-      animate={{ opacity: 1, filter: 'blur(0px)' }}
-      transition={{ duration: 0.25, ease: 'easeOut' }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.2, ease: 'easeOut' }}
     >
       <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>📋 Мои заказы</h1>
 
