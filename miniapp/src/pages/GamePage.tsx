@@ -2,8 +2,10 @@
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { motion } from 'framer-motion'
 import { catalogApi, type Category } from '@/api'
 import ProductCard from '@/components/ui/ProductCard'
+import PageLoader from '@/components/ui/PageLoader'
 import clsx from 'clsx'
 
 export default function GamePage() {
@@ -61,7 +63,11 @@ export default function GamePage() {
   )
 
   return (
-    <div className="animate-fade-in">
+    <motion.div
+      initial={{ opacity: 0, filter: 'blur(6px)' }}
+      animate={{ opacity: 1, filter: 'blur(0px)' }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+    >
       {/* Заголовок */}
       <div
         className="px-4 pt-5 pb-4"
@@ -75,9 +81,7 @@ export default function GamePage() {
       {/* Категории */}
       <div className="flex gap-2 px-4 pt-3 overflow-x-auto pb-2 no-scrollbar">
         {catsLoading
-          ? Array(4).fill(0).map((_, i) => (
-              <div key={i} className="skeleton h-9 w-24 rounded-full flex-shrink-0" />
-            ))
+          ? <PageLoader delay={300} />
           : rootCats(categories).map(cat => (
               <button
                 key={cat.id}
@@ -142,11 +146,7 @@ export default function GamePage() {
             </button>
           </div>
         ) : productsLoading ? (
-          <div className="grid grid-cols-2 gap-3">
-            {Array(6).fill(0).map((_, i) => (
-              <div key={i} className="skeleton rounded-2xl" style={{ height: 220 }} />
-            ))}
-          </div>
+          <PageLoader />
         ) : products.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-5xl mb-3">📦</p>
@@ -165,6 +165,6 @@ export default function GamePage() {
           </div>
         )}
       </div>
-    </div>
+    </motion.div>
   )
 }

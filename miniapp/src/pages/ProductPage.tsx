@@ -2,12 +2,13 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { motion } from 'framer-motion'
 import { ShoppingCart, Star, Zap, Clock, ChevronLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { catalogApi, cartApi, type Lot, type InputField } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore, useHistoryStore } from '@/store'
-import clsx from 'clsx'
+import PageLoader from '@/components/ui/PageLoader'
 
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>()
@@ -84,7 +85,7 @@ export default function ProductPage() {
     }
   }
 
-  if (isLoading) return <ProductSkeleton />
+  if (isLoading) return <PageLoader />
   if (!product) return (
     <div className="p-8 text-center" style={{ color: 'var(--hint)' }}>Товар не найден</div>
   )
@@ -93,7 +94,12 @@ export default function ProductPage() {
   const currentPrice = selectedLot ? selectedLot.price : product.price
 
   return (
-    <div className="pb-8 animate-slide-up">
+    <motion.div
+      className="pb-8"
+      initial={{ opacity: 0, filter: 'blur(6px)' }}
+      animate={{ opacity: 1, filter: 'blur(0px)' }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+    >
       {/* Изображения */}
       <div className="relative">
         <div className="aspect-[4/3] overflow-hidden" style={{ background: 'var(--bg3)' }}>
@@ -303,21 +309,6 @@ export default function ProductPage() {
           )}
         </button>
       </div>
-    </div>
-  )
-}
-
-function ProductSkeleton() {
-  return (
-    <div>
-      <div className="skeleton aspect-[4/3] w-full rounded-none" style={{ borderRadius: 0 }} />
-      <div className="px-4 pt-4 space-y-3">
-        <div className="skeleton h-7 w-3/4 rounded-xl" />
-        <div className="skeleton h-4 w-1/3 rounded-xl" />
-        <div className="grid grid-cols-2 gap-2">
-          {Array(4).fill(0).map((_, i) => <div key={i} className="skeleton h-20 rounded-2xl" />)}
-        </div>
-      </div>
-    </div>
+    </motion.div>
   )
 }

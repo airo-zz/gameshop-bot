@@ -2,8 +2,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { ChevronRight, Search, X } from 'lucide-react'
 import { catalogApi } from '@/api'
+import PageLoader from '@/components/ui/PageLoader'
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value)
@@ -57,7 +59,12 @@ export default function CatalogPage() {
   )
 
   return (
-    <div className="px-4 pt-5 pb-4 space-y-3 animate-fade-in">
+    <motion.div
+      className="px-4 pt-5 pb-4 space-y-3"
+      initial={{ opacity: 0, filter: 'blur(6px)' }}
+      animate={{ opacity: 1, filter: 'blur(0px)' }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+    >
       <h1 className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--text)' }}>
         🎮 Каталог игр
       </h1>
@@ -187,12 +194,11 @@ export default function CatalogPage() {
 
       {/* ── Normal catalog ─────────────────────────────────────────────── */}
       {!isSearching && (
-        <div className="grid grid-cols-3 gap-3 pt-1">
-          {isLoading
-            ? Array(6).fill(0).map((_, i) => (
-                <div key={i} className="skeleton rounded-2xl aspect-square" />
-              ))
-            : games.map(game => (
+        isLoading
+          ? <PageLoader />
+          : (
+            <div className="grid grid-cols-3 gap-3 pt-1">
+              {games.map(game => (
                 <Link
                   key={game.id}
                   to={`/catalog/${game.slug}`}
@@ -211,9 +217,9 @@ export default function CatalogPage() {
                     </p>
                   </div>
                 </Link>
-              ))
-          }
-        </div>
+              ))}
+            </div>
+          )
       )}
 
       {!isLoading && !isSearching && games.length === 0 && (
@@ -222,6 +228,6 @@ export default function CatalogPage() {
           <p style={{ color: 'var(--hint)' }}>Игры скоро появятся</p>
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }

@@ -2,10 +2,12 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { Heart, Package, Copy, Share2, MessageCircle, Wallet, ShoppingBag, Users, Shield, Star, Crown, Gem, Gift, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { profileApi } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
+import PageLoader from '@/components/ui/PageLoader'
 
 // ── Loyalty levels ─────────────────────────────────────────────────────────────
 
@@ -161,13 +163,7 @@ export default function ProfilePage() {
 
   const loyaltyInfo = profile ? getLoyaltyProgress(profile.total_spent) : null
 
-  if (isLoading) return (
-    <div className="px-4 pt-5 space-y-3">
-      <div className="skeleton h-32 rounded-2xl" />
-      <div className="skeleton h-20 rounded-2xl" />
-      <div className="skeleton h-20 rounded-2xl" />
-    </div>
-  )
+  if (isLoading) return <PageLoader />
 
   // Аватар-блок (общий)
   const AvatarBlock = () => showAvatar ? (
@@ -228,7 +224,12 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="px-4 pt-5 pb-6 space-y-4 animate-fade-in">
+      <motion.div
+        className="px-4 pt-5 pb-6 space-y-4"
+        initial={{ opacity: 0, filter: 'blur(6px)' }}
+        animate={{ opacity: 1, filter: 'blur(0px)' }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+      >
         <div className="flex flex-col gap-3 p-4 rounded-2xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
           <div className="flex items-center gap-3">
             <AvatarBlock />
@@ -244,12 +245,17 @@ export default function ProfilePage() {
           <p className="text-sm" style={{ color: 'var(--hint)' }}>Данные профиля временно недоступны. Попробуй позже.</p>
         </div>
         <MenuBlock />
-      </div>
+      </motion.div>
     )
   }
 
   return (
-    <div className="px-4 pt-5 pb-6 space-y-3 animate-fade-in">
+    <motion.div
+      className="px-4 pt-5 pb-6 space-y-3"
+      initial={{ opacity: 0, filter: 'blur(6px)' }}
+      animate={{ opacity: 1, filter: 'blur(0px)' }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+    >
 
       {/* ── Карточка профиля ── */}
       <div className="flex flex-col gap-3 p-4 rounded-2xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
@@ -379,6 +385,6 @@ export default function ProfilePage() {
 
       {/* ── Меню ── */}
       <MenuBlock />
-    </div>
+    </motion.div>
   )
 }

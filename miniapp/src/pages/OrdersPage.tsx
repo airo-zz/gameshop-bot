@@ -1,8 +1,10 @@
 // src/pages/OrdersPage.tsx
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { Package, ChevronRight } from 'lucide-react'
 import { ordersApi } from '@/api'
+import PageLoader from '@/components/ui/PageLoader'
 
 const STATUS_LABEL: Record<string, string> = {
   new:             '🆕 Новый',
@@ -43,14 +45,15 @@ export default function OrdersPage() {
     </div>
   )
 
-  if (isLoading) return (
-    <div className="px-4 pt-5 space-y-2">
-      {Array(5).fill(0).map((_, i) => <div key={i} className="skeleton h-[76px] rounded-2xl" />)}
-    </div>
-  )
+  if (isLoading) return <PageLoader />
 
   return (
-    <div className="px-4 pt-5 pb-4 space-y-3 animate-fade-in">
+    <motion.div
+      className="px-4 pt-5 pb-4 space-y-3"
+      initial={{ opacity: 0, filter: 'blur(6px)' }}
+      animate={{ opacity: 1, filter: 'blur(0px)' }}
+      transition={{ duration: 0.25, ease: 'easeOut' }}
+    >
       <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>📋 Мои заказы</h1>
 
       {orders.length === 0 ? (
@@ -100,6 +103,6 @@ export default function OrdersPage() {
           ))}
         </div>
       )}
-    </div>
+    </motion.div>
   )
 }

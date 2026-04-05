@@ -316,6 +316,19 @@ button { user-select: none; }
   transform: translateY(-2px);
 }
 
+/* ── Page loader spinner ─────────────────────────────────────────────────── */
+@keyframes spinnerRotate {
+  to { transform: rotate(360deg); }
+}
+.page-loader-spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 3px solid rgba(45,88,173,0.18);
+  border-top-color: #6b9de8;
+  animation: spinnerRotate 0.75s linear infinite;
+}
+
 /* ── Star particle background ────────────────────────────────────────────── */
 .stars-bg {
   background-image:
