@@ -444,7 +444,7 @@ async def admin_loyalty_start(call: CallbackQuery, db: AsyncSession, admin: Admi
     for level in levels:
         buttons.append([InlineKeyboardButton(
             text=f"{level.icon_emoji} {level.name} (скидка {level.discount_percent}%)",
-            callback_data=f"admin:user:loyalty:set:{user_id}:{level.id}",
+            callback_data=f"admin:user:loy:{user_id}:{str(level.id)[:8]}",
         )])
     buttons.append([InlineKeyboardButton(text="❌ Отмена", callback_data=f"admin:user:view:{user_id}")])
 
@@ -455,19 +455,25 @@ async def admin_loyalty_start(call: CallbackQuery, db: AsyncSession, admin: Admi
     await call.answer()
 
 
-@router.callback_query(F.data.startswith("admin:user:loyalty:set:"))
+@router.callback_query(F.data.startswith("admin:user:loy:"))
 @require_permission("users.edit")
 async def admin_loyalty_set(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
     parts = call.data.split(":")
+    # format: admin:user:loy:{user_id}:{level_prefix8}
     try:
-        user_id  = _uuid.UUID(parts[4])
-        level_id = _uuid.UUID(parts[5])
-    except ValueError:
+        user_id = _uuid.UUID(parts[3])
+        level_prefix = parts[4]
+    except (IndexError, ValueError):
         await call.answer("Некорректные данные", show_alert=True)
         return
 
-    user  = await db.get(User, user_id)
-    level = await db.get(LoyaltyLevel, level_id)
+    user = await db.get(User, user_id)
+
+    from sqlalchemy import cast, String as SAString
+    level_result = await db.execute(
+        select(LoyaltyLevel).where(cast(LoyaltyLevel.id, SAString).like(f"{level_prefix}%"))
+    )
+    level = level_result.scalar_one_or_none()
 
     if not user or not level:
         await call.answer("Не найдено", show_alert=True)

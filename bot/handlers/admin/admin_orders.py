@@ -170,7 +170,7 @@ async def _show_orders_by_status(
 
 @router.callback_query(
     F.data.startswith("admin:order:")
-    & ~F.data.startswith("admin:order:status:")
+    & ~F.data.startswith("admin:order:st:")
     & ~F.data.startswith("admin:order:deliver:")
     & ~F.data.startswith("admin:order:note:")
 )
@@ -220,7 +220,7 @@ async def admin_order_detail(
     for new_status in allowed_transitions:
         status_buttons.append(InlineKeyboardButton(
             text=STATUS_NAMES.get(new_status, new_status.value),
-            callback_data=f"admin:order:status:{order.id}:{new_status.value}",
+            callback_data=f"admin:order:st:{order.id}:{new_status.value}",
         ))
 
     buttons = []
@@ -254,7 +254,7 @@ async def admin_order_detail(
 
 # ── Change Status ─────────────────────────────────────────────────────────────
 
-@router.callback_query(F.data.startswith("admin:order:status:"))
+@router.callback_query(F.data.startswith("admin:order:st:"))
 @require_permission("orders.update_status")
 async def admin_order_change_status(
     call: CallbackQuery, bot: Bot, db: AsyncSession, admin: AdminUser

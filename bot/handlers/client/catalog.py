@@ -177,8 +177,7 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession) -> None:
 
     # Если товар один — открываем сразу, без промежуточного экрана выбора
     if len(products) == 1:
-        call.data = f"catalog:product:{products[0].id}"
-        return await cb_catalog_product(call, db)
+        return await _show_product(call, products[0].id, db)
 
     game = await db.get(Game, category.game_id)
     game_name = game.name if game else "Игра"
@@ -205,15 +204,8 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession) -> None:
     await call.answer()
 
 
-@router.callback_query(F.data.startswith("catalog:product:"))
-async def cb_catalog_product(call: CallbackQuery, db: AsyncSession) -> None:
-    product_id_str = call.data.split(":")[2]
-    try:
-        product_id = uuid.UUID(product_id_str)
-    except ValueError:
-        await call.answer("Некорректный ID товара", show_alert=True)
-        return
-
+async def _show_product(call: CallbackQuery, product_id: uuid.UUID, db: AsyncSession) -> None:
+    """Показывает карточку товара. Используется из cb_catalog_product и cb_catalog_category."""
     result = await db.execute(
         select(Product)
         .options(selectinload(Product.lots))
@@ -259,7 +251,6 @@ async def cb_catalog_product(call: CallbackQuery, db: AsyncSession) -> None:
             ]
         )
 
-    # Кнопка избранного
     buttons.append(
         [
             InlineKeyboardButton(
@@ -268,7 +259,6 @@ async def cb_catalog_product(call: CallbackQuery, db: AsyncSession) -> None:
             )
         ]
     )
-
     buttons.append(
         [
             InlineKeyboardButton(
@@ -281,6 +271,17 @@ async def cb_catalog_product(call: CallbackQuery, db: AsyncSession) -> None:
 
     await safe_edit(call.message, text, reply_markup=keyboard)
     await call.answer()
+
+
+@router.callback_query(F.data.startswith("catalog:product:"))
+async def cb_catalog_product(call: CallbackQuery, db: AsyncSession) -> None:
+    product_id_str = call.data.split(":")[2]
+    try:
+        product_id = uuid.UUID(product_id_str)
+    except ValueError:
+        await call.answer("Некорректный ID товара", show_alert=True)
+        return
+    await _show_product(call, product_id, db)
 
 
 # ── FSM: сбор input_fields ────────────────────────────────────────────────────
