@@ -117,6 +117,12 @@ class BotTexts:
             f"<b>Итого: {final:.0f} ₽</b>"
         )
 
+    def cart_item_added(self, product_name: str, lot_name: str, price: float) -> str:
+        return (
+            f"✅ <b>{product_name}{lot_name}</b> добавлен в корзину!\n\n"
+            f"💰 Цена: <b>{price:.0f} ₽</b>"
+        )
+
     @property
     def cart_promo_prompt(self) -> str:
         return "🏷 Введи промокод:"

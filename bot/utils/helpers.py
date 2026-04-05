@@ -4,6 +4,9 @@ from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, Message
 
+# Маркеры ошибок Telegram API: сообщение уже не существует
+_TG_NOT_FOUND = ("message to edit not found", "MESSAGE_ID_INVALID")
+
 
 async def safe_edit(
     message: Message,
@@ -14,19 +17,36 @@ async def safe_edit(
     """
     Пытается отредактировать сообщение.
     Порядок: edit_text → edit_caption (фото/видео) → delete + answer.
+
+    "message is not modified" — не ошибка, тихо игнорируется без fallback.
+    "message to edit not found" — сообщение удалено, отправляем новое.
     """
+
     try:
         await message.edit_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
         return
-    except TelegramBadRequest:
-        pass
+    except TelegramBadRequest as e:
+        err = str(e)
+        if "message is not modified" in err:
+            return  # Контент не изменился — это не ошибка, fallback не нужен
+        if any(marker in err for marker in _TG_NOT_FOUND):
+            # Сообщение уже удалено — отправляем новое без попытки удалить
+            await message.answer(text, reply_markup=reply_markup, parse_mode=parse_mode)
+            return
+        # "there is no text in the message to edit" → пробуем edit_caption ниже
+        # Прочие ошибки → тоже пробуем edit_caption как fallback
 
     # Для фото/видео сообщений — редактируем подпись, не удаляя сообщение
     try:
         await message.edit_caption(caption=text, reply_markup=reply_markup, parse_mode=parse_mode)
         return
-    except TelegramBadRequest:
-        pass
+    except TelegramBadRequest as e:
+        err = str(e)
+        if "message is not modified" in err:
+            return
+        if any(marker in err for marker in _TG_NOT_FOUND):
+            await message.answer(text, reply_markup=reply_markup, parse_mode=parse_mode)
+            return
 
     # Крайний случай: удалить старое и отправить новое
     try:

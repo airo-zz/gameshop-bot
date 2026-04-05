@@ -492,15 +492,14 @@ async def fsm_cancel(call: CallbackQuery, state: FSMContext) -> None:
 
 # ── Добавление в корзину ──────────────────────────────────────────────────────
 
-async def _add_to_cart(
-    call: CallbackQuery,
-    user: User,
+async def _persist_cart_item(
     db: AsyncSession,
+    user: User,
     product: Product,
     lot: ProductLot | None,
     input_data: dict,
 ) -> None:
-    """Добавляет товар в корзину и отвечает answer()."""
+    """Сохраняет позицию в корзине (создаёт или увеличивает qty). Не делает commit."""
     price = Decimal(str(lot.price if lot else product.price))
 
     cart_result = await db.execute(select(Cart).where(Cart.user_id == user.id))
@@ -536,9 +535,47 @@ async def _add_to_cart(
         )
         db.add(item)
 
-    await db.commit()
+
+def _cart_added_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(text="🛒 Корзина", callback_data="cart:view"),
+                InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
+            ]
+        ]
+    )
+
+
+async def _add_to_cart(
+    call: CallbackQuery,
+    user: User,
+    db: AsyncSession,
+    product: Product,
+    lot: ProductLot | None,
+    input_data: dict,
+) -> None:
+    """Добавляет товар в корзину и редактирует сообщение с подтверждением."""
+    try:
+        await _persist_cart_item(db, user, product, lot, input_data)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        await safe_edit(
+            call.message,
+            texts.error_general,
+            reply_markup=_cart_added_keyboard(),
+        )
+        await call.answer("Ошибка при добавлении в корзину", show_alert=True)
+        return
 
     lot_name = f" ({lot.name})" if lot else ""
+    price = Decimal(str(lot.price if lot else product.price))
+    await safe_edit(
+        call.message,
+        texts.cart_item_added(product.name, lot_name, float(price)),
+        reply_markup=_cart_added_keyboard(),
+    )
     await call.answer(f"✅ {product.name}{lot_name} добавлен в корзину!")
 
 
@@ -550,56 +587,20 @@ async def _add_to_cart_message(
     lot: ProductLot | None,
     input_data: dict,
 ) -> None:
-    """Добавляет товар в корзину и отвечает message.answer()."""
-    price = Decimal(str(lot.price if lot else product.price))
-
-    cart_result = await db.execute(select(Cart).where(Cart.user_id == user.id))
-    cart = cart_result.scalar_one_or_none()
-    if not cart:
-        cart = Cart(user_id=user.id)
-        db.add(cart)
-        await db.flush()
-
-    lot_id = lot.id if lot else None
-    existing_result = await db.execute(
-        select(CartItem).where(
-            CartItem.cart_id == cart.id,
-            CartItem.product_id == product.id,
-            CartItem.lot_id == lot_id,
-        )
-    )
-    existing = existing_result.scalar_one_or_none()
-
-    if existing:
-        existing.quantity += 1
-        existing.price_snapshot = price
-        if input_data:
-            existing.input_data = input_data
-    else:
-        item = CartItem(
-            cart_id=cart.id,
-            product_id=product.id,
-            lot_id=lot_id,
-            quantity=1,
-            price_snapshot=price,
-            input_data=input_data,
-        )
-        db.add(item)
-
-    await db.commit()
+    """Добавляет товар в корзину после FSM и отправляет подтверждение новым сообщением."""
+    try:
+        await _persist_cart_item(db, user, product, lot, input_data)
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        await message.answer(texts.error_general, parse_mode="HTML")
+        return
 
     lot_name = f" ({lot.name})" if lot else ""
+    price = Decimal(str(lot.price if lot else product.price))
     await message.answer(
-        f"✅ <b>{product.name}{lot_name}</b> добавлен в корзину!\n\n"
-        f"💰 Цена: <b>{float(price):.0f} ₽</b>",
-        reply_markup=InlineKeyboardMarkup(
-            inline_keyboard=[
-                [
-                    InlineKeyboardButton(text="🛒 Корзина", callback_data="cart:view"),
-                    InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
-                ]
-            ]
-        ),
+        texts.cart_item_added(product.name, lot_name, float(price)),
+        reply_markup=_cart_added_keyboard(),
         parse_mode="HTML",
     )
 
