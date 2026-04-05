@@ -24,7 +24,7 @@ class ShopSettings(BaseSettings):
 
     SHOP_NAME: str = "reDonate"
     SHOP_TAGLINE: str = "Игровой донат и виртуальные товары"
-    SHOP_SUPPORT_USERNAME: str = "support"
+    SHOP_SUPPORT_USERNAME: str = "reDonateSupport_bot"
 
     # Форматированные варианты названия (генерируются автоматически)
     @property

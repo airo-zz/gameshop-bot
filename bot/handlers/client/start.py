@@ -81,18 +81,15 @@ def get_start_inline_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="🔧 Сервисы", callback_data="catalog:services"),
         ],
         [
-            InlineKeyboardButton(text="🛒 Корзина", callback_data="cart:view"),
-        ],
-        [
             InlineKeyboardButton(text="📋 Заказы", callback_data="orders:list"),
             InlineKeyboardButton(text="👤 Профиль", callback_data="profile:view"),
         ],
         [
-            InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="balance:topup"),
             InlineKeyboardButton(text="🆘 Поддержка", callback_data="support:main"),
+            InlineKeyboardButton(text="💰 Управление балансом", callback_data="balance:topup"),
         ],
         [
-            InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="referral:show"),
+            InlineKeyboardButton(text="🛒 Корзина", callback_data="cart:view"),
         ],
     ]
 
