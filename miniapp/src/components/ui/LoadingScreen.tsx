@@ -56,30 +56,6 @@ export default function LoadingScreen() {
         {SHOP_NAME}
       </p>
 
-      {/* Spinner */}
-      <div className="relative w-9 h-9">
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            border: '2px solid rgba(45,88,173,0.18)',
-          }}
-        />
-        <div
-          className="absolute inset-0 rounded-full animate-spin"
-          style={{
-            border: '2px solid transparent',
-            borderTopColor: '#6b9de8',
-            borderRightColor: 'rgba(107,157,232,0.3)',
-          }}
-        />
-      </div>
-
-      <p
-        className="text-sm font-medium tracking-wide"
-        style={{ color: 'rgba(107,157,232,0.65)', letterSpacing: '0.08em' }}
-      >
-        Загрузка...
-      </p>
     </div>
   )
 }
