@@ -70,6 +70,7 @@ class BotTexts:
         delivery_type: str,
         min_price: float | None = None,
         max_price: float | None = None,
+        cart_total: float | None = None,
     ) -> str:
         delivery_text = {
             "auto": "⚡ Автоматически",
@@ -91,6 +92,9 @@ class BotTexts:
         if stock is not None:
             stock_text = f"✅ В наличии: {stock}" if stock > 0 else "❌ Нет в наличии"
             lines.append(f"\n🗃 Наличие: {stock_text}")
+        # Сумма корзины в тексте
+        if cart_total is not None and cart_total > 0:
+            lines.append(f"\n\n🛒 В корзине: <b>{cart_total:.0f} ₽</b>")
 
         return "".join(lines)
 

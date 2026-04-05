@@ -35,7 +35,17 @@ class InputFieldsFSM(StatesGroup):
 
 # ── Вспомогательные функции клавиатур ─────────────────────────────────────────
 
-def _games_keyboard(games: list[Game]) -> InlineKeyboardMarkup:
+def _cart_button(cart_total: float | None) -> list[InlineKeyboardButton] | None:
+    """Возвращает строку с кнопкой корзины если сумма > 0, иначе None."""
+    if cart_total and cart_total > 0:
+        return [InlineKeyboardButton(
+            text=f"🛒 Корзина: {cart_total:.0f} ₽",
+            callback_data="cart:view",
+        )]
+    return None
+
+
+def _games_keyboard(games: list[Game], cart_total: float | None = None) -> InlineKeyboardMarkup:
     buttons = [
         [
             InlineKeyboardButton(
@@ -45,6 +55,9 @@ def _games_keyboard(games: list[Game]) -> InlineKeyboardMarkup:
         ]
         for game in games
     ]
+    cart_row = _cart_button(cart_total)
+    if cart_row:
+        buttons.append(cart_row)
     buttons.append(
         [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")]
     )
@@ -71,7 +84,12 @@ def _select_field_keyboard(options: list[str]) -> InlineKeyboardMarkup:
 
 # ── Показ списка игр ──────────────────────────────────────────────────────────
 
-async def show_games_list(event: Message | CallbackQuery, db: AsyncSession, state: FSMContext | None = None) -> None:
+async def show_games_list(
+    event: Message | CallbackQuery,
+    db: AsyncSession,
+    state: FSMContext | None = None,
+    user: User | None = None,
+) -> None:
     result = await db.execute(
         select(Game)
         .where(Game.is_active == True)
@@ -79,12 +97,18 @@ async def show_games_list(event: Message | CallbackQuery, db: AsyncSession, stat
     )
     games = list(result.scalars().all())
 
+    cart_total: float | None = None
+    if user is not None:
+        cart = await CartService(db).get_or_create_cart(user)
+        if not cart.is_empty:
+            cart_total = float(cart.total)
+
     if not games:
         text = texts.catalog_empty
         keyboard = InlineKeyboardMarkup(inline_keyboard=[])
     else:
         text = texts.catalog_header
-        keyboard = _games_keyboard(games)
+        keyboard = _games_keyboard(games, cart_total=cart_total)
 
     if isinstance(event, CallbackQuery):
         await safe_edit(event.message, text, reply_markup=keyboard)
@@ -101,13 +125,13 @@ async def show_games_list(event: Message | CallbackQuery, db: AsyncSession, stat
 @router.callback_query(F.data == "catalog:main")
 @router.callback_query(F.data == "open_catalog")
 async def cb_catalog_main(
-    call: CallbackQuery, db: AsyncSession
+    call: CallbackQuery, db: AsyncSession, user: User
 ) -> None:
-    await show_games_list(call, db)
+    await show_games_list(call, db, user=user)
 
 
 @router.callback_query(F.data.startswith("catalog:game:"))
-async def cb_catalog_game(call: CallbackQuery, db: AsyncSession) -> None:
+async def cb_catalog_game(call: CallbackQuery, db: AsyncSession, user: User) -> None:
     game_id_str = call.data.split(":")[2]
     try:
         game_id = uuid.UUID(game_id_str)
@@ -135,10 +159,16 @@ async def cb_catalog_game(call: CallbackQuery, db: AsyncSession) -> None:
         await call.answer("Нет доступных категорий", show_alert=True)
         return
 
+    cart = await CartService(db).get_or_create_cart(user)
+    cart_total = float(cart.total) if not cart.is_empty else None
+
     buttons = [
         [InlineKeyboardButton(text=cat.name, callback_data=f"catalog:cat:{cat.id}")]
         for cat in categories
     ]
+    cart_row = _cart_button(cart_total)
+    if cart_row:
+        buttons.append(cart_row)
     buttons.append(
         [
             InlineKeyboardButton(text="◀️ Каталог", callback_data="catalog:main"),
@@ -176,9 +206,12 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession, user: User)
         await call.answer("Нет доступных товаров", show_alert=True)
         return
 
+    cart = await CartService(db).get_or_create_cart(user)
+    cart_total = float(cart.total) if not cart.is_empty else None
+
     # Если товар один — открываем сразу, без промежуточного экрана выбора
     if len(products) == 1:
-        return await _show_product(call, products[0].id, db, user=user)
+        return await _show_product(call, products[0].id, db, user=user, cart_total=cart_total)
 
     game = await db.get(Game, category.game_id)
     game_name = game.name if game else "Игра"
@@ -187,6 +220,9 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession, user: User)
         [InlineKeyboardButton(text=p.name, callback_data=f"catalog:product:{p.id}")]
         for p in products
     ]
+    cart_row = _cart_button(cart_total)
+    if cart_row:
+        buttons.append(cart_row)
     buttons.append(
         [
             InlineKeyboardButton(
@@ -235,6 +271,7 @@ async def _show_product(
         delivery_type=product.delivery_type.value,
         min_price=min(prices),
         max_price=max(prices),
+        cart_total=cart_total,
     )
 
     # Проверяем, в избранном ли товар у пользователя
@@ -279,15 +316,6 @@ async def _show_product(
             )
         ]
     )
-    if cart_total is not None and cart_total > 0:
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    text=f"🛒 Корзина: {cart_total:.0f} ₽",
-                    callback_data="cart:view",
-                )
-            ]
-        )
     buttons.append(
         [
             InlineKeyboardButton(
@@ -310,7 +338,9 @@ async def cb_catalog_product(call: CallbackQuery, db: AsyncSession, user: User) 
     except ValueError:
         await call.answer("Некорректный ID товара", show_alert=True)
         return
-    await _show_product(call, product_id, db, user=user)
+    cart = await CartService(db).get_or_create_cart(user)
+    cart_total = float(cart.total) if not cart.is_empty else None
+    await _show_product(call, product_id, db, user=user, cart_total=cart_total)
 
 
 # ── FSM: сбор input_fields ────────────────────────────────────────────────────
@@ -641,7 +671,7 @@ async def _add_to_cart_message(
 # ── Кнопка магазина в reply-клавиатуре ───────────────────────────────────────
 
 @router.message(F.text == "🛍 reDonate")
-async def btn_shop(message: Message, db: AsyncSession, state: FSMContext) -> None:
+async def btn_shop(message: Message, db: AsyncSession, state: FSMContext, user: User) -> None:
     from shared.config import settings
     from aiogram.types import WebAppInfo
 
@@ -663,4 +693,4 @@ async def btn_shop(message: Message, db: AsyncSession, state: FSMContext) -> Non
             ),
         )
     else:
-        await show_games_list(message, db, state=state)
+        await show_games_list(message, db, state=state, user=user)
