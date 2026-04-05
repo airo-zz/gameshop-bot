@@ -120,6 +120,22 @@ async def _build_referral_text(user: User, db: AsyncSession) -> tuple[str, str]:
     return text, ref_link
 
 
+@router.message(Command("balance"))
+async def cmd_balance(message: Message, user: User, db: AsyncSession, state: FSMContext) -> None:
+    """Показывает текущий баланс с кнопкой пополнения."""
+    text = (
+        f"💰 <b>Баланс</b>\n\n"
+        f"Текущий баланс: <b>{float(user.balance):.2f} ₽</b>\n"
+        f"Заказов: <b>{user.orders_count}</b>\n"
+        f"Потрачено всего: <b>{float(user.total_spent):.0f} ₽</b>"
+    )
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💳 Пополнить баланс", callback_data="balance:topup")],
+        [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
+    ])
+    await nav_edit(message, state, text, reply_markup=keyboard)
+
+
 @router.message(Command("profile"))
 @router.message(F.text == "👤 Профиль")
 async def cmd_profile(message: Message, user: User, db: AsyncSession, state: FSMContext) -> None:

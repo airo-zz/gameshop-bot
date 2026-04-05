@@ -1,5 +1,5 @@
 // src/pages/OrderDetailPage.tsx
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
+import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ordersApi } from '@/api'
 import { CheckCircle, Copy, MessageCircle } from 'lucide-react'
@@ -41,8 +41,22 @@ export default function OrderDetailPage() {
     toast.success('Скопировано!')
   }
 
-  if (isLoading) return null
-  if (!order) return null
+  if (isLoading) return (
+    <div className="px-4 pt-5 pb-4 space-y-4">
+      <div className="h-7 w-40 rounded-xl animate-pulse" style={{ background: 'var(--bg2)' }} />
+      {[...Array(4)].map((_, i) => (
+        <div key={i} className="rounded-2xl animate-pulse" style={{ background: 'var(--bg2)', height: 64 }} />
+      ))}
+    </div>
+  )
+
+  if (!order) return (
+    <div className="flex flex-col items-center py-20 gap-4 px-4">
+      <p className="text-5xl">📋</p>
+      <p className="font-semibold" style={{ color: 'var(--text)' }}>Заказ не найден</p>
+      <Link to="/orders" className="btn-primary" style={{ maxWidth: 200 }}>К заказам</Link>
+    </div>
+  )
 
   const statusInfo = STATUS_LABEL[order.status] ?? { label: order.status, color: 'var(--hint)', bg: 'var(--bg2)', emoji: '📋' }
 
@@ -161,7 +175,7 @@ export default function OrderDetailPage() {
       {/* Кнопка поддержки для проблемных статусов */}
       {SUPPORT_STATUSES.has(order.status) && (
         <button
-          onClick={() => navigate('/support')}
+          onClick={() => navigate('/support?order_id=' + order.id)}
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm transition-all active:scale-95"
           style={{
             background: 'rgba(45,88,173,0.14)',

@@ -69,7 +69,14 @@ export default function CheckoutPage() {
     }
   }
 
-  if (cartLoading || !cart) return null
+  if (cartLoading || !cart) return (
+    <div className="px-4 pt-5 pb-4 space-y-4">
+      <div className="h-7 w-44 rounded-xl animate-pulse" style={{ background: 'var(--bg2)' }} />
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="rounded-2xl animate-pulse" style={{ background: 'var(--bg2)', height: 64 }} />
+      ))}
+    </div>
+  )
 
   return (
     <div className="px-4 pt-5 pb-8 space-y-5 animate-slide-up">

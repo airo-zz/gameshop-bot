@@ -19,6 +19,7 @@ from aiohttp import web
 
 from shared.config import settings
 from shared.database.session import engine
+from bot.utils.texts import texts
 
 from bot.middlewares.auth import AuthMiddleware
 from bot.middlewares.admin_auth import AdminAuthMiddleware
@@ -98,7 +99,7 @@ def create_dispatcher() -> Dispatcher:
         try:
             if event.update.message:
                 await event.update.message.answer(
-                    "Произошла ошибка. Попробуй ещё раз или обратись в поддержку."
+                    texts.error_general
                 )
             elif event.update.callback_query:
                 await event.update.callback_query.answer(

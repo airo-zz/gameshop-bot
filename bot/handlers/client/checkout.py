@@ -395,6 +395,7 @@ async def cb_checkout_cancel(
 ) -> None:
     data = await state.get_data()
     order_id_str = data.get("order_id")
+    order = None
 
     if order_id_str:
         try:
@@ -417,7 +418,7 @@ async def cb_checkout_cancel(
 
     await safe_edit(
         call.message,
-        "❌ Заказ отменён.\n\nВозвращайся, когда будешь готов!",
+        texts.order_cancelled(order.order_number) if order else "❌ Заказ отменён.",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main")],

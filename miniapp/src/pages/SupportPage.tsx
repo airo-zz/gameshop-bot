@@ -1,5 +1,6 @@
 // src/pages/SupportPage.tsx
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { MessageCircle, Send, Plus, ArrowLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -18,8 +19,10 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
 
 export default function SupportPage() {
   const { haptic } = useTelegram()
-  const [view, setView]       = useState<View>('list')
-  const [subject, setSubject] = useState('')
+  const [searchParams] = useSearchParams()
+  const prefillOrderId = searchParams.get('order_id')
+  const [view, setView]       = useState<View>(prefillOrderId ? 'new' : 'list')
+  const [subject, setSubject] = useState(prefillOrderId ? `Заказ #${prefillOrderId.slice(0, 8)}` : '')
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
 

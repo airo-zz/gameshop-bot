@@ -27,11 +27,25 @@ export default function FavoritesPage() {
     </div>
   )
 
-  const handleToggle = (_id: string, _added: boolean) => {
+  const handleToggle = async (id: string, _added: boolean) => {
+    try {
+      await catalogApi.toggleFavorite(id)
+    } catch {
+      // silent fail
+    }
     qc.invalidateQueries({ queryKey: ['favorites'] })
   }
 
-  if (isLoading) return null
+  if (isLoading) return (
+    <div className="px-4 pt-5 pb-4 space-y-4">
+      <div className="h-7 w-32 rounded-xl animate-pulse" style={{ background: 'var(--bg2)' }} />
+      <div className="grid grid-cols-2 gap-3">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="rounded-2xl overflow-hidden animate-pulse" style={{ background: 'var(--bg2)', height: 180 }} />
+        ))}
+      </div>
+    </div>
+  )
 
   return (
     <div className="px-4 pt-5 pb-4 space-y-4 animate-fade-in">

@@ -169,15 +169,26 @@ class OrderService:
 
         elif new_status == OrderStatus.completed:
             order.completed_at = now
-            # Обновляем статистику пользователя
             await self._update_user_stats(order)
-            # Начисляем кэшбек
             await self._apply_cashback(order)
+            delivery_text = ""
+            items_result = await self.db.execute(
+                select(OrderItem).where(OrderItem.order_id == order.id)
+            )
+            for item in items_result.scalars().all():
+                if item.delivery_data:
+                    keys = item.delivery_data.get("keys", [])
+                    if keys:
+                        delivery_text = "\n".join(str(k) for k in keys)
+                        break
+            from bot.utils.texts import texts as _texts
+            await self._notify_user(order, _texts.order_completed(order.order_number, delivery_text))
 
         elif new_status == OrderStatus.cancelled:
             order.cancelled_at = now
-            # Возвращаем зарезервированные ключи
             await self._release_reserved_keys(order)
+            from bot.utils.texts import texts as _texts
+            await self._notify_user(order, _texts.order_cancelled(order.order_number))
 
         # Пишем историю
         self.db.add(OrderStatusHistory(
@@ -378,6 +389,32 @@ class OrderService:
             description=f"Кэшбек {user.loyalty_level.cashback_percent}% за заказ {order.order_number}",
             reference_id=order.id,
         ))
+
+    async def _notify_user(self, order: Order, text: str) -> None:
+        """Отправляет уведомление пользователю через бота. Не критично — не прерывает flow."""
+        try:
+            from aiogram import Bot
+            from shared.config import settings
+            from sqlalchemy.orm import selectinload as _sil
+
+            result = await self.db.execute(
+                select(Order)
+                .options(_sil(Order.user))
+                .where(Order.id == order.id)
+            )
+            order_with_user = result.scalar_one_or_none()
+            if not order_with_user:
+                return
+
+            telegram_id = order_with_user.user.telegram_id
+            bot = Bot(token=settings.BOT_TOKEN)
+            try:
+                await bot.send_message(telegram_id, text, parse_mode="HTML")
+            finally:
+                await bot.session.close()
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("Не удалось отправить уведомление: %s", exc)
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 

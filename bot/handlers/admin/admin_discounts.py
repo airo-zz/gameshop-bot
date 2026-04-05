@@ -41,6 +41,37 @@ def back_btn(data: str) -> InlineKeyboardButton:
     return InlineKeyboardButton(text="◀️ Назад", callback_data=data)
 
 
+# ── Список скидок ─────────────────────────────────────────────────────────────
+
+@router.callback_query(F.data == "admin:discounts:list")
+@require_permission("discounts.*")
+async def admin_discounts_list(call: CallbackQuery, db: AsyncSession, admin: AdminUser) -> None:
+    """Список правил скидок (DiscountRule)."""
+    result = await db.execute(
+        select(DiscountRule)
+        .order_by(desc(DiscountRule.created_at))
+        .limit(20)
+    )
+    rules = result.scalars().all()
+
+    if not rules:
+        text = "💸 <b>Скидки</b>\n\nПравил скидок пока нет."
+    else:
+        lines = ["💸 <b>Правила скидок</b>\n"]
+        for r in rules:
+            status = "✅" if r.is_active else "❌"
+            val = f"{r.value}%" if r.value_type and r.value_type.value == "percent" else f"{r.value} ₽"
+            lines.append(f"{status} <b>{r.name}</b> — {val}")
+        text = "\n".join(lines)
+
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🏷 Промокоды", callback_data="admin:promos:list")],
+        [back_btn("admin:main")],
+    ])
+    await call.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
+    await call.answer()
+
+
 # ── Список промокодов ─────────────────────────────────────────────────────────
 
 @router.callback_query(F.data == "admin:promos:list")

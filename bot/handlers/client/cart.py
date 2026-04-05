@@ -198,6 +198,12 @@ async def _resolve_item_id(cart_svc: CartService, user: User, item_id_short: str
     return cart, None
 
 
+@router.callback_query(F.data.startswith("cart:item:"))
+async def cb_cart_item_noop(call: CallbackQuery) -> None:
+    """Нажатие на строку позиции — просто убираем loader без действия."""
+    await call.answer()
+
+
 @router.callback_query(F.data.startswith("cart:qty:"))
 async def cb_cart_qty(call: CallbackQuery, user: User, db: AsyncSession) -> None:
     # Формат: cart:qty:{item_id_short}:{inc|dec}

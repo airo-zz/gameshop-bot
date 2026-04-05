@@ -408,8 +408,9 @@ class BotTexts:
             f"/start — главное меню\n"
             f"/orders — мои заказы\n"
             f"/balance — мой баланс\n"
-            f"/support — поддержка\n"
             f"/favorites — избранное\n"
+            f"/referral — реферальная ссылка\n"
+            f"/support — поддержка\n"
             f"/help — эта справка"
         )
 

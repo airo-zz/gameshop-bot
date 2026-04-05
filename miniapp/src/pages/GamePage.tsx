@@ -1,7 +1,7 @@
 // src/pages/GamePage.tsx
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { catalogApi, type Category } from '@/api'
 import ProductCard from '@/components/ui/ProductCard'
@@ -11,7 +11,7 @@ import clsx from 'clsx'
 export default function GamePage() {
   const { slug } = useParams<{ slug: string }>()
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null)
-  const [favorites, setFavorites] = useState<Set<string>>(new Set())
+  const qc = useQueryClient()
 
   // Получаем список всех игр для поиска реального названия по slug
   const { data: games = [] } = useQuery({
@@ -36,16 +36,24 @@ export default function GamePage() {
     staleTime: 2 * 60 * 1000,
   })
 
+  const { data: favoritesData = [] } = useQuery({
+    queryKey: ['favorites'],
+    queryFn: catalogApi.getFavorites,
+    staleTime: 60_000,
+  })
+  const favoriteIds = new Set(favoritesData.map(p => p.id))
+
   // Реальное название из API, fallback на slug
   const gameFromApi = games.find(g => g.slug === slug)
   const gameName = gameFromApi?.name ?? slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) ?? ''
 
-  const handleFavoriteToggle = (id: string, added: boolean) => {
-    setFavorites(prev => {
-      const next = new Set(prev)
-      added ? next.add(id) : next.delete(id)
-      return next
-    })
+  const handleFavoriteToggle = async (id: string) => {
+    try {
+      await catalogApi.toggleFavorite(id)
+    } catch {
+      // silent
+    }
+    qc.invalidateQueries({ queryKey: ['favorites'] })
   }
 
   const rootCats = (cats: Category[]) => cats.filter(c => !c.parent_id)
@@ -160,7 +168,7 @@ export default function GamePage() {
               <ProductCard
                 key={product.id}
                 product={product}
-                isFavorite={favorites.has(product.id)}
+                isFavorite={favoriteIds.has(product.id)}
                 onFavoriteToggle={handleFavoriteToggle}
               />
             ))}
