@@ -27,6 +27,8 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
   const isOutOfStock = product.stock !== null && product.stock === 0
   const isAuto = product.delivery_type === 'auto'
 
+  const hasImage = !!product.images[0]
+
   return (
     <Link
       to={`/product/${product.id}`}
@@ -37,107 +39,133 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
         borderRadius: '18px',
       }}
     >
-      {/* Image area */}
-      <div
-        className="relative overflow-hidden"
-        style={{ aspectRatio: '1 / 1', background: 'var(--bg3)' }}
-      >
-        {product.images[0] ? (
+      {/* Image area — only when image exists */}
+      {hasImage && (
+        <div
+          className="relative overflow-hidden"
+          style={{ aspectRatio: '1 / 1', background: 'var(--bg3)' }}
+        >
           <img
             src={product.images[0]}
             alt={product.name}
             className="w-full h-full object-cover"
             loading="lazy"
           />
-        ) : (
+
+          {/* Gradient overlay */}
           <div
-            className="w-full h-full flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg, #060f1e 0%, #0a1428 100%)' }}
-          >
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="rgba(107,157,232,0.4)"
-                 strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="2" y="7" width="20" height="12" rx="5" />
-              <path d="M7 13v-2m0 2v2m0-2h2m-2 0H5" />
-              <circle cx="16" cy="12" r="1.2" fill="rgba(107,157,232,0.4)" stroke="none" />
-              <circle cx="18.5" cy="14" r="1.2" fill="rgba(107,157,232,0.4)" stroke="none" />
-            </svg>
-          </div>
-        )}
+            className="absolute inset-x-0 bottom-0 h-12"
+            style={{ background: 'linear-gradient(to top, rgba(13,13,26,0.9) 0%, transparent 100%)' }}
+          />
 
-        {/* Gradient overlay at bottom of image */}
-        <div
-          className="absolute inset-x-0 bottom-0 h-12"
-          style={{ background: 'linear-gradient(to top, rgba(13,13,26,0.9) 0%, transparent 100%)' }}
-        />
-
-        {/* Featured badge */}
-        {product.is_featured && (
-          <span
-            className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full"
-            style={{
-              background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
-              color: '#fff',
-              boxShadow: '0 2px 8px rgba(245,158,11,0.4)',
-            }}
-          >
-            ХИТ
-          </span>
-        )}
-
-        {/* Auto delivery badge */}
-        {isAuto && !isOutOfStock && (
-          <span
-            className="absolute bottom-2 left-2 flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-            style={{
-              background: 'rgba(16,185,129,0.2)',
-              color: '#34d399',
-              border: '1px solid rgba(16,185,129,0.3)',
-            }}
-          >
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="#34d399" stroke="none">
-              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-            </svg>
-            Авто
-          </span>
-        )}
-
-        {/* Out of stock overlay */}
-        {isOutOfStock && (
-          <div
-            className="absolute inset-0 flex items-center justify-center"
-            style={{ background: 'rgba(8,8,16,0.75)', backdropFilter: 'blur(2px)' }}
-          >
+          {/* Featured badge */}
+          {product.is_featured && (
             <span
-              className="text-white font-bold text-xs px-3 py-1.5 rounded-full"
-              style={{ background: 'rgba(239,68,68,0.7)', border: '1px solid rgba(239,68,68,0.5)' }}
+              className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{
+                background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                color: '#fff',
+                boxShadow: '0 2px 8px rgba(245,158,11,0.4)',
+              }}
             >
-              Нет в наличии
+              ХИТ
             </span>
-          </div>
-        )}
+          )}
 
-        {/* Favorite button */}
-        <button
-          className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center
-                     transition-transform active:scale-90"
-          style={{
-            background: 'rgba(8,8,16,0.65)',
-            backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }}
-          onClick={handleFavorite}
-        >
-          <svg width="13" height="13" viewBox="0 0 24 24"
-               fill={isFavorite ? '#ef4444' : 'none'}
-               stroke={isFavorite ? '#ef4444' : 'rgba(255,255,255,0.7)'}
-               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 21C12 21 3 14.5 3 8.5a5 5 0 0 1 9-3 5 5 0 0 1 9 3C21 14.5 12 21 12 21z" />
-          </svg>
-        </button>
-      </div>
+          {/* Auto delivery badge */}
+          {isAuto && !isOutOfStock && (
+            <span
+              className="absolute bottom-2 left-2 flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              style={{
+                background: 'rgba(16,185,129,0.2)',
+                color: '#34d399',
+                border: '1px solid rgba(16,185,129,0.3)',
+              }}
+            >
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="#34d399" stroke="none">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+              </svg>
+              Авто
+            </span>
+          )}
+
+          {/* Out of stock overlay */}
+          {isOutOfStock && (
+            <div
+              className="absolute inset-0 flex items-center justify-center"
+              style={{ background: 'rgba(8,8,16,0.75)', backdropFilter: 'blur(2px)' }}
+            >
+              <span
+                className="text-white font-bold text-xs px-3 py-1.5 rounded-full"
+                style={{ background: 'rgba(239,68,68,0.7)', border: '1px solid rgba(239,68,68,0.5)' }}
+              >
+                Нет в наличии
+              </span>
+            </div>
+          )}
+
+          {/* Favorite button */}
+          <button
+            className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-transform active:scale-90"
+            style={{
+              background: 'rgba(8,8,16,0.65)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}
+            onClick={handleFavorite}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24"
+                 fill={isFavorite ? '#ef4444' : 'none'}
+                 stroke={isFavorite ? '#ef4444' : 'rgba(255,255,255,0.7)'}
+                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 21C12 21 3 14.5 3 8.5a5 5 0 0 1 9-3 5 5 0 0 1 9 3C21 14.5 12 21 12 21z" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Content */}
       <div className="p-3 flex flex-col gap-1.5 flex-1">
+        {/* Badges row — shown here when no image */}
+        {!hasImage && (
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {product.is_featured && (
+              <span
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{
+                  background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
+                  color: '#fff',
+                }}
+              >
+                ХИТ
+              </span>
+            )}
+            {isAuto && !isOutOfStock && (
+              <span
+                className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                style={{
+                  background: 'rgba(16,185,129,0.2)',
+                  color: '#34d399',
+                  border: '1px solid rgba(16,185,129,0.3)',
+                }}
+              >
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="#34d399" stroke="none">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+                Авто
+              </span>
+            )}
+            {isOutOfStock && (
+              <span
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}
+              >
+                Нет в наличии
+              </span>
+            )}
+          </div>
+        )}
+
         <p
           className="text-sm font-semibold line-clamp-2 leading-snug"
           style={{ color: 'rgba(255,255,255,0.9)' }}
@@ -147,13 +175,30 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
 
         <p
           className="text-base font-bold mt-auto"
-          style={{
-            color: 'rgba(255,255,255,0.9)',
-          }}
+          style={{ color: 'rgba(255,255,255,0.9)' }}
         >
           от {minPrice.toLocaleString('ru')} ₽
         </p>
       </div>
+
+      {/* Favorite button — shown in corner when no image */}
+      {!hasImage && (
+        <button
+          className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-transform active:scale-90"
+          style={{
+            background: 'rgba(8,8,16,0.5)',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}
+          onClick={handleFavorite}
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24"
+               fill={isFavorite ? '#ef4444' : 'none'}
+               stroke={isFavorite ? '#ef4444' : 'rgba(255,255,255,0.5)'}
+               strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 21C12 21 3 14.5 3 8.5a5 5 0 0 1 9-3 5 5 0 0 1 9 3C21 14.5 12 21 12 21z" />
+          </svg>
+        </button>
+      )}
     </Link>
   )
 }
