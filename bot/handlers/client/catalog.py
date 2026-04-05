@@ -22,6 +22,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Game, Category, Product, ProductLot, Cart, CartItem, User, UserFavorite
+from api.services.cart_service import CartService
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, nav_edit
 
@@ -210,6 +211,7 @@ async def _show_product(
     db: AsyncSession,
     user: User | None = None,
     answer_text: str = "",
+    cart_total: float | None = None,
 ) -> None:
     """Показывает карточку товара. Используется из cb_catalog_product и cb_catalog_category."""
     result = await db.execute(
@@ -277,6 +279,15 @@ async def _show_product(
             )
         ]
     )
+    if cart_total is not None and cart_total > 0:
+        buttons.append(
+            [
+                InlineKeyboardButton(
+                    text=f"🛒 Корзина: {cart_total:.0f} ₽",
+                    callback_data="cart:view",
+                )
+            ]
+        )
     buttons.append(
         [
             InlineKeyboardButton(
@@ -568,17 +579,6 @@ async def _persist_cart_item(
         db.add(item)
 
 
-def _cart_added_keyboard() -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(text="🛒 Корзина", callback_data="cart:view"),
-                InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
-            ]
-        ]
-    )
-
-
 async def _add_to_cart(
     call: CallbackQuery,
     user: User,
@@ -587,28 +587,24 @@ async def _add_to_cart(
     lot: ProductLot | None,
     input_data: dict,
 ) -> None:
-    """Добавляет товар в корзину и редактирует сообщение с подтверждением."""
+    """Добавляет товар в корзину и перерисовывает карточку товара с актуальной суммой корзины."""
     try:
         await _persist_cart_item(db, user, product, lot, input_data)
         await db.commit()
     except Exception:
         await db.rollback()
-        await safe_edit(
-            call.message,
-            texts.error_general,
-            reply_markup=_cart_added_keyboard(),
-        )
         await call.answer("Ошибка при добавлении в корзину", show_alert=True)
         return
 
+    # Получаем актуальную сумму корзины для отображения на карточке
+    cart = await CartService(db).get_or_create_cart(user)
+    cart_total = float(cart.total)
+
     lot_name = f" ({lot.name})" if lot else ""
-    price = Decimal(str(lot.price if lot else product.price))
-    await safe_edit(
-        call.message,
-        texts.cart_item_added(product.name, lot_name, float(price)),
-        reply_markup=_cart_added_keyboard(),
-    )
-    await call.answer(f"✅ {product.name}{lot_name} добавлен в корзину!")
+    toast = f"✅ {product.name}{lot_name} — в корзине!"
+
+    # Перерисовываем карточку товара — можно сразу добавить ещё
+    await _show_product(call, product.id, db, user=user, answer_text=toast, cart_total=cart_total)
 
 
 async def _add_to_cart_message(
@@ -629,10 +625,15 @@ async def _add_to_cart_message(
         return
 
     lot_name = f" ({lot.name})" if lot else ""
-    price = Decimal(str(lot.price if lot else product.price))
+    cart = await CartService(db).get_or_create_cart(user)
+    cart_total = float(cart.total)
+    cart_btn = InlineKeyboardMarkup(inline_keyboard=[[
+        InlineKeyboardButton(text=f"🛒 Корзина: {cart_total:.0f} ₽", callback_data="cart:view"),
+        InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
+    ]])
     await message.answer(
-        texts.cart_item_added(product.name, lot_name, float(price)),
-        reply_markup=_cart_added_keyboard(),
+        f"✅ <b>{product.name}{lot_name}</b> — в корзине!",
+        reply_markup=cart_btn,
         parse_mode="HTML",
     )
 
