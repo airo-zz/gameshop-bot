@@ -195,7 +195,7 @@ jobs:
         with:
           host:        ${{ secrets.VPS_HOST }}
           username:    ${{ secrets.VPS_USER }}
-          key:         ${{ secrets.VPS_SSH_KEY }}
+          password:    ${{ secrets.VPS_PASSWORD }}
           source:      "miniapp-dist/"
           target:      "/tmp/redonate-miniapp/"
           strip_components: 1
@@ -205,7 +205,7 @@ jobs:
         with:
           host:     ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key:      ${{ secrets.VPS_SSH_KEY }}
+          password: ${{ secrets.VPS_PASSWORD }}
           timeout:  60s
           script: |
             set -e
@@ -240,7 +240,7 @@ jobs:
         with:
           host:     ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key:      ${{ secrets.VPS_SSH_KEY }}
+          password: ${{ secrets.VPS_PASSWORD }}
           timeout:  300s
           script: |
             set -e
