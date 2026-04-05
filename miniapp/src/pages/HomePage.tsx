@@ -31,13 +31,38 @@ function IconChevronRight() {
   )
 }
 
-function IconMenu() {
+function IconMenu({ open }: { open: boolean }) {
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="3" y1="6"  x2="21" y2="6" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="18" x2="21" y2="18" />
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line
+        x1="3" y1="6" x2="21" y2="6"
+        style={{
+          transformBox: 'fill-box' as any,
+          transformOrigin: 'center',
+          transform: open ? 'translateY(6px) rotate(45deg)' : 'translateY(0) rotate(0deg)',
+          transition: 'transform 0.35s cubic-bezier(0.34, 1.2, 0.64, 1)',
+        }}
+      />
+      <line
+        x1="3" y1="12" x2="21" y2="12"
+        style={{
+          transformBox: 'fill-box' as any,
+          transformOrigin: 'center',
+          transform: open ? 'scaleX(0)' : 'scaleX(1)',
+          opacity: open ? 0 : 1,
+          transition: 'transform 0.25s ease, opacity 0.2s ease',
+        }}
+      />
+      <line
+        x1="3" y1="18" x2="21" y2="18"
+        style={{
+          transformBox: 'fill-box' as any,
+          transformOrigin: 'center',
+          transform: open ? 'translateY(-6px) rotate(-45deg)' : 'translateY(0) rotate(0deg)',
+          transition: 'transform 0.35s cubic-bezier(0.34, 1.2, 0.64, 1)',
+        }}
+      />
     </svg>
   )
 }
@@ -473,7 +498,7 @@ export default function HomePage() {
             <span
               style={{
                 fontWeight: 800,
-                fontSize: '1.25rem',
+                fontSize: '1.5rem',
                 letterSpacing: '-0.01em',
                 background: 'linear-gradient(135deg, #ffffff, #93b8f0)',
                 WebkitBackgroundClip: 'text',
@@ -490,20 +515,21 @@ export default function HomePage() {
             <button
               onClick={() => setMenuOpen(v => !v)}
               style={{
-                width: 44,
-                height: 44,
+                width: 48,
+                height: 48,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRadius: 12,
-                background: menuOpen ? 'rgba(45,88,173,0.16)' : 'none',
-                border: menuOpen ? '1px solid rgba(45,88,173,0.32)' : '1px solid transparent',
-                color: menuOpen ? '#6b9de8' : 'rgba(255,255,255,0.45)',
+                borderRadius: 14,
+                background: menuOpen ? 'rgba(45,88,173,0.18)' : 'rgba(255,255,255,0.04)',
+                border: menuOpen ? '1px solid rgba(45,88,173,0.38)' : '1px solid rgba(255,255,255,0.08)',
+                color: menuOpen ? '#6b9de8' : 'rgba(255,255,255,0.6)',
                 cursor: 'pointer',
-                transition: 'background 0.15s, border-color 0.15s, color 0.15s',
+                transition: 'background 0.2s, border-color 0.2s, color 0.2s',
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
-              <IconMenu />
+              <IconMenu open={menuOpen} />
             </button>
           </div>
         </div>
