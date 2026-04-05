@@ -240,7 +240,7 @@ async def cb_catalog_product(call: CallbackQuery, db: AsyncSession) -> None:
                 [
                     InlineKeyboardButton(
                         text=f"🛒 {lot.name} — {float(lot.price):.0f} ₽{badge}",
-                        callback_data=f"cart:add:{product.id}:{lot.id}",
+                        callback_data=f"cart:add:{product.id}:{str(lot.id)[:8]}",
                     )
                 ]
             )
@@ -292,10 +292,10 @@ async def cb_cart_add_with_fields(
     Если у товара есть input_fields — запускает FSM. Иначе — добавляет сразу.
     """
     parts = call.data.split(":")
-    # Формат: cart:add:{product_id} или cart:add:{product_id}:{lot_id}
+    # Формат: cart:add:{product_id} или cart:add:{product_id}:{lot_prefix8}
     try:
         product_id = uuid.UUID(parts[2])
-        lot_id = uuid.UUID(parts[3]) if len(parts) > 3 else None
+        lot_prefix = parts[3] if len(parts) > 3 else None
     except (IndexError, ValueError):
         await call.answer("Ошибка: некорректные данные товара", show_alert=True)
         return
@@ -311,8 +311,16 @@ async def cb_cart_add_with_fields(
         return
 
     lot: ProductLot | None = None
-    if lot_id:
-        lot = await db.get(ProductLot, lot_id)
+    if lot_prefix:
+        # lot_id передаётся как первые 8 символов UUID для соблюдения лимита 64 байт
+        from sqlalchemy import cast, String as SAString
+        lot_result = await db.execute(
+            select(ProductLot).where(
+                ProductLot.product_id == product_id,
+                cast(ProductLot.id, SAString).like(f"{lot_prefix}%"),
+            )
+        )
+        lot = lot_result.scalar_one_or_none()
         if not lot or not lot.is_active:
             await call.answer("❌ Вариант товара недоступен", show_alert=True)
             return
@@ -328,7 +336,7 @@ async def cb_cart_add_with_fields(
     await state.set_state(InputFieldsFSM.collecting)
     await state.update_data(
         product_id=str(product_id),
-        lot_id=str(lot_id) if lot_id else None,
+        lot_id=str(lot.id) if lot else None,
         fields=input_fields,
         current_idx=0,
         collected={},
