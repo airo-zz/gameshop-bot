@@ -474,22 +474,11 @@ export default function HomePage() {
         >
           {/* Logo + name */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: 'linear-gradient(135deg, #2d58ad 0%, #1e3f8a 100%)',
-                border: '1px solid rgba(107,157,232,0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                boxShadow: '0 0 16px rgba(45,88,173,0.45)',
-              }}
-            >
-              <IconGamepadLogo />
-            </div>
+            <img
+              src="/logo.svg"
+              alt="logo"
+              style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'block' }}
+            />
             <span
               style={{
                 fontWeight: 700,
