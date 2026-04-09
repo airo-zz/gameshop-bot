@@ -13,6 +13,7 @@ bot/handlers/admin/admin_users.py
 """
 
 import uuid as _uuid
+from html import escape
 
 import structlog
 
@@ -65,8 +66,8 @@ def _fmt_user(user: User) -> str:
     return (
         f"👤 <b>Пользователь</b>\n\n"
         f"ID:        <code>{user.telegram_id}</code>\n"
-        f"Имя:       {user.first_name}\n"
-        f"Username:  {('@' + user.username) if user.username else '—'}\n"
+        f"Имя:       {escape(user.first_name or '')}\n"
+        f"Username:  {('@' + escape(user.username)) if user.username else '—'}\n"
         f"Баланс:    <b>{float(user.balance):,.2f} ₽</b>\n"
         f"Заказов:   {user.orders_count}\n"
         f"Потрачено: {float(user.total_spent):,.0f} ₽\n"

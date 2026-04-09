@@ -277,48 +277,30 @@ async def admin_order_change_status(
         return
 
     new_status = OrderStatus(new_status_str)
-    if not order.can_transition_to(new_status):
-        await call.answer(
-            f"Нельзя перейти из {order.status.value} в {new_status.value}",
-            show_alert=True,
-        )
-        return
-
-    from shared.models import OrderStatusHistory
-    from datetime import datetime, timezone
-
     old_status = order.status
 
-    # Обновляем статус
-    order.status = new_status
-    now = datetime.now(timezone.utc)
+    # Вся бизнес-логика смены статуса — в OrderService (кэшбек, автовыдача,
+    # освобождение ключей, статистика, OrderStatusHistory). Хендлер не должен
+    # трогать поля модели напрямую.
+    from api.services.order_service import OrderService
 
-    if new_status == OrderStatus.paid:
-        order.paid_at = now
-    elif new_status == OrderStatus.processing:
-        order.processing_started_at = now
-    elif new_status == OrderStatus.completed:
-        order.completed_at = now
-    elif new_status == OrderStatus.cancelled:
-        order.cancelled_at = now
-
-    # Пишем историю
-    history = OrderStatusHistory(
-        order_id=order.id,
-        from_status=old_status,
-        to_status=new_status,
-        changed_by_id=admin.id,
-        changed_by_type="admin",
-    )
-    db.add(history)
+    order_svc = OrderService(db)
+    try:
+        await order_svc.change_status(
+            order,
+            new_status,
+            changed_by_id=admin.id,
+            changed_by_type="admin",
+        )
+    except ValueError as exc:
+        await call.answer(str(exc), show_alert=True)
+        return
 
     await log_admin_action(
         db, admin, "order.status_change", "order", order.id,
         before_data={"status": old_status.value},
         after_data={"status": new_status.value},
     )
-
-    await db.commit()
 
     # Уведомляем клиента
     try:

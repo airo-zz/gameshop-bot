@@ -161,8 +161,8 @@ class BotTexts:
         )
 
     def order_cancelled(self, order_number: str, reason: str = "") -> str:
-        reason_text = f"\n\nПричина: {reason}" if reason else ""
-        return f"❌ Заказ <b>{order_number}</b> отменён.{reason_text}"
+        reason_text = f"\n\nПричина: {escape(reason)}" if reason else ""
+        return f"❌ Заказ <b>{escape(order_number)}</b> отменён.{reason_text}"
 
     def order_status_changed(self, order_number: str, new_status: str) -> str:
         status_emoji = {
@@ -252,7 +252,7 @@ class BotTexts:
             f"Осталось полей: <b>{remaining}</b>" if remaining > 0 else "Все поля заполнены!"
         )
         return (
-            f"✅ <b>{label}</b>: <code>{value}</code>\n\n{remaining_text}"
+            f"✅ <b>{escape(label)}</b>: <code>{escape(value)}</code>\n\n{remaining_text}"
         )
 
     # ── Избранное ─────────────────────────────────────────────────────────────

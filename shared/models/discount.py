@@ -22,7 +22,7 @@ shared/models/discount.py
 
 import enum
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import (
@@ -108,7 +108,7 @@ class DiscountRule(Base, UUIDMixin, TimestampMixin):
 
     @property
     def is_expired(self) -> bool:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         if self.starts_at and now < self.starts_at:
             return True
         if self.ends_at and now > self.ends_at:
@@ -172,7 +172,7 @@ class PromoCode(Base, UUIDMixin):
     def is_available(self) -> bool:
         if not self.is_active:
             return False
-        if self.expires_at and datetime.utcnow() > self.expires_at:
+        if self.expires_at and datetime.now(timezone.utc) > self.expires_at:
             return False
         if self.max_uses is not None and self.used_count >= self.max_uses:
             return False

@@ -71,8 +71,8 @@ services:
       dockerfile: Dockerfile.api
     <<: *common-env
     command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 2 --log-level info
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     depends_on:
       db:
         condition: service_healthy
@@ -146,9 +146,9 @@ services:
       context: .
       dockerfile: Dockerfile.api
     <<: *common-env
-    command: celery -A worker.main flower --port=5555 --basic_auth=${FLOWER_USER:-admin}:${FLOWER_PASSWORD:-secret}
+    command: celery -A worker.main flower --port=5555 --basic_auth=${FLOWER_USER:?FLOWER_USER required}:${FLOWER_PASSWORD:?FLOWER_PASSWORD required}
     ports:
-      - "5555:5555"
+      - "127.0.0.1:5555:5555"
     depends_on:
       - redis
 

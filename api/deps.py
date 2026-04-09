@@ -64,10 +64,10 @@ def decode_token(token: str) -> dict:
         return jwt.decode(
             token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
         )
-    except JWTError as e:
+    except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"Невалидный токен: {e}",
+            detail="Невалидный токен",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
@@ -169,7 +169,6 @@ async def get_or_create_user(
         )
         db.add(user)
         await db.flush()
-        await db.commit()
         result2 = await db.execute(
             select(User)
             .options(

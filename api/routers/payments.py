@@ -50,6 +50,9 @@ async def initiate_payment(order_id: str, db: DbSession, user: CurrentUser):
     if not order:
         raise HTTPException(404, "Заказ не найден")
 
+    if order.payment_method is None:
+        raise HTTPException(400, "У заказа не указан метод оплаты")
+
     svc = PaymentService(db)
 
     if order.payment_method.value == "balance":

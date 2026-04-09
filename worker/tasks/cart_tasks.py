@@ -1,7 +1,10 @@
 """worker/tasks/cart_tasks.py — брошенные корзины"""
 
 import asyncio
+import logging
 from datetime import datetime, timedelta, timezone
+
+logger = logging.getLogger(__name__)
 
 from worker.main import celery_app
 from shared.config import settings
@@ -90,8 +93,14 @@ async def _check_abandoned_carts_async():
                 abandoned.second_reminder_sent = True
 
 
-@celery_app.task(name="worker.tasks.cart_tasks.send_abandoned_cart_reminder")
+@celery_app.task(
+    name="worker.tasks.cart_tasks.send_abandoned_cart_reminder",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+)
 def send_abandoned_cart_reminder(
+    self,
     user_id: str,
     telegram_id: int,
     items_count: int,
@@ -108,7 +117,7 @@ def send_abandoned_cart_reminder(
 
     try:
         with httpx.Client(timeout=5.0) as client:
-            client.post(
+            response = client.post(
                 f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
                 json={
                     "chat_id": telegram_id,
@@ -126,8 +135,15 @@ def send_abandoned_cart_reminder(
                     },
                 },
             )
-    except Exception:
-        pass
+            response.raise_for_status()
+    except Exception as exc:
+        logger.warning(
+            "Не удалось отправить напоминание о корзине user_id=%s tg_id=%s: %s",
+            user_id,
+            telegram_id,
+            exc,
+        )
+        raise self.retry(exc=exc)
 
 
 """worker/tasks/loyalty_tasks.py — пересчёт лояльности"""

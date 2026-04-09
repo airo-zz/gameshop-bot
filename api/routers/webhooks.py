@@ -42,12 +42,15 @@ async def cryptobot_webhook(
     """
     body = await request.body()
 
-    # Верифицируем подпись
-    if settings.CRYPTOBOT_TOKEN and crypto_pay_api_signature:
-        secret = hashlib.sha256(settings.CRYPTOBOT_TOKEN.encode()).digest()
-        expected = hmac.new(secret, body, hashlib.sha256).hexdigest()
-        if not hmac.compare_digest(expected, crypto_pay_api_signature):
-            raise HTTPException(401, "Неверная подпись")
+    # Верифицируем подпись — токен обязан быть настроен, заголовок обязателен
+    if not settings.CRYPTOBOT_TOKEN:
+        raise HTTPException(500, "CRYPTOBOT_TOKEN не настроен")
+    if not crypto_pay_api_signature:
+        raise HTTPException(401, "Отсутствует подпись")
+    secret = hashlib.sha256(settings.CRYPTOBOT_TOKEN.encode()).digest()
+    expected = hmac.new(secret, body, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, crypto_pay_api_signature):
+        raise HTTPException(401, "Неверная подпись")
 
     payload = await request.json()
     if payload.get("update_type") != "invoice_paid":

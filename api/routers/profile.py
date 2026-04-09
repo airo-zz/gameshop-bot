@@ -6,6 +6,7 @@ from sqlalchemy import select, func
 from api.deps import CurrentUser, DbSession
 from api.schemas.cart import ProfileOut
 from shared.models import User
+from shared.utils import build_telegram_photo_url
 
 router = APIRouter()
 
@@ -30,7 +31,7 @@ async def get_profile(db: DbSession, user: CurrentUser):
         telegram_id=user_full.telegram_id,
         username=user_full.username,
         first_name=user_full.first_name,
-        photo_url=user_full.photo_url,
+        photo_url=build_telegram_photo_url(user_full.photo_url),
         balance=user_full.balance,
         orders_count=user_full.orders_count,
         total_spent=user_full.total_spent,

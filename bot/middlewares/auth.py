@@ -23,22 +23,19 @@ from shared.models import User, LoyaltyLevel
 from bot.utils.texts import texts
 
 
-async def _fetch_photo_url(bot: Bot, tg_user_id: int) -> str | None:
+async def _fetch_photo_file_path(bot: Bot, tg_user_id: int) -> str | None:
     """
-    Получает URL первой фотографии профиля пользователя через Bot API.
-    Возвращает None если фото нет или получить не удалось.
+    Получает file_path первой фотографии профиля через Bot API.
+    Возвращает только относительный путь (без токена и домена), чтобы BOT_TOKEN
+    не попадал в БД. Полный URL собирается в рантайме через build_telegram_photo_url.
     """
     try:
         photos = await bot.get_user_profile_photos(tg_user_id, limit=1)
         if photos.total_count == 0 or not photos.photos:
             return None
-        # Берём наибольший размер первой фотографии
         file_id = photos.photos[0][-1].file_id
         file = await bot.get_file(file_id)
-        if not file.file_path:
-            return None
-        token = bot.token
-        return f"https://api.telegram.org/file/bot{token}/{file.file_path}"
+        return file.file_path or None
     except Exception:
         return None
 
@@ -121,7 +118,7 @@ class AuthMiddleware(BaseMiddleware):
         # Получаем фото профиля
         photo_url = None
         if bot:
-            photo_url = await _fetch_photo_url(bot, tg_user.id)
+            photo_url = await _fetch_photo_file_path(bot, tg_user.id)
 
         user = User(
             telegram_id=tg_user.id,
@@ -152,9 +149,18 @@ class AuthMiddleware(BaseMiddleware):
             user.first_name = tg_user.first_name or ""
             changed = True
 
+        # Миграция старого формата: если в БД лежит полный URL с токеном —
+        # вырезаем file_path и перезаписываем, чтобы BOT_TOKEN не хранился в БД.
+        if user.photo_url and user.photo_url.startswith("https://api.telegram.org/file/bot"):
+            tail = user.photo_url[len("https://api.telegram.org/file/bot"):]
+            slash = tail.find("/")
+            if slash != -1:
+                user.photo_url = tail[slash + 1:]
+                changed = True
+
         # Обновляем photo_url если оно отсутствует (ленивое обновление)
         if user.photo_url is None and bot:
-            photo_url = await _fetch_photo_url(bot, tg_user.id)
+            photo_url = await _fetch_photo_file_path(bot, tg_user.id)
             if photo_url:
                 user.photo_url = photo_url
                 changed = True

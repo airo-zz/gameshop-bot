@@ -144,7 +144,6 @@ async def cb_checkout_start(
             payment_method=None,
             promo_code_str=promo_code_str,
         )
-        await db.commit()
     except ValueError as exc:
         await call.answer(str(exc), show_alert=True)
         return
@@ -187,7 +186,6 @@ async def cb_pay_balance(
     payment_svc = PaymentService(db)
     try:
         await payment_svc.pay_balance(order, user)
-        await db.commit()
         await state.clear()
 
         await safe_edit(
@@ -232,7 +230,6 @@ async def cb_pay_card(
         result = await payment_svc.pay_yukassa(order, user)
         # БАГ 3 ИСПРАВЛЕН: фиксируем реальный метод оплаты в заказе
         order.payment_method = PaymentMethod.card_yukassa
-        await db.commit()
     except ValueError as exc:
         await call.answer(str(exc), show_alert=True)
         return
@@ -274,7 +271,6 @@ async def cb_pay_usdt(
         result = await payment_svc.pay_crypto(order, user, currency="USDT")
         # БАГ 3 ИСПРАВЛЕН: фиксируем реальный метод оплаты в заказе
         order.payment_method = PaymentMethod.usdt
-        await db.commit()
     except ValueError as exc:
         await call.answer(str(exc), show_alert=True)
         return
@@ -316,7 +312,6 @@ async def cb_pay_ton(
         result = await payment_svc.pay_crypto(order, user, currency="TON")
         # БАГ 3 ИСПРАВЛЕН: фиксируем реальный метод оплаты в заказе
         order.payment_method = PaymentMethod.ton
-        await db.commit()
     except ValueError as exc:
         await call.answer(str(exc), show_alert=True)
         return
@@ -413,7 +408,6 @@ async def cb_checkout_cancel(
                     changed_by_type="user",
                     reason="Отменён пользователем",
                 )
-                await db.commit()
         except Exception as e:
             log.warning("checkout.cancel_error", exc=str(e))
             await call.answer("Не удалось отменить заказ", show_alert=True)

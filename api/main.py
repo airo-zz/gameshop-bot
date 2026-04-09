@@ -77,7 +77,7 @@ def create_app() -> FastAPI:
     # ── Health check ──────────────────────────────────────────────────────────
     @app.get("/health", include_in_schema=False)
     async def health():
-        return {"status": "ok", "shop": settings.SHOP_NAME}
+        return {"status": "ok"}
 
     # ── Глобальный обработчик ошибок ─────────────────────────────────────────
     @app.exception_handler(Exception)
