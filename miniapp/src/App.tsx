@@ -38,7 +38,7 @@ class ChunkErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
 function LazyPage({ children }: { children: ReactNode }) {
   return (
     <ChunkErrorBoundary>
-      <LazyPage>{children}</LazyPage>
+      <Suspense fallback={<LoadingScreen />}>{children}</Suspense>
     </ChunkErrorBoundary>
   )
 }
