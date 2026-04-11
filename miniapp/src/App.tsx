@@ -56,6 +56,17 @@ const FavoritesPage  = lazy(() => import('@/pages/FavoritesPage'))
 const SearchPage     = lazy(() => import('@/pages/SearchPage'))
 const SupportPage    = lazy(() => import('@/pages/SupportPage'))
 
+// Admin
+const AdminLayout      = lazy(() => import('@/components/admin/AdminLayout'))
+const AdminGuard       = lazy(() => import('@/components/admin/AdminGuard'))
+const AdminDashboard   = lazy(() => import('@/pages/admin/DashboardPage'))
+const AdminOrders      = lazy(() => import('@/pages/admin/OrdersPage'))
+const AdminOrderDetail = lazy(() => import('@/pages/admin/OrderDetailPage'))
+const AdminCatalog     = lazy(() => import('@/pages/admin/CatalogPage'))
+const AdminUsers       = lazy(() => import('@/pages/admin/UsersPage'))
+const AdminUserDetail  = lazy(() => import('@/pages/admin/UserDetailPage'))
+const AdminDiscounts   = lazy(() => import('@/pages/admin/DiscountsPage'))
+
 export default function App() {
   const { initData } = useTelegram()
   const { isReady, isError, setReady, setError } = useAuthStore()
@@ -135,6 +146,32 @@ export default function App() {
           <Route path="search"       element={<LazyPage><SearchPage /></LazyPage>} />
           <Route path="support"      element={<LazyPage><SupportPage /></LazyPage>} />
           <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+
+        {/* Admin routes — guarded, separate layout, no main nav */}
+        <Route
+          path="/admin"
+          element={
+            <LazyPage>
+              <AdminGuard />
+            </LazyPage>
+          }
+        >
+          <Route
+            element={
+              <LazyPage>
+                <AdminLayout />
+              </LazyPage>
+            }
+          >
+            <Route index element={<LazyPage><AdminDashboard /></LazyPage>} />
+            <Route path="orders" element={<LazyPage><AdminOrders /></LazyPage>} />
+            <Route path="orders/:id" element={<LazyPage><AdminOrderDetail /></LazyPage>} />
+            <Route path="catalog" element={<LazyPage><AdminCatalog /></LazyPage>} />
+            <Route path="users" element={<LazyPage><AdminUsers /></LazyPage>} />
+            <Route path="users/:id" element={<LazyPage><AdminUserDetail /></LazyPage>} />
+            <Route path="discounts" element={<LazyPage><AdminDiscounts /></LazyPage>} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>
