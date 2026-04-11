@@ -106,10 +106,11 @@ def _promo_to_out(promo: PromoCode) -> PromoCodeOut:
 # ── GET / — список правил скидок ──────────────────────────────────────────────
 
 
-@router.get("", response_model=list[DiscountRuleOut])
+@router.get("", response_model=list[DiscountRuleOut],
+            dependencies=[require_permission("discounts.view")])
 async def list_discount_rules(
     db: DbSession,
-    admin: CurrentAdmin = require_permission("discounts.view"),
+    admin: CurrentAdmin,
 ) -> list[DiscountRuleOut]:
     """Все правила скидок, отсортированные по priority DESC."""
     result = await db.execute(
@@ -122,11 +123,12 @@ async def list_discount_rules(
 # ── POST / — создать правило скидки ───────────────────────────────────────────
 
 
-@router.post("", response_model=DiscountRuleOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=DiscountRuleOut, status_code=status.HTTP_201_CREATED,
+             dependencies=[require_permission("discounts.create")])
 async def create_discount_rule(
     body: DiscountRuleCreateIn,
     db: DbSession,
-    admin: CurrentAdmin = require_permission("discounts.create"),
+    admin: CurrentAdmin,
 ) -> DiscountRuleOut:
     """Создаёт новое правило скидки."""
     discount_type = _validate_discount_type(body.type)
@@ -185,12 +187,13 @@ async def create_discount_rule(
 # ── PATCH /{rule_id} — обновить правило скидки ────────────────────────────────
 
 
-@router.patch("/{rule_id}", response_model=DiscountRuleOut)
+@router.patch("/{rule_id}", response_model=DiscountRuleOut,
+              dependencies=[require_permission("discounts.edit")])
 async def update_discount_rule(
     rule_id: uuid.UUID,
     body: DiscountRuleUpdateIn,
     db: DbSession,
-    admin: CurrentAdmin = require_permission("discounts.edit"),
+    admin: CurrentAdmin,
 ) -> DiscountRuleOut:
     """Частичное обновление правила скидки."""
     result = await db.execute(select(DiscountRule).where(DiscountRule.id == rule_id))
@@ -263,10 +266,11 @@ async def update_discount_rule(
 # ── GET /promos — список промокодов ───────────────────────────────────────────
 
 
-@router.get("/promos", response_model=list[PromoCodeOut])
+@router.get("/promos", response_model=list[PromoCodeOut],
+            dependencies=[require_permission("discounts.view")])
 async def list_promos(
     db: DbSession,
-    admin: CurrentAdmin = require_permission("discounts.view"),
+    admin: CurrentAdmin,
 ) -> list[PromoCodeOut]:
     """Все промокоды с именем привязанного правила скидки."""
     result = await db.execute(
@@ -281,11 +285,12 @@ async def list_promos(
 # ── POST /promos — создать промокод ───────────────────────────────────────────
 
 
-@router.post("/promos", response_model=PromoCodeOut, status_code=status.HTTP_201_CREATED)
+@router.post("/promos", response_model=PromoCodeOut, status_code=status.HTTP_201_CREATED,
+             dependencies=[require_permission("discounts.create")])
 async def create_promo(
     body: PromoCreateIn,
     db: DbSession,
-    admin: CurrentAdmin = require_permission("discounts.create"),
+    admin: CurrentAdmin,
 ) -> PromoCodeOut:
     """Создаёт промокод. Code приводится к верхнему регистру, проверяется уникальность."""
     code_upper = body.code.strip().upper()
@@ -353,12 +358,13 @@ async def create_promo(
 # ── PATCH /promos/{promo_id} — обновить промокод ──────────────────────────────
 
 
-@router.patch("/promos/{promo_id}", response_model=PromoCodeOut)
+@router.patch("/promos/{promo_id}", response_model=PromoCodeOut,
+              dependencies=[require_permission("discounts.edit")])
 async def update_promo(
     promo_id: uuid.UUID,
     body: PromoUpdateIn,
     db: DbSession,
-    admin: CurrentAdmin = require_permission("discounts.edit"),
+    admin: CurrentAdmin,
 ) -> PromoCodeOut:
     """Частичное обновление промокода (без смены code и discount_rule_id)."""
     result = await db.execute(

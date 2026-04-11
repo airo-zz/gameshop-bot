@@ -35,10 +35,11 @@ router = APIRouter()
 # ── GET / — список заказов ────────────────────────────────────────────────────
 
 
-@router.get("", response_model=PaginatedResponse[OrderListItem])
+@router.get("", response_model=PaginatedResponse[OrderListItem],
+            dependencies=[require_permission("orders.view")])
 async def list_orders(
     db: DbSession,
-    admin: CurrentAdmin = require_permission("orders.view"),
+    admin: CurrentAdmin,
     status_filter: str | None = Query(None, alias="status"),
     search: str | None = Query(None),
     page: int = Query(1, ge=1),
@@ -122,11 +123,12 @@ async def list_orders(
 # ── GET /{order_id} — детали заказа ──────────────────────────────────────────
 
 
-@router.get("/{order_id}", response_model=OrderDetailOut)
+@router.get("/{order_id}", response_model=OrderDetailOut,
+            dependencies=[require_permission("orders.view")])
 async def get_order(
     order_id: uuid.UUID,
     db: DbSession,
-    admin: CurrentAdmin = require_permission("orders.view"),
+    admin: CurrentAdmin,
 ) -> OrderDetailOut:
     """Полная информация о заказе: позиции, история статусов, платежи, данные пользователя."""
     result = await db.execute(
@@ -214,12 +216,13 @@ async def get_order(
 # ── PATCH /{order_id}/status — смена статуса ─────────────────────────────────
 
 
-@router.patch("/{order_id}/status")
+@router.patch("/{order_id}/status",
+              dependencies=[require_permission("orders.update_status")])
 async def change_order_status(
     order_id: uuid.UUID,
     body: OrderStatusChangeRequest,
     db: DbSession,
-    admin: CurrentAdmin = require_permission("orders.update_status"),
+    admin: CurrentAdmin,
 ) -> dict:
     """
     Смена статуса заказа.
@@ -278,12 +281,13 @@ async def change_order_status(
 # ── POST /{order_id}/notes — добавить заметку ─────────────────────────────────
 
 
-@router.post("/{order_id}/notes")
+@router.post("/{order_id}/notes",
+             dependencies=[require_permission("orders.add_notes")])
 async def add_order_notes(
     order_id: uuid.UUID,
     body: OrderNotesRequest,
     db: DbSession,
-    admin: CurrentAdmin = require_permission("orders.add_notes"),
+    admin: CurrentAdmin,
 ) -> dict:
     """Добавляет заметку оператора к заказу (append к существующим)."""
     result = await db.execute(select(Order).where(Order.id == order_id))

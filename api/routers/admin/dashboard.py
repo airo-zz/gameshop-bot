@@ -14,10 +14,10 @@ from api.services.analytics_service import AnalyticsService
 router = APIRouter()
 
 
-@router.get("")
+@router.get("", dependencies=[require_permission("analytics.view")])
 async def get_dashboard(
     db: DbSession,
-    admin: CurrentAdmin = require_permission("analytics.view"),
+    admin: CurrentAdmin,
 ) -> dict:
     """
     Полная аналитика магазина.
