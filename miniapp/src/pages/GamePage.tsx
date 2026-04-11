@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, Check, Zap, Clock, ChevronDown } from 'lucide-react'
+import { ShoppingCart, Check, Zap, Clock, Plus, Minus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { catalogApi, cartApi, type Category, type Product, type Lot, type InputField } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -11,30 +11,31 @@ import { useCartStore } from '@/store'
 import PageLoader from '@/components/ui/PageLoader'
 import clsx from 'clsx'
 
-// ── Inline LotRow — строка лота с ценой и кнопкой ────────────────────────────
+// ── LotRow — строка лота с ценой и кнопкой +/- ──────────────────────────────
 
 interface LotRowProps {
   lot: Lot
   disabled: boolean
+  cartQty: number
   onAdd: () => void
+  onRemove: () => void
   adding: boolean
-  added: boolean
+  removing: boolean
 }
 
-function LotRow({ lot, disabled, onAdd, adding, added }: LotRowProps) {
+function LotRow({ lot, disabled, cartQty, onAdd, onRemove, adding, removing }: LotRowProps) {
   const hasDiscount = !!lot.original_price && lot.original_price > lot.price
   const discountPct = hasDiscount
     ? Math.round((1 - lot.price / lot.original_price!) * 100)
     : 0
+  const busy = adding || removing
 
   return (
     <div
-      className="flex items-center gap-2 py-2.5 px-3"
-      style={{
-        borderBottom: '1px solid rgba(255,255,255,0.04)',
-      }}
+      className="flex items-center gap-2 py-2.5 px-3.5"
+      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
     >
-      {/* Lot name + badges */}
+      {/* Name + badges */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
@@ -43,10 +44,7 @@ function LotRow({ lot, disabled, onAdd, adding, added }: LotRowProps) {
           {lot.badge && (
             <span
               className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-              style={{
-                background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
-                color: '#fff',
-              }}
+              style={{ background: 'linear-gradient(135deg, #f59e0b, #ef4444)', color: '#fff' }}
             >
               {lot.badge}
             </span>
@@ -74,66 +72,91 @@ function LotRow({ lot, disabled, onAdd, adding, added }: LotRowProps) {
         )}
       </div>
 
-      {/* Cart button */}
-      <button
-        disabled={disabled || adding}
-        onClick={onAdd}
-        className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-150 active:scale-90"
-        style={{
-          background: added
-            ? 'rgba(16,185,129,0.2)'
-            : disabled
-              ? 'rgba(239,68,68,0.1)'
-              : 'rgba(45,88,173,0.18)',
-          border: added
-            ? '1px solid rgba(16,185,129,0.4)'
-            : disabled
-              ? '1px solid rgba(239,68,68,0.2)'
-              : '1px solid rgba(45,88,173,0.35)',
-          color: added ? '#34d399' : disabled ? '#f87171' : '#6b9de8',
-        }}
-      >
-        <AnimatePresence mode="wait">
-          {added ? (
-            <motion.span key="ok" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 20 }}>
-              <Check size={14} />
-            </motion.span>
-          ) : adding ? (
-            <motion.span key="spin" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="w-3.5 h-3.5 rounded-full border-2"
-              style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }}
-            />
+      {/* Qty controls */}
+      {cartQty > 0 ? (
+        <div className="flex items-center gap-0 flex-shrink-0">
+          <button
+            disabled={busy}
+            onClick={onRemove}
+            className="flex items-center justify-center w-8 h-8 rounded-l-xl transition-all active:scale-90"
+            style={{
+              background: 'rgba(239,68,68,0.12)',
+              border: '1px solid rgba(239,68,68,0.25)',
+              borderRight: 'none',
+              color: '#f87171',
+            }}
+          >
+            <Minus size={13} />
+          </button>
+          <div
+            className="flex items-center justify-center h-8 min-w-[28px] text-xs font-bold"
+            style={{
+              background: 'rgba(45,88,173,0.12)',
+              borderTop: '1px solid rgba(45,88,173,0.25)',
+              borderBottom: '1px solid rgba(45,88,173,0.25)',
+              color: '#6b9de8',
+            }}
+          >
+            {busy ? (
+              <span className="w-3 h-3 rounded-full border-2"
+                style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
+            ) : cartQty}
+          </div>
+          <button
+            disabled={busy || disabled}
+            onClick={onAdd}
+            className="flex items-center justify-center w-8 h-8 rounded-r-xl transition-all active:scale-90"
+            style={{
+              background: 'rgba(45,88,173,0.18)',
+              border: '1px solid rgba(45,88,173,0.35)',
+              borderLeft: 'none',
+              color: '#6b9de8',
+            }}
+          >
+            <Plus size={13} />
+          </button>
+        </div>
+      ) : (
+        <button
+          disabled={disabled || busy}
+          onClick={onAdd}
+          className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-150 active:scale-90"
+          style={{
+            background: disabled ? 'rgba(239,68,68,0.1)' : 'rgba(45,88,173,0.18)',
+            border: disabled ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(45,88,173,0.35)',
+            color: disabled ? '#f87171' : '#6b9de8',
+          }}
+        >
+          {adding ? (
+            <span className="w-3.5 h-3.5 rounded-full border-2"
+              style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
           ) : (
-            <motion.span key="cart" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <ShoppingCart size={14} />
-            </motion.span>
+            <ShoppingCart size={14} />
           )}
-        </AnimatePresence>
-      </button>
+        </button>
+      )}
     </div>
   )
 }
 
-// ── ProductSection — товар с его лотами/ценой ────────────────────────────────
+// ── ProductSection — товар с лотами, всегда развёрнут ────────────────────────
 
 interface ProductSectionProps {
   product: Product
-  onAddLot: (product: Product, lot: Lot) => Promise<void>
-  onAddSimple: (product: Product) => Promise<void>
-  addingKey: string | null
-  addedKey: string | null
+  cartQtyMap: Map<string, number> // key: "productId:lotId" or "productId" → qty
+  onAdd: (product: Product, lot?: Lot) => Promise<void>
+  onRemove: (product: Product, lot?: Lot) => Promise<void>
+  busyKey: string | null
+  busyAction: 'add' | 'remove' | null
 }
 
-function ProductSection({ product, onAddLot, onAddSimple, addingKey, addedKey }: ProductSectionProps) {
-  const [expanded, setExpanded] = useState(true)
+function ProductSection({ product, cartQtyMap, onAdd, onRemove, busyKey, busyAction }: ProductSectionProps) {
   const lots = product.lots ?? []
   const inputFields = product.input_fields ?? []
   const isOutOfStock = product.stock !== null && product.stock === 0
   const hasLots = lots.length > 0
   const isAuto = product.delivery_type === 'auto'
 
-  // Input fields state (for products requiring user input)
   const [inputData, setInputData] = useState<Record<string, string>>({})
   const [showInputs, setShowInputs] = useState(false)
   const hasInputs = inputFields.length > 0
@@ -141,198 +164,184 @@ function ProductSection({ product, onAddLot, onAddSimple, addingKey, addedKey }:
   return (
     <div
       className="rounded-2xl overflow-hidden"
-      style={{
-        background: 'var(--bg2)',
-        border: '1px solid rgba(255,255,255,0.06)',
-      }}
+      style={{ background: 'var(--bg2)', border: '1px solid rgba(255,255,255,0.06)' }}
     >
-      {/* Product header */}
-      <button
-        className="w-full flex items-center gap-3 p-3.5 text-left transition-colors"
-        onClick={() => setExpanded(!expanded)}
-        style={{ background: 'transparent' }}
-      >
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-[15px] font-bold" style={{ color: 'var(--text)' }}>
-              {product.name}
+      {/* Product header — не кнопка, просто заголовок */}
+      <div className="px-3.5 pt-3 pb-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[15px] font-bold" style={{ color: 'var(--text)' }}>
+            {product.name}
+          </span>
+          {isAuto && !isOutOfStock && (
+            <span
+              className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }}
+            >
+              <Zap size={9} fill="#34d399" stroke="none" />
+              Авто
             </span>
-            {isAuto && !isOutOfStock && (
-              <span
-                className="flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }}
-              >
-                <Zap size={9} fill="#34d399" stroke="none" />
-                Авто
-              </span>
-            )}
-            {!isAuto && !isOutOfStock && (
-              <span
-                className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
-                style={{ background: 'var(--bg3, rgba(255,255,255,0.05))', color: 'var(--hint)', border: '1px solid var(--border)' }}
-              >
-                <Clock size={9} />
-                Вручную
-              </span>
-            )}
-            {isOutOfStock && (
-              <span
-                className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}
-              >
-                Нет в наличии
-              </span>
-            )}
-          </div>
-          {product.short_description && (
-            <p className="text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--hint)' }}>
-              {product.short_description}
-            </p>
+          )}
+          {!isAuto && !isOutOfStock && (
+            <span
+              className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--hint)', border: '1px solid var(--border)' }}
+            >
+              <Clock size={9} />
+              Вручную
+            </span>
+          )}
+          {isOutOfStock && (
+            <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}
+            >
+              Нет в наличии
+            </span>
           )}
         </div>
+        {product.short_description && (
+          <p className="text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--hint)' }}>
+            {product.short_description}
+          </p>
+        )}
+      </div>
 
-        {/* Price preview (min) + chevron */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {hasLots && (
-            <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              от {Math.min(...lots.map(l => l.price)).toLocaleString('ru')} ₽
-            </span>
-          )}
-          {!hasLots && !isOutOfStock && (
-            <span className="text-sm font-bold" style={{ color: '#6b9de8' }}>
-              {Number(product.price).toLocaleString('ru')} ₽
-            </span>
-          )}
-          <ChevronDown
-            size={16}
-            style={{
-              color: 'var(--hint)',
-              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
-              transition: 'transform 0.2s',
-            }}
-          />
-        </div>
-      </button>
+      {/* Divider */}
+      <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
 
-      {/* Expanded content */}
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            style={{ overflow: 'hidden' }}
+      {/* Input fields */}
+      {hasInputs && (
+        <div className="px-3.5 pt-2.5 pb-1">
+          <button
+            className="text-xs font-medium mb-2 flex items-center gap-1"
+            style={{ color: '#6b9de8' }}
+            onClick={() => setShowInputs(!showInputs)}
           >
-            {/* Divider */}
-            <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
-
-            {/* Input fields (if any) */}
-            {hasInputs && (
-              <div className="px-3.5 pt-2.5 pb-1">
-                <button
-                  className="text-xs font-medium mb-2 flex items-center gap-1"
-                  style={{ color: '#6b9de8' }}
-                  onClick={(e) => { e.stopPropagation(); setShowInputs(!showInputs) }}
-                >
-                  Данные для заказа
-                  <ChevronDown
-                    size={12}
-                    style={{
-                      transform: showInputs ? 'rotate(180deg)' : 'rotate(0deg)',
-                      transition: 'transform 0.2s',
-                    }}
-                  />
-                </button>
-                {showInputs && (
-                  <div className="space-y-2 mb-2">
-                    {inputFields.map((field: InputField) => (
-                      <div key={field.key}>
-                        <label className="text-[11px] mb-1 block font-medium" style={{ color: 'var(--hint)' }}>
-                          {field.label}
-                        </label>
-                        {field.type === 'select' ? (
-                          <select
-                            className="input text-sm"
-                            style={{ padding: '8px 12px', borderRadius: 12 }}
-                            value={inputData[field.key] ?? ''}
-                            onChange={e => setInputData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                          >
-                            <option value="">Выбери...</option>
-                            {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                          </select>
-                        ) : (
-                          <input
-                            type={field.type === 'number' ? 'number' : 'text'}
-                            className="input text-sm"
-                            style={{ padding: '8px 12px', borderRadius: 12 }}
-                            placeholder={field.placeholder ?? `Введи ${field.label.toLowerCase()}`}
-                            value={inputData[field.key] ?? ''}
-                            onChange={e => setInputData(prev => ({ ...prev, [field.key]: e.target.value }))}
-                          />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Lots list */}
-            {hasLots ? (
-              <div>
-                {lots
-                  .slice()
-                  .sort((a, b) => a.sort_order - b.sort_order || a.price - b.price)
-                  .map(lot => (
-                    <LotRow
-                      key={lot.id}
-                      lot={lot}
-                      disabled={isOutOfStock}
-                      onAdd={() => onAddLot(product, lot)}
-                      adding={addingKey === `${product.id}:${lot.id}`}
-                      added={addedKey === `${product.id}:${lot.id}`}
+            Данные для заказа
+            <motion.span
+              animate={{ rotate: showInputs ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ display: 'inline-flex' }}
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </motion.span>
+          </button>
+          {showInputs && (
+            <div className="space-y-2 mb-2">
+              {inputFields.map((field: InputField) => (
+                <div key={field.key}>
+                  <label className="text-[11px] mb-1 block font-medium" style={{ color: 'var(--hint)' }}>
+                    {field.label}
+                  </label>
+                  {field.type === 'select' ? (
+                    <select
+                      className="input text-sm"
+                      style={{ padding: '8px 12px', borderRadius: 12 }}
+                      value={inputData[field.key] ?? ''}
+                      onChange={e => setInputData(prev => ({ ...prev, [field.key]: e.target.value }))}
+                    >
+                      <option value="">Выбери...</option>
+                      {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                  ) : (
+                    <input
+                      type={field.type === 'number' ? 'number' : 'text'}
+                      className="input text-sm"
+                      style={{ padding: '8px 12px', borderRadius: 12 }}
+                      placeholder={field.placeholder ?? `Введи ${field.label.toLowerCase()}`}
+                      value={inputData[field.key] ?? ''}
+                      onChange={e => setInputData(prev => ({ ...prev, [field.key]: e.target.value }))}
                     />
-                  ))
-                }
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Lots */}
+      {hasLots ? (
+        <div>
+          {lots
+            .slice()
+            .sort((a, b) => a.sort_order - b.sort_order || a.price - b.price)
+            .map(lot => {
+              const key = `${product.id}:${lot.id}`
+              return (
+                <LotRow
+                  key={lot.id}
+                  lot={lot}
+                  disabled={isOutOfStock}
+                  cartQty={cartQtyMap.get(key) ?? 0}
+                  onAdd={() => onAdd(product, lot)}
+                  onRemove={() => onRemove(product, lot)}
+                  adding={busyKey === key && busyAction === 'add'}
+                  removing={busyKey === key && busyAction === 'remove'}
+                />
+              )
+            })
+          }
+        </div>
+      ) : (
+        /* Single product without lots */
+        <div className="px-3.5 py-2.5">
+          {(() => {
+            const key = product.id
+            const qty = cartQtyMap.get(key) ?? 0
+            const isBusy = busyKey === key
+            return qty > 0 ? (
+              <div className="flex items-center justify-center gap-0">
+                <button
+                  disabled={isBusy}
+                  onClick={() => onRemove(product)}
+                  className="flex items-center justify-center w-10 h-9 rounded-l-xl transition-all active:scale-90"
+                  style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRight: 'none', color: '#f87171' }}
+                >
+                  <Minus size={14} />
+                </button>
+                <div
+                  className="flex items-center justify-center h-9 min-w-[36px] text-sm font-bold"
+                  style={{ background: 'rgba(45,88,173,0.12)', borderTop: '1px solid rgba(45,88,173,0.25)', borderBottom: '1px solid rgba(45,88,173,0.25)', color: '#6b9de8' }}
+                >
+                  {isBusy ? (
+                    <span className="w-3.5 h-3.5 rounded-full border-2"
+                      style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
+                  ) : qty}
+                </div>
+                <button
+                  disabled={isBusy || isOutOfStock}
+                  onClick={() => onAdd(product)}
+                  className="flex items-center justify-center w-10 h-9 rounded-r-xl transition-all active:scale-90"
+                  style={{ background: 'rgba(45,88,173,0.18)', border: '1px solid rgba(45,88,173,0.35)', borderLeft: 'none', color: '#6b9de8' }}
+                >
+                  <Plus size={14} />
+                </button>
               </div>
             ) : (
-              /* Single product without lots */
-              <div className="px-3.5 py-2.5">
-                <button
-                  disabled={isOutOfStock || addingKey === product.id}
-                  onClick={() => onAddSimple(product)}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 active:scale-95"
-                  style={{
-                    background: addedKey === product.id
-                      ? 'rgba(16,185,129,0.2)'
-                      : isOutOfStock
-                        ? 'rgba(239,68,68,0.1)'
-                        : 'rgba(45,88,173,0.18)',
-                    border: addedKey === product.id
-                      ? '1px solid rgba(16,185,129,0.4)'
-                      : isOutOfStock
-                        ? '1px solid rgba(239,68,68,0.2)'
-                        : '1px solid rgba(45,88,173,0.35)',
-                    color: addedKey === product.id ? '#34d399' : isOutOfStock ? '#f87171' : '#6b9de8',
-                  }}
-                >
-                  {addedKey === product.id ? (
-                    <><Check size={14} /> Добавлено</>
-                  ) : addingKey === product.id ? (
-                    <span className="w-4 h-4 rounded-full border-2"
-                      style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
-                  ) : isOutOfStock ? (
-                    'Нет в наличии'
-                  ) : (
-                    <><ShoppingCart size={14} /> В корзину</>
-                  )}
-                </button>
-              </div>
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <button
+                disabled={isOutOfStock || isBusy}
+                onClick={() => onAdd(product)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 active:scale-95"
+                style={{
+                  background: isOutOfStock ? 'rgba(239,68,68,0.1)' : 'rgba(45,88,173,0.18)',
+                  border: isOutOfStock ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(45,88,173,0.35)',
+                  color: isOutOfStock ? '#f87171' : '#6b9de8',
+                }}
+              >
+                {isBusy ? (
+                  <span className="w-4 h-4 rounded-full border-2"
+                    style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
+                ) : isOutOfStock ? (
+                  'Нет в наличии'
+                ) : (
+                  <><ShoppingCart size={14} /> В корзину · {Number(product.price).toLocaleString('ru')} ₽</>
+                )}
+              </button>
+            )
+          })()}
+        </div>
+      )}
     </div>
   )
 }
@@ -343,12 +352,11 @@ export default function GamePage() {
   const { slug } = useParams<{ slug: string }>()
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null)
   const { haptic } = useTelegram()
-  const { increment } = useCartStore()
+  const { increment, decrement } = useCartStore()
   const qc = useQueryClient()
 
-  // Adding state: "productId:lotId" or "productId" for simple products
-  const [addingKey, setAddingKey] = useState<string | null>(null)
-  const [addedKey, setAddedKey] = useState<string | null>(null)
+  const [busyKey, setBusyKey] = useState<string | null>(null)
+  const [busyAction, setBusyAction] = useState<'add' | 'remove' | null>(null)
 
   const { data: games = [] } = useQuery({
     queryKey: ['games'],
@@ -372,60 +380,77 @@ export default function GamePage() {
     staleTime: 2 * 60 * 1000,
   })
 
-  const gameFromApi = games.find(g => g.slug === slug)
-  const gameName = gameFromApi?.name ?? slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) ?? ''
+  // Cart data for qty display
+  const { data: cart } = useQuery({
+    queryKey: ['cart'],
+    queryFn: cartApi.get,
+    staleTime: 30_000,
+  })
 
-  const rootCats = (cats: Category[]) => cats.filter(c => !c.parent_id)
-
-  // Add lot to cart
-  const handleAddLot = async (product: Product, lot: Lot) => {
-    const key = `${product.id}:${lot.id}`
-    if (addingKey) return
-    setAddingKey(key)
-    haptic.impact('medium')
-    try {
-      await cartApi.addItem({
-        product_id: product.id,
-        lot_id: lot.id,
-        quantity: 1,
-        input_data: {},
-      })
-      increment()
-      qc.invalidateQueries({ queryKey: ['cart'] })
-      haptic.success()
-      toast.success('Добавлено в корзину!')
-      setAddedKey(key)
-      setTimeout(() => setAddedKey(null), 1800)
-    } catch (e: any) {
-      haptic.error()
-      toast.error(e?.response?.data?.detail ?? 'Ошибка')
-    } finally {
-      setAddingKey(null)
+  // Build cart qty map: "productId:lotId" → qty, "productId" → qty (no lot)
+  const cartQtyMap = new Map<string, number>()
+  if (cart?.items) {
+    for (const item of cart.items) {
+      const key = item.lot_id ? `${item.product_id}:${item.lot_id}` : item.product_id
+      cartQtyMap.set(key, (cartQtyMap.get(key) ?? 0) + item.quantity)
     }
   }
 
-  // Add simple product (no lots) to cart
-  const handleAddSimple = async (product: Product) => {
-    if (addingKey) return
-    setAddingKey(product.id)
-    haptic.impact('medium')
+  const gameFromApi = games.find(g => g.slug === slug)
+  const gameName = gameFromApi?.name ?? slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) ?? ''
+  const rootCats = (cats: Category[]) => cats.filter(c => !c.parent_id)
+
+  // Add to cart
+  const handleAdd = async (product: Product, lot?: Lot) => {
+    const key = lot ? `${product.id}:${lot.id}` : product.id
+    if (busyKey) return
+    setBusyKey(key)
+    setBusyAction('add')
+    haptic.impact('light')
     try {
       await cartApi.addItem({
         product_id: product.id,
+        lot_id: lot?.id,
         quantity: 1,
         input_data: {},
       })
       increment()
       qc.invalidateQueries({ queryKey: ['cart'] })
-      haptic.success()
-      toast.success('Добавлено в корзину!')
-      setAddedKey(product.id)
-      setTimeout(() => setAddedKey(null), 1800)
     } catch (e: any) {
       haptic.error()
       toast.error(e?.response?.data?.detail ?? 'Ошибка')
     } finally {
-      setAddingKey(null)
+      setBusyKey(null)
+      setBusyAction(null)
+    }
+  }
+
+  // Remove from cart (decrease qty)
+  const handleRemove = async (product: Product, lot?: Lot) => {
+    if (!cart?.items) return
+    const key = lot ? `${product.id}:${lot.id}` : product.id
+    if (busyKey) return
+
+    // Find cart item
+    const cartItem = cart.items.find(i =>
+      i.product_id === product.id && (lot ? i.lot_id === lot.id : !i.lot_id)
+    )
+    if (!cartItem) return
+
+    setBusyKey(key)
+    setBusyAction('remove')
+    haptic.impact('light')
+    try {
+      const newQty = cartItem.quantity - 1
+      await cartApi.updateItem(cartItem.id, newQty)
+      if (newQty <= 0) decrement()
+      qc.invalidateQueries({ queryKey: ['cart'] })
+    } catch (e: any) {
+      haptic.error()
+      toast.error(e?.response?.data?.detail ?? 'Ошибка')
+    } finally {
+      setBusyKey(null)
+      setBusyAction(null)
     }
   }
 
@@ -450,10 +475,7 @@ export default function GamePage() {
       transition={{ duration: 0.2, ease: 'easeOut' }}
     >
       {/* Header */}
-      <div
-        className="px-4 pt-5 pb-4"
-        style={{ borderBottom: '1px solid var(--border)' }}
-      >
+      <div className="px-4 pt-5 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
         <h1 className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--text)' }}>
           {gameName}
         </h1>
@@ -486,23 +508,11 @@ export default function GamePage() {
                 key={sub.id}
                 onClick={() => setSelectedCatId(sub.id)}
                 style={{
-                  flexShrink: 0,
-                  fontSize: '12px',
-                  padding: '4px 12px',
-                  borderRadius: 999,
-                  border: selectedCatId === sub.id
-                    ? '1px solid rgba(45,88,173,0.55)'
-                    : '1px solid var(--border)',
-                  background: selectedCatId === sub.id
-                    ? 'rgba(45,88,173,0.22)'
-                    : 'var(--bg2)',
-                  color: selectedCatId === sub.id
-                    ? '#93b8f0'
-                    : 'var(--hint)',
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  fontWeight: 500,
-                  transition: 'all 0.15s',
+                  flexShrink: 0, fontSize: '12px', padding: '4px 12px', borderRadius: 999,
+                  border: selectedCatId === sub.id ? '1px solid rgba(45,88,173,0.55)' : '1px solid var(--border)',
+                  background: selectedCatId === sub.id ? 'rgba(45,88,173,0.22)' : 'var(--bg2)',
+                  color: selectedCatId === sub.id ? '#93b8f0' : 'var(--hint)',
+                  cursor: 'pointer', whiteSpace: 'nowrap', fontWeight: 500, transition: 'all 0.15s',
                   boxShadow: selectedCatId === sub.id ? '0 0 10px rgba(45,88,173,0.2)' : 'none',
                 }}
               >
@@ -513,7 +523,7 @@ export default function GamePage() {
         )
       })()}
 
-      {/* Products with lots */}
+      {/* Products */}
       <div className="px-4 pt-3 pb-4 space-y-3">
         {productsError ? (
           <div style={{ textAlign: 'center', padding: '40px 20px' }}>
@@ -543,10 +553,11 @@ export default function GamePage() {
             >
               <ProductSection
                 product={product}
-                onAddLot={handleAddLot}
-                onAddSimple={handleAddSimple}
-                addingKey={addingKey}
-                addedKey={addedKey}
+                cartQtyMap={cartQtyMap}
+                onAdd={handleAdd}
+                onRemove={handleRemove}
+                busyKey={busyKey}
+                busyAction={busyAction}
               />
             </motion.div>
           ))

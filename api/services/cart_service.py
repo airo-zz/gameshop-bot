@@ -186,11 +186,21 @@ class CartService:
             user, cart, promo_code_str
         )
 
+        # Вычисляем сумму скидки именно от промокода
+        promo_discount = Decimal("0")
+        if discount_result.promo_code:
+            rule_id = discount_result.promo_code.discount_rule_id
+            promo_discount = sum(
+                (a.amount for a in discount_result.applied if a.rule.id == rule_id),
+                Decimal("0"),
+            )
+
         return {
             "subtotal": subtotal,
             "discount_amount": discount_result.total_discount,
             "total": max(Decimal("0"), subtotal - discount_result.total_discount),
             "promo_code": promo_code_str,
+            "promo_discount": promo_discount,
             "applied_discounts": [
                 {"name": a.rule.name, "amount": a.amount, "reason": a.reason}
                 for a in discount_result.applied

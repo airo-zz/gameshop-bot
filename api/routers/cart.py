@@ -54,6 +54,7 @@ async def get_cart(db: DbSession, user: CurrentUser):
         discount_amount=summary["discount_amount"],
         total=summary["total"],
         promo_code=summary["promo_code"],
+        promo_discount=summary["promo_discount"],
         expires_at=cart.expires_at,
     )
 
