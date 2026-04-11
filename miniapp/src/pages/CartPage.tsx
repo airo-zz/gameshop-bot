@@ -24,10 +24,11 @@ export default function CartPage() {
   const [promoApplying, setPromoApplying] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
-  const { data: cart, isLoading, refetch } = useQuery({
+  const { data: cart, isLoading, isError, refetch } = useQuery({
     queryKey: ['cart'],
     queryFn: cartApi.get,
     staleTime: 30_000,
+    retry: 1,
   })
 
   const refreshCart = async () => {
@@ -109,7 +110,7 @@ export default function CartPage() {
     </div>
   )
 
-  if (!cart || cart.items.length === 0) return (
+  if (isError || !cart || cart.items.length === 0) return (
     <div className="flex flex-col items-center justify-center h-full gap-5 px-8 text-center pt-16">
       <div
         className="w-24 h-24 rounded-3xl flex items-center justify-center"
