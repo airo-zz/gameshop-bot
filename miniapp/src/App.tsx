@@ -1,5 +1,5 @@
 // src/App.tsx
-import { lazy, Suspense, useEffect, useRef } from 'react'
+import { lazy, Suspense, useEffect, useRef, Component, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -10,6 +10,38 @@ import { cartApi } from '@/api'
 import Layout from '@/components/layout/Layout'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 import ErrorScreen from '@/components/ui/ErrorScreen'
+
+// ErrorBoundary для lazy-loaded chunk'ов — при ошибке загрузки перезагружает страницу
+class ChunkErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  state = { hasError: false }
+  static getDerivedStateFromError() { return { hasError: true } }
+  componentDidCatch(error: Error) {
+    // Если chunk не загрузился — перезагрузить страницу один раз
+    if (error.message?.includes('Failed to fetch dynamically imported module') ||
+        error.message?.includes('Loading chunk') ||
+        error.message?.includes('Loading CSS chunk')) {
+      const key = 'chunk_reload'
+      if (!sessionStorage.getItem(key)) {
+        sessionStorage.setItem(key, '1')
+        window.location.reload()
+        return
+      }
+      sessionStorage.removeItem(key)
+    }
+  }
+  render() {
+    if (this.state.hasError) return <ErrorScreen />
+    return this.props.children
+  }
+}
+
+function LazyPage({ children }: { children: ReactNode }) {
+  return (
+    <ChunkErrorBoundary>
+      <LazyPage>{children}</LazyPage>
+    </ChunkErrorBoundary>
+  )
+}
 
 const HomePage       = lazy(() => import('@/pages/HomePage'))
 const CatalogPage    = lazy(() => import('@/pages/CatalogPage'))
@@ -90,18 +122,18 @@ export default function App() {
       />
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<Suspense fallback={<LoadingScreen />}><HomePage /></Suspense>} />
-          <Route path="catalog"      element={<Suspense fallback={<LoadingScreen />}><CatalogPage /></Suspense>} />
-          <Route path="catalog/:slug" element={<Suspense fallback={<LoadingScreen />}><GamePage /></Suspense>} />
-          <Route path="product/:id"  element={<Suspense fallback={<LoadingScreen />}><ProductPage /></Suspense>} />
-          <Route path="cart"         element={<Suspense fallback={<LoadingScreen />}><CartPage /></Suspense>} />
-          <Route path="checkout"     element={<Suspense fallback={<LoadingScreen />}><CheckoutPage /></Suspense>} />
-          <Route path="orders"       element={<Suspense fallback={<LoadingScreen />}><OrdersPage /></Suspense>} />
-          <Route path="orders/:id"   element={<Suspense fallback={<LoadingScreen />}><OrderDetailPage /></Suspense>} />
-          <Route path="profile"      element={<Suspense fallback={<LoadingScreen />}><ProfilePage /></Suspense>} />
-          <Route path="favorites"    element={<Suspense fallback={<LoadingScreen />}><FavoritesPage /></Suspense>} />
-          <Route path="search"       element={<Suspense fallback={<LoadingScreen />}><SearchPage /></Suspense>} />
-          <Route path="support"      element={<Suspense fallback={<LoadingScreen />}><SupportPage /></Suspense>} />
+          <Route index element={<LazyPage><HomePage /></LazyPage>} />
+          <Route path="catalog"      element={<LazyPage><CatalogPage /></LazyPage>} />
+          <Route path="catalog/:slug" element={<LazyPage><GamePage /></LazyPage>} />
+          <Route path="product/:id"  element={<LazyPage><ProductPage /></LazyPage>} />
+          <Route path="cart"         element={<LazyPage><CartPage /></LazyPage>} />
+          <Route path="checkout"     element={<LazyPage><CheckoutPage /></LazyPage>} />
+          <Route path="orders"       element={<LazyPage><OrdersPage /></LazyPage>} />
+          <Route path="orders/:id"   element={<LazyPage><OrderDetailPage /></LazyPage>} />
+          <Route path="profile"      element={<LazyPage><ProfilePage /></LazyPage>} />
+          <Route path="favorites"    element={<LazyPage><FavoritesPage /></LazyPage>} />
+          <Route path="search"       element={<LazyPage><SearchPage /></LazyPage>} />
+          <Route path="support"      element={<LazyPage><SupportPage /></LazyPage>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
