@@ -1,5 +1,5 @@
 // src/pages/GamePage.tsx
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -353,6 +353,8 @@ export default function GamePage() {
 
   // Optimistic local qty overrides: key → delta from server qty
   const [optimisticDeltas, setOptimisticDeltas] = useState<Map<string, number>>(new Map())
+  // Per-key lock to prevent double-taps from firing multiple API calls
+  const pendingKeys = useRef(new Set<string>())
 
   const { data: games = [] } = useQuery({
     queryKey: ['games'],
@@ -402,6 +404,9 @@ export default function GamePage() {
   // Optimistic add to cart
   const handleAdd = async (product: Product, lot?: Lot) => {
     const key = lot ? `${product.id}:${lot.id}` : product.id
+    if (pendingKeys.current.has(key)) return
+    pendingKeys.current.add(key)
+
     // Instant UI update
     setOptimisticDeltas(prev => {
       const next = new Map(prev)
@@ -410,7 +415,7 @@ export default function GamePage() {
     })
     increment()
     haptic.impact('light')
-    // Background API call
+
     try {
       await cartApi.addItem({
         product_id: product.id,
@@ -418,25 +423,19 @@ export default function GamePage() {
         quantity: 1,
         input_data: {},
       })
+      // Wait for fresh cart data before clearing delta
+      await qc.refetchQueries({ queryKey: ['cart'] })
     } catch (e: any) {
-      // Rollback
-      setOptimisticDeltas(prev => {
-        const next = new Map(prev)
-        const v = (next.get(key) ?? 0) - 1
-        v === 0 ? next.delete(key) : next.set(key, v)
-        return next
-      })
       decrement()
       haptic.error()
       toast.error(e?.response?.data?.detail ?? 'Ошибка')
     } finally {
-      // Sync with server
-      qc.invalidateQueries({ queryKey: ['cart'] })
       setOptimisticDeltas(prev => {
         const next = new Map(prev)
         next.delete(key)
         return next
       })
+      pendingKeys.current.delete(key)
     }
   }
 
@@ -444,13 +443,16 @@ export default function GamePage() {
   const handleRemove = async (product: Product, lot?: Lot) => {
     if (!cart?.items) return
     const key = lot ? `${product.id}:${lot.id}` : product.id
+    if (pendingKeys.current.has(key)) return
+    pendingKeys.current.add(key)
+
     const cartItem = cart.items.find(i =>
       i.product_id === product.id && (lot ? i.lot_id === lot.id : !i.lot_id)
     )
-    if (!cartItem) return
+    if (!cartItem) { pendingKeys.current.delete(key); return }
 
     const currentQty = cartQtyMap.get(key) ?? 0
-    if (currentQty <= 0) return
+    if (currentQty <= 0) { pendingKeys.current.delete(key); return }
 
     // Instant UI update
     setOptimisticDeltas(prev => {
@@ -460,28 +462,21 @@ export default function GamePage() {
     })
     if (currentQty <= 1) decrement()
     haptic.impact('light')
-    // Background API call
+
     try {
-      const newQty = cartItem.quantity - 1
-      await cartApi.updateItem(cartItem.id, newQty)
+      await cartApi.updateItem(cartItem.id, cartItem.quantity - 1)
+      await qc.refetchQueries({ queryKey: ['cart'] })
     } catch (e: any) {
-      // Rollback
-      setOptimisticDeltas(prev => {
-        const next = new Map(prev)
-        const v = (next.get(key) ?? 0) + 1
-        v === 0 ? next.delete(key) : next.set(key, v)
-        return next
-      })
       if (currentQty <= 1) increment()
       haptic.error()
       toast.error(e?.response?.data?.detail ?? 'Ошибка')
     } finally {
-      qc.invalidateQueries({ queryKey: ['cart'] })
       setOptimisticDeltas(prev => {
         const next = new Map(prev)
         next.delete(key)
         return next
       })
+      pendingKeys.current.delete(key)
     }
   }
 
