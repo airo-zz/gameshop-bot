@@ -127,14 +127,16 @@ interface ProductSectionProps {
 
 function ProductSection({ product, onAddLot, onAddSimple, addingKey, addedKey }: ProductSectionProps) {
   const [expanded, setExpanded] = useState(true)
+  const lots = product.lots ?? []
+  const inputFields = product.input_fields ?? []
   const isOutOfStock = product.stock !== null && product.stock === 0
-  const hasLots = product.lots.length > 0
+  const hasLots = lots.length > 0
   const isAuto = product.delivery_type === 'auto'
 
   // Input fields state (for products requiring user input)
   const [inputData, setInputData] = useState<Record<string, string>>({})
   const [showInputs, setShowInputs] = useState(false)
-  const hasInputs = product.input_fields.length > 0
+  const hasInputs = inputFields.length > 0
 
   return (
     <div
@@ -193,7 +195,7 @@ function ProductSection({ product, onAddLot, onAddSimple, addingKey, addedKey }:
         <div className="flex items-center gap-2 flex-shrink-0">
           {hasLots && (
             <span className="text-sm font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>
-              от {Math.min(...product.lots.map(l => l.price)).toLocaleString('ru')} ₽
+              от {Math.min(...lots.map(l => l.price)).toLocaleString('ru')} ₽
             </span>
           )}
           {!hasLots && !isOutOfStock && (
@@ -244,7 +246,7 @@ function ProductSection({ product, onAddLot, onAddSimple, addingKey, addedKey }:
                 </button>
                 {showInputs && (
                   <div className="space-y-2 mb-2">
-                    {product.input_fields.map((field: InputField) => (
+                    {inputFields.map((field: InputField) => (
                       <div key={field.key}>
                         <label className="text-[11px] mb-1 block font-medium" style={{ color: 'var(--hint)' }}>
                           {field.label}
@@ -279,7 +281,7 @@ function ProductSection({ product, onAddLot, onAddSimple, addingKey, addedKey }:
             {/* Lots list */}
             {hasLots ? (
               <div>
-                {product.lots
+                {lots
                   .slice()
                   .sort((a, b) => a.sort_order - b.sort_order || a.price - b.price)
                   .map(lot => (
