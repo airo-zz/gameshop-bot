@@ -8,6 +8,12 @@ import { cartApi, type CartItem } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
 
+/** Форматирует цену: 1500 → "1 500", 1500.50 → "1 500,5" */
+function fmtPrice(v: number): string {
+  if (Number.isInteger(v)) return v.toLocaleString('ru')
+  return parseFloat(v.toFixed(1)).toLocaleString('ru')
+}
+
 export default function CartPage() {
   const navigate = useNavigate()
   const { haptic, showConfirm } = useTelegram()
@@ -169,7 +175,7 @@ export default function CartPage() {
 
               <div className="flex items-center justify-between mt-2">
                 <p className="font-bold text-sm" style={{ color: '#60a5fa' }}>
-                  {item.subtotal.toLocaleString('ru')} ₽
+                  {fmtPrice(item.subtotal)} ₽
                 </p>
                 <div className="flex items-center gap-1.5">
                   <button
@@ -234,7 +240,7 @@ export default function CartPage() {
         >
           <span className="text-sm font-medium" style={{ color: '#34d399' }}>🏷 {cart.promo_code}</span>
           <span className="text-sm font-bold" style={{ color: '#34d399' }}>
-            -{(cart.promo_discount ?? 0).toLocaleString('ru')} ₽
+            -{fmtPrice(cart.promo_discount ?? 0)} ₽
           </span>
         </div>
       )}
@@ -243,18 +249,18 @@ export default function CartPage() {
       <div className="card space-y-2">
         <div className="flex justify-between text-sm">
           <span style={{ color: 'var(--hint)' }}>Сумма</span>
-          <span style={{ color: 'var(--text)' }}>{cart.subtotal.toLocaleString('ru')} ₽</span>
+          <span style={{ color: 'var(--text)' }}>{fmtPrice(cart.subtotal)} ₽</span>
         </div>
         {cart.discount_amount > 0 && (
           <div className="flex justify-between text-sm">
             <span style={{ color: 'var(--hint)' }}>Скидка</span>
-            <span style={{ color: '#34d399' }}>-{cart.discount_amount.toLocaleString('ru')} ₽</span>
+            <span style={{ color: '#34d399' }}>-{fmtPrice(cart.discount_amount)} ₽</span>
           </div>
         )}
         <div className="divider" />
         <div className="flex justify-between font-bold text-base">
           <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span style={{ color: '#60a5fa' }}>{cart.total.toLocaleString('ru')} ₽</span>
+          <span style={{ color: '#60a5fa' }}>{fmtPrice(cart.total)} ₽</span>
         </div>
       </div>
 

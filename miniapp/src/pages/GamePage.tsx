@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ShoppingCart, Check, Zap, Clock, Plus, Minus } from 'lucide-react'
+import { Zap, Clock, Plus, Minus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { catalogApi, cartApi, type Category, type Product, type Lot, type InputField } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -72,69 +72,78 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove, adding, removing }: L
         )}
       </div>
 
-      {/* Qty controls */}
-      {cartQty > 0 ? (
-        <div className="flex items-center gap-0 flex-shrink-0">
-          <button
-            disabled={busy}
-            onClick={onRemove}
-            className="flex items-center justify-center w-8 h-8 rounded-l-xl transition-all active:scale-90"
-            style={{
-              background: 'rgba(239,68,68,0.12)',
-              border: '1px solid rgba(239,68,68,0.25)',
-              borderRight: 'none',
-              color: '#f87171',
-            }}
-          >
-            <Minus size={13} />
-          </button>
-          <div
-            className="flex items-center justify-center h-8 min-w-[28px] text-xs font-bold"
-            style={{
-              background: 'rgba(45,88,173,0.12)',
-              borderTop: '1px solid rgba(45,88,173,0.25)',
-              borderBottom: '1px solid rgba(45,88,173,0.25)',
-              color: '#6b9de8',
-            }}
-          >
-            {busy ? (
-              <span className="w-3 h-3 rounded-full border-2"
-                style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
-            ) : cartQty}
-          </div>
-          <button
-            disabled={busy || disabled}
-            onClick={onAdd}
-            className="flex items-center justify-center w-8 h-8 rounded-r-xl transition-all active:scale-90"
-            style={{
-              background: 'rgba(45,88,173,0.18)',
-              border: '1px solid rgba(45,88,173,0.35)',
-              borderLeft: 'none',
-              color: '#6b9de8',
-            }}
-          >
-            <Plus size={13} />
-          </button>
-        </div>
-      ) : (
-        <button
-          disabled={disabled || busy}
-          onClick={onAdd}
-          className="flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl transition-all duration-150 active:scale-90"
-          style={{
-            background: disabled ? 'rgba(239,68,68,0.1)' : 'rgba(45,88,173,0.18)',
-            border: disabled ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(45,88,173,0.35)',
-            color: disabled ? '#f87171' : '#6b9de8',
-          }}
-        >
-          {adding ? (
-            <span className="w-3.5 h-3.5 rounded-full border-2"
-              style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
+      {/* Qty pill — fixed width, transforms from [+] to [− qty +] */}
+      <div
+        className="flex-shrink-0 flex items-center justify-center rounded-full overflow-hidden transition-all duration-200"
+        style={{
+          width: cartQty > 0 ? 84 : 34,
+          height: 34,
+          background: disabled
+            ? 'rgba(239,68,68,0.08)'
+            : 'rgba(45,88,173,0.14)',
+          border: disabled
+            ? '1px solid rgba(239,68,68,0.18)'
+            : '1px solid rgba(45,88,173,0.30)',
+        }}
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          {cartQty > 0 ? (
+            <motion.div
+              key="qty"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-center w-full"
+            >
+              <button
+                disabled={busy}
+                onClick={onRemove}
+                className="flex items-center justify-center w-[28px] h-[34px] active:scale-90 transition-transform"
+                style={{ color: '#f87171' }}
+              >
+                <Minus size={13} />
+              </button>
+              <span
+                className="flex-1 text-center text-xs font-bold select-none"
+                style={{ color: '#6b9de8' }}
+              >
+                {busy ? (
+                  <span className="inline-block w-3 h-3 rounded-full border-2"
+                    style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
+                ) : cartQty}
+              </span>
+              <button
+                disabled={busy || disabled}
+                onClick={onAdd}
+                className="flex items-center justify-center w-[28px] h-[34px] active:scale-90 transition-transform"
+                style={{ color: '#6b9de8' }}
+              >
+                <Plus size={13} />
+              </button>
+            </motion.div>
           ) : (
-            <ShoppingCart size={14} />
+            <motion.button
+              key="add"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.15 }}
+              disabled={disabled || busy}
+              onClick={onAdd}
+              className="flex items-center justify-center w-full h-full active:scale-90 transition-transform"
+              style={{ color: disabled ? '#f87171' : '#6b9de8' }}
+            >
+              {busy ? (
+                <span className="w-3.5 h-3.5 rounded-full border-2"
+                  style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
+              ) : (
+                <Plus size={15} />
+              )}
+            </motion.button>
           )}
-        </button>
-      )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }
@@ -284,60 +293,73 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove, busyKey, busyAct
           }
         </div>
       ) : (
-        /* Single product without lots */
-        <div className="px-3.5 py-2.5">
+        /* Single product without lots — pill style */
+        <div className="px-3.5 py-2.5 flex justify-center">
           {(() => {
             const key = product.id
             const qty = cartQtyMap.get(key) ?? 0
             const isBusy = busyKey === key
-            return qty > 0 ? (
-              <div className="flex items-center justify-center gap-0">
-                <button
-                  disabled={isBusy}
-                  onClick={() => onRemove(product)}
-                  className="flex items-center justify-center w-10 h-9 rounded-l-xl transition-all active:scale-90"
-                  style={{ background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.25)', borderRight: 'none', color: '#f87171' }}
-                >
-                  <Minus size={14} />
-                </button>
-                <div
-                  className="flex items-center justify-center h-9 min-w-[36px] text-sm font-bold"
-                  style={{ background: 'rgba(45,88,173,0.12)', borderTop: '1px solid rgba(45,88,173,0.25)', borderBottom: '1px solid rgba(45,88,173,0.25)', color: '#6b9de8' }}
-                >
-                  {isBusy ? (
-                    <span className="w-3.5 h-3.5 rounded-full border-2"
-                      style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
-                  ) : qty}
-                </div>
-                <button
-                  disabled={isBusy || isOutOfStock}
-                  onClick={() => onAdd(product)}
-                  className="flex items-center justify-center w-10 h-9 rounded-r-xl transition-all active:scale-90"
-                  style={{ background: 'rgba(45,88,173,0.18)', border: '1px solid rgba(45,88,173,0.35)', borderLeft: 'none', color: '#6b9de8' }}
-                >
-                  <Plus size={14} />
-                </button>
-              </div>
-            ) : (
-              <button
-                disabled={isOutOfStock || isBusy}
-                onClick={() => onAdd(product)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 active:scale-95"
+            return (
+              <div
+                className="flex items-center justify-center rounded-full overflow-hidden transition-all duration-200"
                 style={{
-                  background: isOutOfStock ? 'rgba(239,68,68,0.1)' : 'rgba(45,88,173,0.18)',
-                  border: isOutOfStock ? '1px solid rgba(239,68,68,0.2)' : '1px solid rgba(45,88,173,0.35)',
-                  color: isOutOfStock ? '#f87171' : '#6b9de8',
+                  width: qty > 0 ? 110 : 'auto',
+                  minWidth: qty > 0 ? 110 : undefined,
+                  height: 38,
+                  background: isOutOfStock ? 'rgba(239,68,68,0.08)' : 'rgba(45,88,173,0.14)',
+                  border: isOutOfStock ? '1px solid rgba(239,68,68,0.18)' : '1px solid rgba(45,88,173,0.30)',
                 }}
               >
-                {isBusy ? (
-                  <span className="w-4 h-4 rounded-full border-2"
-                    style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
-                ) : isOutOfStock ? (
-                  'Нет в наличии'
-                ) : (
-                  <><ShoppingCart size={14} /> В корзину · {Number(product.price).toLocaleString('ru')} ₽</>
-                )}
-              </button>
+                <AnimatePresence mode="wait" initial={false}>
+                  {qty > 0 ? (
+                    <motion.div
+                      key="qty"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.15 }}
+                      className="flex items-center w-full"
+                    >
+                      <button disabled={isBusy} onClick={() => onRemove(product)}
+                        className="flex items-center justify-center w-[36px] h-[38px] active:scale-90 transition-transform"
+                        style={{ color: '#f87171' }}>
+                        <Minus size={14} />
+                      </button>
+                      <span className="flex-1 text-center text-sm font-bold" style={{ color: '#6b9de8' }}>
+                        {isBusy ? (
+                          <span className="inline-block w-3.5 h-3.5 rounded-full border-2"
+                            style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
+                        ) : qty}
+                      </span>
+                      <button disabled={isBusy || isOutOfStock} onClick={() => onAdd(product)}
+                        className="flex items-center justify-center w-[36px] h-[38px] active:scale-90 transition-transform"
+                        style={{ color: '#6b9de8' }}>
+                        <Plus size={14} />
+                      </button>
+                    </motion.div>
+                  ) : (
+                    <motion.button
+                      key="add"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                      disabled={isOutOfStock || isBusy}
+                      onClick={() => onAdd(product)}
+                      className="flex items-center justify-center gap-2 px-5 h-full text-sm font-semibold active:scale-95 transition-transform"
+                      style={{ color: isOutOfStock ? '#f87171' : '#6b9de8' }}
+                    >
+                      {isBusy ? (
+                        <span className="w-4 h-4 rounded-full border-2"
+                          style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
+                      ) : isOutOfStock ? 'Нет в наличии' : (
+                        <><Plus size={14} /> В корзину</>
+                      )}
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </div>
+            )
             )
           })()}
         </div>
