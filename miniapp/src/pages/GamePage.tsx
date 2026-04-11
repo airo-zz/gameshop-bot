@@ -360,7 +360,6 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove, busyKey, busyAct
                 </AnimatePresence>
               </div>
             )
-            )
           })()}
         </div>
       )}
