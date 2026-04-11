@@ -205,7 +205,17 @@ class OrderService:
     # ── Оплата балансом ───────────────────────────────────────────────────────
 
     async def pay_with_balance(self, order: Order, user: User) -> Order:
-        """Списывает с внутреннего баланса и переводит в paid."""
+        """Списывает с внутреннего баланса и переводит в paid.
+
+        Блокирует строку User через SELECT FOR UPDATE, чтобы параллельные
+        запросы не могли одновременно пройти проверку баланса (double-spend).
+        """
+        # Перечитываем user с блокировкой строки — гарантирует актуальный баланс
+        locked_result = await self.db.execute(
+            select(User).where(User.id == user.id).with_for_update()
+        )
+        user = locked_result.scalar_one()
+
         if user.balance < order.total_amount:
             raise ValueError(
                 f"Недостаточно средств. Баланс: {user.balance:.2f} ₽, "
@@ -305,7 +315,10 @@ class OrderService:
         lot_id: uuid.UUID | None,
         quantity: int,
     ) -> None:
-        """Резервирует ключи (помечает как used без order_item_id пока нет order_item)."""
+        """Резервирует ключи (помечает как used без order_item_id пока нет order_item).
+
+        Выбрасывает ValueError если свободных ключей меньше чем нужно.
+        """
         result = await self.db.execute(
             select(ProductKey)
             .where(
@@ -317,6 +330,10 @@ class OrderService:
             .with_for_update(skip_locked=True)
         )
         keys = result.scalars().all()
+        if len(keys) < quantity:
+            raise ValueError(
+                f"Недостаточно ключей для выдачи: нужно {quantity}, доступно {len(keys)}"
+            )
         for key in keys:
             key.is_used = True
             key.used_at = datetime.now(timezone.utc)

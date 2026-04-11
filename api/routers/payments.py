@@ -7,7 +7,7 @@ from api.deps import CurrentUser, DbSession
 from api.schemas.cart import PaymentInitResponse, TokenResponse, RefreshTokenRequest
 from api.services.payment_service import PaymentService
 from api.deps import create_access_token, create_refresh_token, decode_token
-from shared.models import Order, User
+from shared.models import Order, OrderStatus, User
 
 router = APIRouter()
 
@@ -43,12 +43,19 @@ async def refresh_token(body: RefreshTokenRequest, db: DbSession):
 async def initiate_payment(order_id: str, db: DbSession, user: CurrentUser):
     import uuid
 
+    # Блокируем заказ FOR UPDATE чтобы предотвратить параллельную оплату
     result = await db.execute(
-        select(Order).where(Order.id == uuid.UUID(order_id), Order.user_id == user.id)
+        select(Order)
+        .where(Order.id == uuid.UUID(order_id), Order.user_id == user.id)
+        .with_for_update()
     )
     order = result.scalar_one_or_none()
     if not order:
         raise HTTPException(404, "Заказ не найден")
+
+    # Допускаем оплату только нового или ожидающего заказа
+    if order.status not in (OrderStatus.new, OrderStatus.pending_payment):
+        raise HTTPException(400, "Заказ уже обрабатывается или оплачен")
 
     if order.payment_method is None:
         raise HTTPException(400, "У заказа не указан метод оплаты")
