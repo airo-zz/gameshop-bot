@@ -2,6 +2,7 @@
 import { Link } from 'react-router-dom'
 import { useTelegram } from '@/hooks/useTelegram'
 import { catalogApi, type Product } from '@/api'
+import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
 
 interface Props {
   product: Product
@@ -39,29 +40,28 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
         borderRadius: '18px',
       }}
     >
-      {/* Image area — only when image exists */}
+      {/* Image area — только когда есть картинка */}
       {hasImage && (
-        <div
-          className="relative overflow-hidden"
-          style={{ aspectRatio: '1 / 1', background: 'var(--bg3)' }}
-        >
-          <img
+        <div className="relative overflow-hidden" style={{ aspectRatio: '1 / 1' }}>
+          <ImageWithSkeleton
             src={product.images[0]}
             alt={product.name}
-            className="w-full h-full object-cover"
+            aspectRatio="1 / 1"
+            objectFit="cover"
             loading="lazy"
+            style={{ width: '100%' }}
           />
 
           {/* Gradient overlay */}
           <div
-            className="absolute inset-x-0 bottom-0 h-12"
+            className="absolute inset-x-0 bottom-0 h-12 pointer-events-none"
             style={{ background: 'linear-gradient(to top, rgba(13,13,26,0.9) 0%, transparent 100%)' }}
           />
 
           {/* Featured badge */}
           {product.is_featured && (
             <span
-              className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full"
+              className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-full z-10"
               style={{
                 background: 'linear-gradient(135deg, #f59e0b, #ef4444)',
                 color: '#fff',
@@ -75,7 +75,7 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
           {/* Auto delivery badge */}
           {isAuto && !isOutOfStock && (
             <span
-              className="absolute bottom-2 left-2 flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+              className="absolute bottom-2 left-2 flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full z-10"
               style={{
                 background: 'rgba(16,185,129,0.2)',
                 color: '#34d399',
@@ -92,7 +92,7 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
           {/* Out of stock overlay */}
           {isOutOfStock && (
             <div
-              className="absolute inset-0 flex items-center justify-center"
+              className="absolute inset-0 flex items-center justify-center z-10"
               style={{ background: 'rgba(8,8,16,0.75)', backdropFilter: 'blur(2px)' }}
             >
               <span
@@ -106,7 +106,7 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
 
           {/* Favorite button */}
           <button
-            className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-transform active:scale-90"
+            className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-transform active:scale-90 z-20"
             style={{
               background: 'rgba(8,8,16,0.65)',
               backdropFilter: 'blur(8px)',

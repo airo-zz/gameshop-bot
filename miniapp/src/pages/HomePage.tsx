@@ -7,6 +7,7 @@ import { catalogApi, profileApi } from '@/api'
 import { useShopStore, useUIStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
 import logoSrc from '@/assets/logo.png'
+import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
 
 // ── Inline SVG icons ─────────────────────────────────────────────────────────
 
@@ -759,23 +760,14 @@ export default function HomePage() {
                       WebkitBackdropFilter: 'blur(10px)',
                     }}
                   >
-                    <div
-                      style={{
-                        width: '100%',
-                        aspectRatio: '1 / 1',
-                        background: 'var(--bg3)',
-                        position: 'relative',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {game.image_url ? (
-                        <img
-                          src={game.image_url}
-                          alt={game.name}
-                          loading="lazy"
-                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                        />
-                      ) : (
+                    <ImageWithSkeleton
+                      src={game.image_url}
+                      alt={game.name}
+                      aspectRatio="1 / 1"
+                      objectFit="cover"
+                      loading="lazy"
+                      style={{ width: '100%' }}
+                      fallback={
                         <div
                           style={{
                             width: '100%',
@@ -789,8 +781,8 @@ export default function HomePage() {
                         >
                           <IconGamepadSmall />
                         </div>
-                      )}
-                    </div>
+                      }
+                    />
                     <div style={{ padding: '6px 6px 9px', background: 'rgba(8,7,20,0.6)', borderTop: '1px solid rgba(45,88,173,0.15)' }}>
                       <p
                         style={{

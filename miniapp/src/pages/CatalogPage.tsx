@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { ChevronRight, Search, X } from 'lucide-react'
 import { catalogApi } from '@/api'
 import PageLoader from '@/components/ui/PageLoader'
+import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
 
 function useDebounce<T>(value: T, delay: number): T {
   const [debounced, setDebounced] = useState(value)
@@ -134,14 +135,14 @@ export default function CatalogPage() {
                     className="flex items-center gap-3 p-3 rounded-2xl active:scale-[0.98] transition-transform"
                     style={{ background: 'var(--bg2)', border: '1px solid var(--border)', textDecoration: 'none' }}
                   >
-                    <div
-                      className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0"
-                      style={{ background: 'var(--bg3)' }}
-                    >
-                      {product.images?.[0]
-                        ? <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" loading="lazy" />
-                        : <div className="w-full h-full flex items-center justify-center text-lg">🎮</div>
-                      }
+                    <div className="w-10 h-10 rounded-xl overflow-hidden flex-shrink-0">
+                      <ImageWithSkeleton
+                        src={product.images?.[0]}
+                        alt={product.name}
+                        aspectRatio="1 / 1"
+                        objectFit="cover"
+                        loading="lazy"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>{product.name}</p>
@@ -169,11 +170,15 @@ export default function CatalogPage() {
                   className="flex items-center gap-3 p-3 rounded-2xl active:scale-[0.98] transition-transform"
                   style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
                 >
-                  <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0" style={{ background: 'var(--bg3)' }}>
-                    {game.image_url
-                      ? <img src={game.image_url} alt={game.name} className="w-full h-full object-cover" loading="lazy" />
-                      : <div className="w-full h-full flex items-center justify-center text-2xl">🎮</div>
-                    }
+                  <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+                    <ImageWithSkeleton
+                      src={game.image_url}
+                      alt={game.name}
+                      aspectRatio="1 / 1"
+                      objectFit="cover"
+                      loading="lazy"
+                      fallback={<div className="w-full h-full flex items-center justify-center text-2xl" style={{ background: 'var(--bg3)' }}>🎮</div>}
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-semibold truncate" style={{ color: 'var(--text)' }}>{game.name}</p>
@@ -206,12 +211,15 @@ export default function CatalogPage() {
                   className="flex flex-col rounded-2xl overflow-hidden active:scale-[0.96] transition-transform"
                   style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
                 >
-                  <div className="aspect-square w-full overflow-hidden" style={{ background: 'var(--bg3)' }}>
-                    {game.image_url
-                      ? <img src={game.image_url} alt={game.name} className="w-full h-full object-cover" loading="lazy" />
-                      : <div className="w-full h-full flex items-center justify-center text-4xl">🎮</div>
-                    }
-                  </div>
+                  <ImageWithSkeleton
+                    src={game.image_url}
+                    alt={game.name}
+                    aspectRatio="1 / 1"
+                    objectFit="cover"
+                    loading="lazy"
+                    style={{ width: '100%' }}
+                    fallback={<div className="w-full h-full flex items-center justify-center text-4xl" style={{ background: 'var(--bg3)' }}>🎮</div>}
+                  />
                   <div className="px-2 py-1.5">
                     <p className="text-xs font-semibold text-center truncate" style={{ color: 'var(--text)' }}>
                       {game.name}
