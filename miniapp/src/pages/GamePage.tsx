@@ -19,16 +19,13 @@ interface LotRowProps {
   cartQty: number
   onAdd: () => void
   onRemove: () => void
-  adding: boolean
-  removing: boolean
 }
 
-function LotRow({ lot, disabled, cartQty, onAdd, onRemove, adding, removing }: LotRowProps) {
+function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
   const hasDiscount = !!lot.original_price && lot.original_price > lot.price
   const discountPct = hasDiscount
     ? Math.round((1 - lot.price / lot.original_price!) * 100)
     : 0
-  const busy = adding || removing
 
   return (
     <div
@@ -97,7 +94,6 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove, adding, removing }: L
               className="flex items-center w-full"
             >
               <button
-                disabled={busy}
                 onClick={onRemove}
                 className="flex items-center justify-center w-[28px] h-[34px] active:scale-90 transition-transform"
                 style={{ color: '#f87171' }}
@@ -108,13 +104,10 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove, adding, removing }: L
                 className="flex-1 text-center text-xs font-bold select-none"
                 style={{ color: '#6b9de8' }}
               >
-                {busy ? (
-                  <span className="inline-block w-3 h-3 rounded-full border-2"
-                    style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
-                ) : cartQty}
+                {cartQty}
               </span>
               <button
-                disabled={busy || disabled}
+                disabled={disabled}
                 onClick={onAdd}
                 className="flex items-center justify-center w-[28px] h-[34px] active:scale-90 transition-transform"
                 style={{ color: '#6b9de8' }}
@@ -129,17 +122,12 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove, adding, removing }: L
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               transition={{ duration: 0.15 }}
-              disabled={disabled || busy}
+              disabled={disabled}
               onClick={onAdd}
               className="flex items-center justify-center w-full h-full active:scale-90 transition-transform"
               style={{ color: disabled ? '#f87171' : '#6b9de8' }}
             >
-              {busy ? (
-                <span className="w-3.5 h-3.5 rounded-full border-2"
-                  style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
-              ) : (
-                <Plus size={15} />
-              )}
+              <Plus size={15} />
             </motion.button>
           )}
         </AnimatePresence>
@@ -152,14 +140,12 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove, adding, removing }: L
 
 interface ProductSectionProps {
   product: Product
-  cartQtyMap: Map<string, number> // key: "productId:lotId" or "productId" → qty
-  onAdd: (product: Product, lot?: Lot) => Promise<void>
-  onRemove: (product: Product, lot?: Lot) => Promise<void>
-  busyKey: string | null
-  busyAction: 'add' | 'remove' | null
+  cartQtyMap: Map<string, number>
+  onAdd: (product: Product, lot?: Lot) => void
+  onRemove: (product: Product, lot?: Lot) => void
 }
 
-function ProductSection({ product, cartQtyMap, onAdd, onRemove, busyKey, busyAction }: ProductSectionProps) {
+function ProductSection({ product, cartQtyMap, onAdd, onRemove }: ProductSectionProps) {
   const lots = product.lots ?? []
   const inputFields = product.input_fields ?? []
   const isOutOfStock = product.stock !== null && product.stock === 0
@@ -285,8 +271,6 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove, busyKey, busyAct
                   cartQty={cartQtyMap.get(key) ?? 0}
                   onAdd={() => onAdd(product, lot)}
                   onRemove={() => onRemove(product, lot)}
-                  adding={busyKey === key && busyAction === 'add'}
-                  removing={busyKey === key && busyAction === 'remove'}
                 />
               )
             })
@@ -298,7 +282,6 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove, busyKey, busyAct
           {(() => {
             const key = product.id
             const qty = cartQtyMap.get(key) ?? 0
-            const isBusy = busyKey === key
             return (
               <div
                 className="flex items-center justify-center rounded-full overflow-hidden transition-all duration-200"
@@ -320,18 +303,15 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove, busyKey, busyAct
                       transition={{ duration: 0.15 }}
                       className="flex items-center w-full"
                     >
-                      <button disabled={isBusy} onClick={() => onRemove(product)}
+                      <button onClick={() => onRemove(product)}
                         className="flex items-center justify-center w-[36px] h-[38px] active:scale-90 transition-transform"
                         style={{ color: '#f87171' }}>
                         <Minus size={14} />
                       </button>
                       <span className="flex-1 text-center text-sm font-bold" style={{ color: '#6b9de8' }}>
-                        {isBusy ? (
-                          <span className="inline-block w-3.5 h-3.5 rounded-full border-2"
-                            style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
-                        ) : qty}
+                        {qty}
                       </span>
-                      <button disabled={isBusy || isOutOfStock} onClick={() => onAdd(product)}
+                      <button disabled={isOutOfStock} onClick={() => onAdd(product)}
                         className="flex items-center justify-center w-[36px] h-[38px] active:scale-90 transition-transform"
                         style={{ color: '#6b9de8' }}>
                         <Plus size={14} />
@@ -344,17 +324,12 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove, busyKey, busyAct
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.15 }}
-                      disabled={isOutOfStock || isBusy}
+                      disabled={isOutOfStock}
                       onClick={() => onAdd(product)}
                       className="flex items-center justify-center gap-2 px-5 h-full text-sm font-semibold active:scale-95 transition-transform"
                       style={{ color: isOutOfStock ? '#f87171' : '#6b9de8' }}
                     >
-                      {isBusy ? (
-                        <span className="w-4 h-4 rounded-full border-2"
-                          style={{ borderColor: 'rgba(107,157,232,0.25)', borderTopColor: '#6b9de8', animation: 'spin 0.6s linear infinite' }} />
-                      ) : isOutOfStock ? 'Нет в наличии' : (
-                        <><Plus size={14} /> В корзину</>
-                      )}
+                      {isOutOfStock ? 'Нет в наличии' : <><Plus size={14} /> В корзину</>}
                     </motion.button>
                   )}
                 </AnimatePresence>
@@ -376,8 +351,8 @@ export default function GamePage() {
   const { increment, decrement } = useCartStore()
   const qc = useQueryClient()
 
-  const [busyKey, setBusyKey] = useState<string | null>(null)
-  const [busyAction, setBusyAction] = useState<'add' | 'remove' | null>(null)
+  // Optimistic local qty overrides: key → delta from server qty
+  const [optimisticDeltas, setOptimisticDeltas] = useState<Map<string, number>>(new Map())
 
   const { data: games = [] } = useQuery({
     queryKey: ['games'],
@@ -408,7 +383,7 @@ export default function GamePage() {
     staleTime: 30_000,
   })
 
-  // Build cart qty map: "productId:lotId" → qty, "productId" → qty (no lot)
+  // Build cart qty map with optimistic deltas applied
   const cartQtyMap = new Map<string, number>()
   if (cart?.items) {
     for (const item of cart.items) {
@@ -416,18 +391,26 @@ export default function GamePage() {
       cartQtyMap.set(key, (cartQtyMap.get(key) ?? 0) + item.quantity)
     }
   }
+  for (const [key, delta] of optimisticDeltas) {
+    cartQtyMap.set(key, Math.max(0, (cartQtyMap.get(key) ?? 0) + delta))
+  }
 
   const gameFromApi = games.find(g => g.slug === slug)
   const gameName = gameFromApi?.name ?? slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) ?? ''
   const rootCats = (cats: Category[]) => cats.filter(c => !c.parent_id)
 
-  // Add to cart
+  // Optimistic add to cart
   const handleAdd = async (product: Product, lot?: Lot) => {
     const key = lot ? `${product.id}:${lot.id}` : product.id
-    if (busyKey) return
-    setBusyKey(key)
-    setBusyAction('add')
+    // Instant UI update
+    setOptimisticDeltas(prev => {
+      const next = new Map(prev)
+      next.set(key, (next.get(key) ?? 0) + 1)
+      return next
+    })
+    increment()
     haptic.impact('light')
+    // Background API call
     try {
       await cartApi.addItem({
         product_id: product.id,
@@ -435,43 +418,70 @@ export default function GamePage() {
         quantity: 1,
         input_data: {},
       })
-      increment()
-      qc.invalidateQueries({ queryKey: ['cart'] })
     } catch (e: any) {
+      // Rollback
+      setOptimisticDeltas(prev => {
+        const next = new Map(prev)
+        const v = (next.get(key) ?? 0) - 1
+        v === 0 ? next.delete(key) : next.set(key, v)
+        return next
+      })
+      decrement()
       haptic.error()
       toast.error(e?.response?.data?.detail ?? 'Ошибка')
     } finally {
-      setBusyKey(null)
-      setBusyAction(null)
+      // Sync with server
+      qc.invalidateQueries({ queryKey: ['cart'] })
+      setOptimisticDeltas(prev => {
+        const next = new Map(prev)
+        next.delete(key)
+        return next
+      })
     }
   }
 
-  // Remove from cart (decrease qty)
+  // Optimistic remove from cart
   const handleRemove = async (product: Product, lot?: Lot) => {
     if (!cart?.items) return
     const key = lot ? `${product.id}:${lot.id}` : product.id
-    if (busyKey) return
-
-    // Find cart item
     const cartItem = cart.items.find(i =>
       i.product_id === product.id && (lot ? i.lot_id === lot.id : !i.lot_id)
     )
     if (!cartItem) return
 
-    setBusyKey(key)
-    setBusyAction('remove')
+    const currentQty = cartQtyMap.get(key) ?? 0
+    if (currentQty <= 0) return
+
+    // Instant UI update
+    setOptimisticDeltas(prev => {
+      const next = new Map(prev)
+      next.set(key, (next.get(key) ?? 0) - 1)
+      return next
+    })
+    if (currentQty <= 1) decrement()
     haptic.impact('light')
+    // Background API call
     try {
       const newQty = cartItem.quantity - 1
       await cartApi.updateItem(cartItem.id, newQty)
-      if (newQty <= 0) decrement()
-      qc.invalidateQueries({ queryKey: ['cart'] })
     } catch (e: any) {
+      // Rollback
+      setOptimisticDeltas(prev => {
+        const next = new Map(prev)
+        const v = (next.get(key) ?? 0) + 1
+        v === 0 ? next.delete(key) : next.set(key, v)
+        return next
+      })
+      if (currentQty <= 1) increment()
       haptic.error()
       toast.error(e?.response?.data?.detail ?? 'Ошибка')
     } finally {
-      setBusyKey(null)
-      setBusyAction(null)
+      qc.invalidateQueries({ queryKey: ['cart'] })
+      setOptimisticDeltas(prev => {
+        const next = new Map(prev)
+        next.delete(key)
+        return next
+      })
     }
   }
 
@@ -577,8 +587,6 @@ export default function GamePage() {
                 cartQtyMap={cartQtyMap}
                 onAdd={handleAdd}
                 onRemove={handleRemove}
-                busyKey={busyKey}
-                busyAction={busyAction}
               />
             </motion.div>
           ))
