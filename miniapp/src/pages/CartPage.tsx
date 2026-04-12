@@ -26,7 +26,9 @@ export default function CartPage() {
   const [promoApplying, setPromoApplying] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [clearing, setClearing] = useState(false)
+  const [showEmpty, setShowEmpty] = useState(false)
   const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+  const bottomRef = useRef<HTMLDivElement>(null)
 
   const { data: cart, isLoading, isError, refetch } = useQuery({
     queryKey: ['cart'],
@@ -78,21 +80,23 @@ export default function CartPage() {
     haptic.impact('heavy')
     setClearing(true)
 
-    // Collect element refs in order
+    // Collect cart item refs + bottom section
     const elements = (cart?.items ?? [])
       .map(item => itemRefs.current.get(item.id))
       .filter((el): el is HTMLDivElement => el != null)
 
-    // Run disintegration, then clear cart data
+    if (bottomRef.current) elements.push(bottomRef.current)
+
+    // Run disintegration, then show empty state
     disintegrateAll(elements, 100, async () => {
       try {
         await cartApi.clear()
         await refreshCart()
       } catch {
         toast.error('Ошибка')
-      } finally {
-        setClearing(false)
       }
+      setShowEmpty(true)
+      setClearing(false)
     })
   }, [cart?.items, haptic, showConfirm, refreshCart])
 
@@ -225,82 +229,109 @@ export default function CartPage() {
         ))}
       </div>
 
-      {/* Промокод */}
-      <div className="flex gap-2">
-        <div className="flex-1 relative">
-          <Tag size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--hint)' }} />
-          <input
-            type="text"
-            className="input pl-10 uppercase tracking-widest"
-            placeholder="Промокод"
-            value={promoInput}
-            onChange={e => setPromoInput(e.target.value.toUpperCase())}
-          />
+      {/* Промокод + итоги + кнопки — рассыпаются вместе */}
+      <div ref={bottomRef} className="space-y-4">
+        {/* Промокод */}
+        <div className="flex gap-2">
+          <div className="flex-1 relative">
+            <Tag size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--hint)' }} />
+            <input
+              type="text"
+              className="input pl-10 uppercase tracking-widest"
+              placeholder="Промокод"
+              value={promoInput}
+              onChange={e => setPromoInput(e.target.value.toUpperCase())}
+            />
+          </div>
+          <button
+            onClick={handleApplyPromo}
+            disabled={!promoInput.trim() || promoApplying}
+            className="px-4 py-3 rounded-2xl font-semibold text-sm transition-all active:scale-95 disabled:opacity-40"
+            style={{
+              background: 'linear-gradient(135deg, #2563eb, #2d58ad)',
+              color: '#fff',
+            }}
+          >
+            {promoApplying ? '...' : 'Применить'}
+          </button>
         </div>
-        <button
-          onClick={handleApplyPromo}
-          disabled={!promoInput.trim() || promoApplying}
-          className="px-4 py-3 rounded-2xl font-semibold text-sm transition-all active:scale-95 disabled:opacity-40"
-          style={{
-            background: 'linear-gradient(135deg, #2563eb, #2d58ad)',
-            color: '#fff',
-          }}
-        >
-          {promoApplying ? '...' : 'Применить'}
-        </button>
-      </div>
 
-      {/* Применённый промокод */}
-      {cart.promo_code && (
-        <div
-          className="flex items-center justify-between px-3 py-2 rounded-xl"
-          style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}
-        >
-          <span className="text-sm font-medium" style={{ color: '#34d399' }}>🏷 {cart.promo_code}</span>
-          <span className="text-sm font-bold" style={{ color: '#34d399' }}>
-            -{fmtPrice(cart.promo_discount ?? 0)} ₽
-          </span>
-        </div>
-      )}
-
-      {/* Итоги */}
-      <div className="card space-y-2">
-        <div className="flex justify-between text-sm">
-          <span style={{ color: 'var(--hint)' }}>Сумма</span>
-          <span style={{ color: 'var(--text)' }}>{fmtPrice(cart.subtotal)} ₽</span>
-        </div>
-        {cart.discount_amount > 0 && (
-          <div className="flex justify-between text-sm">
-            <span style={{ color: 'var(--hint)' }}>Скидка</span>
-            <span style={{ color: '#34d399' }}>-{fmtPrice(cart.discount_amount)} ₽</span>
+        {/* Применённый промокод */}
+        {cart.promo_code && (
+          <div
+            className="flex items-center justify-between px-3 py-2 rounded-xl"
+            style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}
+          >
+            <span className="text-sm font-medium" style={{ color: '#34d399' }}>🏷 {cart.promo_code}</span>
+            <span className="text-sm font-bold" style={{ color: '#34d399' }}>
+              -{fmtPrice(cart.promo_discount ?? 0)} ₽
+            </span>
           </div>
         )}
-        <div className="divider" />
-        <div className="flex justify-between font-bold text-base">
-          <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span style={{ color: '#60a5fa' }}>{fmtPrice(cart.total)} ₽</span>
+
+        {/* Итоги */}
+        <div className="card space-y-2">
+          <div className="flex justify-between text-sm">
+            <span style={{ color: 'var(--hint)' }}>Сумма</span>
+            <span style={{ color: 'var(--text)' }}>{fmtPrice(cart.subtotal)} ₽</span>
+          </div>
+          {cart.discount_amount > 0 && (
+            <div className="flex justify-between text-sm">
+              <span style={{ color: 'var(--hint)' }}>Скидка</span>
+              <span style={{ color: '#34d399' }}>-{fmtPrice(cart.discount_amount)} ₽</span>
+            </div>
+          )}
+          <div className="divider" />
+          <div className="flex justify-between font-bold text-base">
+            <span style={{ color: 'var(--text)' }}>Итого</span>
+            <span style={{ color: '#60a5fa' }}>{fmtPrice(cart.total)} ₽</span>
+          </div>
+        </div>
+
+        <button className="btn-primary" onClick={() => navigate('/checkout')}>
+          Оформить заказ
+        </button>
+
+        <div className="flex justify-center">
+          <button
+            onClick={handleClear}
+            disabled={clearing}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#666',
+              fontSize: 13,
+              cursor: 'pointer',
+              padding: '4px 0',
+              opacity: clearing ? 0.4 : 1,
+            }}
+          >
+            Очистить корзину
+          </button>
         </div>
       </div>
 
-      <button className="btn-primary" onClick={() => navigate('/checkout')}>
-        Оформить заказ
-      </button>
-
-      <div className="flex justify-center">
-        <button
-          onClick={handleClear}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#666',
-            fontSize: 13,
-            cursor: 'pointer',
-            padding: '4px 0',
-          }}
+      {/* Empty state — appears after disintegration */}
+      {showEmpty && (
+        <div
+          className="flex flex-col items-center gap-5 px-8 text-center pt-8"
+          style={{ animation: 'slideUp 0.5s ease-out both' }}
         >
-          Очистить корзину
-        </button>
-      </div>
+          <div
+            className="w-24 h-24 rounded-3xl flex items-center justify-center"
+            style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+          >
+            <ShoppingBag size={40} style={{ color: 'var(--hint)' }} />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--text)' }}>Корзина пуста</h2>
+            <p style={{ color: 'var(--hint)' }} className="text-sm">Перейди в каталог и добавь товары</p>
+          </div>
+          <Link to="/catalog" className="btn-primary" style={{ maxWidth: 200 }}>
+            В каталог
+          </Link>
+        </div>
+      )}
     </div>
   )
 }
