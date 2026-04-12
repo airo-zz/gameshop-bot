@@ -148,8 +148,8 @@ export default function CartPage() {
     </div>
   )
 
-  // After disintegration finished — show empty state with animation
-  if (showEmpty) return (
+  // After disintegration finished, or cart cleared while animating
+  if (showEmpty || !cart || cart.items.length === 0) return (
     <div className="px-4 pt-5 pb-6">
       <div
         className="flex flex-col items-center justify-center gap-5 px-8 text-center pt-12"
