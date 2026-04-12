@@ -1,18 +1,18 @@
 /**
  * src/pages/admin/UserDetailPage.tsx
  * Детальный профиль пользователя в admin-панели.
- * Позволяет бан/разбан, назначение/снятие прав admin, корректировку баланса.
+ * Позволяет бан/разбан и корректировку баланса.
  */
 
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  ArrowLeft, AlertCircle, ShieldCheck, ShieldAlert,
+  ArrowLeft, AlertCircle, ShieldAlert,
   ShieldOff, PlusCircle, MinusCircle, ExternalLink,
 } from 'lucide-react'
 import { adminApi } from '@/api/admin'
-import type { AdminUser, AdminOrderListItem, PaginatedResponse } from '@/api/admin'
+import type { AdminUserDetail } from '@/api/admin'
 import toast from 'react-hot-toast'
 
 function formatMoney(v: number) {
@@ -35,10 +35,8 @@ const STATUS_COLORS: Record<string, string> = {
 export default function UserDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const telegramId = Number(id)
 
-  const [user, setUser] = useState<AdminUser | null>(null)
-  const [orders, setOrders] = useState<PaginatedResponse<AdminOrderListItem> | null>(null)
+  const [user, setUser] = useState<AdminUserDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [actionLoading, setActionLoading] = useState(false)
@@ -46,38 +44,21 @@ export default function UserDetailPage() {
   const [balanceReason, setBalanceReason] = useState('')
 
   useEffect(() => {
-    if (!telegramId) return
+    if (!id) return
     setLoading(true)
-    Promise.all([
-      adminApi.getUser(telegramId),
-      adminApi.getUserOrders(telegramId),
-    ])
-      .then(([u, o]) => { setUser(u); setOrders(o) })
+    adminApi.getUser(id)
+      .then(setUser)
       .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [telegramId])
+  }, [id])
 
   async function handleBan() {
-    if (!user) return
+    if (!user || !id) return
     setActionLoading(true)
     try {
-      const updated = await adminApi.banUser(telegramId, !user.is_banned)
+      const updated = await adminApi.updateUser(id, { is_blocked: !user.is_blocked })
       setUser({ ...user, ...updated })
-      toast.success(updated.is_banned ? 'Пользователь заблокирован' : 'Блокировка снята')
-    } catch {
-      toast.error('Ошибка')
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  async function handleToggleAdmin() {
-    if (!user) return
-    setActionLoading(true)
-    try {
-      const updated = await adminApi.setAdmin(telegramId, !user.is_admin)
-      setUser({ ...user, ...updated })
-      toast.success(updated.is_admin ? 'Права администратора выданы' : 'Права администратора сняты')
+      toast.success(updated.is_blocked ? 'Пользователь заблокирован' : 'Блокировка снята')
     } catch {
       toast.error('Ошибка')
     } finally {
@@ -86,16 +67,16 @@ export default function UserDetailPage() {
   }
 
   async function handleBalance(sign: 1 | -1) {
-    if (!user || !balanceDelta) return
-    const delta = parseFloat(balanceDelta) * sign
-    if (isNaN(delta) || delta === 0) return
+    if (!user || !id || !balanceDelta) return
+    const amount = parseFloat(balanceDelta)
+    if (isNaN(amount) || amount === 0) return
     setActionLoading(true)
     try {
-      const res = await adminApi.adjustBalance(telegramId, delta, balanceReason || undefined)
-      setUser({ ...user, balance: res.balance })
+      const res = await adminApi.adjustBalance(id, amount, sign === 1 ? 'manual_credit' : 'manual_debit', balanceReason || undefined)
+      setUser({ ...user, balance: res.balance_after })
       setBalanceDelta('')
       setBalanceReason('')
-      toast.success(`Баланс обновлён: ${formatMoney(res.balance)}`)
+      toast.success(`Баланс обновлён: ${formatMoney(res.balance_after)}`)
     } catch {
       toast.error('Ошибка изменения баланса')
     } finally {
@@ -149,8 +130,7 @@ export default function UserDetailPage() {
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <span className="text-base font-bold text-white truncate">{user.first_name}</span>
-              {user.is_admin && <ShieldCheck size={14} className="text-blue-400 shrink-0" />}
-              {user.is_banned && <ShieldAlert size={14} className="text-red-400 shrink-0" />}
+              {user.is_blocked && <ShieldAlert size={14} className="text-red-400 shrink-0" />}
             </div>
             {user.username && (
               <div className="text-xs text-white/40">@{user.username}</div>
@@ -168,8 +148,7 @@ export default function UserDetailPage() {
             { label: 'Баланс', value: formatMoney(user.balance) },
             { label: 'Заказов', value: user.orders_count },
             { label: 'Потрачено', value: formatMoney(user.total_spent) },
-            { label: 'Уровень', value: user.loyalty_level_name },
-            { label: 'Рефералов', value: user.referrals_count },
+            { label: 'Уровень', value: user.loyalty_level?.name ?? '—' },
           ].map(({ label, value }) => (
             <div key={label}>
               <div className="text-xs text-white/40">{label}</div>
@@ -179,7 +158,7 @@ export default function UserDetailPage() {
         </div>
         <div className="mt-3 text-xs text-white/30">
           Зарегистрирован: {formatDate(user.created_at)}
-          {user.last_seen_at && ` · Был: ${formatDate(user.last_seen_at)}`}
+          {user.last_active_at && ` · Был: ${formatDate(user.last_active_at)}`}
         </div>
       </div>
 
@@ -193,22 +172,13 @@ export default function UserDetailPage() {
             disabled={actionLoading}
             className={[
               'flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors',
-              user.is_banned
+              user.is_blocked
                 ? 'bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30'
                 : 'bg-red-600/20 text-red-400 hover:bg-red-600/30',
             ].join(' ')}
           >
-            {user.is_banned ? <ShieldOff size={15} /> : <ShieldAlert size={15} />}
-            {user.is_banned ? 'Разблокировать' : 'Заблокировать'}
-          </button>
-
-          <button
-            onClick={handleToggleAdmin}
-            disabled={actionLoading}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 transition-colors"
-          >
-            <ShieldCheck size={15} />
-            {user.is_admin ? 'Снять admin' : 'Выдать admin'}
+            {user.is_blocked ? <ShieldOff size={15} /> : <ShieldAlert size={15} />}
+            {user.is_blocked ? 'Разблокировать' : 'Заблокировать'}
           </button>
         </div>
 
@@ -249,13 +219,13 @@ export default function UserDetailPage() {
       </div>
 
       {/* Orders */}
-      {orders && orders.items.length > 0 && (
+      {user.orders && user.orders.length > 0 && (
         <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-3">
           <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">
-            Заказы ({orders.total})
+            Заказы ({user.orders.length})
           </h2>
           <div className="space-y-2">
-            {orders.items.slice(0, 5).map((order) => (
+            {user.orders.slice(0, 5).map((order) => (
               <Link
                 key={order.id}
                 to={`/admin/orders/${order.id}`}

@@ -71,9 +71,12 @@ class OrderListItem(BaseModel):
     status: str
     total_amount: float
     payment_method: str | None
-    user: dict[str, Any]
-    """Поля: telegram_id, username, first_name."""
+    user_telegram_id: int
+    user_first_name: str
+    user_username: str | None = None
     created_at: datetime
+    paid_at: datetime | None = None
+    completed_at: datetime | None = None
     items_count: int
 
 

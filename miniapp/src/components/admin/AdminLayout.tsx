@@ -89,7 +89,8 @@ export default function AdminLayout() {
   const location = useLocation()
 
   return (
-    <div className="flex min-h-screen bg-[#060f1e] text-white">
+    <div className="flex min-h-screen bg-[#060f1e] text-white"
+         style={{ paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))' }}>
       {/* Sidebar — hidden on mobile */}
       <aside className="hidden md:flex flex-col w-56 shrink-0 border-r border-white/5 p-4 gap-1">
         <div className="px-3 py-3 mb-2">
@@ -106,14 +107,12 @@ export default function AdminLayout() {
       <div className="flex flex-col flex-1 min-w-0">
         {/* Top bar */}
         <header className="flex items-center h-14 px-4 border-b border-white/5 shrink-0">
+          <NavLink to="/" className="text-xs text-white/40 hover:text-white/70 transition-colors mr-3">
+            ← Магазин
+          </NavLink>
           <span className="text-sm font-semibold text-white/70">
-            reDonate Admin
+            Admin
           </span>
-          <div className="ml-auto">
-            <span className="text-xs text-white/30 font-mono">
-              {location.pathname}
-            </span>
-          </div>
         </header>
 
         {/* Page */}

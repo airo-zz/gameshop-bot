@@ -100,12 +100,12 @@ async def list_orders(
             status=o.status.value,
             total_amount=float(o.total_amount),
             payment_method=o.payment_method.value if o.payment_method else None,
-            user={
-                "telegram_id": o.user.telegram_id,
-                "username": o.user.username,
-                "first_name": o.user.first_name,
-            },
+            user_telegram_id=o.user.telegram_id,
+            user_username=o.user.username,
+            user_first_name=o.user.first_name,
             created_at=o.created_at,
+            paid_at=o.paid_at,
+            completed_at=o.completed_at,
             items_count=len(o.items),
         )
         for o in orders

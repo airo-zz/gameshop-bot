@@ -8,25 +8,27 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, AlertCircle, Save } from 'lucide-react'
 import { adminApi } from '@/api/admin'
-import type { AdminOrder, AdminOrderStatus } from '@/api/admin'
+import type { AdminOrderDetail } from '@/api/admin'
 import toast from 'react-hot-toast'
 
-const STATUS_OPTIONS: { value: AdminOrderStatus; label: string }[] = [
-  { value: 'pending',    label: 'Ожидает оплаты' },
-  { value: 'paid',       label: 'Оплачен' },
-  { value: 'processing', label: 'В обработке' },
-  { value: 'completed',  label: 'Выполнен' },
-  { value: 'cancelled',  label: 'Отменён' },
-  { value: 'refunded',   label: 'Возврат' },
+const STATUS_OPTIONS: { value: string; label: string }[] = [
+  { value: 'new',             label: 'Новый' },
+  { value: 'pending_payment', label: 'Ожидает оплаты' },
+  { value: 'paid',            label: 'Оплачен' },
+  { value: 'processing',      label: 'В обработке' },
+  { value: 'completed',       label: 'Выполнен' },
+  { value: 'cancelled',       label: 'Отменён' },
+  { value: 'refunded',        label: 'Возврат' },
 ]
 
 const STATUS_COLORS: Record<string, string> = {
-  pending:    'bg-yellow-500/15 text-yellow-400',
-  paid:       'bg-blue-500/15 text-blue-400',
-  processing: 'bg-violet-500/15 text-violet-400',
-  completed:  'bg-emerald-500/15 text-emerald-400',
-  cancelled:  'bg-red-500/15 text-red-400',
-  refunded:   'bg-orange-500/15 text-orange-400',
+  new:             'bg-slate-500/15 text-slate-400',
+  pending_payment: 'bg-yellow-500/15 text-yellow-400',
+  paid:            'bg-blue-500/15 text-blue-400',
+  processing:      'bg-violet-500/15 text-violet-400',
+  completed:       'bg-emerald-500/15 text-emerald-400',
+  cancelled:       'bg-red-500/15 text-red-400',
+  refunded:        'bg-orange-500/15 text-orange-400',
 }
 
 function formatMoney(v: number) {
@@ -41,11 +43,11 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
-  const [order, setOrder] = useState<AdminOrder | null>(null)
+  const [order, setOrder] = useState<AdminOrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
-  const [newStatus, setNewStatus] = useState<AdminOrderStatus | ''>('')
-  const [adminNote, setAdminNote] = useState('')
+  const [newStatus, setNewStatus] = useState('')
+  const [reason, setReason] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -54,8 +56,8 @@ export default function OrderDetailPage() {
     adminApi.getOrder(id)
       .then((data) => {
         setOrder(data)
-        setNewStatus(data.status as AdminOrderStatus)
-        setAdminNote(data.admin_note ?? '')
+        setNewStatus(data.status)
+        setReason(data.notes ?? '')
       })
       .catch(() => setError(true))
       .finally(() => setLoading(false))
@@ -65,8 +67,8 @@ export default function OrderDetailPage() {
     if (!order || !newStatus) return
     setSaving(true)
     try {
-      const updated = await adminApi.updateOrderStatus(order.id, newStatus, adminNote || undefined)
-      setOrder({ ...order, ...updated })
+      const result = await adminApi.updateOrderStatus(order.id, newStatus, reason || undefined) as { ok: boolean; new_status: string }
+      setOrder({ ...order, status: result.new_status })
       toast.success('Статус обновлён')
     } catch {
       toast.error('Не удалось обновить статус')
@@ -125,12 +127,12 @@ export default function OrderDetailPage() {
       <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-2">
         <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Покупатель</h2>
         <div className="text-sm text-white">
-          {order.user_first_name}
-          {order.user_username && (
-            <span className="text-white/40 ml-1">@{order.user_username}</span>
+          {order.user.first_name}
+          {order.user.username && (
+            <span className="text-white/40 ml-1">@{order.user.username}</span>
           )}
         </div>
-        <div className="text-xs text-white/30">ID: {order.user_telegram_id}</div>
+        <div className="text-xs text-white/30">ID: {order.user.telegram_id}</div>
       </div>
 
       {/* Items */}
@@ -164,7 +166,7 @@ export default function OrderDetailPage() {
           <label className="text-xs text-white/40 mb-1.5 block">Статус</label>
           <select
             value={newStatus}
-            onChange={(e) => setNewStatus(e.target.value as AdminOrderStatus)}
+            onChange={(e) => setNewStatus(e.target.value)}
             className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
           >
             {STATUS_OPTIONS.map((opt) => (
@@ -178,8 +180,8 @@ export default function OrderDetailPage() {
         <div>
           <label className="text-xs text-white/40 mb-1.5 block">Заметка (внутренняя)</label>
           <textarea
-            value={adminNote}
-            onChange={(e) => setAdminNote(e.target.value)}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
             rows={3}
             placeholder="Необязательно..."
             className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50 resize-none"

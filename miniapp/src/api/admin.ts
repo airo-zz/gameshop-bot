@@ -1,110 +1,25 @@
 /**
  * src/api/admin.ts
  * ─────────────────────────────────────────────────────────────────────────
- * Типы и API-методы для admin-панели.
- * Все эндпоинты под /admin/* — доступны только пользователям с is_admin=true.
+ * Types and API methods for admin panel.
+ * All endpoints under /admin/* - accessible only to admin users.
  * ─────────────────────────────────────────────────────────────────────────
  */
 
 import { apiClient } from './client'
-import type { Order, Product, Game, Category } from './index'
 
-// ── Admin User ────────────────────────────────────────────────────────────────
+// ── Admin Me ─────────────────────────────────────────────────────────────────
 
-export interface AdminUser {
+export interface AdminMe {
+  id: string
   telegram_id: number
   username: string | null
   first_name: string
-  photo_url: string | null
-  is_admin: boolean
-  is_banned: boolean
-  balance: number
-  orders_count: number
-  total_spent: number
-  referral_code: string
-  referrals_count: number
-  loyalty_level_name: string
-  loyalty_discount_percent: number
-  loyalty_cashback_percent: number
-  created_at: string
-  last_seen_at: string | null
+  role: string
+  permissions: string[]
 }
 
-export interface AdminUserListItem {
-  telegram_id: number
-  username: string | null
-  first_name: string
-  photo_url: string | null
-  is_admin: boolean
-  is_banned: boolean
-  balance: number
-  orders_count: number
-  total_spent: number
-  created_at: string
-}
-
-// ── Admin Order ───────────────────────────────────────────────────────────────
-
-export type AdminOrderStatus =
-  | 'pending'
-  | 'paid'
-  | 'processing'
-  | 'completed'
-  | 'cancelled'
-  | 'refunded'
-
-export interface AdminOrderListItem {
-  id: string
-  order_number: string
-  status: AdminOrderStatus
-  total_amount: number
-  payment_method: string | null
-  user_telegram_id: number
-  user_first_name: string
-  user_username: string | null
-  items_count: number
-  created_at: string
-  paid_at: string | null
-  completed_at: string | null
-}
-
-export interface AdminOrder extends Order {
-  user_telegram_id: number
-  user_first_name: string
-  user_username: string | null
-  admin_note: string | null
-}
-
-// ── Admin Discount ────────────────────────────────────────────────────────────
-
-export type DiscountType = 'percentage' | 'fixed'
-
-export interface Discount {
-  id: string
-  code: string
-  type: DiscountType
-  value: number
-  min_order_amount: number | null
-  max_uses: number | null
-  uses_count: number
-  is_active: boolean
-  expires_at: string | null
-  created_at: string
-}
-
-export interface CreateDiscountPayload {
-  code: string
-  type: DiscountType
-  value: number
-  min_order_amount?: number | null
-  max_uses?: number | null
-  is_active?: boolean
-  expires_at?: string | null
-}
-
-export interface UpdateDiscountPayload extends Partial<CreateDiscountPayload> {}
-
-// ── Admin Dashboard ───────────────────────────────────────────────────────────
+// ── Dashboard ────────────────────────────────────────────────────────────────
 
 export interface DashboardStats {
   orders_today: number
@@ -120,26 +35,231 @@ export interface DashboardStats {
   products_out_of_stock: number
 }
 
-// ── Pagination ────────────────────────────────────────────────────────────────
+// ── Pagination ───────────────────────────────────────────────────────────────
 
 export interface PaginatedResponse<T> {
   items: T[]
   total: number
   page: number
   page_size: number
-  has_next: boolean
+  pages: number
 }
 
-// ── Admin API ─────────────────────────────────────────────────────────────────
+// ── Orders ───────────────────────────────────────────────────────────────────
 
-export interface AdminMe {
+export type AdminOrderStatus =
+  | 'new'
+  | 'pending_payment'
+  | 'paid'
+  | 'processing'
+  | 'completed'
+  | 'cancelled'
+  | 'refunded'
+
+export interface AdminOrderListItem {
+  id: string
+  order_number: string
+  status: string
+  total_amount: number
+  payment_method: string | null
+  user_telegram_id: number
+  user_first_name: string
+  user_username: string | null
+  items_count: number
+  created_at: string
+  paid_at: string | null
+  completed_at: string | null
+}
+
+export interface AdminOrderDetailUser {
   id: string
   telegram_id: number
   username: string | null
   first_name: string
-  role: string
-  permissions: string[]
+  last_name: string | null
+  balance: number
+  orders_count: number
+  total_spent: number
+  is_blocked: boolean
 }
+
+export interface AdminOrderDetailItem {
+  id: string
+  product_id: string
+  product_name: string
+  lot_name: string | null
+  quantity: number
+  unit_price: number
+  total_price: number
+  input_data: Record<string, unknown> | null
+  delivery_data: Record<string, unknown> | null
+  delivered_at: string | null
+}
+
+export interface AdminOrderDetail {
+  id: string
+  order_number: string
+  status: string
+  subtotal: number
+  discount_amount: number
+  total_amount: number
+  payment_method: string | null
+  notes: string | null
+  cancel_reason: string | null
+  created_at: string
+  paid_at: string | null
+  processing_started_at: string | null
+  completed_at: string | null
+  cancelled_at: string | null
+  user: AdminOrderDetailUser
+  items: AdminOrderDetailItem[]
+  status_history: Array<{
+    id: string
+    from_status: string | null
+    to_status: string
+    changed_by_type: string
+    reason: string | null
+    created_at: string
+  }>
+  payments: Array<{
+    id: string
+    method: string
+    status: string
+    amount: number
+    currency: string
+    external_id: string | null
+    paid_at: string | null
+    created_at: string
+  }>
+}
+
+// ── Users ────────────────────────────────────────────────────────────────────
+
+export interface AdminUserListItem {
+  id: string
+  telegram_id: number
+  username: string | null
+  first_name: string
+  last_name: string | null
+  photo_url: string | null
+  balance: number
+  total_spent: number
+  orders_count: number
+  is_blocked: boolean
+  blocked_reason: string | null
+  loyalty_level: { id: string; name: string } | null
+  created_at: string
+  last_active_at: string | null
+}
+
+export interface AdminUserDetail {
+  id: string
+  telegram_id: number
+  username: string | null
+  first_name: string
+  last_name: string | null
+  language_code: string | null
+  phone: string | null
+  photo_url: string | null
+  referral_code: string | null
+  referred_by_id: string | null
+  balance: number
+  total_spent: number
+  orders_count: number
+  is_blocked: boolean
+  blocked_reason: string | null
+  blocked_at: string | null
+  loyalty_level: {
+    id: string
+    name: string
+    discount_percent: number
+    cashback_percent: number
+    color_hex: string | null
+    icon_emoji: string | null
+  } | null
+  created_at: string
+  last_active_at: string | null
+  orders: Array<{
+    id: string
+    order_number: string
+    status: string
+    total_amount: number
+    payment_method: string | null
+    created_at: string
+  }>
+  balance_transactions: Array<{
+    id: string
+    amount: number
+    balance_before: number
+    balance_after: number
+    type: string
+    description: string | null
+    created_at: string
+  }>
+}
+
+// ── Catalog ──────────────────────────────────────────────────────────────────
+
+export interface AdminGame {
+  id: string
+  name: string
+  slug: string
+  image_url: string | null
+  description: string | null
+  is_active: boolean
+  is_featured: boolean
+  sort_order: number
+  created_at: string
+}
+
+export interface AdminProductListItem {
+  id: string
+  category_id: string
+  name: string
+  price: number
+  stock: number | null
+  delivery_type: string
+  is_active: boolean
+  sort_order: number
+  created_at: string
+}
+
+// ── Discounts ────────────────────────────────────────────────────────────────
+
+export interface DiscountRule {
+  id: string
+  name: string
+  description: string | null
+  type: string
+  target_id: string | null
+  discount_value_type: string
+  discount_value: number
+  min_order_amount: number
+  max_discount_amount: number | null
+  stackable: boolean
+  priority: number
+  starts_at: string | null
+  ends_at: string | null
+  is_active: boolean
+  usage_limit: number | null
+  usage_count: number
+  created_at: string
+}
+
+export interface PromoCode {
+  id: string
+  code: string
+  discount_rule_id: string
+  discount_rule_name: string
+  max_uses: number | null
+  used_count: number
+  per_user_limit: number
+  is_active: boolean
+  expires_at: string | null
+  created_at: string
+}
+
+// ── Admin API ────────────────────────────────────────────────────────────────
 
 export const adminApi = {
   // Auth
@@ -153,87 +273,85 @@ export const adminApi = {
   // Orders
   getOrders: (params?: {
     page?: number
-    status?: AdminOrderStatus
-    user_id?: number
+    status?: string
     search?: string
   }) =>
     apiClient.get<PaginatedResponse<AdminOrderListItem>>('/admin/orders', { params }).then(r => r.data),
 
   getOrder: (id: string) =>
-    apiClient.get<AdminOrder>(`/admin/orders/${id}`).then(r => r.data),
+    apiClient.get<AdminOrderDetail>(`/admin/orders/${id}`).then(r => r.data),
 
-  updateOrderStatus: (id: string, status: AdminOrderStatus, admin_note?: string) =>
-    apiClient.patch<AdminOrder>(`/admin/orders/${id}`, { status, admin_note }).then(r => r.data),
+  updateOrderStatus: (id: string, status: string, reason?: string) =>
+    apiClient.patch(`/admin/orders/${id}/status`, { status, reason }).then(r => r.data),
+
+  addOrderNotes: (id: string, text: string) =>
+    apiClient.post(`/admin/orders/${id}/notes`, { text }).then(r => r.data),
 
   // Users
   getUsers: (params?: {
     page?: number
     search?: string
-    is_banned?: boolean
-    is_admin?: boolean
+    is_blocked?: boolean
   }) =>
-    apiClient.get<PaginatedResponse<AdminUserListItem>>('/admin/users', { params }).then(r => r.data),
+    apiClient.get<PaginatedResponse<AdminUserListItem>>('/admin/users/', { params }).then(r => r.data),
 
-  getUser: (telegramId: number) =>
-    apiClient.get<AdminUser>(`/admin/users/${telegramId}`).then(r => r.data),
+  getUser: (userId: string) =>
+    apiClient.get<AdminUserDetail>(`/admin/users/${userId}`).then(r => r.data),
 
-  getUserOrders: (telegramId: number, page = 0) =>
-    apiClient.get<PaginatedResponse<AdminOrderListItem>>(`/admin/users/${telegramId}/orders`, {
-      params: { page },
-    }).then(r => r.data),
+  updateUser: (userId: string, data: { is_blocked?: boolean; blocked_reason?: string; loyalty_level_id?: string }) =>
+    apiClient.patch(`/admin/users/${userId}`, data).then(r => r.data),
 
-  banUser: (telegramId: number, banned: boolean) =>
-    apiClient.patch<AdminUser>(`/admin/users/${telegramId}`, { is_banned: banned }).then(r => r.data),
-
-  setAdmin: (telegramId: number, is_admin: boolean) =>
-    apiClient.patch<AdminUser>(`/admin/users/${telegramId}`, { is_admin }).then(r => r.data),
-
-  adjustBalance: (telegramId: number, delta: number, reason?: string) =>
-    apiClient.post<{ balance: number }>(`/admin/users/${telegramId}/balance`, {
-      delta,
-      reason,
-    }).then(r => r.data),
-
-  // Catalog — Products
-  getProducts: (params?: { page?: number; game_slug?: string; search?: string }) =>
-    apiClient.get<PaginatedResponse<Product>>('/admin/products', { params }).then(r => r.data),
-
-  createProduct: (data: Partial<Product>) =>
-    apiClient.post<Product>('/admin/products', data).then(r => r.data),
-
-  updateProduct: (id: string, data: Partial<Product>) =>
-    apiClient.put<Product>(`/admin/products/${id}`, data).then(r => r.data),
-
-  deleteProduct: (id: string) =>
-    apiClient.delete(`/admin/products/${id}`).then(r => r.data),
+  adjustBalance: (userId: string, amount: number, type: 'manual_credit' | 'manual_debit', description?: string) =>
+    apiClient.post<{
+      user_id: string
+      balance_before: number
+      balance_after: number
+      amount: number
+      type: string
+      description: string | null
+    }>(`/admin/users/${userId}/balance`, { amount, type, description }).then(r => r.data),
 
   // Catalog — Games
-  getGames: () =>
-    apiClient.get<Game[]>('/admin/games').then(r => r.data),
+  getGames: (params?: { is_active?: boolean }) =>
+    apiClient.get<AdminGame[]>('/admin/catalog/games', { params }).then(r => r.data),
 
-  createGame: (data: Partial<Game>) =>
-    apiClient.post<Game>('/admin/games', data).then(r => r.data),
+  createGame: (data: { name: string; slug?: string; image_url?: string; description?: string; is_active?: boolean; is_featured?: boolean; sort_order?: number }) =>
+    apiClient.post<AdminGame>('/admin/catalog/games', data).then(r => r.data),
 
-  updateGame: (id: string, data: Partial<Game>) =>
-    apiClient.put<Game>(`/admin/games/${id}`, data).then(r => r.data),
+  updateGame: (id: string, data: Partial<{ name: string; slug: string; image_url: string; description: string; is_active: boolean; is_featured: boolean; sort_order: number }>) =>
+    apiClient.patch<AdminGame>(`/admin/catalog/games/${id}`, data).then(r => r.data),
 
-  deleteGame: (id: string) =>
-    apiClient.delete(`/admin/games/${id}`).then(r => r.data),
+  // Catalog — Products
+  getProducts: (params?: { page?: number; game_id?: string; category_id?: string; search?: string; is_active?: boolean }) =>
+    apiClient.get<PaginatedResponse<AdminProductListItem>>('/admin/catalog/products', { params }).then(r => r.data),
+
+  createProduct: (data: Record<string, unknown>) =>
+    apiClient.post('/admin/catalog/products', data).then(r => r.data),
+
+  updateProduct: (id: string, data: Record<string, unknown>) =>
+    apiClient.patch(`/admin/catalog/products/${id}`, data).then(r => r.data),
 
   // Catalog — Categories
-  getCategories: () =>
-    apiClient.get<Category[]>('/admin/categories').then(r => r.data),
+  getCategories: (gameId: string) =>
+    apiClient.get(`/admin/catalog/games/${gameId}/categories`).then(r => r.data),
 
-  // Discounts
-  getDiscounts: (params?: { page?: number; is_active?: boolean }) =>
-    apiClient.get<PaginatedResponse<Discount>>('/admin/discounts', { params }).then(r => r.data),
+  // Discounts — Rules
+  getDiscountRules: () =>
+    apiClient.get<DiscountRule[]>('/admin/discounts').then(r => r.data),
 
-  createDiscount: (data: CreateDiscountPayload) =>
-    apiClient.post<Discount>('/admin/discounts', data).then(r => r.data),
+  createDiscountRule: (data: Record<string, unknown>) =>
+    apiClient.post<DiscountRule>('/admin/discounts', data).then(r => r.data),
 
-  updateDiscount: (id: string, data: UpdateDiscountPayload) =>
-    apiClient.patch<Discount>(`/admin/discounts/${id}`, data).then(r => r.data),
+  updateDiscountRule: (id: string, data: Record<string, unknown>) =>
+    apiClient.patch<DiscountRule>(`/admin/discounts/${id}`, data).then(r => r.data),
 
-  deleteDiscount: (id: string) =>
-    apiClient.delete(`/admin/discounts/${id}`).then(r => r.data),
+  // Discounts — Promos
+  getPromos: () =>
+    apiClient.get<PromoCode[]>('/admin/discounts/promos').then(r => r.data),
+
+  createPromo: (data: { code: string; discount_rule_id: string; max_uses?: number; per_user_limit?: number; is_active?: boolean; expires_at?: string }) =>
+    apiClient.post<PromoCode>('/admin/discounts/promos', data).then(r => r.data),
+
+  updatePromo: (id: string, data: { max_uses?: number; per_user_limit?: number; is_active?: boolean; expires_at?: string }) =>
+    apiClient.patch<PromoCode>(`/admin/discounts/promos/${id}`, data).then(r => r.data),
 }

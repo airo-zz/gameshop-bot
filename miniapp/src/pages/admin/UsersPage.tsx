@@ -6,7 +6,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Search, AlertCircle, ChevronRight, ShieldAlert, ShieldCheck } from 'lucide-react'
+import { Search, AlertCircle, ChevronRight, ShieldAlert } from 'lucide-react'
 import { adminApi } from '@/api/admin'
 import type { AdminUserListItem, PaginatedResponse } from '@/api/admin'
 import { useAdminUsersStore } from '@/store/adminStore'
@@ -16,7 +16,7 @@ function formatMoney(v: number) {
 }
 
 export default function UsersPage() {
-  const { page, search, isBanned, setPage, setSearch, setIsBanned } = useAdminUsersStore()
+  const { page, search, isBlocked, setPage, setSearch, setIsBlocked } = useAdminUsersStore()
   const [data, setData] = useState<PaginatedResponse<AdminUserListItem> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -28,12 +28,12 @@ export default function UsersPage() {
     adminApi.getUsers({
       page,
       search: search || undefined,
-      is_banned: isBanned ?? undefined,
+      is_blocked: isBlocked ?? undefined,
     })
       .then(setData)
       .catch(() => setError(true))
       .finally(() => setLoading(false))
-  }, [page, search, isBanned])
+  }, [page, search, isBlocked])
 
   useEffect(() => { load() }, [load])
 
@@ -73,10 +73,10 @@ export default function UsersPage() {
           ].map((opt) => (
             <button
               key={String(opt.value)}
-              onClick={() => setIsBanned(opt.value)}
+              onClick={() => setIsBlocked(opt.value)}
               className={[
                 'px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
-                isBanned === opt.value
+                isBlocked === opt.value
                   ? 'bg-blue-600 text-white'
                   : 'bg-white/5 text-white/50 hover:bg-white/10',
               ].join(' ')}
@@ -106,13 +106,13 @@ export default function UsersPage() {
         <div className="space-y-2">
           {data.items.map((user, i) => (
             <motion.div
-              key={user.telegram_id}
+              key={user.id}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: i * 0.03 }}
             >
               <Link
-                to={`/admin/users/${user.telegram_id}`}
+                to={`/admin/users/${user.id}`}
                 className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 rounded-xl px-4 py-3 transition-colors duration-200"
               >
                 {/* Avatar */}
@@ -133,10 +133,7 @@ export default function UsersPage() {
                     <span className="text-sm font-medium text-white truncate">
                       {user.first_name}
                     </span>
-                    {user.is_admin && (
-                      <ShieldCheck size={13} className="text-blue-400 shrink-0" />
-                    )}
-                    {user.is_banned && (
+                    {user.is_blocked && (
                       <ShieldAlert size={13} className="text-red-400 shrink-0" />
                     )}
                   </div>
@@ -157,15 +154,15 @@ export default function UsersPage() {
       {data && data.total > 20 && (
         <div className="flex items-center justify-between pt-2">
           <button
-            disabled={page === 0}
+            disabled={page <= 1}
             onClick={() => setPage(page - 1)}
             className="px-4 py-2 rounded-xl bg-white/5 text-sm text-white/60 disabled:opacity-30 hover:bg-white/10 transition-colors"
           >
             Назад
           </button>
-          <span className="text-xs text-white/30">Страница {page + 1}</span>
+          <span className="text-xs text-white/30">Страница {page}</span>
           <button
-            disabled={!data.has_next}
+            disabled={page >= data.pages}
             onClick={() => setPage(page + 1)}
             className="px-4 py-2 rounded-xl bg-white/5 text-sm text-white/60 disabled:opacity-30 hover:bg-white/10 transition-colors"
           >

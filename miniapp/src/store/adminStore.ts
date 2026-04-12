@@ -1,16 +1,11 @@
 /**
  * src/store/adminStore.ts
  * ─────────────────────────────────────────────────────────────────────────
- * Zustand store для admin-панели.
- *
- * useAdminStore — проверка прав, текущий статус загрузки
- * useAdminOrdersStore — фильтры и пагинация списка заказов
- * useAdminUsersStore  — фильтры и пагинация списка пользователей
+ * Zustand store for admin panel.
  * ─────────────────────────────────────────────────────────────────────────
  */
 
 import { create } from 'zustand'
-import type { AdminOrderStatus } from '@/api/admin'
 
 // ── Admin Auth Store ──────────────────────────────────────────────────────────
 
@@ -32,22 +27,22 @@ export const useAdminStore = create<AdminAuthState>((set) => ({
 
 interface AdminOrdersState {
   page: number
-  status: AdminOrderStatus | 'all'
+  status: string
   search: string
   setPage: (page: number) => void
-  setStatus: (status: AdminOrderStatus | 'all') => void
+  setStatus: (status: string) => void
   setSearch: (search: string) => void
   reset: () => void
 }
 
 export const useAdminOrdersStore = create<AdminOrdersState>((set) => ({
-  page: 0,
+  page: 1,
   status: 'all',
   search: '',
   setPage: (page) => set({ page }),
-  setStatus: (status) => set({ status, page: 0 }),
-  setSearch: (search) => set({ search, page: 0 }),
-  reset: () => set({ page: 0, status: 'all', search: '' }),
+  setStatus: (status) => set({ status, page: 1 }),
+  setSearch: (search) => set({ search, page: 1 }),
+  reset: () => set({ page: 1, status: 'all', search: '' }),
 }))
 
 // ── Admin Users Store ─────────────────────────────────────────────────────────
@@ -55,41 +50,41 @@ export const useAdminOrdersStore = create<AdminOrdersState>((set) => ({
 interface AdminUsersState {
   page: number
   search: string
-  isBanned: boolean | null
+  isBlocked: boolean | null
   setPage: (page: number) => void
   setSearch: (search: string) => void
-  setIsBanned: (v: boolean | null) => void
+  setIsBlocked: (v: boolean | null) => void
   reset: () => void
 }
 
 export const useAdminUsersStore = create<AdminUsersState>((set) => ({
-  page: 0,
+  page: 1,
   search: '',
-  isBanned: null,
+  isBlocked: null,
   setPage: (page) => set({ page }),
-  setSearch: (search) => set({ search, page: 0 }),
-  setIsBanned: (v) => set({ isBanned: v, page: 0 }),
-  reset: () => set({ page: 0, search: '', isBanned: null }),
+  setSearch: (search) => set({ search, page: 1 }),
+  setIsBlocked: (v) => set({ isBlocked: v, page: 1 }),
+  reset: () => set({ page: 1, search: '', isBlocked: null }),
 }))
 
 // ── Admin Catalog Store ───────────────────────────────────────────────────────
 
 interface AdminCatalogState {
   page: number
-  gameSlug: string | null
+  gameId: string | null
   search: string
   setPage: (page: number) => void
-  setGameSlug: (slug: string | null) => void
+  setGameId: (id: string | null) => void
   setSearch: (search: string) => void
   reset: () => void
 }
 
 export const useAdminCatalogStore = create<AdminCatalogState>((set) => ({
-  page: 0,
-  gameSlug: null,
+  page: 1,
+  gameId: null,
   search: '',
   setPage: (page) => set({ page }),
-  setGameSlug: (slug) => set({ gameSlug: slug, page: 0 }),
-  setSearch: (search) => set({ search, page: 0 }),
-  reset: () => set({ page: 0, gameSlug: null, search: '' }),
+  setGameId: (id) => set({ gameId: id, page: 1 }),
+  setSearch: (search) => set({ search, page: 1 }),
+  reset: () => set({ page: 1, gameId: null, search: '' }),
 }))

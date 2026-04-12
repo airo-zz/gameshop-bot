@@ -8,26 +8,28 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Search, AlertCircle, ChevronRight } from 'lucide-react'
 import { adminApi } from '@/api/admin'
-import type { AdminOrderListItem, AdminOrderStatus, PaginatedResponse } from '@/api/admin'
+import type { AdminOrderListItem, PaginatedResponse } from '@/api/admin'
 import { useAdminOrdersStore } from '@/store/adminStore'
 
 const STATUS_LABELS: Record<string, string> = {
-  all:        'Все',
-  pending:    'Ожидает',
-  paid:       'Оплачен',
-  processing: 'В работе',
-  completed:  'Выполнен',
-  cancelled:  'Отменён',
-  refunded:   'Возврат',
+  all:             'Все',
+  new:             'Новый',
+  pending_payment: 'Ожидает оплаты',
+  paid:            'Оплачен',
+  processing:      'В работе',
+  completed:       'Выполнен',
+  cancelled:       'Отменён',
+  refunded:        'Возврат',
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  pending:    'bg-yellow-500/15 text-yellow-400',
-  paid:       'bg-blue-500/15 text-blue-400',
-  processing: 'bg-violet-500/15 text-violet-400',
-  completed:  'bg-emerald-500/15 text-emerald-400',
-  cancelled:  'bg-red-500/15 text-red-400',
-  refunded:   'bg-orange-500/15 text-orange-400',
+  new:             'bg-slate-500/15 text-slate-400',
+  pending_payment: 'bg-yellow-500/15 text-yellow-400',
+  paid:            'bg-blue-500/15 text-blue-400',
+  processing:      'bg-violet-500/15 text-violet-400',
+  completed:       'bg-emerald-500/15 text-emerald-400',
+  cancelled:       'bg-red-500/15 text-red-400',
+  refunded:        'bg-orange-500/15 text-orange-400',
 }
 
 function formatMoney(v: number) {
@@ -53,7 +55,7 @@ export default function OrdersPage() {
     setError(false)
     adminApi.getOrders({
       page,
-      status: status === 'all' ? undefined : status as AdminOrderStatus,
+      status: status === 'all' ? undefined : status,
       search: search || undefined,
     })
       .then(setData)
@@ -98,7 +100,7 @@ export default function OrdersPage() {
           {Object.entries(STATUS_LABELS).map(([key, label]) => (
             <button
               key={key}
-              onClick={() => setStatus(key as AdminOrderStatus | 'all')}
+              onClick={() => setStatus(key)}
               className={[
                 'shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
                 status === key
@@ -180,17 +182,17 @@ export default function OrdersPage() {
       {data && data.total > 20 && (
         <div className="flex items-center justify-between pt-2">
           <button
-            disabled={page === 0}
+            disabled={page === 1}
             onClick={() => setPage(page - 1)}
             className="px-4 py-2 rounded-xl bg-white/5 text-sm text-white/60 disabled:opacity-30 hover:bg-white/10 transition-colors"
           >
             Назад
           </button>
           <span className="text-xs text-white/30">
-            Страница {page + 1}
+            Страница {page}
           </span>
           <button
-            disabled={!data.has_next}
+            disabled={page >= data.pages}
             onClick={() => setPage(page + 1)}
             className="px-4 py-2 rounded-xl bg-white/5 text-sm text-white/60 disabled:opacity-30 hover:bg-white/10 transition-colors"
           >
