@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Search, Plus, AlertCircle, Package } from 'lucide-react'
 import { adminApi } from '@/api/admin'
@@ -15,6 +16,7 @@ function formatMoney(v: number) {
 }
 
 export default function CatalogPage() {
+  const navigate = useNavigate()
   const { page, gameId, search, setPage, setGameId, setSearch } = useAdminCatalogStore()
   const [data, setData] = useState<PaginatedResponse<AdminProductListItem> | null>(null)
   const [games, setGames] = useState<AdminGame[]>([])
@@ -58,11 +60,14 @@ export default function CatalogPage() {
         <div>
           <h1 className="text-xl font-bold text-white">Каталог</h1>
           {data && <p className="text-sm text-white/40 mt-0.5">Всего: {data.total}</p>}
+          <Link to="/admin/catalog/games/new" className="text-xs text-blue-400 hover:text-blue-300">
+            Управление играми →
+          </Link>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-sm font-semibold text-white transition-colors">
+        <Link to="/admin/catalog/products/new" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-sm font-semibold text-white transition-colors">
           <Plus size={16} />
           Добавить
-        </button>
+        </Link>
       </div>
 
       {/* Filters */}
@@ -135,6 +140,7 @@ export default function CatalogPage() {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: i * 0.03 }}
+              onClick={() => navigate(`/admin/catalog/products/${product.id}`)}
               className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 rounded-xl px-4 py-3 transition-colors duration-200 cursor-pointer"
             >
               <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0">

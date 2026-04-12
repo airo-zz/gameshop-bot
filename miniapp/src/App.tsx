@@ -66,6 +66,8 @@ const AdminCatalog     = lazy(() => import('@/pages/admin/CatalogPage'))
 const AdminUsers       = lazy(() => import('@/pages/admin/UsersPage'))
 const AdminUserDetail  = lazy(() => import('@/pages/admin/UserDetailPage'))
 const AdminDiscounts   = lazy(() => import('@/pages/admin/DiscountsPage'))
+const AdminProductEdit = lazy(() => import('@/pages/admin/ProductEditPage'))
+const AdminGameEdit    = lazy(() => import('@/pages/admin/GameEditPage'))
 
 export default function App() {
   const { initData } = useTelegram()
@@ -168,6 +170,8 @@ export default function App() {
             <Route path="orders" element={<LazyPage><AdminOrders /></LazyPage>} />
             <Route path="orders/:id" element={<LazyPage><AdminOrderDetail /></LazyPage>} />
             <Route path="catalog" element={<LazyPage><AdminCatalog /></LazyPage>} />
+            <Route path="catalog/products/:id" element={<LazyPage><AdminProductEdit /></LazyPage>} />
+            <Route path="catalog/games/:id" element={<LazyPage><AdminGameEdit /></LazyPage>} />
             <Route path="users" element={<LazyPage><AdminUsers /></LazyPage>} />
             <Route path="users/:id" element={<LazyPage><AdminUserDetail /></LazyPage>} />
             <Route path="discounts" element={<LazyPage><AdminDiscounts /></LazyPage>} />

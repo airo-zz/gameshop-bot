@@ -224,6 +224,46 @@ export interface AdminProductListItem {
   created_at: string
 }
 
+export interface AdminProductDetail {
+  id: string
+  category_id: string
+  name: string
+  description: string | null
+  short_description: string | null
+  price: number
+  stock: number | null
+  delivery_type: string
+  input_fields: unknown[]
+  instruction: string | null
+  images: string[]
+  is_active: boolean
+  sort_order: number
+  lots: AdminLot[]
+  created_at: string
+}
+
+export interface AdminLot {
+  id: string
+  product_id: string
+  name: string
+  price: number
+  original_price: number | null
+  quantity: number
+  badge: string | null
+  is_active: boolean
+  sort_order: number
+}
+
+export interface AdminCategory {
+  id: string
+  game_id: string
+  parent_id: string | null
+  name: string
+  slug: string
+  is_active: boolean
+  sort_order: number
+}
+
 // ── Discounts ────────────────────────────────────────────────────────────────
 
 export interface DiscountRule {
@@ -325,15 +365,31 @@ export const adminApi = {
   getProducts: (params?: { page?: number; game_id?: string; category_id?: string; search?: string; is_active?: boolean }) =>
     apiClient.get<PaginatedResponse<AdminProductListItem>>('/admin/catalog/products', { params }).then(r => r.data),
 
+  getProduct: (id: string) =>
+    apiClient.get<AdminProductDetail>(`/admin/catalog/products/${id}`).then(r => r.data),
+
   createProduct: (data: Record<string, unknown>) =>
-    apiClient.post('/admin/catalog/products', data).then(r => r.data),
+    apiClient.post<AdminProductDetail>('/admin/catalog/products', data).then(r => r.data),
 
   updateProduct: (id: string, data: Record<string, unknown>) =>
-    apiClient.patch(`/admin/catalog/products/${id}`, data).then(r => r.data),
+    apiClient.patch<AdminProductDetail>(`/admin/catalog/products/${id}`, data).then(r => r.data),
 
   // Catalog — Categories
   getCategories: (gameId: string) =>
-    apiClient.get(`/admin/catalog/games/${gameId}/categories`).then(r => r.data),
+    apiClient.get<AdminCategory[]>(`/admin/catalog/games/${gameId}/categories`).then(r => r.data),
+
+  createCategory: (data: { game_id: string; parent_id?: string; name: string; slug?: string; is_active?: boolean; sort_order?: number }) =>
+    apiClient.post<AdminCategory>('/admin/catalog/categories', data).then(r => r.data),
+
+  // Catalog — Lots
+  createLot: (productId: string, data: { name: string; price: number; original_price?: number; quantity?: number; badge?: string; is_active?: boolean; sort_order?: number }) =>
+    apiClient.post<AdminLot>(`/admin/catalog/products/${productId}/lots`, data).then(r => r.data),
+
+  updateLot: (lotId: string, data: Partial<{ name: string; price: number; original_price: number; quantity: number; badge: string; is_active: boolean; sort_order: number }>) =>
+    apiClient.patch<AdminLot>(`/admin/catalog/lots/${lotId}`, data).then(r => r.data),
+
+  deleteLot: (lotId: string) =>
+    apiClient.delete(`/admin/catalog/lots/${lotId}`).then(r => r.data),
 
   // Discounts — Rules
   getDiscountRules: () =>
