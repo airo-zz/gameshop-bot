@@ -1,13 +1,13 @@
 // src/pages/CartPage.tsx
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { motion, AnimatePresence } from 'framer-motion'
 import { Trash2, Plus, Minus, Tag, ShoppingBag } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi, type CartItem } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
+import { disintegrateAll } from '@/hooks/useDisintegrate'
 
 /** Форматирует цену: 1500 → "1 500", 1500.50 → "1 500,5" */
 function fmtPrice(v: number | string): string {
@@ -26,6 +26,7 @@ export default function CartPage() {
   const [promoApplying, setPromoApplying] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [clearing, setClearing] = useState(false)
+  const itemRefs = useRef<Map<string, HTMLDivElement>>(new Map())
 
   const { data: cart, isLoading, isError, refetch } = useQuery({
     queryKey: ['cart'],
@@ -76,10 +77,14 @@ export default function CartPage() {
     if (!ok) return
     haptic.impact('heavy')
     setClearing(true)
-    // Wait for exit animations to finish, then actually clear
-    const itemCount = cart?.items.length ?? 0
-    const animDuration = Math.min(itemCount * 60 + 300, 800)
-    setTimeout(async () => {
+
+    // Collect element refs in order
+    const elements = (cart?.items ?? [])
+      .map(item => itemRefs.current.get(item.id))
+      .filter((el): el is HTMLDivElement => el != null)
+
+    // Run disintegration, then clear cart data
+    disintegrateAll(elements, 100, async () => {
       try {
         await cartApi.clear()
         await refreshCart()
@@ -88,8 +93,8 @@ export default function CartPage() {
       } finally {
         setClearing(false)
       }
-    }, animDuration)
-  }, [cart?.items.length, haptic, showConfirm, refreshCart])
+    })
+  }, [cart?.items, haptic, showConfirm, refreshCart])
 
   const handleApplyPromo = async () => {
     if (!promoInput.trim()) return
@@ -148,27 +153,11 @@ export default function CartPage() {
 
       {/* Позиции */}
       <div className="space-y-2">
-        <AnimatePresence mode="sync">
-        {!clearing && cart.items.map((item, idx) => (
-          <motion.div
+        {cart.items.map(item => (
+          <div
             key={item.id}
-            initial={{ opacity: 1, height: 'auto', scale: 1, x: 0 }}
-            exit={{
-              opacity: 0,
-              height: 0,
-              scale: 0.8,
-              x: -60,
-              marginTop: 0,
-              marginBottom: 0,
-              paddingTop: 0,
-              paddingBottom: 0,
-            }}
-            transition={{
-              duration: 0.3,
-              delay: idx * 0.06,
-              ease: [0.32, 0, 0.67, 0],
-            }}
-            className="flex gap-3 p-3 rounded-2xl transition-opacity overflow-hidden"
+            ref={el => { if (el) itemRefs.current.set(item.id, el); else itemRefs.current.delete(item.id) }}
+            className="flex gap-3 p-3 rounded-2xl transition-opacity"
             style={{
               background: 'var(--bg2)',
               border: '1px solid var(--border)',
@@ -232,9 +221,8 @@ export default function CartPage() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         ))}
-        </AnimatePresence>
       </div>
 
       {/* Промокод */}
