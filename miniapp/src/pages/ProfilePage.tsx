@@ -3,9 +3,10 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Heart, Package, Share2, MessageCircle, Wallet, ShoppingBag, Users, Shield, Star, Crown, Gem, Gift, Info } from 'lucide-react'
+import { Heart, Package, Share2, MessageCircle, Wallet, ShoppingBag, Users, Shield, Star, Crown, Gem, Gift, Info, Settings } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { profileApi } from '@/api'
+import { adminApi, type AdminMe } from '@/api/admin'
 import { useTelegram } from '@/hooks/useTelegram'
 import PageLoader from '@/components/ui/PageLoader'
 
@@ -142,6 +143,14 @@ export default function ProfilePage() {
     queryKey: ['profile'],
     queryFn: profileApi.get,
     staleTime: 5 * 60 * 1000,
+    retry: false,
+  })
+
+  // Check if user is admin (silent, no error on 403)
+  const { data: adminProfile } = useQuery<AdminMe>({
+    queryKey: ['admin', 'me'],
+    queryFn: adminApi.getMe,
+    staleTime: 10 * 60 * 1000,
     retry: false,
   })
 
@@ -389,6 +398,33 @@ export default function ProfilePage() {
 
       {/* ── Меню ── */}
       <MenuBlock />
+
+      {/* ── Админ-панель (только для админов) ── */}
+      {adminProfile && (
+        <Link
+          to="/admin"
+          className="flex items-center gap-3 p-4 rounded-2xl active:scale-[0.97] transition-transform"
+          style={{
+            background: 'rgba(45,88,173,0.12)',
+            border: '1px solid rgba(45,88,173,0.25)',
+            textDecoration: 'none',
+          }}
+        >
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{
+              background: 'rgba(45,88,173,0.2)',
+              border: '1px solid rgba(45,88,173,0.35)',
+            }}
+          >
+            <Settings size={18} style={{ color: '#6b9de8' }} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: '#6b9de8' }}>Админ-панель</p>
+            <p className="text-xs" style={{ color: 'var(--hint)' }}>{adminProfile.role}</p>
+          </div>
+        </Link>
+      )}
     </motion.div>
   )
 }

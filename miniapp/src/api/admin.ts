@@ -132,7 +132,20 @@ export interface PaginatedResponse<T> {
 
 // ── Admin API ─────────────────────────────────────────────────────────────────
 
+export interface AdminMe {
+  id: string
+  telegram_id: number
+  username: string | null
+  first_name: string
+  role: string
+  permissions: string[]
+}
+
 export const adminApi = {
+  // Auth
+  getMe: () =>
+    apiClient.get<AdminMe>('/admin/me').then(r => r.data),
+
   // Dashboard
   getDashboard: () =>
     apiClient.get<DashboardStats>('/admin/dashboard').then(r => r.data),

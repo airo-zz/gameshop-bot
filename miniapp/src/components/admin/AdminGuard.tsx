@@ -1,12 +1,7 @@
 /**
  * src/components/admin/AdminGuard.tsx
- * ─────────────────────────────────────────────────────────────────────────
  * Route guard для admin-раздела.
- *
- * Проверяет права через GET /admin/me при монтировании.
- * Если пользователь не admin — редиректит на /.
- * Пока идёт проверка — показывает LoadingScreen.
- * ─────────────────────────────────────────────────────────────────────────
+ * GET /admin/me → 200 = админ, 403/401 = не админ.
  */
 
 import { useEffect, useRef } from 'react'
@@ -14,10 +9,6 @@ import { Navigate, Outlet } from 'react-router-dom'
 import { apiClient } from '@/api/client'
 import { useAdminStore } from '@/store/adminStore'
 import LoadingScreen from '@/components/ui/LoadingScreen'
-
-interface AdminMeResponse {
-  is_admin: boolean
-}
 
 export default function AdminGuard() {
   const { isAdmin, isChecked, setAdmin, setChecked } = useAdminStore()
@@ -28,9 +19,9 @@ export default function AdminGuard() {
     checked.current = true
 
     apiClient
-      .get<AdminMeResponse>('/admin/me')
-      .then((res) => {
-        setAdmin(res.data.is_admin)
+      .get('/admin/me')
+      .then(() => {
+        setAdmin(true)
       })
       .catch(() => {
         setAdmin(false)
