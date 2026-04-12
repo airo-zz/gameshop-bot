@@ -1,7 +1,8 @@
 // src/pages/CartPage.tsx
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Trash2, Plus, Minus, Tag, ShoppingBag } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi, type CartItem } from '@/api'
@@ -24,6 +25,7 @@ export default function CartPage() {
   const [promoInput, setPromoInput] = useState('')
   const [promoApplying, setPromoApplying] = useState(false)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [clearing, setClearing] = useState(false)
 
   const { data: cart, isLoading, isError, refetch } = useQuery({
     queryKey: ['cart'],
@@ -32,13 +34,13 @@ export default function CartPage() {
     retry: 1,
   })
 
-  const refreshCart = async () => {
+  const refreshCart = useCallback(async () => {
     const updated = await refetch()
     if (updated.data) {
       setItemsCount(updated.data.items_count)
       qc.invalidateQueries({ queryKey: ['cart'] })
     }
-  }
+  }, [refetch, setItemsCount, qc])
 
   const handleQtyChange = async (item: CartItem, delta: number) => {
     const newQty = item.quantity + delta
@@ -69,17 +71,25 @@ export default function CartPage() {
     }
   }
 
-  const handleClear = async () => {
+  const handleClear = useCallback(async () => {
     const ok = await showConfirm('Очистить корзину?')
     if (!ok) return
     haptic.impact('heavy')
-    try {
-      await cartApi.clear()
-      await refreshCart()
-    } catch {
-      toast.error('Ошибка')
-    }
-  }
+    setClearing(true)
+    // Wait for exit animations to finish, then actually clear
+    const itemCount = cart?.items.length ?? 0
+    const animDuration = Math.min(itemCount * 60 + 300, 800)
+    setTimeout(async () => {
+      try {
+        await cartApi.clear()
+        await refreshCart()
+      } catch {
+        toast.error('Ошибка')
+      } finally {
+        setClearing(false)
+      }
+    }, animDuration)
+  }, [cart?.items.length, haptic, showConfirm, refreshCart])
 
   const handleApplyPromo = async () => {
     if (!promoInput.trim()) return
@@ -138,10 +148,27 @@ export default function CartPage() {
 
       {/* Позиции */}
       <div className="space-y-2">
-        {cart.items.map(item => (
-          <div
+        <AnimatePresence mode="sync">
+        {!clearing && cart.items.map((item, idx) => (
+          <motion.div
             key={item.id}
-            className="flex gap-3 p-3 rounded-2xl transition-opacity"
+            initial={{ opacity: 1, height: 'auto', scale: 1, x: 0 }}
+            exit={{
+              opacity: 0,
+              height: 0,
+              scale: 0.8,
+              x: -60,
+              marginTop: 0,
+              marginBottom: 0,
+              paddingTop: 0,
+              paddingBottom: 0,
+            }}
+            transition={{
+              duration: 0.3,
+              delay: idx * 0.06,
+              ease: [0.32, 0, 0.67, 0],
+            }}
+            className="flex gap-3 p-3 rounded-2xl transition-opacity overflow-hidden"
             style={{
               background: 'var(--bg2)',
               border: '1px solid var(--border)',
@@ -205,8 +232,9 @@ export default function CartPage() {
                 </div>
               </div>
             </div>
-          </div>
+          </motion.div>
         ))}
+        </AnimatePresence>
       </div>
 
       {/* Промокод */}
