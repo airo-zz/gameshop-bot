@@ -186,10 +186,8 @@ export async function disintegrate(
     if (alive > 0) {
       requestAnimationFrame(tick)
     } else {
-      // Cleanup
+      // Cleanup — keep element hidden, caller handles visibility
       canvas.remove()
-      element.style.opacity = prevOpacity
-      element.style.transition = prevTransition
       onDone?.()
     }
   }

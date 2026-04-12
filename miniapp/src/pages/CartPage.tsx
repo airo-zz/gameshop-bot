@@ -130,7 +130,7 @@ export default function CartPage() {
     </div>
   )
 
-  if (isError || !cart || cart.items.length === 0) return (
+  if (!clearing && !showEmpty && (isError || !cart || cart.items.length === 0)) return (
     <div className="flex flex-col items-center justify-center h-full gap-5 px-8 text-center pt-16">
       <div
         className="w-24 h-24 rounded-3xl flex items-center justify-center"
@@ -145,6 +145,30 @@ export default function CartPage() {
       <Link to="/catalog" className="btn-primary" style={{ maxWidth: 200 }}>
         В каталог
       </Link>
+    </div>
+  )
+
+  // After disintegration finished — show empty state with animation
+  if (showEmpty) return (
+    <div className="px-4 pt-5 pb-6">
+      <div
+        className="flex flex-col items-center justify-center gap-5 px-8 text-center pt-12"
+        style={{ animation: 'slideUp 0.5s ease-out both' }}
+      >
+        <div
+          className="w-24 h-24 rounded-3xl flex items-center justify-center"
+          style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+        >
+          <ShoppingBag size={40} style={{ color: 'var(--hint)' }} />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--text)' }}>Корзина пуста</h2>
+          <p style={{ color: 'var(--hint)' }} className="text-sm">Перейди в каталог и добавь товары</p>
+        </div>
+        <Link to="/catalog" className="btn-primary" style={{ maxWidth: 200 }}>
+          В каталог
+        </Link>
+      </div>
     </div>
   )
 
@@ -311,27 +335,6 @@ export default function CartPage() {
         </div>
       </div>
 
-      {/* Empty state — appears after disintegration */}
-      {showEmpty && (
-        <div
-          className="flex flex-col items-center gap-5 px-8 text-center pt-8"
-          style={{ animation: 'slideUp 0.5s ease-out both' }}
-        >
-          <div
-            className="w-24 h-24 rounded-3xl flex items-center justify-center"
-            style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
-          >
-            <ShoppingBag size={40} style={{ color: 'var(--hint)' }} />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--text)' }}>Корзина пуста</h2>
-            <p style={{ color: 'var(--hint)' }} className="text-sm">Перейди в каталог и добавь товары</p>
-          </div>
-          <Link to="/catalog" className="btn-primary" style={{ maxWidth: 200 }}>
-            В каталог
-          </Link>
-        </div>
-      )}
     </div>
   )
 }
