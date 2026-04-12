@@ -391,6 +391,15 @@ export const adminApi = {
   deleteLot: (lotId: string) =>
     apiClient.delete(`/admin/catalog/lots/${lotId}`).then(r => r.data),
 
+  // Upload
+  uploadImage: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiClient.post<{ url: string }>('/admin/upload/image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    }).then(r => r.data)
+  },
+
   // Discounts — Rules
   getDiscountRules: () =>
     apiClient.get<DiscountRule[]>('/admin/discounts').then(r => r.data),

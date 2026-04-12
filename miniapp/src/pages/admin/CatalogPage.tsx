@@ -60,7 +60,7 @@ export default function CatalogPage() {
         <div>
           <h1 className="text-xl font-bold text-white">Каталог</h1>
           {data && <p className="text-sm text-white/40 mt-0.5">Всего: {data.total}</p>}
-          <Link to="/admin/catalog/games/new" className="text-xs text-blue-400 hover:text-blue-300">
+          <Link to="/admin/catalog/games" className="text-xs text-blue-400 hover:text-blue-300">
             Управление играми →
           </Link>
         </div>

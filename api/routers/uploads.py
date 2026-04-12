@@ -20,6 +20,7 @@ from typing import Annotated
 import aiofiles
 from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile, status
 
+from api.deps_admin import CurrentAdmin, require_permission
 from shared.config import settings
 
 router = APIRouter()
@@ -77,6 +78,49 @@ async def upload_image(file: UploadFile) -> dict:
         )
 
     # Создаём директорию если не существует
+    UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+    filename = f"{uuid.uuid4()}.{ext}"
+    dest = UPLOAD_DIR / filename
+
+    async with aiofiles.open(dest, "wb") as f:
+        await f.write(contents)
+
+    return {"url": f"/static/uploads/{filename}"}
+
+
+@router.post(
+    "/upload/image",
+    dependencies=[require_permission("catalog.edit")],
+)
+async def upload_image_jwt(
+    file: UploadFile,
+    admin: CurrentAdmin,
+) -> dict:
+    """
+    Загрузка изображения из MiniApp админ-панели.
+    Авторизация: JWT (как у всех admin endpoints).
+    Принимает multipart/form-data с полем "file".
+    Возвращает {"url": "/static/uploads/{uuid}.{ext}"}.
+    """
+    content_type = (file.content_type or "").lower()
+    ext = ALLOWED_CONTENT_TYPES.get(content_type)
+    if ext is None:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=(
+                f"Неподдерживаемый тип файла: {content_type}. "
+                "Разрешены: jpg, png, webp"
+            ),
+        )
+
+    contents = await file.read(MAX_FILE_SIZE + 1)
+    if len(contents) > MAX_FILE_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Файл слишком большой. Максимум 10 МБ.",
+        )
+
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
     filename = f"{uuid.uuid4()}.{ext}"

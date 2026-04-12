@@ -10,7 +10,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Save, Plus, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Save, Plus, AlertCircle, Upload, Loader2, ImageOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
 import type { AdminGame, AdminCategory } from '@/api/admin'
@@ -114,6 +114,10 @@ export default function GameEditPage() {
   // track whether slug has been touched manually
   const slugManual = useRef(false)
 
+  // ── image upload state ──
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
   // ── categories state (edit mode only) ──
   const [categories, setCategories] = useState<AdminCategory[]>([])
   const [newCatName, setNewCatName] = useState('')
@@ -163,6 +167,24 @@ export default function GameEditPage() {
   function handleSlugChange(value: string) {
     slugManual.current = true
     set('slug', value)
+  }
+
+  // ── image upload ──
+  async function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    // reset so same file can be selected again
+    e.target.value = ''
+    setUploadingImage(true)
+    try {
+      const { url } = await adminApi.uploadImage(file)
+      set('image_url', url)
+      toast.success('Изображение загружено')
+    } catch {
+      toast.error('Ошибка загрузки изображения')
+    } finally {
+      setUploadingImage(false)
+    }
   }
 
   // ── submit game form ──
@@ -289,15 +311,72 @@ export default function GameEditPage() {
             />
           </Field>
 
-          {/* Image URL */}
+          {/* Image URL + upload */}
           <Field label="URL изображения" hint="необязательно">
+            {/* Hidden file input */}
             <input
-              type="url"
-              value={form.image_url}
-              onChange={(e) => set('image_url', e.target.value)}
-              placeholder="https://..."
-              className={inputCls}
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={handleImageUpload}
             />
+
+            <div className="space-y-2">
+              {/* Text input + upload button row */}
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={form.image_url}
+                  onChange={(e) => set('image_url', e.target.value)}
+                  placeholder="https://..."
+                  className={[inputCls, 'flex-1'].join(' ')}
+                  disabled={uploadingImage}
+                />
+                <button
+                  type="button"
+                  disabled={uploadingImage}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-40 text-sm text-white/70 transition-colors shrink-0"
+                  title="Загрузить файл"
+                >
+                  {uploadingImage ? (
+                    <Loader2 size={16} className="animate-spin text-blue-400" />
+                  ) : (
+                    <Upload size={16} />
+                  )}
+                  <span className="text-xs">{uploadingImage ? 'Загрузка...' : 'Загрузить'}</span>
+                </button>
+              </div>
+
+              {/* Image preview */}
+              {form.image_url && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="relative w-full h-36 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center"
+                >
+                  <img
+                    src={form.image_url}
+                    alt="Превью"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      ;(e.currentTarget as HTMLImageElement).style.display = 'none'
+                      ;(e.currentTarget.nextElementSibling as HTMLElement | null)?.removeAttribute('style')
+                    }}
+                  />
+                  <div
+                    className="flex flex-col items-center gap-1 text-white/20"
+                    style={{ display: 'none' }}
+                  >
+                    <ImageOff size={24} />
+                    <span className="text-xs">Не удалось загрузить</span>
+                  </div>
+                </motion.div>
+              )}
+            </div>
           </Field>
 
           {/* Description */}

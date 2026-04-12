@@ -28,11 +28,11 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/admin',           label: 'Dashboard',  icon: <LayoutDashboard size={20} /> },
-  { to: '/admin/orders',    label: 'Заказы',      icon: <ShoppingCart size={20} /> },
-  { to: '/admin/catalog',   label: 'Каталог',     icon: <Package size={20} /> },
-  { to: '/admin/users',     label: 'Пользователи', icon: <Users size={20} /> },
-  { to: '/admin/discounts', label: 'Скидки',      icon: <Tag size={20} /> },
+  { to: '/admin',           label: 'Dashboard',  icon: <LayoutDashboard size={22} /> },
+  { to: '/admin/orders',    label: 'Заказы',      icon: <ShoppingCart size={22} /> },
+  { to: '/admin/catalog',   label: 'Каталог',     icon: <Package size={22} /> },
+  { to: '/admin/users',     label: 'Пользователи', icon: <Users size={22} /> },
+  { to: '/admin/discounts', label: 'Скидки',      icon: <Tag size={22} /> },
 ]
 
 function SidebarLink({ item }: { item: NavItem }) {
@@ -68,7 +68,7 @@ function BottomNavLink({ item }: { item: NavItem }) {
       end={item.to === '/admin'}
       className={({ isActive }) =>
         [
-          'flex flex-col items-center gap-1 py-2 px-3 rounded-xl text-xs transition-all duration-200 flex-1',
+          'flex flex-col items-center gap-1.5 py-3 px-3 rounded-xl text-xs transition-all duration-200 flex-1 min-h-[56px] justify-center',
           isActive
             ? 'text-blue-400'
             : 'text-white/40 hover:text-white/60',
@@ -116,7 +116,7 @@ export default function AdminLayout() {
         </header>
 
         {/* Page */}
-        <main className="flex-1 overflow-y-auto pb-20 md:pb-4">
+        <main className="flex-1 overflow-y-auto md:pb-4" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0, y: 6 }}
@@ -130,7 +130,10 @@ export default function AdminLayout() {
       </div>
 
       {/* Bottom nav — mobile only */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center bg-[#060f1e]/95 backdrop-blur-md border-t border-white/5 px-1 pb-[env(safe-area-inset-bottom)]">
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center bg-[#060f1e]/95 backdrop-blur-md border-t border-white/5 px-1"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
         {NAV_ITEMS.map((item) => (
           <BottomNavLink key={item.to} item={item} />
         ))}
