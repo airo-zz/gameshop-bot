@@ -2,215 +2,224 @@
  * useDisintegrate.ts
  * Telegram-style "Thanos snap" dust disintegration effect.
  *
- * Captures a DOM element via html2canvas, then disperses pixels
- * as fine dust particles drifting to the RIGHT — matching Telegram's
- * message deletion animation.
+ * Uses SVG filters (feTurbulence + feDisplacementMap) — the exact same
+ * technique Telegram Web A uses in SnapEffectContainer.tsx.
+ * GPU-accelerated, no canvas, no html2canvas dependency.
  */
 
-import html2canvas from 'html2canvas'
+const SVG_NS = 'http://www.w3.org/2000/svg'
+const DURATION = 800   // ms — slightly faster than TG's 1000ms per user request
+const VISIBILITY_MARGIN = 50
 
-// ── Particle ─────────────────────────────────────────────────────────────────
-
-interface Particle {
-  x: number
-  y: number
-  originX: number
-  originY: number
-  vx: number
-  vy: number
-  r: number
-  g: number
-  b: number
-  a: number
-  size: number
-  life: number       // 0..1, starts at 1
-  decay: number      // per-frame life decrease
-  delay: number      // frames before particle starts moving
-}
-
-// ── Config ───────────────────────────────────────────────────────────────────
-
-const PARTICLE_GAP = 3        // sample every 3rd pixel → finer dust than 4px
-const MAX_PARTICLES = 5000    // cap for mobile performance
-const BASE_SPEED = 1.8        // base rightward velocity
-const LIFE_MIN = 0.012
-const LIFE_MAX = 0.025
-
-// ── Public API ───────────────────────────────────────────────────────────────
+let counter = 0
 
 /**
- * Disintegrate a DOM element with a Telegram-style dust effect.
- * Particles sweep left→right and drift rightward like blown dust.
+ * Disintegrate a DOM element with Telegram's SVG-filter dust effect.
  */
-export async function disintegrate(
+export function disintegrate(
   element: HTMLElement,
   onDone?: () => void,
-): Promise<void> {
-  // 1. Capture the element as a canvas bitmap
-  const snapshot = await html2canvas(element, {
-    backgroundColor: null,
-    scale: 1,
-    logging: false,
-    useCORS: true,
-    removeContainer: true,
-  })
-
-  const width = snapshot.width
-  const height = snapshot.height
-  const ctx = snapshot.getContext('2d')
-  if (!ctx) { onDone?.(); return }
-
-  const imageData = ctx.getImageData(0, 0, width, height).data
-
-  // 2. Sample pixels → create particles
-  const particles: Particle[] = []
-  const gap = PARTICLE_GAP
-  const maxCols = Math.ceil(width / gap)
-
-  for (let y = 0; y < height; y += gap) {
-    for (let x = 0; x < width; x += gap) {
-      const i = (y * width + x) * 4
-      const a = imageData[i + 3]
-      if (a < 30) continue
-
-      // Sweep delay: left-to-right columns, with vertical randomness
-      const col = Math.floor(x / gap)
-      const sweepProgress = col / maxCols
-      // Left columns start first, right columns later — Telegram-style sweep
-      const delay = Math.floor(sweepProgress * 25 + Math.random() * 6)
-
-      // Velocity: primarily RIGHTWARD with slight vertical scatter
-      // This is the key Telegram difference — dust blows to the right
-      const vx = BASE_SPEED * (0.6 + Math.random() * 0.8)
-      const vy = (Math.random() - 0.5) * 1.2  // slight up/down scatter
-
-      particles.push({
-        x, y,
-        originX: x,
-        originY: y,
-        vx,
-        vy,
-        r: imageData[i],
-        g: imageData[i + 1],
-        b: imageData[i + 2],
-        a: a / 255,
-        size: gap,
-        life: 1,
-        decay: LIFE_MIN + Math.random() * (LIFE_MAX - LIFE_MIN),
-        delay,
-      })
-    }
-  }
-
-  // Cap particle count for mobile
-  if (particles.length > MAX_PARTICLES) {
-    particles.sort(() => Math.random() - 0.5)
-    particles.length = MAX_PARTICLES
-  }
-
-  // 3. Position overlay canvas on top of the element
+): boolean {
   const rect = element.getBoundingClientRect()
-  const canvas = document.createElement('canvas')
-  const dpr = window.devicePixelRatio || 1
+  const x = rect.left
+  const y = rect.top
+  const width = rect.width
+  const height = rect.height
 
-  // Extra padding — more on the right side where particles fly to
-  const padLeft = 20
-  const padRight = 160
-  const padY = 40
-  canvas.width = (rect.width + padLeft + padRight) * dpr
-  canvas.height = (rect.height + padY * 2) * dpr
-  canvas.style.cssText = `
+  // Skip if off-screen
+  if (
+    x + width + VISIBILITY_MARGIN < 0 || x - VISIBILITY_MARGIN > window.innerWidth ||
+    y + height + VISIBILITY_MARGIN < 0 || y - VISIBILITY_MARGIN > window.innerHeight
+  ) {
+    element.style.opacity = '0'
+    onDone?.()
+    return false
+  }
+
+  const seed = Math.floor(Date.now() / 1000)
+  const filterId = `snap-dust-${++counter}`
+
+  // Create SVG container
+  const svg = document.createElementNS(SVG_NS, 'svg')
+  svg.setAttribute('width', String(width))
+  svg.setAttribute('height', String(height))
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
+  svg.style.cssText = `
     position: fixed;
-    left: ${rect.left - padLeft}px;
-    top: ${rect.top - padY}px;
-    width: ${rect.width + padLeft + padRight}px;
-    height: ${rect.height + padY * 2}px;
-    z-index: 9999;
+    left: ${x}px;
+    top: ${y}px;
     pointer-events: none;
+    z-index: 9999;
+    overflow: visible;
+    transform-origin: center center;
+    animation: snapScale ${DURATION}ms ease-in forwards;
   `
-  document.body.appendChild(canvas)
 
-  const drawCtx = canvas.getContext('2d')!
-  drawCtx.scale(dpr, dpr)
-  drawCtx.imageSmoothingEnabled = false
+  // Build SVG filter — exact Telegram approach
+  const smallestSide = Math.min(width, height)
 
-  const ox = padLeft
-  const oy = padY
+  const defs = document.createElementNS(SVG_NS, 'defs')
+  const filter = document.createElementNS(SVG_NS, 'filter')
+  filter.setAttribute('id', filterId)
+  filter.setAttribute('x', '-150%')
+  filter.setAttribute('y', '-150%')
+  filter.setAttribute('width', '400%')
+  filter.setAttribute('height', '400%')
+  filter.setAttribute('color-interpolation-filters', 'sRGB')
 
-  // 4. Fade out original element quickly
-  const prevTransition = element.style.transition
-  const prevOpacity = element.style.opacity
-  element.style.transition = 'opacity 0.3s ease-out'
+  // 1) Noise mask — dissolves pixels through fractal noise
+  const turbulence1 = document.createElementNS(SVG_NS, 'feTurbulence')
+  turbulence1.setAttribute('type', 'fractalNoise')
+  turbulence1.setAttribute('baseFrequency', '0.5')
+  turbulence1.setAttribute('numOctaves', '1')
+  turbulence1.setAttribute('result', 'dustNoise')
+  turbulence1.setAttribute('seed', String(seed))
+  filter.appendChild(turbulence1)
+
+  // 2) Animate alpha mask: slope 5→0 (pixels dissolve through noise)
+  const compTransfer = document.createElementNS(SVG_NS, 'feComponentTransfer')
+  compTransfer.setAttribute('in', 'dustNoise')
+  compTransfer.setAttribute('result', 'dustNoiseMask')
+  const funcA = document.createElementNS(SVG_NS, 'feFuncA')
+  funcA.setAttribute('type', 'linear')
+  funcA.setAttribute('slope', '5')
+  funcA.setAttribute('intercept', '0')
+  const animSlope = document.createElementNS(SVG_NS, 'animate')
+  animSlope.setAttribute('attributeName', 'slope')
+  animSlope.setAttribute('values', '5; 2; 1; 0')
+  animSlope.setAttribute('dur', `${DURATION}ms`)
+  animSlope.setAttribute('fill', 'freeze')
+  funcA.appendChild(animSlope)
+  compTransfer.appendChild(funcA)
+  filter.appendChild(compTransfer)
+
+  // 3) Composite source through dust mask
+  const composite = document.createElementNS(SVG_NS, 'feComposite')
+  composite.setAttribute('in', 'SourceGraphic')
+  composite.setAttribute('in2', 'dustNoiseMask')
+  composite.setAttribute('operator', 'in')
+  composite.setAttribute('result', 'dustySource')
+  filter.appendChild(composite)
+
+  // 4) Displacement noises — two layers for organic movement
+  const turbulence2 = document.createElementNS(SVG_NS, 'feTurbulence')
+  turbulence2.setAttribute('type', 'fractalNoise')
+  turbulence2.setAttribute('baseFrequency', '0.015')
+  turbulence2.setAttribute('numOctaves', '1')
+  turbulence2.setAttribute('result', 'displacementNoise1')
+  turbulence2.setAttribute('seed', String(seed + 1))
+  filter.appendChild(turbulence2)
+
+  const turbulence3 = document.createElementNS(SVG_NS, 'feTurbulence')
+  turbulence3.setAttribute('type', 'fractalNoise')
+  turbulence3.setAttribute('baseFrequency', '1')
+  turbulence3.setAttribute('numOctaves', '2')
+  turbulence3.setAttribute('result', 'displacementNoise2')
+  turbulence3.setAttribute('seed', String(seed + 2))
+  filter.appendChild(turbulence3)
+
+  const merge = document.createElementNS(SVG_NS, 'feMerge')
+  merge.setAttribute('result', 'combinedNoise')
+  const mergeNode1 = document.createElementNS(SVG_NS, 'feMergeNode')
+  mergeNode1.setAttribute('in', 'displacementNoise1')
+  merge.appendChild(mergeNode1)
+  const mergeNode2 = document.createElementNS(SVG_NS, 'feMergeNode')
+  mergeNode2.setAttribute('in', 'displacementNoise2')
+  merge.appendChild(mergeNode2)
+  filter.appendChild(merge)
+
+  // 5) Displacement map — animate scale 0→N to scatter pixels
+  const displacement = document.createElementNS(SVG_NS, 'feDisplacementMap')
+  displacement.setAttribute('in', 'dustySource')
+  displacement.setAttribute('in2', 'combinedNoise')
+  displacement.setAttribute('scale', '0')
+  displacement.setAttribute('xChannelSelector', 'R')
+  displacement.setAttribute('yChannelSelector', 'G')
+  const animScale = document.createElementNS(SVG_NS, 'animate')
+  animScale.setAttribute('attributeName', 'scale')
+  animScale.setAttribute('values', `0; ${smallestSide * 3}`)
+  animScale.setAttribute('dur', `${DURATION}ms`)
+  animScale.setAttribute('fill', 'freeze')
+  displacement.appendChild(animScale)
+  filter.appendChild(displacement)
+
+  defs.appendChild(filter)
+  svg.appendChild(defs)
+
+  // Group with filter applied
+  const g = document.createElementNS(SVG_NS, 'g')
+  g.setAttribute('filter', `url(#${filterId})`)
+
+  // foreignObject to hold cloned DOM element
+  const fo = document.createElementNS(SVG_NS, 'foreignObject')
+  fo.setAttribute('width', String(width))
+  fo.setAttribute('height', String(height))
+  fo.style.overflow = 'visible'
+
+  // Clone element with computed styles
+  const clone = element.cloneNode(true) as HTMLElement
+  const computedStyle = window.getComputedStyle(element)
+  clone.style.cssText = ''
+  // Copy key visual properties
+  const propsToClone = [
+    'background', 'background-color', 'border', 'border-radius',
+    'padding', 'color', 'font-size', 'font-weight', 'font-family',
+    'line-height', 'box-shadow', 'display', 'flex-direction',
+    'align-items', 'justify-content', 'gap', 'width', 'height',
+    'overflow',
+  ]
+  for (const prop of propsToClone) {
+    clone.style.setProperty(prop, computedStyle.getPropertyValue(prop), 'important')
+  }
+  clone.style.setProperty('margin', '0', 'important')
+  clone.style.setProperty('position', 'static', 'important')
+  clone.style.setProperty('opacity', '1', 'important')
+
+  fo.appendChild(clone)
+  g.appendChild(fo)
+  svg.appendChild(g)
+
+  // Insert SVG overlay & hide original
+  document.body.appendChild(svg)
+  element.style.transition = `opacity ${DURATION * 0.3}ms ease-out`
   element.style.opacity = '0'
 
-  // 5. Animate
-  let alive = particles.length
+  // Cleanup after animation
+  svg.addEventListener('animationend', () => {
+    svg.remove()
+    onDone?.()
+  }, { once: true })
 
-  function tick() {
-    drawCtx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr)
-    alive = 0
-
-    for (const p of particles) {
-      if (p.life <= 0) continue
-
-      if (p.delay > 0) {
-        // Not started yet — draw in original position
-        p.delay--
-        drawCtx.globalAlpha = p.a * p.life
-        drawCtx.fillStyle = `rgb(${p.r},${p.g},${p.b})`
-        drawCtx.fillRect(ox + p.originX, oy + p.originY, p.size, p.size)
-        alive++
-        continue
-      }
-
-      // Physics: drift rightward, slight vertical scatter, decelerate slightly
-      p.vx *= 0.99
-      p.vy *= 0.98
-      p.x += p.vx
-      p.y += p.vy
-      p.life -= p.decay
-
-      if (p.life <= 0) continue
-
-      // Draw — particles shrink and fade as they drift
-      const alpha = p.a * p.life * p.life  // quadratic fade for smoother disappearance
-      drawCtx.globalAlpha = alpha
-      drawCtx.fillStyle = `rgb(${p.r},${p.g},${p.b})`
-      const size = p.size * (0.2 + p.life * 0.8)
-      drawCtx.fillRect(ox + p.x, oy + p.y, size, size)
-      alive++
-    }
-
-    if (alive > 0) {
-      requestAnimationFrame(tick)
-    } else {
-      canvas.remove()
+  // Fallback cleanup (in case animationend doesn't fire)
+  setTimeout(() => {
+    if (svg.parentNode) {
+      svg.remove()
       onDone?.()
     }
-  }
+  }, DURATION + 100)
 
-  requestAnimationFrame(tick)
+  return true
 }
 
 /**
  * Disintegrate multiple elements sequentially with stagger.
  */
-export async function disintegrateAll(
+export function disintegrateAll(
   elements: HTMLElement[],
   staggerMs = 60,
   onAllDone?: () => void,
-): Promise<void> {
+): void {
   if (elements.length === 0) { onAllDone?.(); return }
 
   let completed = 0
   const total = elements.length
 
-  for (let i = 0; i < total; i++) {
-    const el = elements[i]
-    await new Promise<void>((resolve) => setTimeout(resolve, i > 0 ? staggerMs : 0))
-    disintegrate(el, () => {
-      completed++
-      if (completed >= total) onAllDone?.()
-    })
-  }
+  elements.forEach((el, i) => {
+    setTimeout(() => {
+      disintegrate(el, () => {
+        completed++
+        if (completed >= total) onAllDone?.()
+      })
+    }, i * staggerMs)
+  })
 }

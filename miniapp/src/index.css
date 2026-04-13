@@ -190,6 +190,9 @@ button { user-select: none; }
 @keyframes float       { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
 @keyframes starTwinkle { 0%,100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.4); } }
 
+/* ── Snap dust effect (Telegram-style SVG filter animation) ─────────────── */
+@keyframes snapScale { 0% { transform: scale(1); } 100% { transform: scale(1.15); } }
+
 /* ── Utility classes ─────────────────────────────────────────────────────── */
 .animate-fade-in    { animation: fadeIn    0.25s ease-out both; }
 .animate-slide-up   { animation: slideUp   0.3s  ease-out both; }
