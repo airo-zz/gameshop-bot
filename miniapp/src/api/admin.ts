@@ -395,10 +395,7 @@ export const adminApi = {
   uploadImage: (file: File) => {
     const formData = new FormData()
     formData.append('file', file)
-    // Don't set Content-Type manually — axios auto-generates it with boundary
-    return apiClient.post<{ url: string }>('/admin/upload/image', formData, {
-      headers: { 'Content-Type': undefined },
-    }).then(r => r.data)
+    return apiClient.post<{ url: string }>('/admin/upload/image', formData).then(r => r.data)
   },
 
   // Discounts — Rules

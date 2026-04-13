@@ -40,11 +40,15 @@ export const apiClient: AxiosInstance = axios.create({
   headers: { 'Content-Type': 'application/json' },
 })
 
-// ── Request interceptor — добавляем Authorization ─────────────────────────────
+// ── Request interceptor — добавляем Authorization + fix multipart ────────────
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     if (accessToken) {
       config.headers.Authorization = `Bearer ${accessToken}`
+    }
+    // При FormData удаляем Content-Type — axios сам выставит multipart с boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type']
     }
     return config
   }
