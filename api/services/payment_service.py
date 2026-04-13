@@ -83,6 +83,14 @@ class PaymentService:
         payment = await self._create_payment_record(order, user, PaymentMethod.balance)
 
         try:
+            # new → pending_payment — обязательный промежуточный переход по конечному автомату
+            if order.status == OrderStatus.new:
+                await self.order_svc.change_status(
+                    order,
+                    OrderStatus.pending_payment,
+                    changed_by_type="system",
+                    reason="Инициирована оплата балансом",
+                )
             await self.order_svc.pay_with_balance(order, user)
             payment.status = PaymentStatus.succeeded
             payment.paid_at = datetime.now(timezone.utc)
