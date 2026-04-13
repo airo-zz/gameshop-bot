@@ -709,19 +709,19 @@ export default function HomePage() {
           >
             {/* Segment control */}
             <div
-              className="flex p-0.5 rounded-xl"
+              className="flex p-1 rounded-2xl"
               style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
             >
               {([
-                { value: 'game' as const, label: 'Игры', icon: '🎮' },
-                { value: 'service' as const, label: 'Сервисы', icon: '⚡' },
+                { value: 'game' as const, label: 'Игры' },
+                { value: 'service' as const, label: 'Сервисы' },
               ]).map(tab => {
                 const isActive = homeType === tab.value
                 return (
                   <button
                     key={tab.value}
                     onClick={() => setHomeType(tab.value)}
-                    className="relative flex-1 flex items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-semibold transition-colors"
+                    className="relative flex-1 flex items-center justify-center rounded-xl py-2 text-sm font-semibold transition-colors"
                     style={{
                       color: isActive ? 'var(--text)' : 'var(--hint)',
                       border: 'none',
@@ -733,12 +733,11 @@ export default function HomePage() {
                     {isActive && (
                       <motion.div
                         layoutId="home-tab-pill"
-                        className="absolute inset-0 rounded-lg"
+                        className="absolute inset-0 rounded-xl"
                         style={{ background: 'rgba(255,255,255,0.1)', zIndex: -1 }}
                         transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                       />
                     )}
-                    <span style={{ fontSize: 13, lineHeight: 1 }}>{tab.icon}</span>
                     {tab.label}
                   </button>
                 )

@@ -19,9 +19,9 @@ function useDebounce<T>(value: T, delay: number): T {
 
 type CatalogType = 'game' | 'service'
 
-const TABS: { value: CatalogType; label: string; icon: string }[] = [
-  { value: 'game',    label: 'Игры',    icon: '🎮' },
-  { value: 'service', label: 'Сервисы', icon: '⚡' },
+const TABS: { value: CatalogType; label: string }[] = [
+  { value: 'game',    label: 'Игры' },
+  { value: 'service', label: 'Сервисы' },
 ]
 
 export default function CatalogPage() {
@@ -107,7 +107,6 @@ export default function CatalogPage() {
                   transition={{ type: 'spring', stiffness: 380, damping: 32 }}
                 />
               )}
-              <span style={{ fontSize: 15, lineHeight: 1 }}>{tab.icon}</span>
               {tab.label}
             </button>
           )
@@ -220,7 +219,7 @@ export default function CatalogPage() {
                       aspectRatio="1 / 1"
                       objectFit="cover"
                       loading="lazy"
-                      fallback={<div className="w-full h-full flex items-center justify-center text-2xl" style={{ background: 'var(--bg3)' }}>🎮</div>}
+                      fallback={<div className="w-full h-full" style={{ background: 'var(--bg3)' }} />}
                     />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -270,9 +269,7 @@ export default function CatalogPage() {
                       loading="lazy"
                       style={{ width: '100%' }}
                       fallback={
-                        <div className="w-full h-full flex items-center justify-center text-4xl" style={{ background: 'var(--bg3)' }}>
-                          {activeType === 'service' ? '⚡' : '🎮'}
-                        </div>
+                        <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--bg3)' }} />
                       }
                     />
                     <div className="px-2 py-1.5">
@@ -289,7 +286,6 @@ export default function CatalogPage() {
 
       {!isLoading && !isSearching && games.length === 0 && (
         <div className="text-center py-20">
-          <p className="text-5xl mb-3">{activeType === 'game' ? '🎮' : '⚡'}</p>
           <p style={{ color: 'var(--hint)' }}>
             {activeType === 'game' ? 'Игры скоро появятся' : 'Сервисы скоро появятся'}
           </p>
