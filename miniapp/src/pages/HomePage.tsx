@@ -709,8 +709,8 @@ export default function HomePage() {
           >
             {/* Segment control */}
             <div
-              className="flex p-1 rounded-2xl"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
+              className="flex flex-1 p-1 rounded-2xl"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', marginRight: 12 }}
             >
               {([
                 { value: 'game' as const, label: 'Игры' },
