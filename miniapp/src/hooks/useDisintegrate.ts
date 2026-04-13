@@ -3,32 +3,80 @@
  * Telegram-style "Thanos snap" dust disintegration effect.
  *
  * Hybrid approach:
- * - html2canvas for reliable DOM→image capture (handles CSS vars, Tailwind, images)
- * - SVG feTurbulence + feDisplacementMap for GPU-accelerated dust animation
+ * - html2canvas for reliable DOM→image capture
+ * - SVG feTurbulence + feDisplacementMap for GPU dust animation
  *   (same filter chain as Telegram Web A's SnapEffectContainer.tsx)
+ * - requestAnimationFrame drives filter param updates (reliable vs SMIL)
  */
 
 import html2canvas from 'html2canvas'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
 const DURATION = 800
-const VISIBILITY_MARGIN = 50
 
 let counter = 0
 
 /**
- * Build the SVG filter element — exact Telegram filter chain.
+ * Disintegrate a DOM element with Telegram-style dust effect.
  */
-function createDustFilter(id: string, smallestSide: number, seed: number): SVGFilterElement {
+export async function disintegrate(
+  element: HTMLElement,
+  onDone?: () => void,
+): Promise<void> {
+  const rect = element.getBoundingClientRect()
+  const { left: x, top: y, width, height } = rect
+
+  // Skip off-screen elements
+  if (
+    x + width < -50 || x - 50 > window.innerWidth ||
+    y + height < -50 || y - 50 > window.innerHeight
+  ) {
+    element.style.opacity = '0'
+    onDone?.()
+    return
+  }
+
+  // 1. Capture element as image
+  const snapshot = await html2canvas(element, {
+    backgroundColor: null,
+    scale: 1,
+    logging: false,
+    useCORS: true,
+    removeContainer: true,
+  })
+  const dataUrl = snapshot.toDataURL()
+
+  // 2. Build SVG with static filter (no SMIL <animate>)
+  const seed = Math.floor(Date.now() / 1000) + counter
+  const filterId = `snap-${++counter}`
+  const smallestSide = Math.min(width, height)
+
+  const svg = document.createElementNS(SVG_NS, 'svg')
+  svg.setAttribute('width', String(width))
+  svg.setAttribute('height', String(height))
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
+  svg.style.cssText = `
+    position: fixed;
+    left: ${x}px;
+    top: ${y}px;
+    width: ${width}px;
+    height: ${height}px;
+    pointer-events: none;
+    z-index: 9999;
+    overflow: visible;
+  `
+
+  // Build filter with references we'll animate manually
+  const defs = document.createElementNS(SVG_NS, 'defs')
   const filter = document.createElementNS(SVG_NS, 'filter')
-  filter.setAttribute('id', id)
+  filter.setAttribute('id', filterId)
   filter.setAttribute('x', '-150%')
   filter.setAttribute('y', '-150%')
   filter.setAttribute('width', '400%')
   filter.setAttribute('height', '400%')
   filter.setAttribute('color-interpolation-filters', 'sRGB')
 
-  // 1) Fractal noise → dust mask
+  // feTurbulence → dust noise pattern
   const turb1 = document.createElementNS(SVG_NS, 'feTurbulence')
   turb1.setAttribute('type', 'fractalNoise')
   turb1.setAttribute('baseFrequency', '0.5')
@@ -37,24 +85,18 @@ function createDustFilter(id: string, smallestSide: number, seed: number): SVGFi
   turb1.setAttribute('seed', String(seed))
   filter.appendChild(turb1)
 
-  // 2) Alpha mask: slope animates 5→0 (dissolves pixels through noise)
+  // feComponentTransfer → alpha mask (slope will be animated)
   const ct = document.createElementNS(SVG_NS, 'feComponentTransfer')
   ct.setAttribute('in', 'dustNoise')
   ct.setAttribute('result', 'dustNoiseMask')
-  const fa = document.createElementNS(SVG_NS, 'feFuncA')
-  fa.setAttribute('type', 'linear')
-  fa.setAttribute('slope', '5')
-  fa.setAttribute('intercept', '0')
-  const anim1 = document.createElementNS(SVG_NS, 'animate')
-  anim1.setAttribute('attributeName', 'slope')
-  anim1.setAttribute('values', '5; 2; 1; 0')
-  anim1.setAttribute('dur', `${DURATION}ms`)
-  anim1.setAttribute('fill', 'freeze')
-  fa.appendChild(anim1)
-  ct.appendChild(fa)
+  const funcA = document.createElementNS(SVG_NS, 'feFuncA')
+  funcA.setAttribute('type', 'linear')
+  funcA.setAttribute('slope', '5')
+  funcA.setAttribute('intercept', '0')
+  ct.appendChild(funcA)
   filter.appendChild(ct)
 
-  // 3) Composite source through dust mask
+  // feComposite → mask source through noise
   const comp = document.createElementNS(SVG_NS, 'feComposite')
   comp.setAttribute('in', 'SourceGraphic')
   comp.setAttribute('in2', 'dustNoiseMask')
@@ -62,7 +104,7 @@ function createDustFilter(id: string, smallestSide: number, seed: number): SVGFi
   comp.setAttribute('result', 'dustySource')
   filter.appendChild(comp)
 
-  // 4) Two displacement noise layers for organic movement
+  // Two displacement noise layers
   const turb2 = document.createElementNS(SVG_NS, 'feTurbulence')
   turb2.setAttribute('type', 'fractalNoise')
   turb2.setAttribute('baseFrequency', '0.015')
@@ -89,107 +131,61 @@ function createDustFilter(id: string, smallestSide: number, seed: number): SVGFi
   merge.appendChild(mn2)
   filter.appendChild(merge)
 
-  // 5) Displacement map: scale animates 0→N (scatters pixels)
+  // feDisplacementMap (scale will be animated)
   const disp = document.createElementNS(SVG_NS, 'feDisplacementMap')
   disp.setAttribute('in', 'dustySource')
   disp.setAttribute('in2', 'combinedNoise')
   disp.setAttribute('scale', '0')
   disp.setAttribute('xChannelSelector', 'R')
   disp.setAttribute('yChannelSelector', 'G')
-  const anim2 = document.createElementNS(SVG_NS, 'animate')
-  anim2.setAttribute('attributeName', 'scale')
-  anim2.setAttribute('values', `0; ${smallestSide * 3}`)
-  anim2.setAttribute('dur', `${DURATION}ms`)
-  anim2.setAttribute('fill', 'freeze')
-  disp.appendChild(anim2)
   filter.appendChild(disp)
 
-  return filter
-}
-
-/**
- * Disintegrate a DOM element with Telegram-style dust effect.
- * Uses html2canvas for capture + SVG filters for GPU animation.
- */
-export async function disintegrate(
-  element: HTMLElement,
-  onDone?: () => void,
-): Promise<void> {
-  const rect = element.getBoundingClientRect()
-  const { left: x, top: y, width, height } = rect
-
-  // Skip if off-screen
-  if (
-    x + width + VISIBILITY_MARGIN < 0 || x - VISIBILITY_MARGIN > window.innerWidth ||
-    y + height + VISIBILITY_MARGIN < 0 || y - VISIBILITY_MARGIN > window.innerHeight
-  ) {
-    element.style.opacity = '0'
-    onDone?.()
-    return
-  }
-
-  // 1. Capture element as image via html2canvas
-  const snapshot = await html2canvas(element, {
-    backgroundColor: null,
-    scale: 1,
-    logging: false,
-    useCORS: true,
-    removeContainer: true,
-  })
-  const dataUrl = snapshot.toDataURL()
-
-  // 2. Build SVG with filter + captured image
-  const seed = Math.floor(Date.now() / 1000) + counter
-  const filterId = `snap-dust-${++counter}`
-  const smallestSide = Math.min(width, height)
-
-  const svg = document.createElementNS(SVG_NS, 'svg')
-  svg.setAttribute('width', String(width))
-  svg.setAttribute('height', String(height))
-  svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
-  svg.style.cssText = `
-    position: fixed;
-    left: ${x}px;
-    top: ${y}px;
-    width: ${width}px;
-    height: ${height}px;
-    pointer-events: none;
-    z-index: 9999;
-    overflow: visible;
-    transform-origin: center center;
-    animation: snapScale ${DURATION}ms ease-in forwards;
-  `
-
-  // Defs + filter
-  const defs = document.createElementNS(SVG_NS, 'defs')
-  defs.appendChild(createDustFilter(filterId, smallestSide, seed))
+  defs.appendChild(filter)
   svg.appendChild(defs)
 
-  // Image with filter applied
+  // Image element with captured snapshot
   const img = document.createElementNS(SVG_NS, 'image')
-  img.setAttribute('href', dataUrl)
+  img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', dataUrl)
   img.setAttribute('width', String(width))
   img.setAttribute('height', String(height))
   img.setAttribute('filter', `url(#${filterId})`)
   svg.appendChild(img)
 
-  // 3. Insert SVG & hide original
+  // 3. Insert overlay, hide original
   document.body.appendChild(svg)
-  element.style.transition = `opacity ${DURATION * 0.25}ms ease-out`
+  element.style.transition = 'opacity 0.2s ease-out'
   element.style.opacity = '0'
 
-  // 4. Cleanup
-  let cleaned = false
-  const cleanup = () => {
-    if (cleaned) return
-    cleaned = true
-    svg.remove()
-    onDone?.()
+  // 4. Animate filter params with rAF
+  const maxDisp = smallestSide * 3
+  const startTime = performance.now()
+
+  function tick(now: number) {
+    const elapsed = now - startTime
+    const t = Math.min(elapsed / DURATION, 1) // 0→1
+
+    // Slope: 5→0 with ease-in curve (faster dissolve at end)
+    const slope = 5 * (1 - t) * (1 - t)
+    funcA.setAttribute('slope', String(slope))
+
+    // Displacement: 0→max with ease-out curve (fast scatter start)
+    const eased = 1 - (1 - t) * (1 - t)
+    disp.setAttribute('scale', String(eased * maxDisp))
+
+    // Slight scale-up like Telegram
+    const scale = 1 + t * 0.15
+    svg.style.transform = `scale(${scale})`
+    svg.style.transformOrigin = 'center center'
+
+    if (t < 1) {
+      requestAnimationFrame(tick)
+    } else {
+      svg.remove()
+      onDone?.()
+    }
   }
 
-  svg.addEventListener('animationend', cleanup, { once: true })
-  // Fallback in case animationend doesn't fire
-  setTimeout(cleanup, DURATION + 150)
+  requestAnimationFrame(tick)
 }
 
 /**
