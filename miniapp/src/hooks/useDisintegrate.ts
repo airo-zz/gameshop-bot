@@ -1,30 +1,30 @@
 /**
  * useDisintegrate.ts
  *
- * Premium "Vortex Glitch" animation for cart clearing.
+ * Apple-style "fold into trash" animation for cart clearing.
  *
  * Visual effect (three overlapping phases):
  *
- *   Phase 0 — GLITCH SLICE (0ms → 180ms):
- *     A fixed clone of each element is created. The clone gets split into
- *     3 horizontal "slices" via clip-path: inset(). The slices shift
- *     left/right rapidly (box-shadow RGB offset illusion), simulating a
- *     digital corruption before the element is destroyed.
+ *   Phase 0 — CLONE DETACH (0ms):
+ *     A fixed clone of each element is created at the element's exact
+ *     screen position. The original element is hidden instantly so the
+ *     clone takes its visual place.
  *
- *   Phase 1 — VORTEX PULL (100ms → 700ms):
- *     Each clone translates toward a single focal point (center of the
- *     viewport, slightly upward) while rotating and scaling down to zero.
- *     The trajectory curves like a spiral: x uses an ease-in curve,
- *     y uses a softer curve. The combination produces a spiral path
- *     without any complex math.
+ *   Phase 1 — ARC FLIGHT (0ms → 750ms):
+ *     The clone travels along a curved Bezier-style path toward the
+ *     bottom-right corner of the viewport (where the cart/tab-bar lives).
+ *     Three keyframes simulate the arc: start → control point (offset
+ *     diagonally) → destination. Scale goes from 1 → 0.5 → 0.1, rotation
+ *     adds a gentle 8-12° tilt. Opacity stays near 1 until the final 25%
+ *     of the path, then fades to 0 — exactly as Apple does it.
  *
- *   Phase 2 — LAYOUT COLLAPSE (staggered, 80ms after clone is created):
- *     The original element (still in DOM flow) collapses its height,
- *     margins, and paddings to zero while the clone is mid-flight.
- *     The gap in the list closes smoothly.
+ *   Phase 2 — LAYOUT COLLAPSE (60ms → 380ms):
+ *     The original element's height, margins and paddings animate to zero
+ *     while the clone is mid-flight. The gap in the list closes smoothly
+ *     with a Material/Apple standard ease curve [0.4, 0, 0.2, 1].
  *
- * Stagger direction: top-to-bottom (natural reading order). All elements
- * converge to the same vortex point, creating a "black hole" visual.
+ * Stagger direction: top-to-bottom (natural reading order).
+ * All clones converge to the same bottom-right destination.
  *
  * Public API:
  *   disintegrateAll(elements, staggerMs, onAllDone?)
@@ -35,104 +35,41 @@ import { animate } from 'framer-motion'
 
 // ─── tunables ────────────────────────────────────────────────────────────────
 
-const GLITCH_DURATION_MS = 180
-const VORTEX_DURATION_MS = 580
-const VORTEX_OFFSET_MS   = 80   // vortex starts this many ms after clone spawn
-const COLLAPSE_OFFSET_MS = 60   // layout collapse starts this many ms after clone spawn
-const COLLAPSE_DURATION_MS = 320
+const FLIGHT_DURATION_MS   = 750   // clone arc flight
+const COLLAPSE_OFFSET_MS   = 60    // layout collapse starts this many ms after clone spawn
+const COLLAPSE_DURATION_MS = 360   // how long the height animates to zero
 
-// Vortex focal point: slightly above center — feels like an upward drain
-const VORTEX_Y_OFFSET_VH = -0.12  // fraction of viewport height, negative = up
+// Control-point offset: how far the arc bows outward from a straight line.
+// Positive = bows to the left/up, creating a natural genie-style curve.
+const ARC_CTRL_X_OFFSET = -80   // pixels: arc bows left
+const ARC_CTRL_Y_OFFSET = -60   // pixels: arc bows upward at midpoint
 
-// ─── focal point ─────────────────────────────────────────────────────────────
+// Final scale when clone reaches destination (near-zero but not exactly 0
+// so spring overshoot looks natural)
+const FINAL_SCALE = 0.08
 
-function getVortexPoint(): { x: number; y: number } {
+// Tilt: positive = clockwise. Items tilt slightly as they fly.
+const TILT_DEG = 10
+
+// ─── destination point ───────────────────────────────────────────────────────
+
+/**
+ * Returns the pixel coordinate of the bottom-right "trash" destination.
+ * Positioned 32px from the right and 48px from the bottom to align roughly
+ * with a typical tab-bar icon.
+ */
+function getTrashPoint(): { x: number; y: number } {
   return {
-    x: window.innerWidth / 2,
-    y: window.innerHeight / 2 + window.innerHeight * VORTEX_Y_OFFSET_VH,
+    x: window.innerWidth  - 32,
+    y: window.innerHeight - 48,
   }
 }
 
-// ─── glitch slice effect on a clone ──────────────────────────────────────────
-
-/**
- * Creates three invisible overlay divs inside `container` that each show
- * a horizontal slice of the clone via clip-path, then animate them with
- * chromatic aberration-style offsets.
- *
- * We use box-shadow with a colored spread as a cheap RGB-channel shift —
- * no SVG filters needed.
- */
-function applyGlitchSlices(container: HTMLElement, durationMs: number): void {
-  const h = container.offsetHeight
-  if (h === 0) return
-
-  // Three horizontal bands: top ~33%, middle ~34%, bottom ~33%
-  const bands: Array<{ top: number; bottom: number; xShift: number; color: string }> = [
-    { top: 0,          bottom: h * 0.33, xShift: -6,  color: '255,40,80'  },
-    { top: h * 0.33,   bottom: h * 0.67, xShift:  8,  color: '40,220,255' },
-    { top: h * 0.67,   bottom: h,        xShift: -4,  color: '120,40,255' },
-  ]
-
-  const sliceDivs: HTMLElement[] = []
-
-  bands.forEach(({ top, bottom, xShift, color }) => {
-    const slice = document.createElement('div')
-    slice.style.cssText = `
-      position: absolute;
-      inset: 0;
-      clip-path: inset(${top}px 0 ${h - bottom}px 0);
-      pointer-events: none;
-      will-change: transform, opacity;
-      background: transparent;
-    `
-
-    // Copy the visual appearance from the container's first child (the card)
-    // by giving the slice the same background color as the container
-    const bg = getComputedStyle(container).backgroundColor
-    slice.style.backgroundColor = bg || 'transparent'
-
-    container.appendChild(slice)
-    sliceDivs.push(slice)
-
-    const durationSec = durationMs / 1000
-
-    // Rapid jitter: shift left-right 4 times during glitch window
-    animate(
-      slice,
-      {
-        x:       [0, xShift, -xShift * 0.5, xShift * 1.2, 0],
-        opacity: [1, 1,       1,              1,             0],
-        // CSS box-shadow as a colored glow that imitates channel separation
-        boxShadow: [
-          `0 0 0px rgba(${color},0)`,
-          `${xShift * 2}px 0 8px rgba(${color},0.9)`,
-          `${-xShift}px 0 6px rgba(${color},0.6)`,
-          `${xShift * 1.5}px 0 10px rgba(${color},0.8)`,
-          `0 0 0px rgba(${color},0)`,
-        ],
-      },
-      {
-        duration: durationSec,
-        ease: 'linear',
-        times: [0, 0.25, 0.5, 0.75, 1],
-      },
-    )
-  })
-
-  // Cleanup slices after animation
-  setTimeout(() => {
-    sliceDivs.forEach(s => {
-      if (s.parentNode) s.parentNode.removeChild(s)
-    })
-  }, durationMs + 20)
-}
-
-// ─── clone creation and positioning ─────────────────────────────────────────
+// ─── clone creation ──────────────────────────────────────────────────────────
 
 interface CloneInfo {
   clone: HTMLElement
-  rect: DOMRect
+  rect:  DOMRect
 }
 
 function createFixedClone(el: HTMLElement): CloneInfo | null {
@@ -155,13 +92,14 @@ function createFixedClone(el: HTMLElement): CloneInfo | null {
     transform-origin: center center;
     box-sizing: border-box;
     overflow: hidden;
+    border-radius: inherit;
   `
 
-  // Remove any transitions from the clone so framer-motion owns it entirely
-  const allInner = clone.querySelectorAll<HTMLElement>('*')
-  allInner.forEach(child => {
+  // Strip any transitions/animations on cloned children so Framer Motion
+  // has full ownership of the clone's visual state.
+  clone.querySelectorAll<HTMLElement>('*').forEach(child => {
     child.style.transition = 'none'
-    child.style.animation = 'none'
+    child.style.animation  = 'none'
   })
 
   document.body.appendChild(clone)
@@ -171,15 +109,15 @@ function createFixedClone(el: HTMLElement): CloneInfo | null {
 // ─── layout collapse of the original element ────────────────────────────────
 
 interface LayoutSnapshot {
-  height: number
-  marginTop: string
-  marginBottom: string
-  paddingTop: string
+  height:        number
+  marginTop:     string
+  marginBottom:  string
+  paddingTop:    string
   paddingBottom: string
-  overflow: string
-  transition: string
-  opacity: string
-  visibility: string
+  overflow:      string
+  transition:    string
+  opacity:       string
+  visibility:    string
 }
 
 function snapshotLayout(el: HTMLElement): LayoutSnapshot {
@@ -198,11 +136,9 @@ function snapshotLayout(el: HTMLElement): LayoutSnapshot {
 }
 
 function hideOriginalInstantly(el: HTMLElement): void {
-  // Make original invisible immediately — the clone takes its visual place
-  el.style.transition = 'none'
-  el.style.opacity    = '0'
-  el.style.visibility = 'hidden'
-  // Lock height so it still occupies space until collapse runs
+  el.style.transition  = 'none'
+  el.style.opacity     = '0'
+  el.style.visibility  = 'hidden'
   const h = el.getBoundingClientRect().height
   if (h > 0) el.style.height = `${h}px`
   el.style.overflow = 'hidden'
@@ -227,77 +163,103 @@ function collapseElement(
       },
       {
         duration: durationMs / 1000,
+        // Standard Apple/Material easing for layout transitions
         ease: [0.4, 0, 0.2, 1],
       },
     ).then(() => {
-      // Full cleanup of original
-      el.style.display    = 'none'
-      el.style.height     = snap.height > 0 ? `${snap.height}px` : ''
-      el.style.marginTop  = snap.marginTop
-      el.style.marginBottom = snap.marginBottom
-      el.style.paddingTop = snap.paddingTop
+      el.style.display       = 'none'
+      el.style.height        = snap.height > 0 ? `${snap.height}px` : ''
+      el.style.marginTop     = snap.marginTop
+      el.style.marginBottom  = snap.marginBottom
+      el.style.paddingTop    = snap.paddingTop
       el.style.paddingBottom = snap.paddingBottom
-      el.style.overflow   = snap.overflow
-      el.style.transition = snap.transition
-      el.style.opacity    = snap.opacity
-      el.style.visibility = snap.visibility
+      el.style.overflow      = snap.overflow
+      el.style.transition    = snap.transition
+      el.style.opacity       = snap.opacity
+      el.style.visibility    = snap.visibility
       onDone?.()
     })
   }, delayMs)
 }
 
-// ─── vortex animation on clone ───────────────────────────────────────────────
+// ─── arc flight animation on clone ───────────────────────────────────────────
 
-function animateVortex(
+/**
+ * Animates the clone along a curved arc toward the trash destination,
+ * scaling it down and fading it out at the end — Apple Genie/Trash style.
+ *
+ * Path shape:
+ *   start (clone center)
+ *     → control point (offset to bow the path into a natural arc)
+ *     → destination (bottom-right trash point)
+ *
+ * Three keyframes at t=0, t=0.45, t=1 produce a smooth perceived curve
+ * because scale and translation both decelerate together.
+ */
+function animateArcFlight(
   clone: HTMLElement,
-  rect: DOMRect,
-  delayMs: number,
+  rect:  DOMRect,
   durationMs: number,
   onDone?: () => void,
 ): void {
-  const vortex = getVortexPoint()
+  const dest = getTrashPoint()
 
-  // Delta from clone center to vortex focal point
+  // Delta from clone center to destination
   const cloneCenterX = rect.left + rect.width  / 2
   const cloneCenterY = rect.top  + rect.height / 2
-  const dx = vortex.x - cloneCenterX
-  const dy = vortex.y - cloneCenterY
+  const totalDx = dest.x - cloneCenterX
+  const totalDy = dest.y - cloneCenterY
 
-  // Rotation: amount scales with horizontal distance so far-away items spin more
-  const baseRotation = dx > 0 ? 180 : -180
-  const spinExtra    = Math.abs(dx) / window.innerWidth * 120
+  // Control point at ~45% of the path, bowed away from the straight line.
+  // The bow direction is perpendicular-ish: nudge X left and Y up so the
+  // arc has a gentle outward sweep like macOS Genie.
+  const midDx = totalDx * 0.45 + ARC_CTRL_X_OFFSET
+  const midDy = totalDy * 0.45 + ARC_CTRL_Y_OFFSET
 
-  setTimeout(() => {
-    animate(
-      clone,
-      {
-        // Translate to vortex center, using keyframes for curved path feel:
-        // midpoint is offset to one side to create a hook/arc trajectory
-        x: [0, dx * 0.3 + (dy > 0 ? -40 : 40), dx],
-        y: [0, dy * 0.4,                          dy],
-        rotate: [0, baseRotation * 0.6, baseRotation + (dx > 0 ? spinExtra : -spinExtra)],
-        scale:  [1, 0.7, 0],
-        opacity:[1, 0.8, 0],
-      },
-      {
-        duration: durationMs / 1000,
-        // x accelerates sharply at end (sucked in), y is softer arc
-        ease: [0.2, 0.05, 0.95, 0.85],
-        times: [0, 0.45, 1],
-      },
-    ).then(() => {
-      if (clone.parentNode) clone.parentNode.removeChild(clone)
-      onDone?.()
-    })
-  }, delayMs)
+  // Tilt direction: items to the left of destination tilt clockwise (+),
+  // items to the right tilt counter-clockwise (−).
+  const tilt = totalDx >= 0 ? TILT_DEG : -TILT_DEG
+
+  animate(
+    clone,
+    {
+      // Three keyframes produce the arc illusion via easing + midpoint offset
+      x:       [0,    midDx,  totalDx],
+      y:       [0,    midDy,  totalDy],
+
+      // Scale: stays relatively large until the arc's midpoint, then
+      // collapses sharply — mimics the acceleration into the dock icon
+      scale:   [1,    0.45,   FINAL_SCALE],
+
+      // Gentle tilt builds through the arc
+      rotate:  [0,    tilt * 0.6, tilt],
+
+      // Opacity: full during flight, vanishes only in the last quarter.
+      // times array below maps each keyframe to a progress fraction.
+      opacity: [1,    1,       0],
+    },
+    {
+      duration: durationMs / 1000,
+
+      // Custom cubic-bezier: starts slightly slow (natural pickup), then
+      // accelerates toward destination — like iOS icon shrink.
+      // Equivalent to CSS cubic-bezier(0.25, 0.1, 0.55, 1.0)
+      ease: [0.25, 0.1, 0.55, 1.0],
+
+      // Keyframe timing: control point is at 45% of duration,
+      // destination at 100%. Opacity keyframe at 45% = still 1, so the
+      // fade happens only between 45%→100% of the animation.
+      times: [0, 0.45, 1],
+    },
+  ).then(() => {
+    if (clone.parentNode) clone.parentNode.removeChild(clone)
+    onDone?.()
+  })
 }
 
 // ─── single element ───────────────────────────────────────────────────────────
 
-function disintegrateOne(
-  el: HTMLElement,
-  onDone?: () => void,
-): void {
+function disintegrateOne(el: HTMLElement, onDone?: () => void): void {
   if (!el || !document.contains(el)) {
     onDone?.()
     return
@@ -309,7 +271,7 @@ function disintegrateOne(
     return
   }
 
-  // 1. Create a fixed clone that visually replaces the element
+  // 1. Snapshot rect before any DOM changes
   const cloneInfo = createFixedClone(el)
   if (!cloneInfo) {
     onDone?.()
@@ -317,23 +279,14 @@ function disintegrateOne(
   }
   const { clone, rect } = cloneInfo
 
-  // 2. Immediately hide the original (clone takes its place visually)
+  // 2. Hide the original — clone takes its visual place
   hideOriginalInstantly(el)
 
-  // 3. Glitch effect on clone (starts immediately)
-  applyGlitchSlices(clone, GLITCH_DURATION_MS)
+  // 3. Fly the clone to the trash destination along an arc
+  animateArcFlight(clone, rect, FLIGHT_DURATION_MS, onDone)
 
-  // 4. Vortex animation on clone (starts after short glitch window)
-  animateVortex(clone, rect, VORTEX_OFFSET_MS, VORTEX_DURATION_MS)
-
-  // 5. Collapse original layout while clone flies away
-  const totalAnimMs = VORTEX_OFFSET_MS + VORTEX_DURATION_MS
+  // 4. Collapse the original's layout space while the clone is mid-arc
   collapseElement(el, snap, COLLAPSE_OFFSET_MS, COLLAPSE_DURATION_MS)
-
-  // 6. Signal completion after the full vortex animation ends
-  setTimeout(() => {
-    onDone?.()
-  }, totalAnimMs + 40)
 }
 
 // ─── public API ───────────────────────────────────────────────────────────────
@@ -341,12 +294,13 @@ function disintegrateOne(
 /**
  * Animate all elements out with a stagger, then call `onAllDone`.
  *
- * Stagger runs top-to-bottom: the topmost element starts first and all
- * converge to the same vortex point, creating a "black hole drain" effect.
+ * Elements are sorted top-to-bottom so the list empties from the top,
+ * matching the natural reading direction. All clones converge to the
+ * same bottom-right trash point.
  *
- * @param elements  - Array of DOM elements to disintegrate
+ * @param elements  - Array of DOM elements to animate out
  * @param staggerMs - Delay between each element's animation start (ms)
- * @param onAllDone - Called once after ALL elements finish
+ * @param onAllDone - Called once after ALL elements have finished
  */
 export function disintegrateAll(
   elements: HTMLElement[],
@@ -361,25 +315,20 @@ export function disintegrateAll(
   }
 
   let completed = 0
-  const total = valid.length
+  const total   = valid.length
 
   function onItemDone() {
     completed++
-    if (completed >= total) {
-      onAllDone?.()
-    }
+    if (completed >= total) onAllDone?.()
   }
 
-  // Sort top-to-bottom by DOM position so the drain looks natural
-  const sorted = [...valid].sort((a, b) => {
-    const ay = a.getBoundingClientRect().top
-    const by = b.getBoundingClientRect().top
-    return ay - by
-  })
+  // Sort top-to-bottom: topmost item leaves first, feels natural
+  const sorted = [...valid].sort(
+    (a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top,
+  )
 
   sorted.forEach((el, index) => {
     const delay = index * staggerMs
-
     if (delay === 0) {
       disintegrateOne(el, onItemDone)
     } else {
@@ -389,7 +338,7 @@ export function disintegrateAll(
 }
 
 /**
- * Animate a single element out with the vortex glitch effect.
+ * Animate a single element out with the Apple arc-to-trash effect.
  * Convenience wrapper for one-off use cases (e.g., removing one cart item).
  */
 export function disintegrate(el: HTMLElement, onDone?: () => void): void {
