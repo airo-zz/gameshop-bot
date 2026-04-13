@@ -91,7 +91,7 @@ class CatalogService:
 
     async def get_products_by_category(
         self,
-        category_id: uuid.UUID,
+        category_id: uuid.UUID | None,
         page: int = 0,
         page_size: int = 20,
     ) -> tuple[list[Product], int]:
@@ -102,12 +102,11 @@ class CatalogService:
                 selectinload(Product.lots),
                 selectinload(Product.category).selectinload(Category.game),
             )
-            .where(
-                Product.category_id == category_id,
-                Product.is_active == True,
-            )
+            .where(Product.is_active == True)
             .order_by(Product.sort_order, Product.name)
         )
+        if category_id is not None:
+            base_query = base_query.where(Product.category_id == category_id)
 
         # Total
         count_result = await self.db.execute(

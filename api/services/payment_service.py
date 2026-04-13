@@ -318,9 +318,9 @@ class PaymentService:
     async def _notify_user_payment_success(self, order: Order) -> None:
         """Отправляет уведомление пользователю через aiogram Bot."""
         try:
-            from aiogram import Bot
             from sqlalchemy.orm import selectinload
             from bot.utils.texts import texts
+            from api.bot_instance import get_bot
 
             result = await self.db.execute(
                 select(Order)
@@ -331,11 +331,8 @@ class PaymentService:
             telegram_id = order_with_user.user.telegram_id
             text = texts.order_paid(order.order_number)
 
-            bot = Bot(token=settings.BOT_TOKEN)
-            try:
-                await bot.send_message(telegram_id, text, parse_mode="HTML")
-            finally:
-                await bot.session.close()
+            bot = get_bot()
+            await bot.send_message(telegram_id, text, parse_mode="HTML")
         except Exception as exc:
             logger.warning("Не удалось отправить уведомление об оплате: %s", exc)
             # Уведомление не критично — не прерываем основной flow

@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Shield, Star, Crown, Gem } from 'lucide-react'
 import { catalogApi, profileApi } from '@/api'
+import { getLoyaltyColor, getLoyaltyIconName } from '@/utils/loyalty'
 import { useShopStore, useUIStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
 import logoSrc from '@/assets/logo.png'
@@ -155,20 +156,12 @@ function IconSparkle() {
 // ── Loyalty icon helper ───────────────────────────────────────────────────────
 
 function getLoyaltyIcon(levelName: string | null) {
-  switch (levelName?.toLowerCase()) {
-    case 'silver':   return <Star size={12} />
-    case 'gold':     return <Crown size={12} />
-    case 'platinum': return <Gem size={12} />
-    default:         return <Shield size={12} />
-  }
-}
-
-function getLoyaltyColor(levelName: string | null) {
-  switch (levelName?.toLowerCase()) {
-    case 'silver':   return '#94a3b8'
-    case 'gold':     return '#eab308'
-    case 'platinum': return '#a78bfa'
-    default:         return '#f59e0b' // bronze
+  const iconName = getLoyaltyIconName(levelName)
+  switch (iconName) {
+    case 'Star':    return <Star size={12} />
+    case 'Crown':   return <Crown size={12} />
+    case 'Gem':     return <Gem size={12} />
+    default:        return <Shield size={12} />
   }
 }
 

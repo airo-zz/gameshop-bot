@@ -7,15 +7,7 @@ import { ChevronRight, Search, X } from 'lucide-react'
 import { catalogApi } from '@/api'
 import PageLoader from '@/components/ui/PageLoader'
 import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
-
-function useDebounce<T>(value: T, delay: number): T {
-  const [debounced, setDebounced] = useState(value)
-  useEffect(() => {
-    const t = setTimeout(() => setDebounced(value), delay)
-    return () => clearTimeout(t)
-  }, [value, delay])
-  return debounced
-}
+import { useDebounce } from '@/hooks/useDebounce'
 
 type CatalogType = 'game' | 'service'
 

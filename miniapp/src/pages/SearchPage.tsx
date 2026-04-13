@@ -1,18 +1,14 @@
 // src/pages/SearchPage.tsx
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Search, X } from 'lucide-react'
 import { catalogApi } from '@/api'
 import ProductCard from '@/components/ui/ProductCard'
+import { useDebounce } from '@/hooks/useDebounce'
 
 export default function SearchPage() {
-  const [query, setQuery]           = useState('')
-  const [debouncedQ, setDebouncedQ] = useState('')
-
-  useEffect(() => {
-    const t = setTimeout(() => setDebouncedQ(query), 350)
-    return () => clearTimeout(t)
-  }, [query])
+  const [query, setQuery] = useState('')
+  const debouncedQ = useDebounce(query, 350)
 
   const { data: results = [], isFetching } = useQuery({
     queryKey: ['search', debouncedQ],

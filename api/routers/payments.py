@@ -63,7 +63,10 @@ async def initiate_payment(order_id: str, db: DbSession, user: CurrentUser):
     svc = PaymentService(db)
 
     if order.payment_method.value == "balance":
-        data = await svc.pay_balance(order, user)
+        try:
+            data = await svc.pay_balance(order, user)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
         return PaymentInitResponse(
             method="balance", status="succeeded", success=True, **data
         )

@@ -1,7 +1,7 @@
 // src/pages/CartPage.tsx
 import { useState, useCallback, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { Trash2, Plus, Minus, Tag, ShoppingBag } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi, type CartItem } from '@/api'
@@ -20,7 +20,6 @@ export default function CartPage() {
   const navigate = useNavigate()
   const { haptic, showConfirm } = useTelegram()
   const { setItemsCount } = useCartStore()
-  const qc = useQueryClient()
 
   const [promoInput, setPromoInput] = useState('')
   const [promoApplying, setPromoApplying] = useState(false)
@@ -41,9 +40,8 @@ export default function CartPage() {
     const updated = await refetch()
     if (updated.data) {
       setItemsCount(updated.data.items_count)
-      qc.invalidateQueries({ queryKey: ['cart'] })
     }
-  }, [refetch, setItemsCount, qc])
+  }, [refetch, setItemsCount])
 
   const handleQtyChange = async (item: CartItem, delta: number) => {
     const newQty = item.quantity + delta
@@ -127,29 +125,11 @@ export default function CartPage() {
     </div>
   )
 
-  if (!clearing && !showEmpty && (isError || !cart || cart.items.length === 0)) return (
-    <div className="flex flex-col items-center justify-center h-full gap-5 px-8 text-center pt-16">
-      <div
-        className="w-24 h-24 rounded-3xl flex items-center justify-center"
-        style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
-      >
-        <ShoppingBag size={40} style={{ color: 'var(--hint)' }} />
-      </div>
-      <div>
-        <h2 className="text-xl font-bold mb-1" style={{ color: 'var(--text)' }}>Корзина пуста</h2>
-        <p style={{ color: 'var(--hint)' }} className="text-sm">Перейди в каталог и добавь товары</p>
-      </div>
-      <Link to="/catalog" className="btn-primary" style={{ maxWidth: 200 }}>
-        В каталог
-      </Link>
-    </div>
-  )
-
-  // After disintegration finished, or cart cleared while animating
-  if (showEmpty || !cart || cart.items.length === 0) return (
+  // Показываем "Корзина пуста" если: нет данных/ошибка, или корзина пуста, или после анимации рассыпания
+  if (!clearing && (showEmpty || isError || !cart || cart.items.length === 0)) return (
     <div
       className="flex flex-col items-center justify-center h-full gap-5 px-8 text-center pt-16"
-      style={{ animation: 'slideUp 0.5s ease-out both' }}
+      style={showEmpty ? { animation: 'slideUp 0.5s ease-out both' } : undefined}
     >
       <div
         className="w-24 h-24 rounded-3xl flex items-center justify-center"
@@ -166,6 +146,8 @@ export default function CartPage() {
       </Link>
     </div>
   )
+
+  if (!cart || cart.items.length === 0) return null
 
   return (
     <div className="px-4 pt-5 pb-6 space-y-4 animate-fade-in">

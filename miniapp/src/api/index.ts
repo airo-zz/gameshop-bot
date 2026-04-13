@@ -124,6 +124,13 @@ export interface OrderItem {
   delivered_at: string | null
 }
 
+export interface Ticket {
+  id: string
+  subject: string
+  status: 'open' | 'in_progress' | 'waiting_user' | 'resolved' | 'closed'
+  created_at: string
+}
+
 export interface Profile {
   telegram_id: number
   username: string | null
@@ -225,10 +232,10 @@ export const profileApi = {
 
 export const supportApi = {
   createTicket: (data: { subject: string; message: string; order_id?: string }) =>
-    apiClient.post('/support', data).then(r => r.data),
+    apiClient.post<Ticket>('/support', data).then(r => r.data),
 
   list: () =>
-    apiClient.get('/support').then(r => r.data),
+    apiClient.get<Ticket[]>('/support').then(r => r.data),
 
   reply: (ticketId: string, text: string) =>
     apiClient.post(`/support/${ticketId}/reply`, { text }).then(r => r.data),

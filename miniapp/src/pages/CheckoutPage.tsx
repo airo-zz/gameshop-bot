@@ -1,10 +1,11 @@
 // src/pages/CheckoutPage.tsx
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle, Wallet, CreditCard, Bitcoin, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi, ordersApi, profileApi } from '@/api'
+import { LOYALTY_LEVELS, LOYALTY_DISCOUNTS } from '@/utils/loyalty'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
 
@@ -18,7 +19,7 @@ const PAYMENT_METHODS = [
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
-  const { haptic, openLink, showMainButton, hideMainButton } = useTelegram()
+  const { haptic, openLink } = useTelegram()
   const { setItemsCount } = useCartStore()
 
   const [selectedMethod, setSelectedMethod] = useState('balance')
@@ -29,16 +30,6 @@ export default function CheckoutPage() {
 
   const insufficientBalance =
     selectedMethod === 'balance' && profile && cart && profile.balance < cart.total
-
-  useEffect(() => {
-    const handler = () => handlePlaceOrder()
-    showMainButton(
-      placing ? 'Оформляем...' : `Оплатить · ${cart?.total.toLocaleString('ru') ?? 0} ₽`,
-      handler,
-      { loading: placing }
-    )
-    return () => hideMainButton(handler)
-  }, [selectedMethod, placing, cart?.total])
 
   const handlePlaceOrder = async () => {
     if (placing) return
@@ -112,20 +103,13 @@ export default function CheckoutPage() {
 
         {/* Подсказка о прогрессе лояльности */}
         {profile && (() => {
-          const LEVELS = [
-            { name: 'Bronze',   min: 0,     max: 1000  },
-            { name: 'Silver',   min: 1000,  max: 5000  },
-            { name: 'Gold',     min: 5000,  max: 15000 },
-            { name: 'Platinum', min: 15000, max: null  },
-          ]
-          const DISCOUNTS: Record<string, number> = { Silver: 3, Gold: 5, Platinum: 10 }
           const spent = profile.total_spent
-          const current = [...LEVELS].reverse().find(l => spent >= l.min) ?? LEVELS[0]
-          const currentIdx = LEVELS.indexOf(current)
-          const next = currentIdx < LEVELS.length - 1 ? LEVELS[currentIdx + 1] : null
+          const current = [...LOYALTY_LEVELS].reverse().find(l => spent >= l.min) ?? LOYALTY_LEVELS[0]
+          const currentIdx = LOYALTY_LEVELS.indexOf(current)
+          const next = currentIdx < LOYALTY_LEVELS.length - 1 ? LOYALTY_LEVELS[currentIdx + 1] : null
           if (!next || current.max === null) return null
           const remaining = current.max - spent
-          const discount = DISCOUNTS[next.name] ?? 0
+          const discount = LOYALTY_DISCOUNTS[next.name] ?? 0
           return (
             <div
               style={{

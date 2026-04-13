@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { MessageCircle, Send, Plus, ArrowLeft } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { supportApi } from '@/api'
+import { supportApi, type Ticket } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 
 type View = 'list' | 'new'
@@ -109,7 +109,7 @@ export default function SupportPage() {
               </button>
             </div>
           ) : (
-            tickets.map((ticket: any) => {
+            tickets.map((ticket: Ticket) => {
               const status = STATUS_LABEL[ticket.status] ?? { label: ticket.status, color: 'var(--hint)' }
               return (
                 <div

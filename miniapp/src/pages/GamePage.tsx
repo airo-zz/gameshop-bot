@@ -141,7 +141,7 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
 interface ProductSectionProps {
   product: Product
   cartQtyMap: Map<string, number>
-  onAdd: (product: Product, lot?: Lot) => void
+  onAdd: (product: Product, lot?: Lot, inputData?: Record<string, string>) => void
   onRemove: (product: Product, lot?: Lot) => void
 }
 
@@ -269,7 +269,7 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove }: ProductSection
                   lot={lot}
                   disabled={isOutOfStock}
                   cartQty={cartQtyMap.get(key) ?? 0}
-                  onAdd={() => onAdd(product, lot)}
+                  onAdd={() => onAdd(product, lot, inputData)}
                   onRemove={() => onRemove(product, lot)}
                 />
               )
@@ -311,7 +311,7 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove }: ProductSection
                       <span className="flex-1 text-center text-sm font-bold" style={{ color: '#6b9de8' }}>
                         {qty}
                       </span>
-                      <button disabled={isOutOfStock} onClick={() => onAdd(product)}
+                      <button disabled={isOutOfStock} onClick={() => onAdd(product, undefined, inputData)}
                         className="flex items-center justify-center w-[36px] h-[38px] active:scale-90 transition-transform"
                         style={{ color: '#6b9de8' }}>
                         <Plus size={14} />
@@ -325,7 +325,7 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove }: ProductSection
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.15 }}
                       disabled={isOutOfStock}
-                      onClick={() => onAdd(product)}
+                      onClick={() => onAdd(product, undefined, inputData)}
                       className="flex items-center justify-center gap-2 px-5 h-full text-sm font-semibold active:scale-95 transition-transform"
                       style={{ color: isOutOfStock ? '#f87171' : '#6b9de8' }}
                     >
@@ -402,7 +402,7 @@ export default function GamePage() {
   const rootCats = (cats: Category[]) => cats.filter(c => !c.parent_id)
 
   // Optimistic add to cart
-  const handleAdd = async (product: Product, lot?: Lot) => {
+  const handleAdd = async (product: Product, lot?: Lot, inputData?: Record<string, string>) => {
     const key = lot ? `${product.id}:${lot.id}` : product.id
     if (pendingKeys.current.has(key)) return
     pendingKeys.current.add(key)
@@ -421,7 +421,7 @@ export default function GamePage() {
         product_id: product.id,
         lot_id: lot?.id,
         quantity: 1,
-        input_data: {},
+        input_data: inputData ?? {},
       })
       // Wait for fresh cart data before clearing delta
       await qc.refetchQueries({ queryKey: ['cart'] })
@@ -580,7 +580,7 @@ export default function GamePage() {
               <ProductSection
                 product={product}
                 cartQtyMap={cartQtyMap}
-                onAdd={handleAdd}
+                onAdd={(p, l, data) => handleAdd(p, l, data)}
                 onRemove={handleRemove}
               />
             </motion.div>

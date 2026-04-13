@@ -410,9 +410,8 @@ class OrderService:
     async def _notify_user(self, order: Order, text: str) -> None:
         """Отправляет уведомление пользователю через бота. Не критично — не прерывает flow."""
         try:
-            from aiogram import Bot
-            from shared.config import settings
             from sqlalchemy.orm import selectinload as _sil
+            from api.bot_instance import get_bot
 
             result = await self.db.execute(
                 select(Order)
@@ -424,11 +423,8 @@ class OrderService:
                 return
 
             telegram_id = order_with_user.user.telegram_id
-            bot = Bot(token=settings.BOT_TOKEN)
-            try:
-                await bot.send_message(telegram_id, text, parse_mode="HTML")
-            finally:
-                await bot.session.close()
+            bot = get_bot()
+            await bot.send_message(telegram_id, text, parse_mode="HTML")
         except Exception as exc:
             import logging
             logging.getLogger(__name__).warning("Не удалось отправить уведомление: %s", exc)
