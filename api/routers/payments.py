@@ -68,7 +68,9 @@ async def initiate_payment(order_id: str, db: DbSession, user: CurrentUser):
         except ValueError as e:
             raise HTTPException(400, str(e))
         return PaymentInitResponse(
-            method="balance", status="succeeded", success=True, **data
+            method="balance", status="succeeded",
+            success=data.get("success", True),
+            payment_id=data.get("payment_id"),
         )
 
     elif order.payment_method.value == "card_yukassa":
