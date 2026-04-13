@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Shield, Star, Crown, Gem } from 'lucide-react'
 import { catalogApi, profileApi } from '@/api'
 import { useShopStore, useUIStore } from '@/store'
@@ -443,9 +444,11 @@ export default function HomePage() {
     setParticlesEnabled(v)
   }
 
+  const [homeType, setHomeType] = useState<'game' | 'service'>('game')
+
   const { data: games = [], isLoading: gamesLoading } = useQuery({
-    queryKey: ['games'],
-    queryFn: () => catalogApi.getGames(),
+    queryKey: ['games', homeType],
+    queryFn: () => catalogApi.getGames(homeType),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -704,22 +707,44 @@ export default function HomePage() {
               marginBottom: 12,
             }}
           >
-            <h2
-              style={{
-                margin: 0,
-                fontWeight: 700,
-                fontSize: '1.05rem',
-                color: 'var(--text)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
+            {/* Segment control */}
+            <div
+              className="flex p-0.5 rounded-xl"
+              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)' }}
             >
-              <span style={{ color: '#6b9de8', display: 'flex' }}>
-                <IconGamepadSmall />
-              </span>
-              Игры
-            </h2>
+              {([
+                { value: 'game' as const, label: 'Игры', icon: '🎮' },
+                { value: 'service' as const, label: 'Сервисы', icon: '⚡' },
+              ]).map(tab => {
+                const isActive = homeType === tab.value
+                return (
+                  <button
+                    key={tab.value}
+                    onClick={() => setHomeType(tab.value)}
+                    className="relative flex-1 flex items-center justify-center gap-1 rounded-lg py-1.5 text-xs font-semibold transition-colors"
+                    style={{
+                      color: isActive ? 'var(--text)' : 'var(--hint)',
+                      border: 'none',
+                      background: 'none',
+                      cursor: 'pointer',
+                      zIndex: 1,
+                    }}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="home-tab-pill"
+                        className="absolute inset-0 rounded-lg"
+                        style={{ background: 'rgba(255,255,255,0.1)', zIndex: -1 }}
+                        transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                      />
+                    )}
+                    <span style={{ fontSize: 13, lineHeight: 1 }}>{tab.icon}</span>
+                    {tab.label}
+                  </button>
+                )
+              })}
+            </div>
+
             <Link
               to="/catalog"
               style={{
@@ -737,72 +762,79 @@ export default function HomePage() {
             </Link>
           </div>
 
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 10,
-            }}
-          >
-            {games.map(game => (
-                  <Link
-                    key={game.id}
-                    to={`/catalog/${game.slug}`}
-                    className="active:scale-95 transition-transform"
-                    style={{
-                      borderRadius: 18,
-                      overflow: 'hidden',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                      textDecoration: 'none',
-                      display: 'block',
-                      background: 'rgba(12,11,26,0.50)',
-                      backdropFilter: 'blur(10px)',
-                      WebkitBackdropFilter: 'blur(10px)',
-                    }}
-                  >
-                    <ImageWithSkeleton
-                      src={game.image_url}
-                      alt={game.name}
-                      aspectRatio="1 / 1"
-                      objectFit="cover"
-                      loading="lazy"
-                      style={{ width: '100%' }}
-                      fallback={
-                        <div
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={homeType}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 10,
+              }}
+            >
+              {games.map(game => (
+                    <Link
+                      key={game.id}
+                      to={`/catalog/${game.slug}`}
+                      className="active:scale-95 transition-transform"
+                      style={{
+                        borderRadius: 18,
+                        overflow: 'hidden',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        textDecoration: 'none',
+                        display: 'block',
+                        background: 'rgba(12,11,26,0.50)',
+                        backdropFilter: 'blur(10px)',
+                        WebkitBackdropFilter: 'blur(10px)',
+                      }}
+                    >
+                      <ImageWithSkeleton
+                        src={game.image_url}
+                        alt={game.name}
+                        aspectRatio="1 / 1"
+                        objectFit="cover"
+                        loading="lazy"
+                        style={{ width: '100%' }}
+                        fallback={
+                          <div
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: 'linear-gradient(135deg, #060f1e, #0a1428)',
+                              color: 'rgba(107,157,232,0.5)',
+                            }}
+                          >
+                            <IconGamepadSmall />
+                          </div>
+                        }
+                      />
+                      <div style={{ padding: '6px 6px 9px', background: 'rgba(8,7,20,0.6)', borderTop: '1px solid rgba(45,88,173,0.15)' }}>
+                        <p
                           style={{
-                            width: '100%',
-                            height: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            background: 'linear-gradient(135deg, #060f1e, #0a1428)',
-                            color: 'rgba(107,157,232,0.5)',
+                            margin: 0,
+                            textAlign: 'center',
+                            fontSize: 12,
+                            fontWeight: 600,
+                            color: 'rgba(255,255,255,0.75)',
+                            overflow: 'hidden',
+                            whiteSpace: 'nowrap',
+                            textOverflow: 'ellipsis',
                           }}
                         >
-                          <IconGamepadSmall />
-                        </div>
-                      }
-                    />
-                    <div style={{ padding: '6px 6px 9px', background: 'rgba(8,7,20,0.6)', borderTop: '1px solid rgba(45,88,173,0.15)' }}>
-                      <p
-                        style={{
-                          margin: 0,
-                          textAlign: 'center',
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: 'rgba(255,255,255,0.75)',
-                          overflow: 'hidden',
-                          whiteSpace: 'nowrap',
-                          textOverflow: 'ellipsis',
-                        }}
-                      >
-                        {game.name}
-                      </p>
-                    </div>
-                  </Link>
-                ))
-            }
-          </div>
+                          {game.name}
+                        </p>
+                      </div>
+                    </Link>
+                  ))
+              }
+            </motion.div>
+          </AnimatePresence>
         </section>
 
         {/* ── Open catalog CTA ─────────────────────────────────────────── */}
