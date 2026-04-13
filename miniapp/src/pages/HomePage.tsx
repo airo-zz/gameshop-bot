@@ -662,7 +662,7 @@ export default function HomePage() {
               {featured.slice(0, 6).map((product, i) => (
                 <Link
                   key={product.id}
-                  to={`/product/${product.id}`}
+                  to={product.game_slug ? `/catalog/${product.game_slug}` : `/product/${product.id}`}
                   style={{
                     display: 'flex',
                     alignItems: 'center',

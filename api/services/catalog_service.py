@@ -29,8 +29,10 @@ def _product_to_list_out(product: Product) -> ProductListOut:
     (через selectinload).
     """
     game_name: str | None = None
+    game_slug: str | None = None
     if product.category and product.category.game:
         game_name = product.category.game.name
+        game_slug = product.category.game.slug
 
     return ProductListOut(
         id=product.id,
@@ -44,6 +46,7 @@ def _product_to_list_out(product: Product) -> ProductListOut:
         stock=product.stock,
         lots=product.lots,
         game_name=game_name,
+        game_slug=game_slug,
     )
 
 

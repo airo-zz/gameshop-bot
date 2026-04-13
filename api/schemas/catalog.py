@@ -66,6 +66,7 @@ class ProductListOut(BaseModel):
     stock: int | None
     lots: list[LotOut] = []
     game_name: str | None = None
+    game_slug: str | None = None
 
 
 class InputFieldSchema(BaseModel):
