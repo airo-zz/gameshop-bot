@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, AlertCircle, Save } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -74,7 +74,9 @@ function validate(form: FormState): FormErrors {
 export default function ProductEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const isNew = id === 'new'
+  const presetCategoryId = isNew ? searchParams.get('category_id') : null
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [errors, setErrors] = useState<FormErrors>({})
@@ -95,7 +97,20 @@ export default function ProductEditPage() {
 
     if (isNew) {
       loadGames
-        .then((g) => setGames(g))
+        .then(async (g) => {
+          setGames(g)
+          // Auto-fill game & category from URL param
+          if (presetCategoryId) {
+            for (const game of g) {
+              const cats = await adminApi.getCategories(game.id).catch(() => [] as AdminCategory[])
+              if (cats.some((c) => c.id === presetCategoryId)) {
+                setCategories(cats)
+                setForm((prev) => ({ ...prev, game_id: game.id, category_id: presetCategoryId }))
+                break
+              }
+            }
+          }
+        })
         .catch(() => setInitError(true))
         .finally(() => setLoadingInit(false))
     } else {
@@ -251,7 +266,17 @@ export default function ProductEditPage() {
         </div>
       </div>
 
-      {/* Section: Категория */}
+      {/* Section: Категория — скрыт если предзаполнен из URL */}
+      {presetCategoryId && form.category_id ? (
+        <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4">
+          <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">Категория</h2>
+          <p className="text-sm text-white">
+            {games.find(g => g.id === form.game_id)?.name}
+            {' / '}
+            {categories.find(c => c.id === form.category_id)?.name}
+          </p>
+        </div>
+      ) : (
       <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-4">
         <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Категория</h2>
 
@@ -297,6 +322,7 @@ export default function ProductEditPage() {
           )}
         </div>
       </div>
+      )}
 
       {/* Section: Основное */}
       <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-4">
