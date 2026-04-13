@@ -2,16 +2,15 @@
  * useDisintegrate.ts
  * Telegram-style "Thanos snap" dust disintegration effect.
  *
- * Hybrid approach:
- * - html2canvas for reliable DOM→image capture
- * - SVG feTurbulence + feDisplacementMap for GPU dust animation
- *   (same filter chain as Telegram Web A's SnapEffectContainer.tsx)
- * - requestAnimationFrame drives filter param updates (reliable vs SMIL)
+ * html2canvas captures DOM → SVG filter chain (feTurbulence + feDisplacementMap)
+ * animates via native SMIL <animate> (GPU-accelerated).
+ * Animations are started manually via beginElement() after DOM insertion.
  */
 
 import html2canvas from 'html2canvas'
 
 const SVG_NS = 'http://www.w3.org/2000/svg'
+const XLINK_NS = 'http://www.w3.org/1999/xlink'
 const DURATION = 800
 
 let counter = 0
@@ -26,17 +25,12 @@ export async function disintegrate(
   const rect = element.getBoundingClientRect()
   const { left: x, top: y, width, height } = rect
 
-  // Skip off-screen elements
-  if (
-    x + width < -50 || x - 50 > window.innerWidth ||
-    y + height < -50 || y - 50 > window.innerHeight
-  ) {
-    element.style.opacity = '0'
+  if (width === 0 || height === 0) {
     onDone?.()
     return
   }
 
-  // 1. Capture element as image
+  // 1. Capture element
   const snapshot = await html2canvas(element, {
     backgroundColor: null,
     scale: 1,
@@ -46,146 +40,77 @@ export async function disintegrate(
   })
   const dataUrl = snapshot.toDataURL()
 
-  // 2. Build SVG with static filter (no SMIL <animate>)
+  // 2. Build SVG
   const seed = Math.floor(Date.now() / 1000) + counter
   const filterId = `snap-${++counter}`
   const smallestSide = Math.min(width, height)
+  const dur = `${DURATION / 1000}s`
 
-  const svg = document.createElementNS(SVG_NS, 'svg')
-  svg.setAttribute('width', String(width))
-  svg.setAttribute('height', String(height))
-  svg.setAttribute('viewBox', `0 0 ${width} ${height}`)
-  svg.style.cssText = `
-    position: fixed;
-    left: ${x}px;
-    top: ${y}px;
-    width: ${width}px;
-    height: ${height}px;
-    pointer-events: none;
-    z-index: 9999;
-    overflow: visible;
-  `
+  // We build SVG as innerHTML string — SMIL <animate> elements
+  // created this way are properly registered by the browser engine
+  const svgHTML = `
+<svg xmlns="${SVG_NS}" xmlns:xlink="${XLINK_NS}"
+     width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"
+     style="position:fixed;left:${x}px;top:${y}px;width:${width}px;height:${height}px;pointer-events:none;z-index:9999;overflow:visible;transform-origin:center center;">
+  <defs>
+    <filter id="${filterId}" x="-150%" y="-150%" width="400%" height="400%"
+            color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.5" numOctaves="1"
+                    result="dustNoise" seed="${seed}"/>
+      <feComponentTransfer in="dustNoise" result="dustNoiseMask">
+        <feFuncA type="linear" slope="5" intercept="0">
+          <animate attributeName="slope" values="5;2;1;0" dur="${dur}"
+                   fill="freeze" begin="indefinite"/>
+        </feFuncA>
+      </feComponentTransfer>
+      <feComposite in="SourceGraphic" in2="dustNoiseMask" operator="in" result="dustySource"/>
+      <feTurbulence type="fractalNoise" baseFrequency="0.015" numOctaves="1"
+                    result="dispNoise1" seed="${seed + 1}"/>
+      <feTurbulence type="fractalNoise" baseFrequency="1" numOctaves="2"
+                    result="dispNoise2" seed="${seed + 2}"/>
+      <feMerge result="combinedNoise">
+        <feMergeNode in="dispNoise1"/>
+        <feMergeNode in="dispNoise2"/>
+      </feMerge>
+      <feDisplacementMap in="dustySource" in2="combinedNoise" scale="0"
+                         xChannelSelector="R" yChannelSelector="G">
+        <animate attributeName="scale" values="0;${smallestSide * 3}" dur="${dur}"
+                 fill="freeze" begin="indefinite"/>
+      </feDisplacementMap>
+    </filter>
+  </defs>
+  <image xlink:href="${dataUrl}" width="${width}" height="${height}"
+         filter="url(#${filterId})"/>
+</svg>`
 
-  // Build filter with references we'll animate manually
-  const defs = document.createElementNS(SVG_NS, 'defs')
-  const filter = document.createElementNS(SVG_NS, 'filter')
-  filter.setAttribute('id', filterId)
-  filter.setAttribute('x', '-150%')
-  filter.setAttribute('y', '-150%')
-  filter.setAttribute('width', '400%')
-  filter.setAttribute('height', '400%')
-  filter.setAttribute('color-interpolation-filters', 'sRGB')
+  // 3. Insert into DOM via wrapper div (innerHTML parses SMIL correctly)
+  const wrapper = document.createElement('div')
+  wrapper.style.cssText = 'position:fixed;top:0;left:0;pointer-events:none;z-index:9999;'
+  wrapper.innerHTML = svgHTML
+  const svg = wrapper.firstElementChild as SVGSVGElement
+  document.body.appendChild(wrapper)
 
-  // feTurbulence → dust noise pattern
-  const turb1 = document.createElementNS(SVG_NS, 'feTurbulence')
-  turb1.setAttribute('type', 'fractalNoise')
-  turb1.setAttribute('baseFrequency', '0.5')
-  turb1.setAttribute('numOctaves', '1')
-  turb1.setAttribute('result', 'dustNoise')
-  turb1.setAttribute('seed', String(seed))
-  filter.appendChild(turb1)
-
-  // feComponentTransfer → alpha mask (slope will be animated)
-  const ct = document.createElementNS(SVG_NS, 'feComponentTransfer')
-  ct.setAttribute('in', 'dustNoise')
-  ct.setAttribute('result', 'dustNoiseMask')
-  const funcA = document.createElementNS(SVG_NS, 'feFuncA')
-  funcA.setAttribute('type', 'linear')
-  funcA.setAttribute('slope', '5')
-  funcA.setAttribute('intercept', '0')
-  ct.appendChild(funcA)
-  filter.appendChild(ct)
-
-  // feComposite → mask source through noise
-  const comp = document.createElementNS(SVG_NS, 'feComposite')
-  comp.setAttribute('in', 'SourceGraphic')
-  comp.setAttribute('in2', 'dustNoiseMask')
-  comp.setAttribute('operator', 'in')
-  comp.setAttribute('result', 'dustySource')
-  filter.appendChild(comp)
-
-  // Two displacement noise layers
-  const turb2 = document.createElementNS(SVG_NS, 'feTurbulence')
-  turb2.setAttribute('type', 'fractalNoise')
-  turb2.setAttribute('baseFrequency', '0.015')
-  turb2.setAttribute('numOctaves', '1')
-  turb2.setAttribute('result', 'dispNoise1')
-  turb2.setAttribute('seed', String(seed + 1))
-  filter.appendChild(turb2)
-
-  const turb3 = document.createElementNS(SVG_NS, 'feTurbulence')
-  turb3.setAttribute('type', 'fractalNoise')
-  turb3.setAttribute('baseFrequency', '1')
-  turb3.setAttribute('numOctaves', '2')
-  turb3.setAttribute('result', 'dispNoise2')
-  turb3.setAttribute('seed', String(seed + 2))
-  filter.appendChild(turb3)
-
-  const merge = document.createElementNS(SVG_NS, 'feMerge')
-  merge.setAttribute('result', 'combinedNoise')
-  const mn1 = document.createElementNS(SVG_NS, 'feMergeNode')
-  mn1.setAttribute('in', 'dispNoise1')
-  merge.appendChild(mn1)
-  const mn2 = document.createElementNS(SVG_NS, 'feMergeNode')
-  mn2.setAttribute('in', 'dispNoise2')
-  merge.appendChild(mn2)
-  filter.appendChild(merge)
-
-  // feDisplacementMap (scale will be animated)
-  const disp = document.createElementNS(SVG_NS, 'feDisplacementMap')
-  disp.setAttribute('in', 'dustySource')
-  disp.setAttribute('in2', 'combinedNoise')
-  disp.setAttribute('scale', '0')
-  disp.setAttribute('xChannelSelector', 'R')
-  disp.setAttribute('yChannelSelector', 'G')
-  filter.appendChild(disp)
-
-  defs.appendChild(filter)
-  svg.appendChild(defs)
-
-  // Image element with captured snapshot
-  const img = document.createElementNS(SVG_NS, 'image')
-  img.setAttributeNS('http://www.w3.org/1999/xlink', 'href', dataUrl)
-  img.setAttribute('width', String(width))
-  img.setAttribute('height', String(height))
-  img.setAttribute('filter', `url(#${filterId})`)
-  svg.appendChild(img)
-
-  // 3. Insert overlay, hide original
-  document.body.appendChild(svg)
+  // 4. Hide original element
   element.style.transition = 'opacity 0.2s ease-out'
   element.style.opacity = '0'
 
-  // 4. Animate filter params with rAF
-  const maxDisp = smallestSide * 3
-  const startTime = performance.now()
+  // 5. Start SMIL animations manually — they have begin="indefinite"
+  const animates = svg.querySelectorAll('animate')
+  requestAnimationFrame(() => {
+    animates.forEach(a => {
+      try { (a as SVGAnimateElement).beginElement() } catch (_) { /* ignore */ }
+    })
 
-  function tick(now: number) {
-    const elapsed = now - startTime
-    const t = Math.min(elapsed / DURATION, 1) // 0→1
+    // Also animate the scale transform on the SVG via CSS transition
+    svg.style.transition = `transform ${DURATION}ms ease-in`
+    svg.style.transform = 'scale(1.15)'
+  })
 
-    // Slope: 5→0 with ease-in curve (faster dissolve at end)
-    const slope = 5 * (1 - t) * (1 - t)
-    funcA.setAttribute('slope', String(slope))
-
-    // Displacement: 0→max with ease-out curve (fast scatter start)
-    const eased = 1 - (1 - t) * (1 - t)
-    disp.setAttribute('scale', String(eased * maxDisp))
-
-    // Slight scale-up like Telegram
-    const scale = 1 + t * 0.15
-    svg.style.transform = `scale(${scale})`
-    svg.style.transformOrigin = 'center center'
-
-    if (t < 1) {
-      requestAnimationFrame(tick)
-    } else {
-      svg.remove()
-      onDone?.()
-    }
-  }
-
-  requestAnimationFrame(tick)
+  // 6. Cleanup after animation
+  setTimeout(() => {
+    wrapper.remove()
+    onDone?.()
+  }, DURATION + 50)
 }
 
 /**
