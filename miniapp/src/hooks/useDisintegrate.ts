@@ -1,31 +1,65 @@
 /**
  * useDisintegrate.ts
  *
- * Premium staggered collapse animation for cart clearing.
+ * Premium "Explosion Burst" animation for cart clearing.
  *
- * Visual effect: each element simultaneously
- *   - slides left  (x: 0 → -32px)
- *   - fades out    (opacity: 1 → 0)
- *   - collapses    (height + margins/paddings → 0)
+ * Visual effect (two overlapping phases):
  *
- * Uses Framer Motion imperative `animate()` — no React, no SVG filters,
- * no canvas. Runs entirely on the compositor thread → smooth 60fps on mobile.
+ *   Phase 1 — BURST (0ms → 600ms, compositor-only):
+ *     Each element flies out at a random angle with random rotation.
+ *     Uses only transform + opacity → stays on compositor thread → 60fps.
+ *
+ *   Phase 2 — COLLAPSE (starts at 80ms, 300ms duration):
+ *     Height, margins, paddings → 0 while the element is already flying out.
+ *     Overlap with Phase 1 means the gap in layout closes smoothly while
+ *     the card is still mid-air — feels snappy, not laggy.
+ *
+ * Stagger direction: REVERSED (last element bursts first, first last).
+ * This creates a natural bottom-up explosive sweep that reads as "wiped out".
  *
  * Compatible signature:
  *   disintegrateAll(elements, staggerMs, onAllDone?)
+ *   disintegrate(el, onDone?)
  */
 
-import { animate, type AnimationPlaybackControls } from 'framer-motion'
+import { animate } from 'framer-motion'
 
 // ─── tunables ────────────────────────────────────────────────────────────────
 
-/** Duration of a single element's exit animation (ms). */
-const ITEM_DURATION_MS = 380
+/** How long the burst flight lasts (ms). */
+const BURST_DURATION_MS = 520
 
-/** Easing — snappy ease-in feels intentional, not sluggish. */
-const EASE = [0.4, 0, 1, 1] as const // cubic-bezier ease-in
+/** Height collapse starts this many ms after burst begins. */
+const COLLAPSE_OFFSET_MS = 80
 
-// ─── helpers ─────────────────────────────────────────────────────────────────
+/** Height collapse duration (ms). */
+const COLLAPSE_DURATION_MS = 300
+
+// ─── random helpers ──────────────────────────────────────────────────────────
+
+function randomBetween(min: number, max: number): number {
+  return min + Math.random() * (max - min)
+}
+
+/** Returns a random burst vector. The element flies out in a random direction
+ *  biased slightly outward (not straight up/down which looks boring). */
+function randomBurstVector(): { x: number; y: number; rotate: number } {
+  // Angle in degrees, biased away from straight vertical (avoids boring effect)
+  // Full 360° but weighted so horizontal spread is prominent
+  const angleDeg = randomBetween(0, 360)
+  const angleRad = (angleDeg * Math.PI) / 180
+
+  // Distance: 120–240px — far enough to feel explosive, close enough to be fast
+  const distance = randomBetween(120, 240)
+
+  return {
+    x: Math.cos(angleRad) * distance,
+    y: Math.sin(angleRad) * distance,
+    rotate: randomBetween(-180, 180),
+  }
+}
+
+// ─── layout snapshot / restore ───────────────────────────────────────────────
 
 interface Snapshot {
   height: number
@@ -35,6 +69,8 @@ interface Snapshot {
   paddingBottom: string
   overflow: string
   transition: string
+  position: string
+  zIndex: string
 }
 
 function snapshotElement(el: HTMLElement): Snapshot {
@@ -47,32 +83,41 @@ function snapshotElement(el: HTMLElement): Snapshot {
     paddingBottom: cs.paddingBottom,
     overflow: cs.overflow,
     transition: el.style.transition,
+    position: el.style.position,
+    zIndex: el.style.zIndex,
   }
 }
 
-function lockHeight(el: HTMLElement, snap: Snapshot): void {
-  // Pin explicit height so Framer Motion can tween it to 0
+function prepareElement(el: HTMLElement, snap: Snapshot, zIndex: number): void {
   el.style.height = `${snap.height}px`
   el.style.overflow = 'hidden'
-  // Remove any existing CSS transitions — FM drives everything
   el.style.transition = 'none'
+  // Lift element above siblings so it visually flies "over" everything
+  el.style.position = 'relative'
+  el.style.zIndex = String(zIndex)
 }
 
 function restoreElement(el: HTMLElement, snap: Snapshot): void {
-  el.style.height = snap.height + 'px'
-  el.style.marginTop = snap.marginTop
-  el.style.marginBottom = snap.marginBottom
-  el.style.paddingTop = snap.paddingTop
-  el.style.paddingBottom = snap.paddingBottom
+  el.style.height = ''
+  el.style.marginTop = ''
+  el.style.marginBottom = ''
+  el.style.paddingTop = ''
+  el.style.paddingBottom = ''
   el.style.overflow = snap.overflow
   el.style.transition = snap.transition
+  el.style.position = snap.position
+  el.style.zIndex = snap.zIndex
   el.style.opacity = ''
   el.style.transform = ''
 }
 
 // ─── single element ───────────────────────────────────────────────────────────
 
-function disintegrateOne(el: HTMLElement, onDone?: () => void): void {
+function disintegrateOne(
+  el: HTMLElement,
+  zIndex: number,
+  onDone?: () => void,
+): void {
   if (!el || !document.contains(el)) {
     onDone?.()
     return
@@ -85,49 +130,55 @@ function disintegrateOne(el: HTMLElement, onDone?: () => void): void {
     return
   }
 
-  lockHeight(el, snap)
+  prepareElement(el, snap, zIndex)
 
-  const durationSec = ITEM_DURATION_MS / 1000
-  const controls: AnimationPlaybackControls[] = []
+  const burst = randomBurstVector()
+  const burstSec = BURST_DURATION_MS / 1000
+  const collapseSec = COLLAPSE_DURATION_MS / 1000
+  const collapseDelaySec = COLLAPSE_OFFSET_MS / 1000
 
-  // Phase 1: slide + fade (starts immediately)
-  controls.push(
-    animate(el, { opacity: 0, x: -32 }, { duration: durationSec, ease: EASE }),
+  // Phase 1: BURST — fly out + spin + fade
+  // spring for the initial pop, then ease-in to accelerate away
+  animate(
+    el,
+    {
+      x: [0, burst.x * 0.15, burst.x],
+      y: [0, burst.y * 0.15, burst.y],
+      rotate: [0, burst.rotate * 0.3, burst.rotate],
+      opacity: [1, 0.9, 0],
+      scale: [1, 1.08, 0.4],
+    },
+    {
+      duration: burstSec,
+      ease: [0.22, 0.03, 0.8, 0.97], // custom: slow start, rocket finish
+      times: [0, 0.18, 1],           // 0→18% is the "pop" micro-bounce
+    },
   )
 
-  // Phase 2: height collapse (slight delay so slide leads)
-  const collapseDuration = durationSec * 0.75
-  const collapseDelay = durationSec * 0.15
-
-  controls.push(
-    animate(
-      el,
-      { height: 0, marginTop: 0, marginBottom: 0, paddingTop: 0, paddingBottom: 0 },
-      { duration: collapseDuration, delay: collapseDelay, ease: EASE },
-    ),
+  // Phase 2: COLLAPSE — layout closes while element is mid-flight
+  animate(
+    el,
+    {
+      height: 0,
+      marginTop: 0,
+      marginBottom: 0,
+      paddingTop: 0,
+      paddingBottom: 0,
+    },
+    {
+      duration: collapseSec,
+      delay: collapseDelaySec,
+      ease: [0.4, 0, 0.6, 1], // symmetric ease — smooth gap close
+    },
   )
 
-  // Cleanup after the longest animation finishes
-  const totalMs = ITEM_DURATION_MS + 20 // small buffer
-  const timer = setTimeout(() => {
-    // Remove element from layout flow cleanly
+  // Cleanup: hide after burst fully completes
+  const totalMs = BURST_DURATION_MS + 40
+  setTimeout(() => {
     el.style.display = 'none'
-    // Restore inline styles so if React re-renders the element it's clean
     restoreElement(el, snap)
     onDone?.()
   }, totalMs)
-
-  // Safety: if animations are cancelled externally, still clean up
-  controls.forEach(c => {
-    if (typeof c?.then === 'function') {
-      c.then(() => {}).catch(() => {
-        clearTimeout(timer)
-        el.style.display = 'none'
-        restoreElement(el, snap)
-        onDone?.()
-      })
-    }
-  })
 }
 
 // ─── public API ───────────────────────────────────────────────────────────────
@@ -135,9 +186,12 @@ function disintegrateOne(el: HTMLElement, onDone?: () => void): void {
 /**
  * Animate all elements out with a stagger, then call `onAllDone`.
  *
+ * Stagger runs in REVERSE order (last element explodes first) — creates a
+ * dramatic bottom-up burst sweep that feels like an explosion of the whole list.
+ *
  * @param elements  - Array of DOM elements to disintegrate
  * @param staggerMs - Delay between each element's animation start (ms)
- * @param onAllDone - Called once after the LAST element finishes
+ * @param onAllDone - Called once after ALL elements finish
  */
 export function disintegrateAll(
   elements: HTMLElement[],
@@ -161,20 +215,27 @@ export function disintegrateAll(
     }
   }
 
-  valid.forEach((el, index) => {
-    const delay = index * staggerMs
+  // Reversed stagger: last element in list starts first
+  // zIndex increases for later elements so they appear on top of the burst
+  const reversed = [...valid].reverse()
+
+  reversed.forEach((el, reversedIndex) => {
+    const delay = reversedIndex * staggerMs
+    // zIndex: elements starting earlier get higher z so they burst "over" others
+    const zIndex = valid.length + reversedIndex
+
     if (delay === 0) {
-      disintegrateOne(el, onItemDone)
+      disintegrateOne(el, zIndex, onItemDone)
     } else {
-      setTimeout(() => disintegrateOne(el, onItemDone), delay)
+      setTimeout(() => disintegrateOne(el, zIndex, onItemDone), delay)
     }
   })
 }
 
 /**
- * Animate a single element out.
- * Convenience wrapper exposed for one-off use cases.
+ * Animate a single element out with the explosion burst effect.
+ * Convenience wrapper for one-off use cases.
  */
 export function disintegrate(el: HTMLElement, onDone?: () => void): void {
-  disintegrateOne(el, onDone)
+  disintegrateOne(el, 10, onDone)
 }
