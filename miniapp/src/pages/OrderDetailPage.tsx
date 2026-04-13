@@ -2,7 +2,7 @@
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ordersApi } from '@/api'
-import { CheckCircle, Copy, MessageCircle } from 'lucide-react'
+import { CheckCircle, Clock, Copy, MessageCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
 
@@ -26,13 +26,21 @@ export default function OrderDetailPage() {
   const isSuccess = searchParams.get('success') === '1'
   const { haptic } = useTelegram()
 
+  const isPending = searchParams.get('pending') === '1'
+
   const { data: order, isLoading } = useQuery({
     queryKey: ['order', id],
     queryFn: () => ordersApi.get(id!),
     enabled: !!id,
-    staleTime: 8_000,
-    refetchInterval: (query) =>
-      query.state.data && ['completed', 'cancelled'].includes(query.state.data.status) ? false : 8000,
+    staleTime: 5_000,
+    refetchInterval: (query) => {
+      const status = query.state.data?.status
+      if (!status) return 5_000
+      if (['completed', 'cancelled'].includes(status)) return false
+      // Для ожидающих оплаты крипто-заказов — опрашиваем чаще
+      if (status === 'pending_payment') return 4_000
+      return 8_000
+    },
   })
 
   const copyToClipboard = (text: string) => {
@@ -62,7 +70,7 @@ export default function OrderDetailPage() {
 
   return (
     <div className="px-4 pt-5 pb-6 space-y-4 animate-slide-up">
-      {/* Успешная оплата */}
+      {/* Успешная оплата (баланс / карта) */}
       {isSuccess && (
         <div
           className="flex flex-col items-center py-6 gap-3 rounded-2xl animate-slide-up"
@@ -71,6 +79,36 @@ export default function OrderDetailPage() {
           <CheckCircle size={48} style={{ color: '#34d399' }} />
           <div className="text-center">
             <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>Оплата прошла!</h2>
+            <p className="text-sm mt-1" style={{ color: 'var(--hint)' }}>Заказ принят в обработку</p>
+          </div>
+        </div>
+      )}
+
+      {/* Ожидание крипто-оплаты */}
+      {isPending && order?.status === 'pending_payment' && (
+        <div
+          className="flex items-start gap-3 py-4 px-4 rounded-2xl animate-slide-up"
+          style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)' }}
+        >
+          <Clock size={20} className="flex-shrink-0 mt-0.5" style={{ color: '#fbbf24' }} />
+          <div>
+            <p className="font-semibold text-sm" style={{ color: '#fbbf24' }}>Ожидаем подтверждения оплаты</p>
+            <p className="text-xs mt-1" style={{ color: 'var(--hint)' }}>
+              После оплаты в CryptoBot статус обновится автоматически — можешь не закрывать эту страницу.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Крипто-оплата подтверждена */}
+      {isPending && order?.status === 'paid' && (
+        <div
+          className="flex flex-col items-center py-6 gap-3 rounded-2xl animate-slide-up"
+          style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)' }}
+        >
+          <CheckCircle size={48} style={{ color: '#34d399' }} />
+          <div className="text-center">
+            <h2 className="text-lg font-bold" style={{ color: 'var(--text)' }}>Оплата получена!</h2>
             <p className="text-sm mt-1" style={{ color: 'var(--hint)' }}>Заказ принят в обработку</p>
           </div>
         </div>

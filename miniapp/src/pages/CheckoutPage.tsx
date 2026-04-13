@@ -49,7 +49,7 @@ export default function CheckoutPage() {
       if (payment.redirect_url) {
         openLink(payment.redirect_url)
         setItemsCount(0)
-        navigate(`/orders/${order.id}`, { replace: true })
+        navigate(`/orders/${order.id}?pending=1`, { replace: true })
         return
       }
       toast.error('Ошибка инициализации оплаты')

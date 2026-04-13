@@ -199,7 +199,7 @@ class PaymentService:
             "description": f"Заказ {order.order_number} — {settings.SHOP_NAME}",
             "payload": str(order.id),
             "paid_btn_name": "openBot",
-            "paid_btn_url": f"https://t.me/{settings.SHOP_SUPPORT_USERNAME}",
+            "paid_btn_url": f"https://t.me/{settings.BOT_USERNAME}",
         }
 
         async with httpx.AsyncClient() as client:
