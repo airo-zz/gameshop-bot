@@ -26,11 +26,14 @@ const STATUS_COLOR: Record<string, string> = {
 }
 
 export default function OrdersPage() {
-  const { data: orders = [], isLoading, isError, refetch } = useQuery({
+  const { data: rawOrders = [], isLoading, isError, refetch } = useQuery({
     queryKey: ['orders'],
     queryFn: () => ordersApi.list(),
     staleTime: 30_000,
   })
+
+  // Скрываем неоплаченные заказы (new, pending_payment)
+  const orders = rawOrders.filter(o => o.status !== 'new' && o.status !== 'pending_payment')
 
   if (isError) return (
     <div style={{ textAlign: 'center', padding: '60px 20px' }}>
