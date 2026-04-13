@@ -17,8 +17,11 @@ RUN --mount=type=cache,target=/root/.cache/pip \
 # Исходники
 COPY . .
 
+# Создаём директорию для загрузок до переключения пользователя
+RUN mkdir -p /static/uploads && chmod 777 /static/uploads
+
 # Непривилегированный пользователь
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app /static
 USER appuser
 
 ENV PYTHONPATH=/app
