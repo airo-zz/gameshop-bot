@@ -1,9 +1,10 @@
 /**
  * useDisintegrate.ts
- * Telegram-style particle disintegration effect.
+ * Telegram-style "Thanos snap" dust disintegration effect.
  *
- * Captures a DOM element's pixels via html2canvas, then disperses them
- * as small square particles on an overlay canvas using requestAnimationFrame.
+ * Captures a DOM element via html2canvas, then disperses pixels
+ * as fine dust particles drifting to the RIGHT — matching Telegram's
+ * message deletion animation.
  */
 
 import html2canvas from 'html2canvas'
@@ -23,28 +24,23 @@ interface Particle {
   a: number
   size: number
   life: number       // 0..1, starts at 1
-  decay: number      // per-frame decay
+  decay: number      // per-frame life decrease
   delay: number      // frames before particle starts moving
-  gravity: number
 }
 
 // ── Config ───────────────────────────────────────────────────────────────────
 
-const PARTICLE_GAP = 4        // sample every Nth pixel → particle size = N
-const MAX_PARTICLES = 4000    // cap for performance
-const BASE_SPEED = 2.5
-const GRAVITY = 0.06
-const LIFE_MIN = 0.008
-const LIFE_MAX = 0.018
+const PARTICLE_GAP = 3        // sample every 3rd pixel → finer dust than 4px
+const MAX_PARTICLES = 5000    // cap for mobile performance
+const BASE_SPEED = 1.8        // base rightward velocity
+const LIFE_MIN = 0.012
+const LIFE_MAX = 0.025
 
 // ── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Disintegrate a DOM element with a particle effect.
- * The element fades out while particles burst away from it.
- *
- * @param element  The DOM element to disintegrate
- * @param onDone   Callback when the animation finishes
+ * Disintegrate a DOM element with a Telegram-style dust effect.
+ * Particles sweep left→right and drift rightward like blown dust.
  */
 export async function disintegrate(
   element: HTMLElement,
@@ -52,8 +48,8 @@ export async function disintegrate(
 ): Promise<void> {
   // 1. Capture the element as a canvas bitmap
   const snapshot = await html2canvas(element, {
-    backgroundColor: null,          // transparent background
-    scale: 1,                       // 1:1 pixel ratio for performance
+    backgroundColor: null,
+    scale: 1,
     logging: false,
     useCORS: true,
     removeContainer: true,
@@ -75,23 +71,25 @@ export async function disintegrate(
     for (let x = 0; x < width; x += gap) {
       const i = (y * width + x) * 4
       const a = imageData[i + 3]
-      if (a < 30) continue // skip nearly-transparent pixels
+      if (a < 30) continue
 
-      // sweep delay: left-to-right, with some randomness
+      // Sweep delay: left-to-right columns, with vertical randomness
       const col = Math.floor(x / gap)
       const sweepProgress = col / maxCols
-      const delay = Math.floor(sweepProgress * 18 + Math.random() * 8)
+      // Left columns start first, right columns later — Telegram-style sweep
+      const delay = Math.floor(sweepProgress * 25 + Math.random() * 6)
 
-      // velocity: mostly upward & outward, with randomness
-      const angle = -Math.PI / 2 + (Math.random() - 0.5) * 1.8
-      const speed = BASE_SPEED * (0.5 + Math.random())
+      // Velocity: primarily RIGHTWARD with slight vertical scatter
+      // This is the key Telegram difference — dust blows to the right
+      const vx = BASE_SPEED * (0.6 + Math.random() * 0.8)
+      const vy = (Math.random() - 0.5) * 1.2  // slight up/down scatter
 
       particles.push({
         x, y,
         originX: x,
         originY: y,
-        vx: Math.cos(angle) * speed + (Math.random() - 0.3) * 1.5,
-        vy: Math.sin(angle) * speed,
+        vx,
+        vy,
         r: imageData[i],
         g: imageData[i + 1],
         b: imageData[i + 2],
@@ -100,12 +98,11 @@ export async function disintegrate(
         life: 1,
         decay: LIFE_MIN + Math.random() * (LIFE_MAX - LIFE_MIN),
         delay,
-        gravity: GRAVITY * (0.5 + Math.random()),
       })
     }
   }
 
-  // Cap particle count for mobile performance
+  // Cap particle count for mobile
   if (particles.length > MAX_PARTICLES) {
     particles.sort(() => Math.random() - 0.5)
     particles.length = MAX_PARTICLES
@@ -116,16 +113,18 @@ export async function disintegrate(
   const canvas = document.createElement('canvas')
   const dpr = window.devicePixelRatio || 1
 
-  // Extra space around the element for particles to fly into
-  const padding = 120
-  canvas.width = (rect.width + padding * 2) * dpr
-  canvas.height = (rect.height + padding * 2) * dpr
+  // Extra padding — more on the right side where particles fly to
+  const padLeft = 20
+  const padRight = 160
+  const padY = 40
+  canvas.width = (rect.width + padLeft + padRight) * dpr
+  canvas.height = (rect.height + padY * 2) * dpr
   canvas.style.cssText = `
     position: fixed;
-    left: ${rect.left - padding}px;
-    top: ${rect.top - padding}px;
-    width: ${rect.width + padding * 2}px;
-    height: ${rect.height + padding * 2}px;
+    left: ${rect.left - padLeft}px;
+    top: ${rect.top - padY}px;
+    width: ${rect.width + padLeft + padRight}px;
+    height: ${rect.height + padY * 2}px;
     z-index: 9999;
     pointer-events: none;
   `
@@ -133,31 +132,29 @@ export async function disintegrate(
 
   const drawCtx = canvas.getContext('2d')!
   drawCtx.scale(dpr, dpr)
+  drawCtx.imageSmoothingEnabled = false
 
-  // Offset so particles at (0,0) start at the element's top-left
-  const ox = padding
-  const oy = padding
+  const ox = padLeft
+  const oy = padY
 
-  // 4. Hide original element
-  const prevOpacity = element.style.opacity
+  // 4. Fade out original element quickly
   const prevTransition = element.style.transition
-  element.style.transition = 'opacity 0.35s ease-out'
+  const prevOpacity = element.style.opacity
+  element.style.transition = 'opacity 0.3s ease-out'
   element.style.opacity = '0'
 
   // 5. Animate
-  let frame = 0
   let alive = particles.length
 
   function tick() {
     drawCtx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr)
     alive = 0
-    frame++
 
     for (const p of particles) {
       if (p.life <= 0) continue
 
       if (p.delay > 0) {
-        // Particle hasn't started yet — draw it in place
+        // Not started yet — draw in original position
         p.delay--
         drawCtx.globalAlpha = p.a * p.life
         drawCtx.fillStyle = `rgb(${p.r},${p.g},${p.b})`
@@ -166,19 +163,20 @@ export async function disintegrate(
         continue
       }
 
-      // Physics
-      p.vy += p.gravity
+      // Physics: drift rightward, slight vertical scatter, decelerate slightly
+      p.vx *= 0.99
+      p.vy *= 0.98
       p.x += p.vx
       p.y += p.vy
       p.life -= p.decay
 
       if (p.life <= 0) continue
 
-      // Draw
-      const alpha = p.a * p.life
+      // Draw — particles shrink and fade as they drift
+      const alpha = p.a * p.life * p.life  // quadratic fade for smoother disappearance
       drawCtx.globalAlpha = alpha
       drawCtx.fillStyle = `rgb(${p.r},${p.g},${p.b})`
-      const size = p.size * (0.3 + p.life * 0.7) // shrink as life decreases
+      const size = p.size * (0.2 + p.life * 0.8)
       drawCtx.fillRect(ox + p.x, oy + p.y, size, size)
       alive++
     }
@@ -186,7 +184,6 @@ export async function disintegrate(
     if (alive > 0) {
       requestAnimationFrame(tick)
     } else {
-      // Cleanup — keep element hidden, caller handles visibility
       canvas.remove()
       onDone?.()
     }
@@ -197,11 +194,10 @@ export async function disintegrate(
 
 /**
  * Disintegrate multiple elements sequentially with stagger.
- * Each element starts its animation `staggerMs` after the previous one.
  */
 export async function disintegrateAll(
   elements: HTMLElement[],
-  staggerMs = 80,
+  staggerMs = 60,
   onAllDone?: () => void,
 ): Promise<void> {
   if (elements.length === 0) { onAllDone?.(); return }
@@ -211,7 +207,6 @@ export async function disintegrateAll(
 
   for (let i = 0; i < total; i++) {
     const el = elements[i]
-    // stagger start
     await new Promise<void>((resolve) => setTimeout(resolve, i > 0 ? staggerMs : 0))
     disintegrate(el, () => {
       completed++

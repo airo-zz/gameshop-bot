@@ -7,6 +7,7 @@ import toast from 'react-hot-toast'
 import { cartApi, type CartItem } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
+import { disintegrateAll } from '@/hooks/useDisintegrate'
 
 /** Форматирует цену: 1500 → "1 500", 1500.50 → "1 500,5" */
 function fmtPrice(v: number | string): string {
@@ -79,42 +80,21 @@ export default function CartPage() {
     haptic.impact('heavy')
     setClearing(true)
 
-    // Collect all animated elements: cart items + bottom section
-    const elements: HTMLDivElement[] = (cart?.items ?? [])
+    // Collect cart item refs + bottom section
+    const elements = (cart?.items ?? [])
       .map(item => itemRefs.current.get(item.id))
       .filter((el): el is HTMLDivElement => el != null)
     if (bottomRef.current) elements.push(bottomRef.current)
 
-    // Fire API call in parallel with animation (don't wait for network)
+    // Fire API in parallel with animation
     const clearPromise = cartApi.clear().then(() => refreshCart()).catch(() => toast.error('Ошибка'))
 
-    // Telegram-style: scale-down + collapse, staggered
-    const STAGGER = 40   // ms between each item
-    const SCALE_MS = 250  // scale-down duration (matches CSS)
-    const COLLAPSE_MS = 200 // height collapse duration
-
-    elements.forEach((el, i) => {
-      const delay = i * STAGGER
-      // Phase 1: shrink + fade
-      setTimeout(() => {
-        el.classList.add('cart-item-clearing')
-      }, delay)
-      // Phase 2: collapse height after shrink finishes
-      setTimeout(() => {
-        el.style.maxHeight = el.scrollHeight + 'px'
-        void el.offsetHeight
-        el.classList.add('collapse')
-      }, delay + SCALE_MS)
+    // Run disintegration, then show empty state
+    disintegrateAll(elements, 60, async () => {
+      await clearPromise
+      setShowEmpty(true)
+      setClearing(false)
     })
-
-    // Wait for both animation and API to finish
-    const totalMs = (elements.length - 1) * STAGGER + SCALE_MS + COLLAPSE_MS + 50
-    await Promise.all([
-      clearPromise,
-      new Promise(resolve => setTimeout(resolve, totalMs)),
-    ])
-    setShowEmpty(true)
-    setClearing(false)
   }, [cart?.items, haptic, showConfirm, refreshCart])
 
   const handleApplyPromo = async () => {
@@ -202,12 +182,11 @@ export default function CartPage() {
           <div
             key={item.id}
             ref={el => { if (el) itemRefs.current.set(item.id, el); else itemRefs.current.delete(item.id) }}
-            className="flex gap-3 p-3 rounded-2xl transition-opacity will-change-transform"
+            className="flex gap-3 p-3 rounded-2xl transition-opacity"
             style={{
               background: 'var(--bg2)',
               border: '1px solid var(--border)',
               opacity: updatingId === item.id ? 0.5 : 1,
-              overflow: 'hidden',
             }}
           >
             <div
@@ -272,7 +251,7 @@ export default function CartPage() {
       </div>
 
       {/* Промокод + итоги + кнопки — рассыпаются вместе */}
-      <div ref={bottomRef} className="space-y-4 will-change-transform" style={{ overflow: 'hidden' }}>
+      <div ref={bottomRef} className="space-y-4">
         {/* Промокод */}
         <div className="flex gap-2">
           <div className="flex-1 relative">
