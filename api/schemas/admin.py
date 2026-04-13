@@ -131,6 +131,7 @@ class GameCreateIn(BaseModel):
     is_active: bool = True
     is_featured: bool = False
     sort_order: int = 0
+    type: str = Field("game", pattern="^(game|service)$")
 
 
 class GameUpdateIn(BaseModel):
@@ -141,6 +142,7 @@ class GameUpdateIn(BaseModel):
     is_active: bool | None = None
     is_featured: bool | None = None
     sort_order: int | None = None
+    type: str | None = Field(None, pattern="^(game|service)$")
 
 
 class GameOut(BaseModel):
@@ -154,6 +156,7 @@ class GameOut(BaseModel):
     is_active: bool
     is_featured: bool
     sort_order: int
+    type: str
     created_at: datetime
 
 

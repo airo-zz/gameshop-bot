@@ -209,6 +209,7 @@ export interface AdminGame {
   is_active: boolean
   is_featured: boolean
   sort_order: number
+  type: 'game' | 'service'
   created_at: string
 }
 
@@ -352,13 +353,13 @@ export const adminApi = {
     }>(`/admin/users/${userId}/balance`, { amount, type, description }).then(r => r.data),
 
   // Catalog — Games
-  getGames: (params?: { is_active?: boolean }) =>
+  getGames: (params?: { is_active?: boolean; type?: 'game' | 'service' }) =>
     apiClient.get<AdminGame[]>('/admin/catalog/games', { params }).then(r => r.data),
 
-  createGame: (data: { name: string; slug?: string; image_url?: string; description?: string; is_active?: boolean; is_featured?: boolean; sort_order?: number }) =>
+  createGame: (data: { name: string; slug?: string; image_url?: string; description?: string; is_active?: boolean; is_featured?: boolean; sort_order?: number; type?: 'game' | 'service' }) =>
     apiClient.post<AdminGame>('/admin/catalog/games', data).then(r => r.data),
 
-  updateGame: (id: string, data: Partial<{ name: string; slug: string; image_url: string; description: string; is_active: boolean; is_featured: boolean; sort_order: number }>) =>
+  updateGame: (id: string, data: Partial<{ name: string; slug: string; image_url: string; description: string; is_active: boolean; is_featured: boolean; sort_order: number; type: 'game' | 'service' }>) =>
     apiClient.patch<AdminGame>(`/admin/catalog/games/${id}`, data).then(r => r.data),
 
   // Catalog — Products

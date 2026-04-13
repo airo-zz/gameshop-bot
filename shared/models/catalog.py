@@ -51,6 +51,8 @@ class Game(Base, UUIDMixin, TimestampMixin):
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     banner_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    type: Mapped[str] = mapped_column(String(16), nullable=False, default="game", index=True)
+    # "game" | "service"
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Неактивна при создании — активирует админ после проверки
     is_featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

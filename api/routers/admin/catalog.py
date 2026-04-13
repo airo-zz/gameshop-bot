@@ -58,10 +58,13 @@ async def list_games(
     db: DbSession,
     admin: CurrentAdmin,
     is_active: bool | None = Query(None),
+    type: str | None = Query(None, pattern="^(game|service)$"),
 ) -> list[GameOut]:
     q = select(Game).order_by(Game.sort_order, Game.name)
     if is_active is not None:
         q = q.where(Game.is_active == is_active)
+    if type is not None:
+        q = q.where(Game.type == type)
     result = await db.execute(q)
     return result.scalars().all()
 
@@ -90,6 +93,7 @@ async def create_game(
         is_active=body.is_active,
         is_featured=body.is_featured,
         sort_order=body.sort_order,
+        type=body.type,
     )
     db.add(game)
     await db.flush()

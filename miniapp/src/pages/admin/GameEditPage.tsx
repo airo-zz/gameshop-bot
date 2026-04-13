@@ -8,12 +8,13 @@
  */
 
 import { useEffect, useState, useRef } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowLeft, Save, Plus, AlertCircle, Upload, Loader2, ImageOff } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
 import type { AdminGame, AdminCategory } from '@/api/admin'
+import { normalizeImageUrl } from '@/utils/imageUrl'
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -83,6 +84,8 @@ const inputCls =
 
 // ── page ──────────────────────────────────────────────────────────────────────
 
+type GameType = 'game' | 'service'
+
 interface FormState {
   name: string
   slug: string
@@ -90,6 +93,7 @@ interface FormState {
   description: string
   is_active: boolean
   is_featured: boolean
+  type: GameType
 }
 
 const EMPTY_FORM: FormState = {
@@ -99,15 +103,20 @@ const EMPTY_FORM: FormState = {
   description: '',
   is_active: true,
   is_featured: false,
+  type: 'game',
 }
 
 export default function GameEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const isCreate = id === 'new'
 
+  // In create mode, pre-fill type from ?type=service query param
+  const initialType = (searchParams.get('type') === 'service' ? 'service' : 'game') as GameType
+
   // ── game form state ──
-  const [form, setForm]             = useState<FormState>(EMPTY_FORM)
+  const [form, setForm]             = useState<FormState>({ ...EMPTY_FORM, type: initialType })
   const [loadingGame, setLoadingGame] = useState(!isCreate)
   const [loadError, setLoadError]   = useState(false)
   const [saving, setSaving]         = useState(false)
@@ -143,6 +152,7 @@ export default function GameEditPage() {
           description: game.description ?? '',
           is_active:   game.is_active,
           is_featured: game.is_featured,
+          type:        (game.type ?? 'game') as GameType,
         })
         slugManual.current = true // pre-filled — treat as manual
         setCategories(cats)
@@ -200,11 +210,12 @@ export default function GameEditPage() {
         description: form.description.trim() || undefined,
         is_active:   form.is_active,
         is_featured: form.is_featured,
+        type:        form.type,
       }
 
       if (isCreate) {
         await adminApi.createGame(payload)
-        toast.success('Игра создана')
+        toast.success(form.type === 'service' ? 'Сервис создан' : 'Игра создана')
         navigate('/admin/catalog')
       } else {
         await adminApi.updateGame(id!, payload)
@@ -277,7 +288,9 @@ export default function GameEditPage() {
           <ArrowLeft size={18} className="text-white/60" />
         </button>
         <h1 className="text-lg font-bold text-white">
-          {isCreate ? 'Новая игра' : 'Редактировать игру'}
+          {isCreate
+            ? (form.type === 'service' ? 'Новый сервис' : 'Новая игра')
+            : (form.type === 'service' ? 'Редактировать сервис' : 'Редактировать игру')}
         </h1>
       </div>
 
@@ -311,6 +324,27 @@ export default function GameEditPage() {
             />
           </Field>
 
+          {/* Type */}
+          <Field label="Тип">
+            <div className="flex gap-1 bg-white/5 p-1 rounded-xl">
+              {(['game', 'service'] as GameType[]).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => set('type', t)}
+                  className={[
+                    'flex-1 py-1.5 rounded-lg text-sm font-medium transition-colors',
+                    form.type === t
+                      ? 'bg-white/10 text-white'
+                      : 'text-white/40 hover:text-white/60',
+                  ].join(' ')}
+                >
+                  {t === 'game' ? 'Игра' : 'Сервис'}
+                </button>
+              ))}
+            </div>
+          </Field>
+
           {/* Image URL + upload */}
           <Field label="URL изображения" hint="необязательно">
             {/* Hidden file input */}
@@ -326,10 +360,10 @@ export default function GameEditPage() {
               {/* Text input + upload button row */}
               <div className="flex gap-2">
                 <input
-                  type="url"
+                  type="text"
                   value={form.image_url}
                   onChange={(e) => set('image_url', e.target.value)}
-                  placeholder="https://..."
+                  placeholder="https://... или /static/..."
                   className={[inputCls, 'flex-1'].join(' ')}
                   disabled={uploadingImage}
                 />
@@ -359,7 +393,7 @@ export default function GameEditPage() {
                   className="relative w-full h-36 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center"
                 >
                   <img
-                    src={form.image_url}
+                    src={normalizeImageUrl(form.image_url) ?? form.image_url}
                     alt="Превью"
                     className="w-full h-full object-cover"
                     onError={(e) => {
@@ -409,7 +443,11 @@ export default function GameEditPage() {
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-sm font-semibold text-white transition-colors"
           >
             <Save size={16} />
-            {saving ? 'Сохранение...' : isCreate ? 'Создать игру' : 'Сохранить изменения'}
+            {saving
+              ? 'Сохранение...'
+              : isCreate
+                ? (form.type === 'service' ? 'Создать сервис' : 'Создать игру')
+                : 'Сохранить изменения'}
           </button>
         </div>
       </form>

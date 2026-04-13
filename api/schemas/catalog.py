@@ -23,6 +23,7 @@ class GameOut(BaseModel):
     is_featured: bool
     sort_order: int
     tags: list[str]
+    type: str
 
 
 class CategoryOut(BaseModel):
