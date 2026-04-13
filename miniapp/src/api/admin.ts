@@ -363,7 +363,7 @@ export const adminApi = {
     apiClient.patch<AdminGame>(`/admin/catalog/games/${id}`, data).then(r => r.data),
 
   // Catalog — Products
-  getProducts: (params?: { page?: number; game_id?: string; category_id?: string; search?: string; is_active?: boolean }) =>
+  getProducts: (params?: { page?: number; page_size?: number; game_id?: string; category_id?: string; search?: string; is_active?: boolean }) =>
     apiClient.get<PaginatedResponse<AdminProductListItem>>('/admin/catalog/products', { params }).then(r => r.data),
 
   getProduct: (id: string) =>
@@ -381,6 +381,20 @@ export const adminApi = {
 
   createCategory: (data: { game_id: string; parent_id?: string; name: string; slug?: string; is_active?: boolean; sort_order?: number }) =>
     apiClient.post<AdminCategory>('/admin/catalog/categories', data).then(r => r.data),
+
+  deleteProduct: (id: string) =>
+    apiClient.delete(`/admin/catalog/products/${id}`).then(r => r.data),
+
+  bulkPriceUpdate: (data: {
+    mode: 'percent' | 'fixed'
+    value: number
+    scope: 'game' | 'category' | 'selected'
+    game_id?: string
+    category_id?: string
+    product_ids?: string[]
+    include_lots?: boolean
+  }) =>
+    apiClient.post<{ updated_count: number }>('/admin/catalog/products/bulk-price-update', data).then(r => r.data),
 
   // Catalog — Lots
   createLot: (productId: string, data: { name: string; price: number; original_price?: number; quantity?: number; badge?: string; is_active?: boolean; sort_order?: number }) =>

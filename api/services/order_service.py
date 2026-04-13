@@ -161,6 +161,10 @@ class OrderService:
 
         if new_status == OrderStatus.paid:
             order.paid_at = now
+            # Обновляем статистику при оплате — чтобы лояльность работала
+            # независимо от того, дойдёт ли заказ до completed (автовыдача,
+            # оплата балансом и т.д.)
+            await self._update_user_stats(order)
             # Запускаем выдачу для авто-товаров
             await self._auto_deliver(order)
 
@@ -169,7 +173,7 @@ class OrderService:
 
         elif new_status == OrderStatus.completed:
             order.completed_at = now
-            await self._update_user_stats(order)
+            # _update_user_stats уже вызван при paid — повторно не вызываем
             await self._apply_cashback(order)
             delivery_text = ""
             items_result = await self.db.execute(

@@ -17,6 +17,7 @@ from sqlalchemy.orm import selectinload
 from api.deps import DbSession
 from api.deps_admin import CurrentAdmin, require_permission
 from api.schemas.admin import (
+    BulkPriceUpdateIn,
     CategoryCreateIn,
     CategoryOut,
     CategoryUpdateIn,
@@ -542,6 +543,99 @@ async def update_lot(
     )
 
     return lot
+
+
+@router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[require_permission("catalog.edit")])
+async def delete_product(
+    product_id: uuid.UUID,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> None:
+    result = await db.execute(select(Product).where(Product.id == product_id))
+    product = result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Товар не найден")
+
+    await log_admin_action(
+        db=db,
+        admin=admin,
+        action="product.delete",
+        entity_type="product",
+        entity_id=product.id,
+        before_data={"name": product.name, "category_id": str(product.category_id)},
+    )
+
+    await db.delete(product)
+
+
+@router.post("/products/bulk-price-update",
+             dependencies=[require_permission("catalog.edit")])
+async def bulk_price_update(
+    body: BulkPriceUpdateIn,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> dict:
+    from decimal import Decimal, ROUND_HALF_UP
+
+    # Определяем целевые товары
+    q = select(Product)
+    if body.scope == "game" and body.game_id:
+        category_ids_q = select(Category.id).where(Category.game_id == body.game_id)
+        q = q.where(Product.category_id.in_(category_ids_q))
+    elif body.scope == "category" and body.category_id:
+        q = q.where(Product.category_id == body.category_id)
+    elif body.scope == "selected" and body.product_ids:
+        q = q.where(Product.id.in_(body.product_ids))
+    else:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail="Некорректные параметры scope/id")
+
+    if body.include_lots:
+        q = q.options(selectinload(Product.lots))
+
+    result = await db.execute(q)
+    products = result.scalars().all()
+
+    value = Decimal(str(body.value))
+    updated_count = 0
+
+    for product in products:
+        if body.mode == "percent":
+            new_price = (product.price * (1 + value / 100)).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+        else:
+            new_price = value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        product.price = new_price
+        updated_count += 1
+
+        if body.include_lots:
+            for lot in product.lots:
+                if body.mode == "percent":
+                    lot.price = (lot.price * (1 + value / 100)).quantize(
+                        Decimal("0.01"), rounding=ROUND_HALF_UP
+                    )
+                else:
+                    lot.price = new_price
+
+    await log_admin_action(
+        db=db,
+        admin=admin,
+        action="product.bulk_price_update",
+        entity_type="product",
+        entity_id=None,
+        after_data={
+            "mode": body.mode,
+            "value": str(body.value),
+            "scope": body.scope,
+            "updated_count": updated_count,
+            "include_lots": body.include_lots,
+        },
+    )
+
+    return {"updated_count": updated_count}
 
 
 @router.delete("/lots/{lot_id}", status_code=status.HTTP_204_NO_CONTENT,

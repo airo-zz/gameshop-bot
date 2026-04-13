@@ -277,6 +277,16 @@ class ProductListItem(BaseModel):
 # ── Catalog — Lots ────────────────────────────────────────────────────────────
 
 
+class BulkPriceUpdateIn(BaseModel):
+    mode: str = Field(..., pattern="^(percent|fixed)$")
+    value: float = Field(..., ge=0)
+    scope: str = Field(..., pattern="^(game|category|selected)$")
+    game_id: uuid.UUID | None = None
+    category_id: uuid.UUID | None = None
+    product_ids: list[uuid.UUID] = []
+    include_lots: bool = True
+
+
 class LotCreateIn(BaseModel):
     name: str = Field(..., min_length=1, max_length=128)
     price: float = Field(..., ge=0)
