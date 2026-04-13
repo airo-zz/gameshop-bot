@@ -19,6 +19,7 @@ export interface Game {
   is_featured: boolean
   sort_order: number
   tags: string[]
+  type: 'game' | 'service'
 }
 
 export interface Category {
@@ -141,8 +142,8 @@ export interface Profile {
 // ── Catalog API ───────────────────────────────────────────────────────────────
 
 export const catalogApi = {
-  getGames: () =>
-    apiClient.get<Game[]>('/catalog/games').then(r => r.data),
+  getGames: (type?: 'game' | 'service') =>
+    apiClient.get<Game[]>('/catalog/games', { params: type ? { type } : undefined }).then(r => r.data),
 
   getCategories: (slug: string) =>
     apiClient.get<Category[]>(`/catalog/games/${slug}/categories`).then(r => r.data),

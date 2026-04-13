@@ -358,7 +358,7 @@ export default function GamePage() {
 
   const { data: games = [] } = useQuery({
     queryKey: ['games'],
-    queryFn: catalogApi.getGames,
+    queryFn: () => catalogApi.getGames(),
     staleTime: 5 * 60 * 1000,
   })
 

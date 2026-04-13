@@ -13,9 +13,12 @@ router = APIRouter()
 
 
 @router.get("/games", response_model=list[GameOut])
-async def list_games(db: DbSession):
+async def list_games(
+    db: DbSession,
+    type: str | None = Query(None, pattern="^(game|service)$"),
+):
     svc = CatalogService(db)
-    return await svc.get_active_games()
+    return await svc.get_active_games(type=type)
 
 
 @router.get("/games/{slug}/categories", response_model=list[CategoryOut])

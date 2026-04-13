@@ -54,12 +54,12 @@ class CatalogService:
 
     # ── Games ─────────────────────────────────────────────────────────────────
 
-    async def get_active_games(self) -> list[Game]:
-        result = await self.db.execute(
-            select(Game)
-            .where(Game.is_active == True)
-            .order_by(Game.sort_order, Game.name)
-        )
+    async def get_active_games(self, type: str | None = None) -> list[Game]:
+        q = select(Game).where(Game.is_active == True)
+        if type is not None:
+            q = q.where(Game.type == type)
+        q = q.order_by(Game.sort_order, Game.name)
+        result = await self.db.execute(q)
         return result.scalars().all()
 
     async def get_game_by_slug(self, slug: str) -> Game | None:

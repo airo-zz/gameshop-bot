@@ -445,7 +445,7 @@ export default function HomePage() {
 
   const { data: games = [], isLoading: gamesLoading } = useQuery({
     queryKey: ['games'],
-    queryFn: catalogApi.getGames,
+    queryFn: () => catalogApi.getGames(),
     staleTime: 5 * 60 * 1000,
   })
 

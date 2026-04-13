@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, Search, X } from 'lucide-react'
 import { catalogApi } from '@/api'
 import PageLoader from '@/components/ui/PageLoader'
@@ -17,14 +17,22 @@ function useDebounce<T>(value: T, delay: number): T {
   return debounced
 }
 
+type CatalogType = 'game' | 'service'
+
+const TABS: { value: CatalogType; label: string; icon: string }[] = [
+  { value: 'game',    label: 'Игры',    icon: '🎮' },
+  { value: 'service', label: 'Сервисы', icon: '⚡' },
+]
+
 export default function CatalogPage() {
   const [query, setQuery] = useState('')
+  const [activeType, setActiveType] = useState<CatalogType>('game')
   const debouncedQuery = useDebounce(query, 300)
   const inputRef = useRef<HTMLInputElement>(null)
 
   const { data: games = [], isLoading, isError, refetch } = useQuery({
-    queryKey: ['games'],
-    queryFn: catalogApi.getGames,
+    queryKey: ['games', activeType],
+    queryFn: () => catalogApi.getGames(activeType),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -68,8 +76,43 @@ export default function CatalogPage() {
       transition={{ duration: 0.2, ease: 'easeOut' }}
     >
       <h1 className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--text)' }}>
-        🎮 Каталог игр
+        Каталог
       </h1>
+
+      {/* ── Segment control ─────────────────────────────────────────────── */}
+      <div
+        className="flex p-1 rounded-2xl"
+        style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+      >
+        {TABS.map(tab => {
+          const isActive = activeType === tab.value
+          return (
+            <button
+              key={tab.value}
+              onClick={() => { setActiveType(tab.value); setQuery('') }}
+              className="relative flex-1 flex items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-semibold transition-colors"
+              style={{
+                color: isActive ? 'var(--text)' : 'var(--hint)',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                zIndex: 1,
+              }}
+            >
+              {isActive && (
+                <motion.div
+                  layoutId="catalog-tab-pill"
+                  className="absolute inset-0 rounded-xl"
+                  style={{ background: 'var(--accent)', zIndex: -1 }}
+                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                />
+              )}
+              <span style={{ fontSize: 15, lineHeight: 1 }}>{tab.icon}</span>
+              {tab.label}
+            </button>
+          )
+        })}
+      </div>
 
       {/* ── Search bar ─────────────────────────────────────────────────── */}
       <div
@@ -203,38 +246,53 @@ export default function CatalogPage() {
         isLoading
           ? <PageLoader />
           : (
-            <div className="grid grid-cols-3 gap-3 pt-1">
-              {games.map(game => (
-                <Link
-                  key={game.id}
-                  to={`/catalog/${game.slug}`}
-                  className="flex flex-col rounded-2xl overflow-hidden active:scale-[0.96] transition-transform"
-                  style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
-                >
-                  <ImageWithSkeleton
-                    src={game.image_url}
-                    alt={game.name}
-                    aspectRatio="1 / 1"
-                    objectFit="cover"
-                    loading="lazy"
-                    style={{ width: '100%' }}
-                    fallback={<div className="w-full h-full flex items-center justify-center text-4xl" style={{ background: 'var(--bg3)' }}>🎮</div>}
-                  />
-                  <div className="px-2 py-1.5">
-                    <p className="text-xs font-semibold text-center truncate" style={{ color: 'var(--text)' }}>
-                      {game.name}
-                    </p>
-                  </div>
-                </Link>
-              ))}
-            </div>
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeType}
+                className="grid grid-cols-3 gap-3 pt-1"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.18, ease: 'easeOut' }}
+              >
+                {games.map(game => (
+                  <Link
+                    key={game.id}
+                    to={`/catalog/${game.slug}`}
+                    className="flex flex-col rounded-2xl overflow-hidden active:scale-[0.96] transition-transform"
+                    style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+                  >
+                    <ImageWithSkeleton
+                      src={game.image_url}
+                      alt={game.name}
+                      aspectRatio="1 / 1"
+                      objectFit="cover"
+                      loading="lazy"
+                      style={{ width: '100%' }}
+                      fallback={
+                        <div className="w-full h-full flex items-center justify-center text-4xl" style={{ background: 'var(--bg3)' }}>
+                          {activeType === 'service' ? '⚡' : '🎮'}
+                        </div>
+                      }
+                    />
+                    <div className="px-2 py-1.5">
+                      <p className="text-xs font-semibold text-center truncate" style={{ color: 'var(--text)' }}>
+                        {game.name}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </motion.div>
+            </AnimatePresence>
           )
       )}
 
       {!isLoading && !isSearching && games.length === 0 && (
         <div className="text-center py-20">
-          <p className="text-5xl mb-3">🎮</p>
-          <p style={{ color: 'var(--hint)' }}>Игры скоро появятся</p>
+          <p className="text-5xl mb-3">{activeType === 'game' ? '🎮' : '⚡'}</p>
+          <p style={{ color: 'var(--hint)' }}>
+            {activeType === 'game' ? 'Игры скоро появятся' : 'Сервисы скоро появятся'}
+          </p>
         </div>
       )}
     </motion.div>
