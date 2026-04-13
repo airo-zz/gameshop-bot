@@ -9,7 +9,7 @@ import {
   Plus, AlertCircle, Tag, ToggleLeft, ToggleRight, X, Check,
 } from 'lucide-react'
 import { adminApi } from '@/api/admin'
-import type { PromoCode, DiscountRule } from '@/api/admin'
+import type { PromoCode } from '@/api/admin'
 import toast from 'react-hot-toast'
 
 function formatDate(iso: string) {
@@ -18,23 +18,32 @@ function formatDate(iso: string) {
 
 interface CreateFormState {
   code: string
-  discount_rule_id: string
+  discount_value_type: 'percent' | 'fixed'
+  discount_value: string
+  max_discount_amount: string
+  min_order_amount: string
+  max_uses_unlimited: boolean
   max_uses: string
   per_user_limit: string
+  expires_unlimited: boolean
   expires_at: string
 }
 
 const EMPTY_FORM: CreateFormState = {
   code: '',
-  discount_rule_id: '',
+  discount_value_type: 'percent',
+  discount_value: '',
+  max_discount_amount: '',
+  min_order_amount: '',
+  max_uses_unlimited: true,
   max_uses: '',
   per_user_limit: '1',
+  expires_unlimited: true,
   expires_at: '',
 }
 
 export default function DiscountsPage() {
   const [promos, setPromos] = useState<PromoCode[]>([])
-  const [rules, setRules] = useState<DiscountRule[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [showForm, setShowForm] = useState(false)
@@ -44,28 +53,29 @@ export default function DiscountsPage() {
   const load = useCallback(() => {
     setLoading(true)
     setError(false)
-    Promise.all([adminApi.getPromos(), adminApi.getDiscountRules()])
-      .then(([promosData, rulesData]) => {
-        setPromos(promosData)
-        setRules(rulesData)
-      })
+    adminApi.getPromos()
+      .then(setPromos)
       .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [])
 
   useEffect(() => { load() }, [load])
 
+  const isFormValid = form.code.trim().length > 0 && form.discount_value.trim().length > 0
+
   async function handleCreate() {
-    if (!form.code || !form.discount_rule_id) return
+    if (!isFormValid) return
     setCreating(true)
     try {
-      const created = await adminApi.createPromo({
+      const created = await adminApi.createPromoDirect({
         code: form.code.toUpperCase().trim(),
-        discount_rule_id: form.discount_rule_id,
-        max_uses: form.max_uses ? parseInt(form.max_uses) : undefined,
-        per_user_limit: form.per_user_limit ? parseInt(form.per_user_limit) : undefined,
-        is_active: true,
-        expires_at: form.expires_at || undefined,
+        discount_value_type: form.discount_value_type,
+        discount_value: parseFloat(form.discount_value),
+        max_discount_amount: form.max_discount_amount ? parseFloat(form.max_discount_amount) : undefined,
+        min_order_amount: form.min_order_amount ? parseFloat(form.min_order_amount) : undefined,
+        max_uses: (!form.max_uses_unlimited && form.max_uses) ? parseInt(form.max_uses) : undefined,
+        per_user_limit: form.per_user_limit ? parseInt(form.per_user_limit) : 1,
+        expires_at: (!form.expires_unlimited && form.expires_at) ? form.expires_at : undefined,
       })
       toast.success('Промокод создан')
       setShowForm(false)
@@ -117,12 +127,13 @@ export default function DiscountsPage() {
             <div className="bg-white/[0.04] border border-blue-500/20 rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-white">Новый промокод</h2>
-                <button onClick={() => setShowForm(false)}>
+                <button onClick={() => { setShowForm(false); setForm(EMPTY_FORM) }}>
                   <X size={16} className="text-white/40 hover:text-white/80" />
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
+                {/* Код */}
                 <div className="col-span-2">
                   <label className="text-xs text-white/40 mb-1.5 block">Код</label>
                   <input
@@ -134,34 +145,72 @@ export default function DiscountsPage() {
                   />
                 </div>
 
+                {/* Тип скидки */}
                 <div className="col-span-2">
-                  <label className="text-xs text-white/40 mb-1.5 block">Правило скидки</label>
-                  <select
-                    value={form.discount_rule_id}
-                    onChange={(e) => setForm({ ...form, discount_rule_id: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
-                  >
-                    <option value="" className="bg-[#060f1e]">Выберите правило...</option>
-                    {rules.map((rule) => (
-                      <option key={rule.id} value={rule.id} className="bg-[#060f1e]">
-                        {rule.name}
-                      </option>
+                  <label className="text-xs text-white/40 mb-1.5 block">Тип скидки</label>
+                  <div className="flex gap-2">
+                    {(['percent', 'fixed'] as const).map((type) => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setForm({ ...form, discount_value_type: type, max_discount_amount: '' })}
+                        className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+                          form.discount_value_type === type
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white/5 text-white/50 hover:bg-white/10'
+                        }`}
+                      >
+                        {type === 'percent' ? 'Процент %' : 'Фикс. сумма ₽'}
+                      </button>
                     ))}
-                  </select>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Макс. использований</label>
+                {/* Размер скидки */}
+                <div className={form.discount_value_type === 'percent' ? '' : 'col-span-2'}>
+                  <label className="text-xs text-white/40 mb-1.5 block">
+                    Размер скидки {form.discount_value_type === 'percent' ? '(%)' : '(₽)'}
+                  </label>
                   <input
                     type="number"
-                    value={form.max_uses}
-                    onChange={(e) => setForm({ ...form, max_uses: e.target.value })}
-                    placeholder="Без ограничений"
-                    min="1"
+                    value={form.discount_value}
+                    onChange={(e) => setForm({ ...form, discount_value: e.target.value })}
+                    placeholder={form.discount_value_type === 'percent' ? '10' : '500'}
+                    min="0"
+                    step={form.discount_value_type === 'percent' ? '1' : '50'}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50"
                   />
                 </div>
 
+                {/* Макс. скидка (только для процентных) */}
+                {form.discount_value_type === 'percent' && (
+                  <div>
+                    <label className="text-xs text-white/40 mb-1.5 block">Макс. скидка (₽)</label>
+                    <input
+                      type="number"
+                      value={form.max_discount_amount}
+                      onChange={(e) => setForm({ ...form, max_discount_amount: e.target.value })}
+                      placeholder="Без лимита"
+                      min="0"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50"
+                    />
+                  </div>
+                )}
+
+                {/* Мин. сумма заказа */}
+                <div>
+                  <label className="text-xs text-white/40 mb-1.5 block">Мин. сумма заказа (₽)</label>
+                  <input
+                    type="number"
+                    value={form.min_order_amount}
+                    onChange={(e) => setForm({ ...form, min_order_amount: e.target.value })}
+                    placeholder="0"
+                    min="0"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50"
+                  />
+                </div>
+
+                {/* Лимит на пользователя */}
                 <div>
                   <label className="text-xs text-white/40 mb-1.5 block">Лимит на пользователя</label>
                   <input
@@ -174,20 +223,70 @@ export default function DiscountsPage() {
                   />
                 </div>
 
+                {/* Макс. использований */}
                 <div className="col-span-2">
-                  <label className="text-xs text-white/40 mb-1.5 block">Истекает</label>
-                  <input
-                    type="datetime-local"
-                    value={form.expires_at}
-                    onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
-                  />
+                  <label className="text-xs text-white/40 mb-1.5 block">Макс. использований</label>
+                  <div className="flex gap-2 mb-2">
+                    {[{ val: true, label: 'Без ограничений' }, { val: false, label: 'Указать число' }].map(({ val, label }) => (
+                      <button
+                        key={String(val)}
+                        type="button"
+                        onClick={() => setForm({ ...form, max_uses_unlimited: val, max_uses: '' })}
+                        className={`flex-1 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+                          form.max_uses_unlimited === val
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white/5 text-white/50 hover:bg-white/10'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {!form.max_uses_unlimited && (
+                    <input
+                      type="number"
+                      value={form.max_uses}
+                      onChange={(e) => setForm({ ...form, max_uses: e.target.value })}
+                      placeholder="100"
+                      min="1"
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50"
+                    />
+                  )}
+                </div>
+
+                {/* Срок действия */}
+                <div className="col-span-2">
+                  <label className="text-xs text-white/40 mb-1.5 block">Срок действия</label>
+                  <div className="flex gap-2 mb-2">
+                    {[{ val: true, label: 'Бессрочный' }, { val: false, label: 'До даты' }].map(({ val, label }) => (
+                      <button
+                        key={String(val)}
+                        type="button"
+                        onClick={() => setForm({ ...form, expires_unlimited: val, expires_at: '' })}
+                        className={`flex-1 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+                          form.expires_unlimited === val
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white/5 text-white/50 hover:bg-white/10'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {!form.expires_unlimited && (
+                    <input
+                      type="datetime-local"
+                      value={form.expires_at}
+                      onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                    />
+                  )}
                 </div>
               </div>
 
               <button
                 onClick={handleCreate}
-                disabled={!form.code || !form.discount_rule_id || creating}
+                disabled={!isFormValid || creating}
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-sm font-semibold text-white transition-colors"
               >
                 {creating ? (

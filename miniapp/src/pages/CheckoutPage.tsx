@@ -6,6 +6,7 @@ import { CheckCircle, Wallet, CreditCard, Bitcoin, AlertCircle } from 'lucide-re
 import toast from 'react-hot-toast'
 import { cartApi, ordersApi, profileApi } from '@/api'
 import { LOYALTY_LEVELS, LOYALTY_DISCOUNTS } from '@/utils/loyalty'
+import { fmtPrice } from '@/utils/format'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
 
@@ -85,7 +86,7 @@ export default function CheckoutPage() {
               {item.lot_name && <span style={{ color: 'var(--hint)' }}> · {item.lot_name}</span>}
             </span>
             <span className="font-medium flex-shrink-0" style={{ color: 'var(--text)' }}>
-              {item.subtotal.toLocaleString('ru')} ₽
+              {fmtPrice(item.subtotal)} ₽
             </span>
           </div>
         ))}
@@ -93,12 +94,12 @@ export default function CheckoutPage() {
         {cart.discount_amount > 0 && (
           <div className="flex justify-between text-sm">
             <span style={{ color: 'var(--hint)' }}>Скидка</span>
-            <span style={{ color: '#34d399' }}>-{cart.discount_amount.toLocaleString('ru')} ₽</span>
+            <span style={{ color: '#34d399' }}>-{fmtPrice(cart.discount_amount)} ₽</span>
           </div>
         )}
         <div className="flex justify-between font-bold text-base">
           <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span style={{ color: '#6b9de8' }}>{cart.total.toLocaleString('ru')} ₽</span>
+          <span style={{ color: '#6b9de8' }}>{fmtPrice(cart.total)} ₽</span>
         </div>
 
         {/* Подсказка о прогрессе лояльности */}
@@ -124,7 +125,7 @@ export default function CheckoutPage() {
               }}
             >
               ⭐ До {next.name} осталось{' '}
-              <strong>{remaining.toLocaleString('ru')} ₽</strong>
+              <strong>{fmtPrice(remaining)} ₽</strong>
               {discount > 0 && ` — апгрейд даст скидку ${discount}%`}
             </div>
           )
@@ -162,7 +163,7 @@ export default function CheckoutPage() {
                   <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{method.label}</p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>
                     {method.id === 'balance' && profile
-                      ? `Баланс: ${profile.balance.toLocaleString('ru')} ₽`
+                      ? `Баланс: ${fmtPrice(profile.balance)} ₽`
                       : method.description
                     }
                   </p>
@@ -192,7 +193,7 @@ export default function CheckoutPage() {
         disabled={placing || !!insufficientBalance}
         onClick={handlePlaceOrder}
       >
-        {placing ? '⏳ Оформляем...' : `Оплатить ${cart.total.toLocaleString('ru')} ₽`}
+        {placing ? '⏳ Оформляем...' : `Оплатить ${fmtPrice(cart.total)} ₽`}
       </button>
 
       <p className="text-xs text-center" style={{ color: 'var(--hint)' }}>

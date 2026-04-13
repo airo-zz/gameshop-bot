@@ -390,6 +390,20 @@ class PromoCreateIn(BaseModel):
     expires_at: str | None = None
 
 
+class PromoCreateDirectIn(BaseModel):
+    """Создание промокода без предварительного создания DiscountRule.
+    DiscountRule типа 'promo' создаётся автоматически под капотом."""
+
+    code: str = Field(..., min_length=1, max_length=32)
+    discount_value_type: str = Field(..., description="percent | fixed")
+    discount_value: float = Field(..., ge=0)
+    max_discount_amount: float | None = Field(None, ge=0, description="Макс. скидка (только для percent)")
+    min_order_amount: float | None = Field(None, ge=0, description="Мин. сумма заказа")
+    max_uses: int | None = Field(None, ge=1, description="None = без ограничений")
+    per_user_limit: int = Field(1, ge=1)
+    expires_at: str | None = Field(None, description="None = бессрочный")
+
+
 class PromoUpdateIn(BaseModel):
     max_uses: int | None = Field(None, ge=1)
     per_user_limit: int | None = Field(None, ge=1)

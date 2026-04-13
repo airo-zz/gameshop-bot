@@ -20,6 +20,7 @@ from api.schemas.admin import (
     DiscountRuleUpdateIn,
     PromoCodeOut,
     PromoCreateIn,
+    PromoCreateDirectIn,
     PromoUpdateIn,
 )
 from api.utils.admin_log import log_admin_action
@@ -349,6 +350,88 @@ async def create_promo(
             "discount_rule_name": rule.name,
             "max_uses": promo.max_uses,
             "is_active": promo.is_active,
+        },
+    )
+
+    return _promo_to_out(promo)
+
+
+# ── POST /promos/direct — создать промокод со встроенным DiscountRule ─────────
+
+
+@router.post("/promos/direct", response_model=PromoCodeOut, status_code=status.HTTP_201_CREATED,
+             dependencies=[require_permission("discounts.create")])
+async def create_promo_direct(
+    body: PromoCreateDirectIn,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> PromoCodeOut:
+    """Создаёт DiscountRule типа 'promo' автоматически, затем привязывает промокод.
+    Упрощённый интерфейс: не требует предварительного создания правила скидки."""
+    code_upper = body.code.strip().upper()
+
+    # Проверка уникальности кода
+    existing = await db.execute(select(PromoCode).where(PromoCode.code == code_upper))
+    if existing.scalar_one_or_none():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Промокод '{code_upper}' уже существует",
+        )
+
+    value_type = _validate_value_type(body.discount_value_type)
+
+    # Автоматически создаём DiscountRule типа promo
+    value_label = (
+        f"{int(body.discount_value)}%"
+        if value_type == DiscountValueType.percent
+        else f"{int(body.discount_value)}₽"
+    )
+    rule_name = f"Промокод {code_upper} ({value_label})"
+
+    rule = DiscountRule(
+        name=rule_name,
+        type=DiscountType.promo,
+        discount_value_type=value_type,
+        discount_value=body.discount_value,
+        min_order_amount=body.min_order_amount if body.min_order_amount is not None else 0,
+        max_discount_amount=body.max_discount_amount,
+        stackable=False,
+        priority=0,
+        is_active=True,
+    )
+    db.add(rule)
+    await db.flush()
+    await db.refresh(rule)
+
+    expires_at = _parse_datetime(body.expires_at, "expires_at")
+
+    promo = PromoCode(
+        code=code_upper,
+        discount_rule_id=rule.id,
+        max_uses=body.max_uses,
+        per_user_limit=body.per_user_limit,
+        is_active=True,
+        expires_at=expires_at,
+    )
+    db.add(promo)
+    await db.flush()
+    await db.refresh(promo)
+    await db.refresh(promo, ["discount_rule"])
+
+    await log_admin_action(
+        db=db,
+        admin=admin,
+        action="promo_code.create",
+        entity_type="promo_code",
+        entity_id=promo.id,
+        after_data={
+            "code": promo.code,
+            "discount_rule_id": str(rule.id),
+            "discount_rule_name": rule.name,
+            "discount_value_type": value_type.value,
+            "discount_value": float(body.discount_value),
+            "max_uses": promo.max_uses,
+            "expires_at": body.expires_at,
         },
     )
 

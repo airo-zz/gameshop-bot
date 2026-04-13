@@ -416,6 +416,18 @@ export const adminApi = {
   createPromo: (data: { code: string; discount_rule_id: string; max_uses?: number; per_user_limit?: number; is_active?: boolean; expires_at?: string }) =>
     apiClient.post<PromoCode>('/admin/discounts/promos', data).then(r => r.data),
 
+  createPromoDirect: (data: {
+    code: string
+    discount_value_type: 'percent' | 'fixed'
+    discount_value: number
+    max_discount_amount?: number
+    min_order_amount?: number
+    max_uses?: number
+    per_user_limit?: number
+    expires_at?: string
+  }) =>
+    apiClient.post<PromoCode>('/admin/discounts/promos/direct', data).then(r => r.data),
+
   updatePromo: (id: string, data: { max_uses?: number; per_user_limit?: number; is_active?: boolean; expires_at?: string }) =>
     apiClient.patch<PromoCode>(`/admin/discounts/promos/${id}`, data).then(r => r.data),
 }
