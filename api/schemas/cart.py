@@ -75,7 +75,7 @@ class CartOut(BaseModel):
 
 class CreateOrderRequest(BaseModel):
     payment_method: str = Field(..., pattern="^(balance|card_yukassa|crypto|usdt|ton|manual)$")
-    crypto_currency: str | None = Field(None, pattern="^(USDT|TON|BTC|ETH|LTC|BNB|TRX|SOL)$")
+    crypto_currency: str | None = Field(None, pattern="^(USDT|TON|BTC|ETH)$")
     promo_code: str | None = None
 
 

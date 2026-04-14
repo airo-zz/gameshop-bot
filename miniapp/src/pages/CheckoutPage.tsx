@@ -13,7 +13,7 @@ import { useCartStore } from '@/store'
 const PAYMENT_METHODS = [
   { id: 'balance',      label: 'Баланс бота',      icon: <Wallet size={20} />,     description: 'Мгновенно' },
   { id: 'card_yukassa', label: 'Банковская карта',  icon: <CreditCard size={20} />, description: 'Visa, Mastercard, МИР' },
-  { id: 'crypto',       label: 'Криптовалюта',      icon: <Bitcoin size={20} />,    description: 'BTC, USDT, TON, ETH и др.' },
+  { id: 'crypto',       label: 'Криптовалюта',      icon: <Bitcoin size={20} />,    description: 'USDT, TON, BTC, ETH' },
 ]
 
 const CRYPTO_COINS = [
@@ -21,10 +21,6 @@ const CRYPTO_COINS = [
   { id: 'TON',  label: 'TON',   description: 'Toncoin' },
   { id: 'BTC',  label: 'BTC',   description: 'Bitcoin' },
   { id: 'ETH',  label: 'ETH',   description: 'Ethereum' },
-  { id: 'LTC',  label: 'LTC',   description: 'Litecoin' },
-  { id: 'BNB',  label: 'BNB',   description: 'BNB Chain' },
-  { id: 'TRX',  label: 'TRX',   description: 'TRON' },
-  { id: 'SOL',  label: 'SOL',   description: 'Solana' },
 ]
 
 
@@ -196,26 +192,33 @@ export default function CheckoutPage() {
         {/* Выбор монеты при крипто-оплате */}
         {selectedMethod === 'crypto' && (
           <div className="mt-3">
-            <p className="text-xs font-medium mb-2" style={{ color: 'var(--hint)' }}>Выберите монету</p>
-            <div className="flex flex-wrap gap-1.5">
+            <p className="text-xs font-medium mb-2.5" style={{ color: 'var(--hint)' }}>Выберите монету</p>
+            <div className="grid grid-cols-2 gap-2">
               {CRYPTO_COINS.map(coin => {
                 const active = selectedCrypto === coin.id
                 return (
                   <button
                     key={coin.id}
                     onClick={() => { setSelectedCrypto(coin.id); haptic.select() }}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                    className="flex flex-col items-center justify-center py-3 rounded-2xl transition-all active:scale-[0.97]"
                     style={{
-                      background: active ? 'rgba(45,88,173,0.3)' : 'var(--bg2)',
-                      border: active ? '1px solid rgba(45,88,173,0.55)' : '1px solid var(--border)',
-                      color: active ? '#6b9de8' : 'var(--hint)',
+                      background: active ? 'rgba(45,88,173,0.25)' : 'var(--bg2)',
+                      border: active ? '1.5px solid rgba(45,88,173,0.55)' : '1.5px solid var(--border)',
                     }}
                   >
-                    {coin.label}
+                    <span className="text-sm font-bold" style={{ color: active ? '#6b9de8' : 'var(--text)' }}>
+                      {coin.label}
+                    </span>
+                    <span className="text-[11px] mt-0.5" style={{ color: 'var(--hint)' }}>
+                      {coin.description}
+                    </span>
                   </button>
                 )
               })}
             </div>
+            <p className="text-[11px] mt-2 text-center" style={{ color: 'var(--hint)' }}>
+              Сеть выбирается при оплате в CryptoBot
+            </p>
           </div>
         )}
       </section>
