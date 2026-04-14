@@ -41,7 +41,7 @@ export default function CheckoutPage() {
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: profileApi.get })
 
   const insufficientBalance =
-    selectedMethod === 'balance' && profile && cart && profile.balance < cart.total
+    selectedMethod === 'balance' && profile && cart && Number(profile.balance) < Number(cart.total)
 
   const handlePlaceOrder = async () => {
     if (placing) return
