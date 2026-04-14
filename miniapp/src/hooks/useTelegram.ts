@@ -205,5 +205,8 @@ export function useTelegram() {
     showConfirm,
     close: () => tg?.close(),
     openLink: (url: string) => tg?.openLink(url) ?? window.open(url, '_blank'),
+    openTelegramLink: (url: string) => {
+      try { tg?.openTelegramLink(url) } catch { tg?.openLink(url) ?? window.open(url, '_blank') }
+    },
   }
 }

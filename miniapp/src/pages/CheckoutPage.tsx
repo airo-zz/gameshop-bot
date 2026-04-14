@@ -20,7 +20,7 @@ const PAYMENT_METHODS = [
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
-  const { haptic, openLink } = useTelegram()
+  const { haptic, openLink, openTelegramLink } = useTelegram()
   const { setItemsCount } = useCartStore()
 
   const [selectedMethod, setSelectedMethod] = useState('balance')
@@ -47,7 +47,12 @@ export default function CheckoutPage() {
         return
       }
       if (payment.redirect_url) {
-        openLink(payment.redirect_url)
+        // t.me links (CryptoBot) open natively in Telegram, others in browser
+        if (payment.redirect_url.includes('t.me/')) {
+          openTelegramLink(payment.redirect_url)
+        } else {
+          openLink(payment.redirect_url)
+        }
         setItemsCount(0)
         navigate(`/orders/${order.id}?pending=1`, { replace: true })
         return
