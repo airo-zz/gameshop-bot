@@ -22,38 +22,13 @@ from api.routers.admin import router as admin_router
 log = structlog.get_logger()
 
 
-async def _register_cryptobot_webhook():
-    """Register webhook URL with CryptoBot on startup."""
-    if not settings.CRYPTOBOT_TOKEN or not settings.WEBHOOK_HOST:
-        return
-    import httpx
-    base_url = (
-        "https://pay.crypt.bot/api"
-        if settings.CRYPTOBOT_NETWORK == "mainnet"
-        else "https://testnet-pay.crypt.bot/api"
-    )
-    webhook_url = f"{settings.WEBHOOK_HOST}/webhooks/cryptobot"
-    try:
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                f"{base_url}/setWebhookUrl",
-                json={"url": webhook_url},
-                headers={"Crypto-Pay-API-Token": settings.CRYPTOBOT_TOKEN},
-                timeout=10.0,
-            )
-        data = resp.json()
-        if data.get("ok"):
-            log.info("cryptobot.webhook_set", url=webhook_url)
-        else:
-            log.error("cryptobot.webhook_failed", error=data)
-    except Exception as e:
-        log.error("cryptobot.webhook_error", error=str(e))
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info("api.startup", shop=settings.SHOP_NAME, env=settings.ENVIRONMENT)
-    await _register_cryptobot_webhook()
+    # CryptoBot webhook настраивается вручную через @CryptoBot → Crypto Pay → My Apps → Webhooks
+    # URL: {WEBHOOK_HOST}/webhooks/cryptobot
+    if settings.WEBHOOK_HOST:
+        log.info("cryptobot.webhook_url", url=f"{settings.WEBHOOK_HOST}/webhooks/cryptobot")
     yield
     await engine.dispose()
     log.info("api.shutdown")
