@@ -40,8 +40,9 @@ class OrderStatus(str, enum.Enum):
 class PaymentMethod(str, enum.Enum):
     balance = "balance"
     card_yukassa = "card_yukassa"
-    usdt = "usdt"
-    ton = "ton"
+    crypto = "crypto"
+    usdt = "usdt"       # legacy, kept for existing orders
+    ton = "ton"         # legacy, kept for existing orders
     manual = "manual"
 
 

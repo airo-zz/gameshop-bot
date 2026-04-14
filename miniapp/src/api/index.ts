@@ -202,7 +202,7 @@ export const cartApi = {
 // ── Orders API ────────────────────────────────────────────────────────────────
 
 export const ordersApi = {
-  create: (data: { payment_method: string; promo_code?: string }) =>
+  create: (data: { payment_method: string; crypto_currency?: string; promo_code?: string }) =>
     apiClient.post<Order>('/orders', data).then(r => r.data),
 
   list: (page = 0) =>

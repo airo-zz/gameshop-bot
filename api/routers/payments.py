@@ -77,12 +77,12 @@ async def initiate_payment(order_id: str, db: DbSession, user: CurrentUser):
         data = await svc.pay_yukassa(order, user)
         return PaymentInitResponse(method="card_yukassa", status="pending", **data)
 
-    elif order.payment_method.value == "usdt":
-        data = await svc.pay_crypto(order, user, "USDT")
-        return PaymentInitResponse(method="usdt", status="pending", **data)
-
-    elif order.payment_method.value == "ton":
-        data = await svc.pay_crypto(order, user, "TON")
-        return PaymentInitResponse(method="ton", status="pending", **data)
+    elif order.payment_method.value in ("crypto", "usdt", "ton"):
+        # Определяем валюту: из meta (новый flow) или из legacy method name
+        currency = (order.meta or {}).get("crypto_currency")
+        if not currency:
+            currency = "USDT" if order.payment_method.value == "usdt" else "TON"
+        data = await svc.pay_crypto(order, user, currency)
+        return PaymentInitResponse(method="crypto", status="pending", **data)
 
     raise HTTPException(400, "Неподдерживаемый метод оплаты")

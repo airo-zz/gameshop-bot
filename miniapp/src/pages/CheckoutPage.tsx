@@ -11,10 +11,20 @@ import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
 
 const PAYMENT_METHODS = [
-  { id: 'balance',      label: 'Баланс бота',      icon: <Wallet size={20} />,   description: 'Мгновенно' },
+  { id: 'balance',      label: 'Баланс бота',      icon: <Wallet size={20} />,     description: 'Мгновенно' },
   { id: 'card_yukassa', label: 'Банковская карта',  icon: <CreditCard size={20} />, description: 'Visa, Mastercard, МИР' },
-  { id: 'usdt',         label: 'USDT (TRC-20)',     icon: <Bitcoin size={20} />,  description: 'Крипта' },
-  { id: 'ton',          label: 'TON',               icon: <span className="text-lg">💎</span>, description: 'Telegram монеты' },
+  { id: 'crypto',       label: 'Криптовалюта',      icon: <Bitcoin size={20} />,    description: 'BTC, USDT, TON, ETH и др.' },
+]
+
+const CRYPTO_COINS = [
+  { id: 'USDT', label: 'USDT',  description: 'Tether' },
+  { id: 'TON',  label: 'TON',   description: 'Toncoin' },
+  { id: 'BTC',  label: 'BTC',   description: 'Bitcoin' },
+  { id: 'ETH',  label: 'ETH',   description: 'Ethereum' },
+  { id: 'LTC',  label: 'LTC',   description: 'Litecoin' },
+  { id: 'BNB',  label: 'BNB',   description: 'BNB Chain' },
+  { id: 'TRX',  label: 'TRX',   description: 'TRON' },
+  { id: 'SOL',  label: 'SOL',   description: 'Solana' },
 ]
 
 
@@ -24,6 +34,7 @@ export default function CheckoutPage() {
   const { setItemsCount } = useCartStore()
 
   const [selectedMethod, setSelectedMethod] = useState('balance')
+  const [selectedCrypto, setSelectedCrypto] = useState('USDT')
   const [placing, setPlacing] = useState(false)
 
   const { data: cart, isLoading: cartLoading }    = useQuery({ queryKey: ['cart'],    queryFn: cartApi.get })
@@ -37,7 +48,10 @@ export default function CheckoutPage() {
     setPlacing(true)
     haptic.impact('medium')
     try {
-      const order   = await ordersApi.create({ payment_method: selectedMethod })
+      const order   = await ordersApi.create({
+        payment_method: selectedMethod,
+        ...(selectedMethod === 'crypto' ? { crypto_currency: selectedCrypto } : {}),
+      })
       const payment = await ordersApi.pay(order.id)
 
       if (payment.success) {
@@ -178,6 +192,32 @@ export default function CheckoutPage() {
             )
           })}
         </div>
+
+        {/* Выбор монеты при крипто-оплате */}
+        {selectedMethod === 'crypto' && (
+          <div className="mt-3">
+            <p className="text-xs font-medium mb-2" style={{ color: 'var(--hint)' }}>Выберите монету</p>
+            <div className="flex flex-wrap gap-1.5">
+              {CRYPTO_COINS.map(coin => {
+                const active = selectedCrypto === coin.id
+                return (
+                  <button
+                    key={coin.id}
+                    onClick={() => { setSelectedCrypto(coin.id); haptic.select() }}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold transition-all"
+                    style={{
+                      background: active ? 'rgba(45,88,173,0.3)' : 'var(--bg2)',
+                      border: active ? '1px solid rgba(45,88,173,0.55)' : '1px solid var(--border)',
+                      color: active ? '#6b9de8' : 'var(--hint)',
+                    }}
+                  >
+                    {coin.label}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
       </section>
 
       {/* Недостаточно средств */}
