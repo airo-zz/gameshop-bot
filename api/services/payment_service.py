@@ -29,22 +29,41 @@ from api.services.order_service import OrderService
 logger = logging.getLogger(__name__)
 
 
-async def _get_usdt_rate() -> Decimal:
-    """Получает актуальный курс USDT/RUB из CoinGecko. При недоступности — fallback 90."""
+COINGECKO_IDS = {
+    "USDT": "tether",
+    "TON": "the-open-network",
+    "BTC": "bitcoin",
+    "ETH": "ethereum",
+}
+
+FALLBACK_RATES_RUB = {
+    "USDT": Decimal("90"),
+    "TON": Decimal("250"),
+    "BTC": Decimal("8500000"),
+    "ETH": Decimal("250000"),
+}
+
+
+async def _get_crypto_rate_rub(currency: str) -> Decimal:
+    """Получает актуальный курс CRYPTO/RUB из CoinGecko."""
+    coin_id = COINGECKO_IDS.get(currency)
+    fallback = FALLBACK_RATES_RUB.get(currency, Decimal("90"))
+    if not coin_id:
+        return fallback
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
             response = await client.get(
                 "https://api.coingecko.com/api/v3/simple/price",
-                params={"ids": "tether", "vs_currencies": "rub"},
+                params={"ids": coin_id, "vs_currencies": "rub"},
             )
             data = response.json()
-            rate = Decimal(str(data["tether"]["rub"]))
+            rate = Decimal(str(data[coin_id]["rub"]))
             return rate
     except Exception as e:
         logger.warning(
-            "Не удалось получить курс USDT/RUB, используем fallback 90: %s", e
+            "Не удалось получить курс %s/RUB, fallback %s: %s", currency, fallback, e
         )
-        return Decimal("90")
+        return fallback
 
 
 class PaymentService:
@@ -180,12 +199,11 @@ class PaymentService:
         if not settings.CRYPTOBOT_TOKEN:
             raise ValueError("CryptoBot не настроен")
 
-        method = PaymentMethod.usdt if currency == "USDT" else PaymentMethod.ton
-        payment = await self._create_payment_record(order, user, method)
+        payment = await self._create_payment_record(order, user, PaymentMethod.crypto)
 
-        # Конвертируем RUB → crypto с актуальным курсом из CoinGecko (fallback 90)
-        rate_rub_per_usdt = await _get_usdt_rate()
-        crypto_amount = order.total_amount / rate_rub_per_usdt
+        # Конвертируем RUB → crypto с актуальным курсом конкретной монеты
+        rate_rub = await _get_crypto_rate_rub(currency)
+        crypto_amount = order.total_amount / rate_rub
 
         base_url = (
             "https://pay.crypt.bot/api"

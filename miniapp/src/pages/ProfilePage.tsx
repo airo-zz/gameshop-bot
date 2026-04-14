@@ -169,7 +169,8 @@ export default function ProfilePage() {
   const displayName = profile?.first_name ?? user?.first_name ?? user?.username ?? 'Гость'
   const displayUsername = profile?.username ?? user?.username ?? null
   const avatarInitial = displayName.charAt(0).toUpperCase()
-  const avatarSrc = profile?.photo_url ?? user?.photo_url ?? null
+  // Telegram WebApp photo_url не истекает, в отличие от API file_path
+  const avatarSrc = user?.photo_url ?? profile?.photo_url ?? null
   const showAvatar = avatarSrc !== null && !avatarError
 
   const loyaltyInfo = profile ? getLoyaltyProgress(profile.total_spent) : null
