@@ -8,6 +8,7 @@ import { useAuthStore, useCartStore } from '@/store'
 import { cartApi } from '@/api'
 
 import Layout from '@/components/layout/Layout'
+import TelegramBackButton from '@/components/TelegramBackButton'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 import ErrorScreen from '@/components/ui/ErrorScreen'
 
@@ -116,6 +117,7 @@ export default function App() {
 
   return (
     <BrowserRouter basename="/app">
+      <TelegramBackButton />
       <Toaster
         position="top-center"
         containerStyle={{

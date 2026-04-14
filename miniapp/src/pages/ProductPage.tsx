@@ -154,7 +154,7 @@ function LotCard({ lot, isOutOfStock, inputData, inputFields, onAdd, adding, add
 export default function ProductPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { haptic, showBackButton, hideBackButton } = useTelegram()
+  const { haptic } = useTelegram()
   const { increment } = useCartStore()
   const { addRecentlyViewed } = useHistoryStore()
   const queryClient = useQueryClient()
@@ -176,11 +176,7 @@ export default function ProductPage() {
     if (product) addRecentlyViewed(product)
   }, [product?.id])
 
-  useEffect(() => {
-    const handler = () => navigate(-1)
-    showBackButton(handler)
-    return () => hideBackButton(handler)
-  }, [navigate, showBackButton, hideBackButton])
+
 
   // Добавление конкретного лота (или товара без лотов) в корзину
   const handleAddLot = async (lot: Lot) => {
