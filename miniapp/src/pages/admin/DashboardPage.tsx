@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   ShoppingCart,
@@ -23,6 +24,7 @@ function StatCard({
   icon,
   accent = 'blue',
   index = 0,
+  to,
 }: {
   label: string
   value: string | number
@@ -30,6 +32,7 @@ function StatCard({
   icon: React.ReactNode
   accent?: 'blue' | 'violet' | 'green' | 'orange'
   index?: number
+  to?: string
 }) {
   const accentMap = {
     blue:   'from-blue-500/10 to-blue-600/5 border-blue-500/20 text-blue-400',
@@ -38,19 +41,29 @@ function StatCard({
     orange: 'from-orange-500/10 to-orange-600/5 border-orange-500/20 text-orange-400',
   }
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: index * 0.05 }}
-      className={`relative rounded-2xl border bg-gradient-to-br p-4 ${accentMap[accent]}`}
-    >
+  const inner = (
+    <>
       <div className="flex items-start justify-between mb-3">
         <span className="text-xs font-medium text-white/50">{label}</span>
         <span>{icon}</span>
       </div>
       <div className="text-2xl font-bold text-white">{value}</div>
       {sub && <div className="text-xs text-white/40 mt-1">{sub}</div>}
+    </>
+  )
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay: index * 0.05 }}
+      className={`relative rounded-2xl border bg-gradient-to-br p-4 transition-all duration-200 ${accentMap[accent]} ${to ? 'cursor-pointer hover:brightness-110' : ''}`}
+    >
+      {to ? (
+        <Link to={to} className="block">
+          {inner}
+        </Link>
+      ) : inner}
     </motion.div>
   )
 }
@@ -105,6 +118,7 @@ export default function DashboardPage() {
           icon={<ShoppingCart size={18} />}
           accent="blue"
           index={0}
+          to="/admin/orders"
         />
         <StatCard
           label="Выручка сегодня"
@@ -113,6 +127,7 @@ export default function DashboardPage() {
           icon={<TrendingUp size={18} />}
           accent="green"
           index={1}
+          to="/admin/orders"
         />
         <StatCard
           label="Пользователей"
@@ -121,6 +136,7 @@ export default function DashboardPage() {
           icon={<Users size={18} />}
           accent="violet"
           index={2}
+          to="/admin/users"
         />
         <StatCard
           label="Ожидают обработки"
@@ -128,6 +144,7 @@ export default function DashboardPage() {
           icon={<Clock size={18} />}
           accent="orange"
           index={3}
+          to="/admin/orders"
         />
         <StatCard
           label="Товаров в каталоге"
@@ -136,6 +153,7 @@ export default function DashboardPage() {
           icon={<Package size={18} />}
           accent="blue"
           index={4}
+          to="/admin/catalog"
         />
         <StatCard
           label="Выручка за неделю"
@@ -144,6 +162,7 @@ export default function DashboardPage() {
           icon={<TrendingUp size={18} />}
           accent="green"
           index={5}
+          to="/admin/orders"
         />
       </div>
     </div>

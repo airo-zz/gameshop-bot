@@ -115,18 +115,9 @@ export default function UsersPage() {
                 to={`/admin/users/${user.id}`}
                 className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 rounded-xl px-4 py-3 transition-colors duration-200"
               >
-                {/* Avatar */}
-                {user.photo_url ? (
-                  <img
-                    src={user.photo_url}
-                    alt={user.first_name}
-                    className="w-9 h-9 rounded-full object-cover shrink-0"
-                  />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0 text-sm font-semibold text-white/60">
-                    {user.first_name[0]}
-                  </div>
-                )}
+                <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0 text-sm font-semibold text-white/60">
+                  {user.first_name[0]}
+                </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">

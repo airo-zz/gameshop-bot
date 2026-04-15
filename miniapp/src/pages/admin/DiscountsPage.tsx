@@ -6,7 +6,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Plus, AlertCircle, Tag, ToggleLeft, ToggleRight, X, Check,
+  Plus, AlertCircle, Tag, ToggleLeft, ToggleRight, X, Check, Trash2,
 } from 'lucide-react'
 import { adminApi } from '@/api/admin'
 import type { PromoCode } from '@/api/admin'
@@ -85,6 +85,17 @@ export default function DiscountsPage() {
       toast.error('Ошибка создания промокода')
     } finally {
       setCreating(false)
+    }
+  }
+
+  async function handleDelete(promo: PromoCode) {
+    if (!window.confirm(`Удалить промокод ${promo.code}?`)) return
+    try {
+      await adminApi.deletePromo(promo.id)
+      setPromos(prev => prev.filter(p => p.id !== promo.id))
+      toast.success('Промокод удалён')
+    } catch {
+      toast.error('Ошибка удаления')
     }
   }
 
@@ -357,6 +368,13 @@ export default function DiscountsPage() {
                       ? <ToggleRight size={20} className="text-emerald-400" />
                       : <ToggleLeft size={20} />
                     }
+                  </button>
+                  <button
+                    onClick={() => handleDelete(promo)}
+                    className="text-white/30 hover:text-red-400 transition-colors"
+                    title="Удалить"
+                  >
+                    <Trash2 size={15} />
                   </button>
                 </div>
               </div>

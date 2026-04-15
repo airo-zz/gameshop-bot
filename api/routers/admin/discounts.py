@@ -483,3 +483,28 @@ async def update_promo(
     )
 
     return _promo_to_out(promo)
+
+
+# ── DELETE /promos/{promo_id} — удалить промокод ─────────────────────────────
+
+
+@router.delete("/promos/{promo_id}", status_code=204, dependencies=[require_permission("discounts.manage")])
+async def delete_promo(promo_id: uuid.UUID, db: DbSession, admin: CurrentAdmin) -> None:
+    result = await db.execute(
+        select(PromoCode)
+        .options(selectinload(PromoCode.discount_rule))
+        .where(PromoCode.id == promo_id)
+    )
+    promo = result.scalar_one_or_none()
+    if not promo:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Промокод не найден")
+
+    await log_admin_action(
+        db=db,
+        admin=admin,
+        action="promo.delete",
+        entity_type="promo_code",
+        entity_id=promo.id,
+    )
+
+    await db.delete(promo)

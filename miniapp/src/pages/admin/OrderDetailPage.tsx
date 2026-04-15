@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, AlertCircle, Save } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Save, Trash2 } from 'lucide-react'
 import { adminApi } from '@/api/admin'
 import type { AdminOrderDetail } from '@/api/admin'
 import toast from 'react-hot-toast'
@@ -49,6 +49,7 @@ export default function OrderDetailPage() {
   const [newStatus, setNewStatus] = useState('')
   const [reason, setReason] = useState('')
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -62,6 +63,21 @@ export default function OrderDetailPage() {
       .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [id])
+
+  async function handleDelete() {
+    if (!order) return
+    if (!window.confirm('Удалить заказ? Это действие нельзя отменить.')) return
+    setDeleting(true)
+    try {
+      await adminApi.deleteOrder(order.id)
+      toast.success('Заказ удалён')
+      navigate('/admin/orders')
+    } catch {
+      toast.error('Не удалось удалить заказ')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   async function handleSave() {
     if (!order || !newStatus) return
@@ -115,7 +131,7 @@ export default function OrderDetailPage() {
           <ArrowLeft size={18} className="text-white/60" />
         </button>
         <div>
-          <h1 className="text-lg font-bold text-white">#{order.order_number}</h1>
+          <h1 className="text-lg font-bold text-white">{order.order_number}</h1>
           <p className="text-xs text-white/40">{formatDate(order.created_at)}</p>
         </div>
         <span className={`ml-auto text-xs px-3 py-1 rounded-full font-medium ${STATUS_COLORS[order.status] ?? 'bg-white/10 text-white/50'}`}>
@@ -200,6 +216,21 @@ export default function OrderDetailPage() {
           )}
           Сохранить
         </button>
+
+        {['new', 'pending_payment', 'cancelled', 'refunded'].includes(order.status) && (
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 disabled:opacity-60 text-sm font-semibold text-red-400 transition-colors duration-200"
+          >
+            {deleting ? (
+              <span className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />
+            ) : (
+              <Trash2 size={16} />
+            )}
+            Удалить заказ
+          </button>
+        )}
       </div>
     </motion.div>
   )

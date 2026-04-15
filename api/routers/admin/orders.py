@@ -278,6 +278,34 @@ async def change_order_status(
     return {"ok": True, "new_status": new_status.value}
 
 
+# ── DELETE /{order_id} — удалить заказ ───────────────────────────────────────
+
+
+@router.delete("/{order_id}", status_code=204, dependencies=[require_permission("orders.manage")])
+async def delete_order(order_id: uuid.UUID, db: DbSession, admin: CurrentAdmin) -> None:
+    result = await db.execute(select(Order).where(Order.id == order_id))
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заказ не найден")
+
+    forbidden_statuses = {OrderStatus.paid, OrderStatus.processing, OrderStatus.completed}
+    if order.status in forbidden_statuses:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Нельзя удалить заказ в статусе {order.status.value}",
+        )
+
+    await log_admin_action(
+        db=db,
+        admin=admin,
+        action="order.delete",
+        entity_type="order",
+        entity_id=order.id,
+    )
+
+    await db.delete(order)
+
+
 # ── POST /{order_id}/notes — добавить заметку ─────────────────────────────────
 
 

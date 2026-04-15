@@ -325,6 +325,9 @@ export const adminApi = {
   updateOrderStatus: (id: string, status: string, reason?: string) =>
     apiClient.patch(`/admin/orders/${id}/status`, { status, reason }).then(r => r.data),
 
+  deleteOrder: (id: string) =>
+    apiClient.delete(`/admin/orders/${id}`).then(r => r.data),
+
   addOrderNotes: (id: string, text: string) =>
     apiClient.post(`/admin/orders/${id}/notes`, { text }).then(r => r.data),
 
@@ -444,4 +447,7 @@ export const adminApi = {
 
   updatePromo: (id: string, data: { max_uses?: number; per_user_limit?: number; is_active?: boolean; expires_at?: string }) =>
     apiClient.patch<PromoCode>(`/admin/discounts/promos/${id}`, data).then(r => r.data),
+
+  deletePromo: (id: string) =>
+    apiClient.delete(`/admin/discounts/promos/${id}`).then(r => r.data),
 }
