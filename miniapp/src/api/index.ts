@@ -129,6 +129,17 @@ export interface Ticket {
   subject: string
   status: 'open' | 'in_progress' | 'waiting_user' | 'resolved' | 'closed'
   created_at: string
+  closed_at: string | null
+}
+
+export interface TicketMessage {
+  id: string
+  sender_type: 'user' | 'admin'
+  sender_id: string
+  text: string
+  attachments: string[]
+  is_template_response: boolean
+  created_at: string
 }
 
 export interface Profile {
@@ -231,12 +242,20 @@ export const profileApi = {
 // ── Support API ───────────────────────────────────────────────────────────────
 
 export const supportApi = {
-  createTicket: (data: { subject: string; message: string; order_id?: string }) =>
-    apiClient.post<Ticket>('/support', data).then(r => r.data),
+  createTicket: (data: { subject: string; message: string; order_id?: string; attachments?: string[] }) =>
+    apiClient.post<{ ticket_id: string; ok: boolean }>('/support', data).then(r => r.data),
 
   list: () =>
     apiClient.get<Ticket[]>('/support').then(r => r.data),
 
-  reply: (ticketId: string, text: string) =>
-    apiClient.post(`/support/${ticketId}/reply`, { text }).then(r => r.data),
+  get: (ticketId: string) =>
+    apiClient.get<Ticket>(`/support/${ticketId}`).then(r => r.data),
+
+  getMessages: (ticketId: string, limit = 50, beforeId?: string) =>
+    apiClient.get<TicketMessage[]>(`/support/${ticketId}/messages`, {
+      params: { limit, ...(beforeId ? { before_id: beforeId } : {}) },
+    }).then(r => r.data),
+
+  reply: (ticketId: string, text: string, attachments: string[] = []) =>
+    apiClient.post<{ ok: boolean; message_id: string }>(`/support/${ticketId}/reply`, { text, attachments }).then(r => r.data),
 }

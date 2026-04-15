@@ -114,6 +114,31 @@ services:
     volumes:
       - static_files:/static
 
+  # ── Support Bot ──────────────────────────────
+  support_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.bot
+    <<: *common-env
+    command: python -m support_bot.main
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    volumes:
+      - static_files:/static
+
   # ── Celery Worker ───────────────────────────
   worker:
     build:

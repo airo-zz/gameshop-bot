@@ -18,6 +18,7 @@ import {
   Package,
   Users,
   Tag,
+  MessageSquare,
   ChevronRight,
 } from 'lucide-react'
 
@@ -33,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/admin/catalog',   label: 'Каталог',     icon: <Package size={22} /> },
   { to: '/admin/users',     label: 'Пользователи', icon: <Users size={22} /> },
   { to: '/admin/discounts', label: 'Скидки',      icon: <Tag size={22} /> },
+  { to: '/admin/support',   label: 'Поддержка',   icon: <MessageSquare size={22} /> },
 ]
 
 function SidebarLink({ item }: { item: NavItem }) {

@@ -1,87 +1,93 @@
-"""api/routers/support.py"""
-from fastapi import APIRouter
-from pydantic import BaseModel
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
+"""
+api/routers/support.py
+─────────────────────────────────────────────────────────────────────────────
+Клиентские эндпоинты поддержки — создание тикетов, ответы, просмотр.
+─────────────────────────────────────────────────────────────────────────────
+"""
+
+import uuid
+
+from fastapi import APIRouter, HTTPException, Query
 
 from api.deps import CurrentUser, DbSession
-from shared.models import SupportTicket, TicketMessage, TicketStatus
+from api.schemas.support import (
+    CreateTicketRequest,
+    ReplyTicketRequest,
+    TicketMessageOut,
+    TicketOut,
+)
+from api.services.support_service import SupportService
 
 router = APIRouter()
 
 
-class CreateTicketRequest(BaseModel):
-    subject: str
-    message: str
-    order_id: str | None = None
-
-
-class ReplyTicketRequest(BaseModel):
-    text: str
-
-
 @router.post("")
 async def create_ticket(body: CreateTicketRequest, db: DbSession, user: CurrentUser):
-    import uuid
-    ticket = SupportTicket(
-        user_id=user.id,
-        order_id=uuid.UUID(body.order_id) if body.order_id else None,
-        subject=body.subject,
-        status=TicketStatus.open,
-    )
-    db.add(ticket)
-    await db.flush()
+    svc = SupportService(db)
+    order_id = uuid.UUID(body.order_id) if body.order_id else None
 
-    msg = TicketMessage(
-        ticket_id=ticket.id,
-        sender_type="user",
-        sender_id=user.id,
-        text=body.message,
+    ticket = await svc.create_ticket(
+        user_id=user.id,
+        subject=body.subject,
+        message_text=body.message,
+        order_id=order_id,
+        attachments=body.attachments,
+        source="miniapp",
     )
-    db.add(msg)
     return {"ticket_id": str(ticket.id), "ok": True}
 
 
-@router.get("")
+@router.get("", response_model=list[TicketOut])
 async def list_tickets(db: DbSession, user: CurrentUser):
-    result = await db.execute(
-        select(SupportTicket)
-        .where(SupportTicket.user_id == user.id)
-        .order_by(SupportTicket.created_at.desc())
-        .limit(20)
-    )
-    tickets = result.scalars().all()
-    return [
-        {
-            "id": str(t.id),
-            "subject": t.subject,
-            "status": t.status.value,
-            "created_at": t.created_at.isoformat(),
-        }
-        for t in tickets
-    ]
+    svc = SupportService(db)
+    tickets = await svc.list_user_tickets(user.id)
+    return [TicketOut.model_validate(t) for t in tickets]
+
+
+@router.get("/{ticket_id}", response_model=TicketOut)
+async def get_ticket(ticket_id: uuid.UUID, db: DbSession, user: CurrentUser):
+    svc = SupportService(db)
+    ticket = await svc.get_ticket(ticket_id, user_id=user.id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Тикет не найден")
+    return TicketOut.model_validate(ticket)
+
+
+@router.get("/{ticket_id}/messages", response_model=list[TicketMessageOut])
+async def get_ticket_messages(
+    ticket_id: uuid.UUID,
+    db: DbSession,
+    user: CurrentUser,
+    limit: int = Query(50, ge=1, le=100),
+    before_id: uuid.UUID | None = Query(None),
+):
+    svc = SupportService(db)
+    # Проверяем владение тикетом
+    ticket = await svc.get_ticket(ticket_id, user_id=user.id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Тикет не найден")
+
+    messages = await svc.get_messages(ticket_id, limit=limit, before_id=before_id)
+    return [TicketMessageOut.model_validate(m) for m in messages]
 
 
 @router.post("/{ticket_id}/reply")
-async def reply_to_ticket(ticket_id: str, body: ReplyTicketRequest, db: DbSession, user: CurrentUser):
-    import uuid
-    result = await db.execute(
-        select(SupportTicket).where(
-            SupportTicket.id == uuid.UUID(ticket_id),
-            SupportTicket.user_id == user.id,
-        )
-    )
-    ticket = result.scalar_one_or_none()
+async def reply_to_ticket(
+    ticket_id: uuid.UUID,
+    body: ReplyTicketRequest,
+    db: DbSession,
+    user: CurrentUser,
+):
+    svc = SupportService(db)
+    ticket = await svc.get_ticket(ticket_id, user_id=user.id)
     if not ticket:
-        from fastapi import HTTPException
-        raise HTTPException(404, "Тикет не найден")
+        raise HTTPException(status_code=404, detail="Тикет не найден")
 
-    msg = TicketMessage(
-        ticket_id=ticket.id,
+    msg = await svc.add_message(
+        ticket_id=ticket_id,
         sender_type="user",
         sender_id=user.id,
         text=body.text,
+        attachments=body.attachments,
     )
-    db.add(msg)
-    ticket.status = TicketStatus.open  # Реоткрываем если был waiting_user
-    return {"ok": True}
+    return {"ok": True, "message_id": str(msg.id)}

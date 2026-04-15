@@ -1,7 +1,7 @@
 """
 bot/handlers/client/support.py
 ─────────────────────────────────────────────────────────────────────────────
-Поддержка: главный экран + ссылка на бот поддержки + FAQ.
+Поддержка: ссылка на бот поддержки + чат в MiniApp + FAQ.
 ─────────────────────────────────────────────────────────────────────────────
 """
 
@@ -13,6 +13,7 @@ from aiogram.types import (
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     Message,
+    WebAppInfo,
 )
 
 from shared.config import settings
@@ -30,13 +31,22 @@ def _support_keyboard() -> InlineKeyboardMarkup:
                 url=f"https://t.me/{settings.SHOP_SUPPORT_USERNAME}",
             )
         ],
+    ]
+    if settings.MINIAPP_URL:
+        buttons.append([
+            InlineKeyboardButton(
+                text="📱 Открыть чат поддержки",
+                web_app=WebAppInfo(url=f"{settings.MINIAPP_URL}/support"),
+            )
+        ])
+    buttons.extend([
         [
             InlineKeyboardButton(text="❓ FAQ", callback_data="faq:main"),
         ],
         [
             InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
         ],
-    ]
+    ])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 

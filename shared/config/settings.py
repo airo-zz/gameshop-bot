@@ -45,6 +45,8 @@ class TelegramSettings(BaseSettings):
     BOT_TOKEN: str
     BOT_USERNAME: str = "redonate_bot"  # username бота без @
     ADMIN_BOT_TOKEN: str = ""           # если нет отдельного — используем BOT_TOKEN
+    SUPPORT_BOT_TOKEN: str = ""         # токен бота поддержки
+    SUPPORT_NOTIFY_CHAT_ID: int = 0     # chat_id группы операторов для уведомлений
     WEBHOOK_HOST: str = ""
     WEBHOOK_PATH: str = "/webhook/bot"
     WEBHOOK_SECRET: str = ""
@@ -53,6 +55,10 @@ class TelegramSettings(BaseSettings):
     @property
     def effective_admin_token(self) -> str:
         return self.ADMIN_BOT_TOKEN or self.BOT_TOKEN
+
+    @property
+    def effective_support_token(self) -> str:
+        return self.SUPPORT_BOT_TOKEN or self.BOT_TOKEN
 
     @property
     def webhook_url(self) -> str:
