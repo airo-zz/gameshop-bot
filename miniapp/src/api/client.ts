@@ -17,20 +17,31 @@ import axios, {
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1'
 
-// ── Хранилище токенов (в памяти — не localStorage!) ──────────────────────────
-let accessToken: string | null = null
-let refreshToken: string | null = null
+// ── Хранилище токенов ────────────────────────────────────────────────────────
+// В MiniApp — только в памяти. В браузере — дополнительно в localStorage.
+const isBrowser = !window.Telegram?.WebApp?.initData
+
+let accessToken: string | null = isBrowser ? localStorage.getItem('access_token') : null
+let refreshToken: string | null = isBrowser ? localStorage.getItem('refresh_token') : null
 let isRefreshing = false
 let pendingRequests: Array<(token: string) => void> = []
 
 function setTokens(access: string, refresh: string) {
   accessToken  = access
   refreshToken = refresh
+  if (isBrowser) {
+    localStorage.setItem('access_token', access)
+    localStorage.setItem('refresh_token', refresh)
+  }
 }
 
 function clearTokens() {
   accessToken  = null
   refreshToken = null
+  if (isBrowser) {
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
+  }
 }
 
 // ── Axios instance ────────────────────────────────────────────────────────────

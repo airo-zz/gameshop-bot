@@ -71,6 +71,7 @@ const AdminProductEdit = lazy(() => import('@/pages/admin/ProductEditPage'))
 const AdminGameEdit    = lazy(() => import('@/pages/admin/GameEditPage'))
 const AdminGamesList   = lazy(() => import('@/pages/admin/GamesListPage'))
 const AdminSupport     = lazy(() => import('@/pages/admin/SupportPage'))
+const AdminLogin       = lazy(() => import('@/pages/admin/LoginPage'))
 
 export default function App() {
   const { initData } = useTelegram()
@@ -153,6 +154,9 @@ export default function App() {
           <Route path="support"      element={<LazyPage><SupportPage /></LazyPage>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
+
+        {/* Admin login — outside guard */}
+        <Route path="/admin/login" element={<LazyPage><AdminLogin /></LazyPage>} />
 
         {/* Admin routes — guarded, separate layout, no main nav */}
         <Route
