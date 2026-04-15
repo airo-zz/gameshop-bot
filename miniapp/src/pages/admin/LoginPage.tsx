@@ -3,54 +3,36 @@
  * Страница входа в админку через Telegram Login Widget.
  */
 
-import { useEffect, useRef, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Shield } from 'lucide-react'
-import { apiClient } from '@/api/client'
-import { setTokens } from '@/api/client'
-import { useAdminStore } from '@/store/adminStore'
+import { useEffect, useRef, useState } from 'react'
+import { Shield, Loader2 } from 'lucide-react'
+import axios from 'axios'
 
 const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'redonate_bot'
+const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1'
 
-interface TelegramLoginData {
-  id: number
-  first_name: string
-  last_name?: string
-  username?: string
-  photo_url?: string
-  auth_date: number
-  hash: string
+// Глобальный callback вне React — гарантированно доступен для виджета
+;(window as any).onTelegramAuth = async (user: any) => {
+  const statusEl = document.getElementById('login-status')
+  if (statusEl) statusEl.textContent = 'Авторизация...'
+
+  try {
+    const res = await axios.post(`${BASE_URL}/admin/auth/telegram-login`, user)
+    localStorage.setItem('access_token', res.data.access_token)
+    localStorage.setItem('refresh_token', res.data.refresh_token)
+    window.location.href = '/app/admin'
+  } catch {
+    if (statusEl) statusEl.textContent = 'Нет доступа. Убедитесь что ваш аккаунт в администраторах.'
+  }
 }
 
 export default function AdminLoginPage() {
-  const navigate = useNavigate()
-  const { setAdmin, setChecked } = useAdminStore()
   const widgetRef = useRef<HTMLDivElement>(null)
   const scriptLoaded = useRef(false)
-
-  const handleAuth = useCallback(async (data: TelegramLoginData) => {
-    try {
-      const res = await apiClient.post<{ access_token: string; refresh_token: string }>(
-        '/admin/auth/telegram-login',
-        data,
-      )
-      setTokens(res.data.access_token, res.data.refresh_token)
-      setAdmin(true)
-      setChecked()
-      navigate('/admin', { replace: true })
-    } catch {
-      alert('Нет доступа. Убедитесь что ваш аккаунт добавлен в администраторы.')
-    }
-  }, [navigate, setAdmin, setChecked])
+  const [loading] = useState(false)
 
   useEffect(() => {
     if (scriptLoaded.current) return
     scriptLoaded.current = true
-
-    // Telegram Login Widget вызывает глобальную callback-функцию
-    ;(window as any).onTelegramAuth = (data: TelegramLoginData) => {
-      handleAuth(data)
-    }
 
     const script = document.createElement('script')
     script.src = 'https://telegram.org/js/telegram-widget.js?22'
@@ -62,11 +44,7 @@ export default function AdminLoginPage() {
     script.setAttribute('data-request-access', 'write')
 
     widgetRef.current?.appendChild(script)
-
-    return () => {
-      delete (window as any).onTelegramAuth
-    }
-  }, [handleAuth])
+  }, [])
 
   return (
     <div
@@ -89,6 +67,14 @@ export default function AdminLoginPage() {
       </div>
 
       <div ref={widgetRef} />
+
+      <p
+        id="login-status"
+        className="text-sm h-5"
+        style={{ color: 'rgba(255,255,255,0.4)' }}
+      >
+        {loading && <Loader2 size={16} className="animate-spin inline mr-1" />}
+      </p>
     </div>
   )
 }
