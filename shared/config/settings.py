@@ -153,6 +153,7 @@ class AppSettings(BaseSettings):
     ENVIRONMENT: Literal["development", "production"] = "production"
     ABANDONED_CART_HOURS: int = 1
     CART_PRICE_RESERVE_HOURS: int = 24
+    FRONTEND_URL: str = "https://redonate.su"
 
     model_config = SettingsConfigDict(
         env_file=".env",

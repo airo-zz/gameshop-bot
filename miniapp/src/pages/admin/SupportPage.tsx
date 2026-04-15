@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Search,
@@ -647,6 +648,7 @@ function ChatPanel({
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function AdminSupportPage() {
+  const [searchParams] = useSearchParams()
   const [activeTab, setActiveTab] = useState('')
   const [search, setSearch] = useState('')
   const [searchInput, setSearchInput] = useState('')
@@ -657,6 +659,7 @@ export default function AdminSupportPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   // On mobile: show chat instead of list when a ticket is selected
   const [mobileShowChat, setMobileShowChat] = useState(false)
+  const autoOpenedRef = useRef(false)
 
   const loadList = useCallback(() => {
     setListLoading(true)
@@ -675,6 +678,22 @@ export default function AdminSupportPage() {
   }, [activeTab, page, search])
 
   useEffect(() => { loadList() }, [loadList])
+
+  // Auto-open ticket from ?ticket= URL param (runs once on first list load)
+  useEffect(() => {
+    if (autoOpenedRef.current) return
+    const ticketId = searchParams.get('ticket')
+    if (!ticketId || !listData?.items.length) return
+    autoOpenedRef.current = true
+    const found = listData.items.find(t => t.id === ticketId)
+    if (found) {
+      handleSelectTicket(found.id)
+    } else {
+      // Ticket not in current page — open directly by id
+      handleSelectTicket(ticketId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listData])
 
   // Debounce search
   useEffect(() => {

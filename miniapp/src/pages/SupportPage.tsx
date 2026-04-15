@@ -5,17 +5,17 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { MessageCircle, Send, Plus, ArrowLeft, Paperclip, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
-import { supportApi, type Ticket, type TicketMessage } from '@/api'
+import { supportApi, ordersApi, type Ticket, type TicketMessage, type Order } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 
 type View = 'list' | 'new' | 'chat'
 
-const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  open:         { label: 'Открыт',      color: '#34d399' },
-  in_progress:  { label: 'В работе',    color: '#6b9de8' },
-  waiting_user: { label: 'Ожидаем вас', color: '#fbbf24' },
-  resolved:     { label: 'Решён',       color: '#34d399' },
-  closed:       { label: 'Закрыт',      color: 'var(--hint)' },
+const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
+  open:         { label: 'Открыт',      color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
+  in_progress:  { label: 'В работе',    color: '#a78bfa', bg: 'rgba(167,139,250,0.15)' },
+  waiting_user: { label: 'Ожидаем вас', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
+  resolved:     { label: 'Решён',       color: '#6b7280', bg: 'rgba(107,114,128,0.15)' },
+  closed:       { label: 'Закрыт',      color: '#6b7280', bg: 'rgba(107,114,128,0.15)' },
 }
 
 function timeAgo(dateStr: string): string {
@@ -29,6 +29,20 @@ function timeAgo(dateStr: string): string {
   return `${days} дн назад`
 }
 
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function avatarInitial(subject: string): string {
+  return (subject?.trim()?.[0] ?? '?').toUpperCase()
+}
+
 export default function SupportPage() {
   const { haptic } = useTelegram()
   const queryClient = useQueryClient()
@@ -37,12 +51,12 @@ export default function SupportPage() {
 
   const [view, setView] = useState<View>(prefillOrderId ? 'new' : 'list')
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
-  const [subject, setSubject] = useState(prefillOrderId ? `Заказ #${prefillOrderId.slice(0, 8)}` : '')
   const [message, setMessage] = useState('')
   const [replyText, setReplyText] = useState('')
   const [sending, setSending] = useState(false)
   const [attachedFiles, setAttachedFiles] = useState<File[]>([])
   const [uploadingFiles, setUploadingFiles] = useState(false)
+  const [linkedOrderId, setLinkedOrderId] = useState<string>(prefillOrderId ?? '')
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -50,6 +64,13 @@ export default function SupportPage() {
   const { data: tickets = [], refetch: refetchTickets } = useQuery({
     queryKey: ['tickets'],
     queryFn: supportApi.list,
+  })
+
+  const { data: recentOrders = [] } = useQuery<Order[]>({
+    queryKey: ['orders-recent'],
+    queryFn: () => ordersApi.list(0),
+    enabled: view === 'new',
+    select: (data) => data.slice(0, 5),
   })
 
   const { data: messages = [] } = useQuery({
@@ -76,22 +97,23 @@ export default function SupportPage() {
   }, [])
 
   const handleCreate = async () => {
-    if (!subject.trim() || !message.trim()) {
-      toast.error('Заполни тему и сообщение')
+    if (!message.trim()) {
+      toast.error('Напиши сообщение')
       return
     }
     setSending(true)
     haptic.impact('medium')
     try {
+      const subject = message.trim().slice(0, 50)
       const result = await supportApi.createTicket({
-        subject: subject.trim(),
+        subject,
         message: message.trim(),
-        order_id: prefillOrderId || undefined,
+        order_id: linkedOrderId || undefined,
       })
       haptic.success()
       toast.success('Обращение создано!')
-      setSubject('')
       setMessage('')
+      setLinkedOrderId('')
       refetchTickets()
       openChat(result.ticket_id)
     } catch {
@@ -133,20 +155,25 @@ export default function SupportPage() {
 
   return (
     <div className="px-4 pt-5 pb-6 animate-fade-in">
-      {/* Header */}
+      {/* ── Header ────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-5">
         {view !== 'list' ? (
           <button
             onClick={view === 'chat' ? backToList : () => setView('list')}
             className="flex items-center gap-1.5 text-sm font-medium"
-            style={{ color: '#6b9de8' }}
+            style={{ color: '#3b82f6' }}
           >
             <ArrowLeft size={16} />
-            Назад
+            {view === 'chat' ? 'Обращение' : 'Назад'}
           </button>
         ) : (
           <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>
-            Поддержка
+            Мои обращения
+            {tickets.length > 0 && (
+              <span className="ml-2 text-sm font-medium" style={{ color: 'var(--hint)' }}>
+                ({tickets.length})
+              </span>
+            )}
           </h1>
         )}
 
@@ -154,25 +181,24 @@ export default function SupportPage() {
           <button
             onClick={() => setView('new')}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all active:scale-95"
-            style={{ background: '#2d58ad', color: '#fff' }}
+            style={{ background: '#1d4ed8', color: '#fff' }}
           >
             <Plus size={14} />
-            Новое
+            Новое обращение
           </button>
         )}
 
-        {view === 'chat' && selectedTicket && (
-          <span
-            className="text-xs font-semibold px-2 py-0.5 rounded-full"
-            style={{
-              color: STATUS_LABEL[selectedTicket.status]?.color ?? 'var(--hint)',
-              background: 'var(--bg2)',
-              border: '1px solid var(--border)',
-            }}
-          >
-            {STATUS_LABEL[selectedTicket.status]?.label ?? selectedTicket.status}
-          </span>
-        )}
+        {view === 'chat' && selectedTicket && (() => {
+          const s = STATUS_LABEL[selectedTicket.status]
+          return (
+            <span
+              className="text-xs font-semibold px-2.5 py-1 rounded-full"
+              style={{ color: s?.color ?? 'var(--hint)', background: s?.bg ?? 'var(--bg2)' }}
+            >
+              {s?.label ?? selectedTicket.status}
+            </span>
+          )
+        })()}
       </div>
 
       <AnimatePresence mode="wait">
@@ -182,8 +208,9 @@ export default function SupportPage() {
             key="list"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="space-y-2"
+            exit={{ x: -30, opacity: 0 }}
+            transition={{ duration: 0.22 }}
+            className="space-y-1"
           >
             {tickets.length === 0 ? (
               <div className="flex flex-col items-center py-16 gap-5">
@@ -202,30 +229,50 @@ export default function SupportPage() {
                 </button>
               </div>
             ) : (
-              tickets.map((ticket: Ticket) => {
-                const status = STATUS_LABEL[ticket.status] ?? { label: ticket.status, color: 'var(--hint)' }
+              tickets.map((ticket: Ticket, i: number) => {
+                const status = STATUS_LABEL[ticket.status] ?? { label: ticket.status, color: '#6b7280', bg: 'rgba(107,114,128,0.15)' }
+                const initial = avatarInitial(ticket.subject)
                 return (
-                  <button
+                  <motion.button
                     key={ticket.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.2, delay: i * 0.04 }}
                     onClick={() => openChat(ticket.id)}
-                    className="flex items-center gap-3 p-4 rounded-2xl w-full text-left transition-all active:scale-[0.98]"
+                    className="flex items-center gap-3 px-3 py-3 rounded-2xl w-full text-left transition-all active:scale-[0.98]"
                     style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
                   >
+                    {/* Avatar */}
+                    <div
+                      className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-base font-bold"
+                      style={{ background: 'rgba(59,130,246,0.18)', color: '#3b82f6' }}
+                    >
+                      {initial}
+                    </div>
+
+                    {/* Content */}
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>
-                        {ticket.subject}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs font-medium" style={{ color: status.color }}>
-                          {status.label}
-                        </span>
-                        <span className="text-xs" style={{ color: 'var(--hint)' }}>
+                      <div className="flex items-center justify-between gap-2 mb-0.5">
+                        <p className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>
+                          {ticket.subject}
+                        </p>
+                        <span className="text-xs shrink-0" style={{ color: 'var(--hint)' }}>
                           {timeAgo(ticket.created_at)}
                         </span>
                       </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="text-xs font-medium px-1.5 py-0.5 rounded-md"
+                          style={{ color: status.color, background: status.bg }}
+                        >
+                          {status.label}
+                        </span>
+                        <span className="text-xs truncate" style={{ color: 'var(--hint)' }}>
+                          {ticket.subject.length > 60 ? ticket.subject.slice(0, 60) + '...' : ticket.subject}
+                        </span>
+                      </div>
                     </div>
-                    <ArrowLeft size={16} style={{ color: 'var(--hint)', transform: 'rotate(180deg)' }} />
-                  </button>
+                  </motion.button>
                 )
               })
             )}
@@ -236,27 +283,34 @@ export default function SupportPage() {
         {view === 'new' && (
           <motion.div
             key="new"
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            exit={{ opacity: 0, x: -30 }}
+            transition={{ duration: 0.22 }}
             className="space-y-4"
           >
             <p className="text-sm" style={{ color: 'var(--hint)' }}>
               Опиши проблему — мы ответим в ближайшее время
             </p>
 
+            {/* Order select */}
             <div>
               <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--hint)' }}>
-                Тема *
+                Привязать к заказу (необязательно)
               </label>
-              <input
-                type="text"
+              <select
                 className="input"
-                placeholder="Например: Не пришёл заказ"
-                value={subject}
-                onChange={e => setSubject(e.target.value)}
-                maxLength={200}
-              />
+                value={linkedOrderId}
+                onChange={e => setLinkedOrderId(e.target.value)}
+                style={{ color: linkedOrderId ? 'var(--text)' : 'var(--hint)' }}
+              >
+                <option value="">— Без заказа —</option>
+                {recentOrders.map((order: Order) => (
+                  <option key={order.id} value={order.id}>
+                    #{order.order_number} — {new Date(order.created_at).toLocaleDateString('ru-RU')}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
@@ -279,7 +333,7 @@ export default function SupportPage() {
             <button
               className="btn-primary gap-2"
               onClick={handleCreate}
-              disabled={sending || !subject.trim() || !message.trim()}
+              disabled={sending || !message.trim()}
             >
               {sending ? 'Отправляем...' : <><Send size={16} /> Отправить</>}
             </button>
@@ -290,9 +344,10 @@ export default function SupportPage() {
         {view === 'chat' && selectedTicket && (
           <motion.div
             key="chat"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
+            initial={{ x: 30, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -30, opacity: 0 }}
+            transition={{ duration: 0.22 }}
             className="flex flex-col"
             style={{ minHeight: 'calc(100vh - 200px)' }}
           >
@@ -322,49 +377,66 @@ export default function SupportPage() {
 
             {/* Messages */}
             <div
-              className="flex-1 space-y-3 overflow-y-auto mb-4 pr-1"
-              style={{ maxHeight: 'calc(100vh - 320px)' }}
+              className="flex-1 overflow-y-auto mb-4 pr-1"
+              style={{ maxHeight: 'calc(100vh - 340px)' }}
             >
-              {messages.map((msg: TicketMessage) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.sender_type === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className="max-w-[80%] px-3.5 py-2.5 rounded-2xl"
-                    style={{
-                      background: msg.sender_type === 'user' ? '#2d58ad' : 'var(--bg2)',
-                      border: msg.sender_type === 'admin' ? '1px solid var(--border)' : 'none',
-                    }}
-                  >
-                    {msg.sender_type === 'admin' && (
-                      <p className="text-[10px] font-semibold mb-0.5" style={{ color: '#6b9de8' }}>
-                        Поддержка
-                      </p>
-                    )}
-                    <p
-                      className="text-sm whitespace-pre-wrap break-words"
-                      style={{ color: msg.sender_type === 'user' ? '#fff' : 'var(--text)' }}
+              {/* System event: opened */}
+              <div className="text-white/30 text-xs text-center italic py-2">
+                Обращение открыто · {formatDate(selectedTicket.created_at)}
+              </div>
+
+              <div className="space-y-2">
+                {messages.map((msg: TicketMessage) => {
+                  const isUser = msg.sender_type === 'user'
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
                     >
-                      {msg.text}
-                    </p>
-                    {msg.attachments.length > 0 && (
-                      <div className="flex items-center gap-1 mt-1">
-                        <Paperclip size={10} style={{ color: 'var(--hint)' }} />
-                        <span className="text-[10px]" style={{ color: 'var(--hint)' }}>
-                          {msg.attachments.length} вложений
-                        </span>
+                      <div
+                        className={[
+                          'max-w-[80%] px-3 py-2',
+                          isUser
+                            ? 'bg-blue-600/80 text-white rounded-2xl rounded-br-sm ml-auto'
+                            : 'bg-white/[0.06] text-white rounded-2xl rounded-bl-sm mr-auto',
+                        ].join(' ')}
+                      >
+                        {!isUser && (
+                          <p className="text-[10px] font-semibold mb-0.5" style={{ color: '#3b82f6' }}>
+                            Поддержка
+                          </p>
+                        )}
+                        <p className="text-sm whitespace-pre-wrap break-words">
+                          {msg.text}
+                        </p>
+                        {msg.attachments.length > 0 && (
+                          <div className="flex items-center gap-1 mt-1">
+                            <Paperclip size={10} className="text-white/40" />
+                            <span className="text-[10px] text-white/40">
+                              {msg.attachments.length} вложений
+                            </span>
+                          </div>
+                        )}
+                        <p
+                          className={`text-[10px] mt-1 text-right ${
+                            isUser ? 'text-white/50' : 'text-white/30'
+                          }`}
+                        >
+                          {timeAgo(msg.created_at)}
+                        </p>
                       </div>
-                    )}
-                    <p
-                      className="text-[10px] mt-1 text-right"
-                      style={{ color: msg.sender_type === 'user' ? 'rgba(255,255,255,0.5)' : 'var(--hint)' }}
-                    >
-                      {timeAgo(msg.created_at)}
-                    </p>
-                  </div>
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* System event: closed */}
+              {(selectedTicket.status === 'closed' || selectedTicket.status === 'resolved') && selectedTicket.closed_at && (
+                <div className="text-white/30 text-xs text-center italic py-2">
+                  Обращение закрыто · {formatDate(selectedTicket.closed_at)}
                 </div>
-              ))}
+              )}
+
               <div ref={messagesEndRef} />
             </div>
 
@@ -415,7 +487,7 @@ export default function SupportPage() {
                     onClick={handleReply}
                     disabled={sending || uploadingFiles || (!replyText.trim() && attachedFiles.length === 0)}
                     className="p-2 rounded-xl transition-all active:scale-90 disabled:opacity-40"
-                    style={{ background: '#2d58ad' }}
+                    style={{ background: '#1d4ed8' }}
                   >
                     <Send size={18} color="#fff" />
                   </button>

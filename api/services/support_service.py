@@ -199,7 +199,7 @@ class SupportService:
                 if ticket.status == TicketStatus.waiting_user:
                     ticket.status = TicketStatus.open
                 if ticket.status not in (TicketStatus.closed, TicketStatus.resolved):
-                    self._notify_operators_new_ticket(ticket, text)
+                    self._notify_operators_new_message(ticket, text)
 
         await self.db.flush()
         return msg
@@ -321,13 +321,33 @@ class SupportService:
     ) -> None:
         try:
             from worker.tasks.notification_tasks import notify_operators_new_ticket
+            user = ticket.user if hasattr(ticket, "user") and ticket.user else None
+            user_name = (user.first_name or user.username or "") if user else ""
             notify_operators_new_ticket.delay(
                 str(ticket.id),
                 ticket.subject,
                 message_text[:200],
+                user_name,
             )
         except Exception as exc:
             logger.warning("Failed to notify operators: %s", exc)
+
+    def _notify_operators_new_message(
+        self,
+        ticket: SupportTicket,
+        message_text: str,
+    ) -> None:
+        try:
+            from worker.tasks.notification_tasks import notify_operators_new_message
+            user = ticket.user if hasattr(ticket, "user") and ticket.user else None
+            user_name = (user.first_name or user.username or "") if user else ""
+            notify_operators_new_message.delay(
+                str(ticket.id),
+                user_name,
+                message_text[:200],
+            )
+        except Exception as exc:
+            logger.warning("Failed to notify operators about new message: %s", exc)
 
     def _notify_user_reply(self, ticket: SupportTicket, reply_text: str) -> None:
         try:

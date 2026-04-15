@@ -1,4 +1,5 @@
 """worker/tasks/notification_tasks.py — отправка уведомлений"""
+import json
 import httpx
 from worker.main import celery_app
 from shared.config import settings
@@ -95,27 +96,77 @@ def notify_support_user(self, telegram_id: int, text: str, ticket_id: str | None
     max_retries=3,
     default_retry_delay=60,
 )
-def notify_operators_new_ticket(self, ticket_id: str, subject: str, message_preview: str):
-    """
-    Уведомляет группу операторов о новом тикете.
-    Отправляет в Telegram группу (SUPPORT_NOTIFY_CHAT_ID).
-    """
+def notify_operators_new_ticket(self, ticket_id: str, subject: str, message_preview: str, user_name: str = "") -> None:
+    """Уведомление в группу операторов о новом тикете."""
     chat_id = settings.SUPPORT_NOTIFY_CHAT_ID
     if not chat_id:
         return
 
     token = settings.effective_support_token
     text = (
-        f"🆕 <b>Новый тикет</b>\n\n"
-        f"<b>Тема:</b> {subject}\n"
-        f"<b>Сообщение:</b> {message_preview}\n\n"
-        f"Откройте панель поддержки для ответа."
+        f"<b>Новое обращение</b>\n"
+        f"От: {user_name}\n"
+        f"{message_preview}"
     )
 
     payload = {
         "chat_id": chat_id,
         "text": text,
         "parse_mode": "HTML",
+        "reply_markup": json.dumps({
+            "inline_keyboard": [[
+                {
+                    "text": "Открыть в операторской панели",
+                    "url": f"{settings.FRONTEND_URL}/app/admin/support?ticket={ticket_id}",
+                }
+            ]]
+        }),
+    }
+
+    try:
+        with httpx.Client(timeout=10.0) as client:
+            resp = client.post(
+                f"https://api.telegram.org/bot{token}/sendMessage",
+                json=payload,
+            )
+            if resp.status_code != 200:
+                raise Exception(f"Telegram API error: {resp.text}")
+    except Exception as exc:
+        raise self.retry(exc=exc)
+
+
+@celery_app.task(
+    name="worker.tasks.notification_tasks.notify_operators_new_message",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+)
+def notify_operators_new_message(self, ticket_id: str, user_name: str, message_preview: str) -> None:
+    """Уведомление в группу операторов о новом сообщении в существующем тикете."""
+    chat_id = settings.SUPPORT_NOTIFY_CHAT_ID
+    if not chat_id:
+        return
+
+    token = settings.effective_support_token
+    ticket_id_short = ticket_id[:8]
+    text = (
+        f"<b>Сообщение в обращении #{ticket_id_short}</b>\n"
+        f"От: {user_name}\n"
+        f"{message_preview}"
+    )
+
+    payload = {
+        "chat_id": chat_id,
+        "text": text,
+        "parse_mode": "HTML",
+        "reply_markup": json.dumps({
+            "inline_keyboard": [[
+                {
+                    "text": "Открыть в операторской панели",
+                    "url": f"{settings.FRONTEND_URL}/app/admin/support?ticket={ticket_id}",
+                }
+            ]]
+        }),
     }
 
     try:
