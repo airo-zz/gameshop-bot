@@ -195,7 +195,7 @@ export default function SupportPage() {
       {/* Drafting view — fixed overlay */}
       {view === 'drafting' && (
         <div
-          className="fixed inset-0 z-50 flex flex-col bg-[#060f1e]"
+          className="fixed inset-0 z-[120] flex flex-col bg-[#060f1e]"
           style={{
             paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))',
           }}
@@ -295,7 +295,7 @@ export default function SupportPage() {
       {/* Chat view — fixed overlay */}
       {view === 'chat' && (selectedTicketId || activeTicketData) && (
         <div
-          className="fixed inset-0 z-50 flex flex-col"
+          className="fixed inset-0 z-[120] flex flex-col"
           style={{
             background: '#060f1e',
             paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))',
