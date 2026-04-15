@@ -70,7 +70,6 @@ export default function GamesListPage() {
       const newIndex = prev.findIndex(g => g.id === over.id)
       const reordered = arrayMove(prev, oldIndex, newIndex)
 
-      // Дебаунс сохранения — не шлём запрос на каждый пиксель
       if (saveTimeout.current) clearTimeout(saveTimeout.current)
       saveTimeout.current = setTimeout(async () => {
         try {
@@ -98,7 +97,7 @@ export default function GamesListPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/admin/catalog')}
-            className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors shrink-0"
+            className="p-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.95] transition-all duration-200 shrink-0"
           >
             <ArrowLeft size={18} className="text-white/60" />
           </button>
@@ -111,27 +110,34 @@ export default function GamesListPage() {
         </div>
         <Link
           to={`/admin/catalog/games/new?type=${tab}`}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-sm font-semibold text-white transition-colors shrink-0"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-sm font-semibold text-white transition-all duration-200 shrink-0"
         >
           <Plus size={16} />
           {tab === 'game' ? 'Добавить игру' : 'Добавить сервис'}
         </Link>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-white/5 p-1 rounded-xl">
+      {/* Underline tabs */}
+      <div className="flex border-b border-white/[0.08]">
         {(Object.keys(TAB_LABELS) as TabType[]).map((t) => (
           <button
             key={t}
             onClick={() => handleTabChange(t)}
             className={[
-              'flex-1 py-1.5 rounded-lg text-sm font-medium transition-colors',
+              'relative px-4 py-2.5 text-sm font-medium transition-all duration-200',
               tab === t
-                ? 'bg-white/10 text-white'
-                : 'text-white/40 hover:text-white/60',
+                ? 'text-white'
+                : 'text-white/50 hover:text-white/70',
             ].join(' ')}
           >
             {TAB_LABELS[t]}
+            {tab === t && (
+              <motion.span
+                layoutId="tab-underline"
+                className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 rounded-full"
+                transition={{ duration: 0.2 }}
+              />
+            )}
           </button>
         ))}
       </div>
@@ -140,14 +146,14 @@ export default function GamesListPage() {
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-[72px] rounded-xl bg-white/5 animate-pulse" />
+            <div key={i} className="h-[72px] rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
           ))}
         </div>
       ) : error ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
           <p className="text-sm">Ошибка загрузки игр</p>
-          <button onClick={() => load(tab)} className="text-xs text-blue-400 hover:text-blue-300">
+          <button onClick={() => load(tab)} className="text-xs text-blue-400 hover:text-blue-300 active:scale-[0.98] transition-transform">
             Попробовать снова
           </button>
         </div>
@@ -170,10 +176,10 @@ export default function GamesListPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2, delay: i * 0.03 }}
                     onClick={() => navigate(`/admin/catalog/games/${game.id}`)}
-                    className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 rounded-xl px-3 py-3 transition-colors duration-200 cursor-pointer"
+                    className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-3 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
                   >
                     {/* Image / placeholder */}
-                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/[0.05] shrink-0 flex items-center justify-center">
                       {game.image_url ? (
                         <img
                           src={normalizeImageUrl(game.image_url) ?? game.image_url}

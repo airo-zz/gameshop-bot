@@ -31,6 +31,8 @@ const STATUS_COLORS: Record<string, string> = {
   refunded:        'bg-orange-500/15 text-orange-400',
 }
 
+const inputCls = 'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 transition-all duration-200'
+
 function formatMoney(v: number) {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(v)
 }
@@ -96,9 +98,9 @@ export default function OrderDetailPage() {
   if (loading) {
     return (
       <div className="space-y-4 animate-pulse">
-        <div className="h-8 w-48 bg-white/5 rounded-xl" />
-        <div className="h-40 bg-white/5 rounded-2xl" />
-        <div className="h-32 bg-white/5 rounded-2xl" />
+        <div className="h-8 w-48 bg-white/[0.05] rounded-xl" />
+        <div className="h-40 bg-white/[0.04] border border-white/[0.08] rounded-2xl" />
+        <div className="h-32 bg-white/[0.04] border border-white/[0.08] rounded-2xl" />
       </div>
     )
   }
@@ -108,7 +110,7 @@ export default function OrderDetailPage() {
       <div className="flex flex-col items-center py-20 gap-3 text-white/40">
         <AlertCircle size={40} />
         <p className="text-sm">Заказ не найден</p>
-        <button onClick={() => navigate(-1)} className="text-xs text-blue-400">
+        <button onClick={() => navigate(-1)} className="text-xs text-blue-400 active:scale-[0.98] transition-transform">
           Назад
         </button>
       </div>
@@ -126,7 +128,7 @@ export default function OrderDetailPage() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+          className="p-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.95] transition-all duration-200"
         >
           <ArrowLeft size={18} className="text-white/60" />
         </button>
@@ -140,8 +142,8 @@ export default function OrderDetailPage() {
       </div>
 
       {/* User info */}
-      <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-2">
-        <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Покупатель</h2>
+      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-2">
+        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Покупатель</h2>
         <div className="text-sm text-white">
           {order.user.first_name}
           {order.user.username && (
@@ -152,8 +154,8 @@ export default function OrderDetailPage() {
       </div>
 
       {/* Items */}
-      <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-3">
-        <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Позиции</h2>
+      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
+        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Позиции</h2>
         {order.items.map((item) => (
           <div key={item.id} className="flex justify-between items-start gap-3">
             <div className="min-w-0">
@@ -168,22 +170,22 @@ export default function OrderDetailPage() {
             </div>
           </div>
         ))}
-        <div className="border-t border-white/5 pt-3 flex justify-between text-sm font-bold text-white">
+        <div className="border-t border-white/[0.08] pt-3 flex justify-between text-sm font-bold text-white">
           <span>Итого</span>
           <span>{formatMoney(order.total_amount)}</span>
         </div>
       </div>
 
       {/* Status edit */}
-      <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-3">
-        <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Управление</h2>
+      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
+        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Управление</h2>
 
         <div>
-          <label className="text-xs text-white/40 mb-1.5 block">Статус</label>
+          <label className="text-xs text-white/50 mb-1.5 block">Статус</label>
           <select
             value={newStatus}
             onChange={(e) => setNewStatus(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+            className={inputCls}
           >
             {STATUS_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value} className="bg-[#060f1e]">
@@ -194,20 +196,20 @@ export default function OrderDetailPage() {
         </div>
 
         <div>
-          <label className="text-xs text-white/40 mb-1.5 block">Заметка (внутренняя)</label>
+          <label className="text-xs text-white/50 mb-1.5 block">Заметка (внутренняя)</label>
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             rows={3}
             placeholder="Необязательно..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50 resize-none"
+            className={`${inputCls} resize-none`}
           />
         </div>
 
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-sm font-semibold text-white transition-colors duration-200"
+          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
         >
           {saving ? (
             <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -221,7 +223,7 @@ export default function OrderDetailPage() {
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 disabled:opacity-60 text-sm font-semibold text-red-400 transition-colors duration-200"
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/[0.2] disabled:opacity-60 text-sm font-semibold text-red-400 transition-all duration-200 active:scale-[0.98]"
           >
             {deleting ? (
               <span className="w-4 h-4 border-2 border-red-400/30 border-t-red-400 rounded-full animate-spin" />

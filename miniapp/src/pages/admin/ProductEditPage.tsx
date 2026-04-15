@@ -294,8 +294,8 @@ export default function ProductEditPage() {
 
       {/* Section: Категория — скрыт если предзаполнен из URL */}
       {presetCategoryId && form.category_id ? (
-        <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4">
-          <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-2">Категория</h2>
+        <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4">
+          <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Категория</h2>
           <p className="text-sm text-white">
             {games.find(g => g.id === form.game_id)?.name}
             {' / '}
@@ -303,16 +303,16 @@ export default function ProductEditPage() {
           </p>
         </div>
       ) : (
-      <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-4">
-        <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Категория</h2>
+      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
+        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Категория</h2>
 
         {/* Game select */}
         <div>
-          <label className="text-xs text-white/40 mb-1.5 block">Игра</label>
+          <label className="text-xs text-white/50 mb-1.5 block">Игра</label>
           <select
             value={form.game_id}
             onChange={(e) => handleGameChange(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 appearance-none"
+            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 appearance-none transition-all duration-200"
           >
             <option value="" className="bg-[#060f1e]">— Выберите игру —</option>
             {games.map((game) => (
@@ -325,14 +325,14 @@ export default function ProductEditPage() {
 
         {/* Category select */}
         <div>
-          <label className="text-xs text-white/40 mb-1.5 block">
+          <label className="text-xs text-white/50 mb-1.5 block">
             Категория <span className="text-red-400">*</span>
           </label>
           <select
             value={form.category_id}
             onChange={(e) => setField('category_id', e.target.value)}
             disabled={!form.game_id || loadingCats}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 disabled:opacity-40 appearance-none"
+            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 disabled:opacity-40 appearance-none transition-all duration-200"
           >
             <option value="" className="bg-[#060f1e]">
               {loadingCats ? 'Загрузка...' : '— Выберите категорию —'}
@@ -351,12 +351,12 @@ export default function ProductEditPage() {
       )}
 
       {/* Section: Основное */}
-      <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-4">
-        <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Основное</h2>
+      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
+        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Основное</h2>
 
         {/* Name */}
         <div>
-          <label className="text-xs text-white/40 mb-1.5 block">
+          <label className="text-xs text-white/50 mb-1.5 block">
             Название <span className="text-red-400">*</span>
           </label>
           <input
@@ -365,45 +365,45 @@ export default function ProductEditPage() {
             onChange={(e) => setField('name', e.target.value)}
             placeholder="Например: Кристаллы 1000 шт."
             maxLength={256}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50"
+            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all duration-200"
           />
           {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name}</p>}
         </div>
 
         {/* Short description */}
         <div>
-          <label className="text-xs text-white/40 mb-1.5 block">Краткое описание</label>
+          <label className="text-xs text-white/50 mb-1.5 block">Краткое описание</label>
           <input
             type="text"
             value={form.short_description}
             onChange={(e) => setField('short_description', e.target.value)}
             placeholder="Отображается в карточке товара"
             maxLength={512}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50"
+            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all duration-200"
           />
         </div>
 
         {/* Description */}
         <div>
-          <label className="text-xs text-white/40 mb-1.5 block">Описание</label>
+          <label className="text-xs text-white/50 mb-1.5 block">Описание</label>
           <textarea
             value={form.description}
             onChange={(e) => setField('description', e.target.value)}
             rows={4}
             placeholder="Подробное описание товара..."
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50 resize-none"
+            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 resize-none transition-all duration-200"
           />
         </div>
       </div>
 
       {/* Section: Цена и склад */}
-      <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-4">
-        <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Цена и наличие</h2>
+      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
+        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Цена и наличие</h2>
 
         <div className="grid grid-cols-2 gap-3">
           {/* Price */}
           <div>
-            <label className="text-xs text-white/40 mb-1.5 block">
+            <label className="text-xs text-white/50 mb-1.5 block">
               Цена, ₽ <span className="text-red-400">*</span>
             </label>
             <input
@@ -413,14 +413,14 @@ export default function ProductEditPage() {
               placeholder="0"
               min={0}
               step="0.01"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50"
+              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all duration-200"
             />
             {errors.price && <p className="text-xs text-red-400 mt-1">{errors.price}</p>}
           </div>
 
           {/* Stock */}
           <div>
-            <label className="text-xs text-white/40 mb-1.5 block">Остаток</label>
+            <label className="text-xs text-white/50 mb-1.5 block">Остаток</label>
             <input
               type="number"
               value={form.stock}
@@ -428,18 +428,18 @@ export default function ProductEditPage() {
               placeholder="Не ограничен"
               min={0}
               step={1}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50"
+              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all duration-200"
             />
           </div>
         </div>
 
         {/* Delivery type */}
         <div>
-          <label className="text-xs text-white/40 mb-1.5 block">Тип доставки</label>
+          <label className="text-xs text-white/50 mb-1.5 block">Тип доставки</label>
           <select
             value={form.delivery_type}
             onChange={(e) => setField('delivery_type', e.target.value as FormState['delivery_type'])}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50 appearance-none"
+            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 appearance-none transition-all duration-200"
           >
             {DELIVERY_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value} className="bg-[#060f1e]">
@@ -451,19 +451,19 @@ export default function ProductEditPage() {
       </div>
 
       {/* Section: Инструкция */}
-      <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-4">
-        <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">Инструкция</h2>
+      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
+        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Инструкция</h2>
         <textarea
           value={form.instruction}
           onChange={(e) => setField('instruction', e.target.value)}
           rows={4}
           placeholder="Что покупатель должен сделать для получения товара..."
-          className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50 resize-none"
+          className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 resize-none transition-all duration-200"
         />
       </div>
 
       {/* Section: Публикация */}
-      <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4">
+      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-white">Активен</p>
@@ -493,7 +493,7 @@ export default function ProductEditPage() {
       <button
         onClick={handleSubmit}
         disabled={saving}
-        className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-sm font-semibold text-white transition-colors duration-200"
+        className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
       >
         {saving ? (
           <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

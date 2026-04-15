@@ -48,33 +48,37 @@ export default function AdminLoginPage() {
 
   return (
     <div
-      className="min-h-screen flex flex-col items-center justify-center gap-8 px-4"
+      className="min-h-screen flex flex-col items-center justify-center px-4"
       style={{ background: '#060f1e' }}
     >
-      <div className="flex flex-col items-center gap-3">
-        <div
-          className="w-16 h-16 rounded-2xl flex items-center justify-center"
-          style={{ background: 'rgba(45,88,173,0.15)', border: '1px solid rgba(45,88,173,0.3)' }}
-        >
-          <Shield size={32} style={{ color: '#6b9de8' }} />
+      {/* Card */}
+      <div className="w-full max-w-sm bg-white/[0.04] border border-white/[0.08] rounded-3xl p-8 flex flex-col items-center gap-6 shadow-[0_0_40px_rgba(0,0,0,0.4)] backdrop-blur-sm">
+        {/* Icon */}
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-blue-600/10 border border-blue-500/20">
+          <Shield size={32} className="text-blue-400" />
         </div>
-        <h1 className="text-xl font-bold" style={{ color: '#fff' }}>
-          Панель управления
-        </h1>
-        <p className="text-sm text-center max-w-xs" style={{ color: 'rgba(255,255,255,0.4)' }}>
-          Войдите через Telegram для доступа к администрированию
+
+        {/* Heading */}
+        <div className="text-center space-y-1.5">
+          <h1 className="text-xl font-bold text-white">
+            Панель управления
+          </h1>
+          <p className="text-sm text-white/45 leading-relaxed">
+            Войдите через Telegram для доступа к администрированию
+          </p>
+        </div>
+
+        {/* Telegram widget */}
+        <div ref={widgetRef} className="flex justify-center" />
+
+        {/* Status */}
+        <p
+          id="login-status"
+          className="text-sm text-center text-white/40 min-h-[20px]"
+        >
+          {loading && <Loader2 size={16} className="animate-spin inline mr-1" />}
         </p>
       </div>
-
-      <div ref={widgetRef} />
-
-      <p
-        id="login-status"
-        className="text-sm h-5"
-        style={{ color: 'rgba(255,255,255,0.4)' }}
-      >
-        {loading && <Loader2 size={16} className="animate-spin inline mr-1" />}
-      </p>
     </div>
   )
 }

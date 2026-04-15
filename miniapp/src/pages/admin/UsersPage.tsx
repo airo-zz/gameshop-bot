@@ -6,7 +6,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Search, AlertCircle, ChevronRight, ShieldAlert } from 'lucide-react'
+import { Search, AlertCircle, ShieldAlert } from 'lucide-react'
 import { adminApi } from '@/api/admin'
 import type { AdminUserListItem, PaginatedResponse } from '@/api/admin'
 import { useAdminUsersStore } from '@/store/adminStore'
@@ -61,7 +61,7 @@ export default function UsersPage() {
             placeholder="Поиск по имени, @username, ID..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-blue-500/50"
+            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 transition-all duration-200"
           />
         </div>
 
@@ -75,10 +75,10 @@ export default function UsersPage() {
               key={String(opt.value)}
               onClick={() => setIsBlocked(opt.value)}
               className={[
-                'px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
+                'px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 active:scale-[0.98]',
                 isBlocked === opt.value
                   ? 'bg-blue-600 text-white'
-                  : 'bg-white/5 text-white/50 hover:bg-white/10',
+                  : 'bg-white/[0.05] text-white/50 hover:bg-white/[0.08]',
               ].join(' ')}
             >
               {opt.label}
@@ -91,14 +91,14 @@ export default function UsersPage() {
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-16 rounded-xl bg-white/5 animate-pulse" />
+            <div key={i} className="h-16 rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
           ))}
         </div>
       ) : error ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
           <p className="text-sm">Ошибка загрузки пользователей</p>
-          <button onClick={load} className="text-xs text-blue-400">Попробовать снова</button>
+          <button onClick={load} className="text-xs text-blue-400 active:scale-[0.98] transition-transform">Попробовать снова</button>
         </div>
       ) : !data?.items.length ? (
         <div className="text-center py-16 text-white/30 text-sm">Пользователи не найдены</div>
@@ -113,11 +113,9 @@ export default function UsersPage() {
             >
               <Link
                 to={`/admin/users/${user.id}`}
-                className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 rounded-xl px-4 py-3 transition-colors duration-200"
+                className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-4 py-3.5 transition-all duration-200 active:scale-[0.99]"
               >
-                <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center shrink-0 text-sm font-semibold text-white/60">
-                  {user.first_name[0]}
-                </div>
+                <div className="w-9 h-9 rounded-full bg-blue-600/20 shrink-0" />
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -128,13 +126,11 @@ export default function UsersPage() {
                       <ShieldAlert size={13} className="text-red-400 shrink-0" />
                     )}
                   </div>
-                  <div className="text-xs text-white/40">
+                  <div className="text-xs text-white/50">
                     {user.username ? `@${user.username} · ` : ''}
                     {user.orders_count} заказов · {formatMoney(user.total_spent)}
                   </div>
                 </div>
-
-                <ChevronRight size={14} className="text-white/20 shrink-0" />
               </Link>
             </motion.div>
           ))}
@@ -147,7 +143,7 @@ export default function UsersPage() {
           <button
             disabled={page <= 1}
             onClick={() => setPage(page - 1)}
-            className="px-4 py-2 rounded-xl bg-white/5 text-sm text-white/60 disabled:opacity-30 hover:bg-white/10 transition-colors"
+            className="px-4 py-2 rounded-xl bg-white/[0.05] text-sm text-white/60 disabled:opacity-30 hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-200"
           >
             Назад
           </button>
@@ -155,7 +151,7 @@ export default function UsersPage() {
           <button
             disabled={page >= data.pages}
             onClick={() => setPage(page + 1)}
-            className="px-4 py-2 rounded-xl bg-white/5 text-sm text-white/60 disabled:opacity-30 hover:bg-white/10 transition-colors"
+            className="px-4 py-2 rounded-xl bg-white/[0.05] text-sm text-white/60 disabled:opacity-30 hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-200"
           >
             Вперёд
           </button>

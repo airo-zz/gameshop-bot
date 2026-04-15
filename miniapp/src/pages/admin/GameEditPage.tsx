@@ -70,7 +70,7 @@ function Field({ label, hint, children }: FieldProps) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between">
-        <label className="text-xs font-medium text-white/50 uppercase tracking-wide">{label}</label>
+        <label className="text-xs text-white/50">{label}</label>
         {hint && <span className="text-[11px] text-white/25">{hint}</span>}
       </div>
       {children}
@@ -79,8 +79,8 @@ function Field({ label, hint, children }: FieldProps) {
 }
 
 const inputCls =
-  'w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white ' +
-  'placeholder:text-white/25 focus:outline-none focus:border-blue-500/50 transition-colors'
+  'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white ' +
+  'placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all duration-200'
 
 // ── page ──────────────────────────────────────────────────────────────────────
 
@@ -305,8 +305,8 @@ export default function GameEditPage() {
 
       {/* Game form */}
       <form onSubmit={handleSubmit}>
-        <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-4">
-          <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">
+        <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
+          <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">
             Основная информация
           </h2>
 
@@ -335,7 +335,7 @@ export default function GameEditPage() {
 
           {/* Type */}
           <Field label="Тип">
-            <div className="flex gap-1 bg-white/5 p-1 rounded-xl">
+            <div className="flex gap-1 bg-white/[0.06] p-1 rounded-xl">
               {(['game', 'service'] as GameType[]).map((t) => (
                 <button
                   key={t}
@@ -435,11 +435,11 @@ export default function GameEditPage() {
 
           {/* Toggles */}
           <div className="grid grid-cols-2 gap-3 pt-1">
-            <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-3 py-2.5">
+            <div className="flex items-center justify-between bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5">
               <span className="text-sm text-white/70">Активна</span>
               <Toggle value={form.is_active} onChange={(v) => set('is_active', v)} />
             </div>
-            <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-3 py-2.5">
+            <div className="flex items-center justify-between bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5">
               <span className="text-sm text-white/70">В подборке</span>
               <Toggle value={form.is_featured} onChange={(v) => set('is_featured', v)} />
             </div>
@@ -449,7 +449,7 @@ export default function GameEditPage() {
           <button
             type="submit"
             disabled={saving || !form.name.trim()}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-sm font-semibold text-white transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
           >
             <Save size={16} />
             {saving
@@ -469,7 +469,7 @@ export default function GameEditPage() {
           transition={{ duration: 0.2, delay: 0.05 }}
           className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-3"
         >
-          <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wider">
+          <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">
             Категории {categories.length > 0 && `(${categories.length})`}
           </h2>
 
@@ -484,7 +484,7 @@ export default function GameEditPage() {
                   initial={{ opacity: 0, x: -4 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.15, delay: i * 0.03 }}
-                  className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl px-3 py-2.5"
+                  className="flex items-center justify-between bg-white/[0.06] border border-white/[0.08] rounded-xl px-3 py-2.5"
                 >
                   <span className="text-sm text-white font-medium truncate flex-1 min-w-0 pr-2">
                     {cat.name}

@@ -153,10 +153,10 @@ function TicketCard({
       transition={{ duration: 0.2, delay: index * 0.03 }}
       onClick={onClick}
       className={[
-        'w-full text-left px-4 py-3 rounded-xl border transition-all duration-200',
+        'w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 active:scale-[0.99]',
         selected
           ? 'bg-blue-600/15 border-blue-500/40'
-          : 'bg-white/[0.03] border-white/5 hover:bg-white/[0.06] hover:border-white/10',
+          : 'bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.12]',
       ].join(' ')}
     >
       <div className="flex items-start justify-between gap-2 mb-1">
@@ -184,16 +184,16 @@ function ChatMessage({ msg }: { msg: TicketMessage }) {
     <div className={`flex ${isAdmin ? 'justify-end' : 'justify-start'}`}>
       <div
         className={[
-          'max-w-[75%] rounded-2xl px-4 py-2.5',
+          'max-w-[78%] px-4 py-2.5',
           isAdmin
-            ? 'bg-blue-600/80 text-white rounded-br-sm'
-            : 'bg-white/[0.08] text-white/90 rounded-bl-sm',
+            ? 'bg-blue-600 text-white rounded-2xl rounded-br-md shadow-[0_2px_8px_rgba(59,130,246,0.25)] shadow-sm'
+            : 'bg-white/[0.08] border border-white/[0.08] text-white/90 rounded-2xl rounded-bl-md shadow-sm',
         ].join(' ')}
       >
         <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
         <div
-          className={`flex items-center gap-1.5 mt-1 text-xs ${
-            isAdmin ? 'text-white/50 justify-end' : 'text-white/30'
+          className={`flex items-center gap-1.5 mt-1.5 text-xs ${
+            isAdmin ? 'text-blue-200/60 justify-end' : 'text-white/30'
           }`}
         >
           {msg.is_template_response && (
@@ -239,7 +239,7 @@ function TemplateDropdown({
       <button
         type="button"
         onClick={() => setOpen((p) => !p)}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white/50 hover:bg-white/10 hover:text-white/70 transition-all duration-200"
+        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs text-white/50 hover:bg-white/[0.08] hover:text-white/70 active:scale-[0.97] transition-all duration-200"
       >
         <FileText size={13} />
         <span>Шаблоны</span>
@@ -253,7 +253,7 @@ function TemplateDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute bottom-full mb-2 left-0 w-64 bg-[#0d1f3c] border border-white/10 rounded-xl shadow-xl z-20 overflow-hidden"
+            className="absolute bottom-full mb-2 left-0 w-64 bg-[#0d1f3c] border border-white/[0.1] rounded-xl shadow-xl z-20 overflow-hidden"
           >
             <div className="p-1.5 max-h-52 overflow-y-auto">
               {templates.map((t) => (
@@ -311,7 +311,7 @@ function StatusDropdown({
         type="button"
         disabled={disabled}
         onClick={() => setOpen((p) => !p)}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs font-medium hover:bg-white/10 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs font-medium hover:bg-white/[0.08] active:scale-[0.97] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
         style={{ color: currentInfo.color }}
       >
         <span>{currentInfo.label}</span>
@@ -325,7 +325,7 @@ function StatusDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full mt-1 right-0 w-44 bg-[#0d1f3c] border border-white/10 rounded-xl shadow-xl z-20 overflow-hidden"
+            className="absolute top-full mt-1 right-0 w-44 bg-[#0d1f3c] border border-white/[0.1] rounded-xl shadow-xl z-20 overflow-hidden"
           >
             <div className="p-1.5">
               {STATUS_OPTIONS.map((opt) => {
@@ -481,22 +481,21 @@ function ChatPanel({
   if (loading) {
     return (
       <div className="flex flex-col h-full">
-        {/* Mobile back header skeleton */}
-        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-white/5">
-          <div className="w-8 h-8 rounded-lg bg-white/5 animate-pulse" />
-          <div className="h-4 w-40 rounded bg-white/5 animate-pulse" />
+        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
+          <div className="w-8 h-8 rounded-lg bg-white/[0.05] animate-pulse" />
+          <div className="h-4 w-40 rounded bg-white/[0.05] animate-pulse" />
         </div>
         <div className="flex-1 flex flex-col gap-3 p-4">
-          <div className="h-16 rounded-2xl bg-white/5 animate-pulse" />
+          <div className="h-16 rounded-2xl bg-white/[0.04] animate-pulse" />
           <div className="flex-1 space-y-3">
             {Array.from({ length: 5 }).map((_, i) => (
               <div
                 key={i}
-                className={`h-12 rounded-2xl bg-white/5 animate-pulse ${i % 2 ? 'ml-auto w-3/4' : 'w-3/4'}`}
+                className={`h-12 rounded-2xl bg-white/[0.04] animate-pulse ${i % 2 ? 'ml-auto w-3/4' : 'w-3/4'}`}
               />
             ))}
           </div>
-          <div className="h-20 rounded-2xl bg-white/5 animate-pulse" />
+          <div className="h-20 rounded-2xl bg-white/[0.04] animate-pulse" />
         </div>
       </div>
     )
@@ -509,7 +508,7 @@ function ChatPanel({
         <p className="text-sm">Не удалось загрузить тикет</p>
         <button
           onClick={() => { setLoading(true); fetchDetail().finally(() => setLoading(false)) }}
-          className="text-xs text-blue-400 hover:text-blue-300"
+          className="text-xs text-blue-400 hover:text-blue-300 active:scale-[0.98] transition-transform"
         >
           Попробовать снова
         </button>
@@ -526,11 +525,11 @@ function ChatPanel({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-white/5 shrink-0">
+      <div className="px-4 py-3 border-b border-white/[0.06] shrink-0">
         {/* Mobile back button */}
         <button
           onClick={onBack}
-          className="md:hidden flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition-colors mb-3"
+          className="md:hidden flex items-center gap-2 text-sm text-white/50 hover:text-white/80 active:scale-[0.97] transition-all mb-3"
         >
           <ChevronLeft size={16} />
           <span>К списку</span>
@@ -562,7 +561,7 @@ function ChatPanel({
           <button
             onClick={handleAssign}
             disabled={assigning}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-xs text-white/60 hover:bg-white/10 hover:text-white/80 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs text-white/60 hover:bg-white/[0.08] hover:text-white/80 active:scale-[0.97] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <UserCheck size={13} />
             <span>{assigning ? 'Назначаю...' : 'Взять'}</span>
@@ -585,7 +584,7 @@ function ChatPanel({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2.5">
         {detail.messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full gap-2 text-white/20">
             <MessageSquare size={32} />
@@ -609,7 +608,7 @@ function ChatPanel({
       </div>
 
       {/* Input area */}
-      <div className="px-4 py-3 border-t border-white/5 shrink-0">
+      <div className="px-4 py-3 border-t border-white/[0.06] shrink-0">
         <div className="flex items-end gap-2">
           <div className="flex-1 relative">
             <textarea
@@ -619,13 +618,13 @@ function ChatPanel({
               onKeyDown={handleKeyDown}
               placeholder="Напишите ответ... (Enter — отправить, Shift+Enter — перенос)"
               rows={3}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50 resize-none leading-relaxed transition-colors duration-200"
+              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/60 resize-none leading-relaxed transition-all duration-200"
             />
           </div>
           <button
             onClick={handleSend}
             disabled={!replyText.trim() || sending}
-            className="p-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 self-end"
+            className="p-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.95] shrink-0 self-end"
           >
             {sending ? (
               <RefreshCw size={16} className="animate-spin" />
@@ -706,7 +705,6 @@ export default function AdminSupportPage() {
     if (found) {
       handleSelectTicket(found.id)
     } else {
-      // Ticket not in current page — open directly by id
       handleSelectTicket(ticketId)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -724,7 +722,6 @@ export default function AdminSupportPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput])
 
-  // Reset page on tab change
   function handleTabChange(key: string) {
     setActiveTab(key)
     setPage(1)
@@ -751,11 +748,10 @@ export default function AdminSupportPage() {
       {/* Two-panel layout */}
       <div className="flex gap-4 flex-1 overflow-hidden">
 
-        {/* ── Left panel: ticket list ─────────────────────────────────────── */}
+        {/* Left panel: ticket list */}
         <div
           className={[
             'flex flex-col min-w-0',
-            // Mobile: hide list when chat is open
             'w-full md:w-80 lg:w-96 md:shrink-0',
             mobileShowChat ? 'hidden md:flex' : 'flex',
           ].join(' ')}
@@ -768,7 +764,7 @@ export default function AdminSupportPage() {
               placeholder="Поиск по теме, пользователю..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50 transition-colors duration-200"
+              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 transition-all duration-200"
             />
           </div>
 
@@ -779,10 +775,10 @@ export default function AdminSupportPage() {
                 key={tab.key}
                 onClick={() => handleTabChange(tab.key)}
                 className={[
-                  'shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200',
+                  'shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 active:scale-[0.97]',
                   activeTab === tab.key
                     ? 'bg-blue-600 text-white'
-                    : 'bg-white/5 text-white/50 hover:bg-white/10',
+                    : 'bg-white/[0.05] text-white/50 hover:bg-white/[0.08]',
                 ].join(' ')}
               >
                 {tab.label}
@@ -794,7 +790,7 @@ export default function AdminSupportPage() {
           <div className="flex-1 overflow-y-auto space-y-2 pr-0.5">
             {listLoading ? (
               Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-16 rounded-xl bg-white/5 animate-pulse" />
+                <div key={i} className="h-16 rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
               ))
             ) : listError ? (
               <div className="flex flex-col items-center py-12 gap-3 text-white/40">
@@ -802,7 +798,7 @@ export default function AdminSupportPage() {
                 <p className="text-sm">Ошибка загрузки</p>
                 <button
                   onClick={loadList}
-                  className="text-xs text-blue-400 hover:text-blue-300"
+                  className="text-xs text-blue-400 hover:text-blue-300 active:scale-[0.98] transition-transform"
                 >
                   Попробовать снова
                 </button>
@@ -827,11 +823,11 @@ export default function AdminSupportPage() {
 
           {/* Pagination */}
           {listData && listData.pages > 1 && (
-            <div className="flex items-center justify-between pt-3 shrink-0 border-t border-white/5 mt-3">
+            <div className="flex items-center justify-between pt-3 shrink-0 border-t border-white/[0.06] mt-3">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="px-3 py-1.5 rounded-xl bg-white/5 text-xs text-white/60 disabled:opacity-30 hover:bg-white/10 transition-colors"
+                className="px-3 py-1.5 rounded-xl bg-white/[0.05] text-xs text-white/60 disabled:opacity-30 hover:bg-white/[0.08] active:scale-[0.97] transition-all duration-200"
               >
                 Назад
               </button>
@@ -841,7 +837,7 @@ export default function AdminSupportPage() {
               <button
                 disabled={page >= listData.pages}
                 onClick={() => setPage((p) => p + 1)}
-                className="px-3 py-1.5 rounded-xl bg-white/5 text-xs text-white/60 disabled:opacity-30 hover:bg-white/10 transition-colors"
+                className="px-3 py-1.5 rounded-xl bg-white/[0.05] text-xs text-white/60 disabled:opacity-30 hover:bg-white/[0.08] active:scale-[0.97] transition-all duration-200"
               >
                 Вперёд
               </button>
@@ -849,12 +845,11 @@ export default function AdminSupportPage() {
           )}
         </div>
 
-        {/* ── Right panel: chat view ──────────────────────────────────────── */}
+        {/* Right panel: chat view */}
         <div
           className={[
-            'flex-1 min-w-0 rounded-2xl border border-white/5 overflow-hidden',
+            'flex-1 min-w-0 rounded-2xl border border-white/[0.08] overflow-hidden',
             'bg-white/[0.02]',
-            // Mobile: show only when chat is open
             mobileShowChat ? 'flex' : 'hidden md:flex',
             'flex-col',
           ].join(' ')}

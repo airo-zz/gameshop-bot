@@ -42,6 +42,8 @@ const EMPTY_FORM: CreateFormState = {
   expires_at: '',
 }
 
+const inputCls = 'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 transition-all duration-200'
+
 export default function DiscountsPage() {
   const [promos, setPromos] = useState<PromoCode[]>([])
   const [loading, setLoading] = useState(true)
@@ -118,7 +120,7 @@ export default function DiscountsPage() {
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-sm font-semibold text-white transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-sm font-semibold text-white transition-all duration-200"
         >
           <Plus size={16} />
           Создать
@@ -135,43 +137,46 @@ export default function DiscountsPage() {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="bg-white/[0.04] border border-blue-500/20 rounded-2xl p-4 space-y-3">
+            <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-white">Новый промокод</h2>
-                <button onClick={() => { setShowForm(false); setForm(EMPTY_FORM) }}>
-                  <X size={16} className="text-white/40 hover:text-white/80" />
+                <button
+                  onClick={() => { setShowForm(false); setForm(EMPTY_FORM) }}
+                  className="p-1.5 rounded-lg hover:bg-white/[0.08] transition-colors active:scale-[0.95]"
+                >
+                  <X size={16} className="text-white/40" />
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 {/* Код */}
                 <div className="col-span-2">
-                  <label className="text-xs text-white/40 mb-1.5 block">Код</label>
+                  <label className="text-xs text-white/50 mb-1.5 block">Код</label>
                   <input
                     type="text"
                     value={form.code}
                     onChange={(e) => setForm({ ...form, code: e.target.value })}
                     placeholder="SUMMER25"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white uppercase placeholder:text-white/25 placeholder:normal-case focus:outline-none focus:border-blue-500/50"
+                    className={`${inputCls} uppercase`}
                   />
                 </div>
 
                 {/* Тип скидки */}
                 <div className="col-span-2">
-                  <label className="text-xs text-white/40 mb-1.5 block">Тип скидки</label>
+                  <label className="text-xs text-white/50 mb-1.5 block">Тип скидки</label>
                   <div className="flex gap-2">
                     {(['percent', 'fixed'] as const).map((type) => (
                       <button
                         key={type}
                         type="button"
                         onClick={() => setForm({ ...form, discount_value_type: type, max_discount_amount: '' })}
-                        className={`flex-1 py-2 rounded-xl text-sm font-medium transition-colors ${
+                        className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.98] ${
                           form.discount_value_type === type
                             ? 'bg-blue-600 text-white'
-                            : 'bg-white/5 text-white/50 hover:bg-white/10'
+                            : 'bg-white/[0.05] text-white/50 hover:bg-white/[0.08]'
                         }`}
                       >
-                        {type === 'percent' ? 'Процент %' : 'Фикс. сумма ₽'}
+                        {type === 'percent' ? 'Процент %' : 'Фикс. сумма'}
                       </button>
                     ))}
                   </div>
@@ -179,7 +184,7 @@ export default function DiscountsPage() {
 
                 {/* Размер скидки */}
                 <div className={form.discount_value_type === 'percent' ? '' : 'col-span-2'}>
-                  <label className="text-xs text-white/40 mb-1.5 block">
+                  <label className="text-xs text-white/50 mb-1.5 block">
                     Размер скидки {form.discount_value_type === 'percent' ? '(%)' : '(₽)'}
                   </label>
                   <input
@@ -189,64 +194,64 @@ export default function DiscountsPage() {
                     placeholder={form.discount_value_type === 'percent' ? '10' : '500'}
                     min="0"
                     step={form.discount_value_type === 'percent' ? '1' : '50'}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50"
+                    className={inputCls}
                   />
                 </div>
 
                 {/* Макс. скидка (только для процентных) */}
                 {form.discount_value_type === 'percent' && (
                   <div>
-                    <label className="text-xs text-white/40 mb-1.5 block">Макс. скидка (₽)</label>
+                    <label className="text-xs text-white/50 mb-1.5 block">Макс. скидка (₽)</label>
                     <input
                       type="number"
                       value={form.max_discount_amount}
                       onChange={(e) => setForm({ ...form, max_discount_amount: e.target.value })}
                       placeholder="Без лимита"
                       min="0"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50"
+                      className={inputCls}
                     />
                   </div>
                 )}
 
                 {/* Мин. сумма заказа */}
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Мин. сумма заказа (₽)</label>
+                  <label className="text-xs text-white/50 mb-1.5 block">Мин. сумма (₽)</label>
                   <input
                     type="number"
                     value={form.min_order_amount}
                     onChange={(e) => setForm({ ...form, min_order_amount: e.target.value })}
                     placeholder="0"
                     min="0"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50"
+                    className={inputCls}
                   />
                 </div>
 
                 {/* Лимит на пользователя */}
                 <div>
-                  <label className="text-xs text-white/40 mb-1.5 block">Лимит на пользователя</label>
+                  <label className="text-xs text-white/50 mb-1.5 block">Лимит / пользователь</label>
                   <input
                     type="number"
                     value={form.per_user_limit}
                     onChange={(e) => setForm({ ...form, per_user_limit: e.target.value })}
                     placeholder="1"
                     min="1"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50"
+                    className={inputCls}
                   />
                 </div>
 
                 {/* Макс. использований */}
                 <div className="col-span-2">
-                  <label className="text-xs text-white/40 mb-1.5 block">Макс. использований</label>
+                  <label className="text-xs text-white/50 mb-1.5 block">Макс. использований</label>
                   <div className="flex gap-2 mb-2">
                     {[{ val: true, label: 'Без ограничений' }, { val: false, label: 'Указать число' }].map(({ val, label }) => (
                       <button
                         key={String(val)}
                         type="button"
                         onClick={() => setForm({ ...form, max_uses_unlimited: val, max_uses: '' })}
-                        className={`flex-1 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+                        className={`flex-1 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-[0.98] ${
                           form.max_uses_unlimited === val
                             ? 'bg-blue-600 text-white'
-                            : 'bg-white/5 text-white/50 hover:bg-white/10'
+                            : 'bg-white/[0.05] text-white/50 hover:bg-white/[0.08]'
                         }`}
                       >
                         {label}
@@ -260,24 +265,24 @@ export default function DiscountsPage() {
                       onChange={(e) => setForm({ ...form, max_uses: e.target.value })}
                       placeholder="100"
                       min="1"
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50"
+                      className={inputCls}
                     />
                   )}
                 </div>
 
                 {/* Срок действия */}
                 <div className="col-span-2">
-                  <label className="text-xs text-white/40 mb-1.5 block">Срок действия</label>
+                  <label className="text-xs text-white/50 mb-1.5 block">Срок действия</label>
                   <div className="flex gap-2 mb-2">
                     {[{ val: true, label: 'Бессрочный' }, { val: false, label: 'До даты' }].map(({ val, label }) => (
                       <button
                         key={String(val)}
                         type="button"
                         onClick={() => setForm({ ...form, expires_unlimited: val, expires_at: '' })}
-                        className={`flex-1 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+                        className={`flex-1 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-[0.98] ${
                           form.expires_unlimited === val
                             ? 'bg-blue-600 text-white'
-                            : 'bg-white/5 text-white/50 hover:bg-white/10'
+                            : 'bg-white/[0.05] text-white/50 hover:bg-white/[0.08]'
                         }`}
                       >
                         {label}
@@ -289,7 +294,7 @@ export default function DiscountsPage() {
                       type="datetime-local"
                       value={form.expires_at}
                       onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
-                      className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+                      className={inputCls}
                     />
                   )}
                 </div>
@@ -298,7 +303,7 @@ export default function DiscountsPage() {
               <button
                 onClick={handleCreate}
                 disabled={!isFormValid || creating}
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-sm font-semibold text-white transition-colors"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
               >
                 {creating ? (
                   <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -316,14 +321,14 @@ export default function DiscountsPage() {
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-20 rounded-xl bg-white/5 animate-pulse" />
+            <div key={i} className="h-20 rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
           ))}
         </div>
       ) : error ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
           <p className="text-sm">Ошибка загрузки</p>
-          <button onClick={load} className="text-xs text-blue-400">Попробовать снова</button>
+          <button onClick={load} className="text-xs text-blue-400 active:scale-[0.98] transition-transform">Попробовать снова</button>
         </div>
       ) : promos.length === 0 ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/30">
@@ -338,13 +343,13 @@ export default function DiscountsPage() {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: i * 0.04 }}
-              className="bg-white/[0.03] border border-white/5 rounded-xl px-4 py-3"
+              className="bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3.5"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="font-mono text-sm font-bold text-white">{promo.code}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${promo.is_active ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/5 text-white/30'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${promo.is_active ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/[0.05] text-white/30'}`}>
                       {promo.is_active ? 'Активен' : 'Неактивен'}
                     </span>
                   </div>
@@ -361,7 +366,7 @@ export default function DiscountsPage() {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => handleToggle(promo)}
-                    className="text-white/40 hover:text-white/80 transition-colors"
+                    className="text-white/40 hover:text-white/80 active:scale-[0.9] transition-all duration-200"
                     title={promo.is_active ? 'Деактивировать' : 'Активировать'}
                   >
                     {promo.is_active
@@ -371,7 +376,7 @@ export default function DiscountsPage() {
                   </button>
                   <button
                     onClick={() => handleDelete(promo)}
-                    className="text-white/30 hover:text-red-400 transition-colors"
+                    className="text-white/30 hover:text-red-400 active:scale-[0.9] transition-all duration-200"
                     title="Удалить"
                   >
                     <Trash2 size={15} />

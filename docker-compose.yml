@@ -145,7 +145,7 @@ services:
       context: .
       dockerfile: Dockerfile.api
     <<: *common-env
-    command: celery -A worker.main worker --loglevel=info --concurrency=4 -Q default,notifications,abandoned_carts
+    command: celery -A worker.main worker --loglevel=info --concurrency=4 -Q celery,default,notifications,abandoned_carts
     depends_on:
       db:
         condition: service_healthy

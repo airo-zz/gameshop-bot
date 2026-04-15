@@ -52,6 +52,8 @@ function formatMoney(v: number) {
   }).format(v)
 }
 
+const inputCls = 'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 transition-all duration-200'
+
 // ── Модалка массового изменения цен ──────────────────────────────────────────
 
 interface BulkPriceModalProps {
@@ -98,24 +100,27 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
         animate={{ y: 0, opacity: 1 }}
         exit={{ y: 80, opacity: 0 }}
         transition={{ duration: 0.22 }}
-        className="w-full max-w-lg bg-[#0d1b2e] border border-white/10 rounded-t-2xl p-5 space-y-4"
+        className="w-full max-w-lg bg-[#0a1628] border border-white/[0.1] rounded-t-2xl p-5 space-y-4"
       >
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-white">Изменить цены</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/10 transition-colors">
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-white/[0.08] active:scale-[0.95] transition-all"
+          >
             <X size={18} className="text-white/50" />
           </button>
         </div>
 
         {/* Режим */}
-        <div className="flex gap-1 bg-white/5 p-1 rounded-xl">
+        <div className="flex gap-1 bg-white/[0.05] p-1 rounded-xl">
           {(['percent', 'fixed'] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
               className={[
-                'flex-1 py-1.5 rounded-lg text-sm font-medium transition-colors',
-                mode === m ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60',
+                'flex-1 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-[0.98]',
+                mode === m ? 'bg-white/[0.12] text-white' : 'text-white/40 hover:text-white/60',
               ].join(' ')}
             >
               {m === 'percent' ? 'Процент' : 'Фиксированная цена'}
@@ -135,7 +140,7 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
             value={value}
             onChange={(e) => setValue(e.target.value)}
             placeholder={mode === 'percent' ? 'Например: 10' : 'Например: 299'}
-            className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-blue-500/50"
+            className={inputCls}
           />
           {mode === 'percent' && value && !isNaN(parseFloat(value)) && (
             <p className="text-xs text-white/40 mt-1">
@@ -166,7 +171,7 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
         <button
           onClick={handleApply}
           disabled={loading || !value}
-          className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold text-white transition-colors"
+          className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
         >
           {loading ? 'Применяем...' : 'Применить'}
         </button>
@@ -208,7 +213,7 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
         </div>
         <button
           onClick={() => navigate('/admin/catalog/games')}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-medium text-white/60 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.97] text-xs font-medium text-white/60 transition-all duration-200"
         >
           Управление играми
           <ChevronRight size={14} />
@@ -218,14 +223,14 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-[72px] rounded-xl bg-white/5 animate-pulse" />
+            <div key={i} className="h-[72px] rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
           ))}
         </div>
       ) : error ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
           <p className="text-sm">Ошибка загрузки игр</p>
-          <button onClick={load} className="text-xs text-blue-400">Попробовать снова</button>
+          <button onClick={load} className="text-xs text-blue-400 active:scale-[0.98] transition-transform">Попробовать снова</button>
         </div>
       ) : games.length === 0 ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/30">
@@ -241,9 +246,9 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: i * 0.03 }}
               onClick={() => onSelect(game)}
-              className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 rounded-xl px-4 py-3 transition-colors duration-200 cursor-pointer"
+              className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-4 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
             >
-              <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 shrink-0 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/[0.05] shrink-0 flex items-center justify-center">
                 {game.image_url ? (
                   <img
                     src={normalizeImageUrl(game.image_url) ?? game.image_url}
@@ -259,13 +264,12 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-white truncate">{game.name}</div>
-                <div className="text-xs text-white/35 mt-0.5">
+                <div className="text-xs text-white/50 mt-0.5">
                   <span className={game.is_active ? 'text-emerald-400' : 'text-white/30'}>
                     {game.is_active ? 'Активна' : 'Неактивна'}
                   </span>
                 </div>
               </div>
-              <ChevronRight size={16} className="text-white/20 shrink-0" />
             </motion.div>
           ))}
         </div>
@@ -305,12 +309,12 @@ function CategoriesLevel({ game, onBack, onSelect }: CategoriesLevelProps) {
       <div className="flex items-center gap-3">
         <button
           onClick={onBack}
-          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors shrink-0"
+          className="p-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.95] transition-all shrink-0"
         >
           <ArrowLeft size={18} className="text-white/60" />
         </button>
         <div className="min-w-0">
-          <div className="text-xs text-white/40 truncate">Каталог / {game.name}</div>
+          <div className="text-xs text-white/60 truncate">Каталог / {game.name}</div>
           <h1 className="text-lg font-bold text-white leading-tight">Категории</h1>
         </div>
       </div>
@@ -318,14 +322,14 @@ function CategoriesLevel({ game, onBack, onSelect }: CategoriesLevelProps) {
       {loading ? (
         <div className="space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />
+            <div key={i} className="h-14 rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
           ))}
         </div>
       ) : error ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
           <p className="text-sm">Ошибка загрузки категорий</p>
-          <button onClick={load} className="text-xs text-blue-400">Попробовать снова</button>
+          <button onClick={load} className="text-xs text-blue-400 active:scale-[0.98] transition-transform">Попробовать снова</button>
         </div>
       ) : categories.length === 0 ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/30">
@@ -341,18 +345,17 @@ function CategoriesLevel({ game, onBack, onSelect }: CategoriesLevelProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2, delay: i * 0.03 }}
               onClick={() => onSelect(cat)}
-              className="flex items-center gap-3 bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 rounded-xl px-4 py-3 transition-colors duration-200 cursor-pointer"
+              className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-4 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
             >
-              <FolderOpen size={18} className="text-white/30 shrink-0" />
+              <FolderOpen size={18} className="text-white/40 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-white truncate">{cat.name}</div>
-                <div className="text-xs text-white/35">
+                <div className="text-xs text-white/50">
                   <span className={cat.is_active ? 'text-emerald-400' : 'text-white/30'}>
                     {cat.is_active ? 'Активна' : 'Неактивна'}
                   </span>
                 </div>
               </div>
-              <ChevronRight size={16} className="text-white/20 shrink-0" />
             </motion.div>
           ))}
         </div>
@@ -477,12 +480,12 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={onBack}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors shrink-0"
+              className="p-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.95] transition-all shrink-0"
             >
               <ArrowLeft size={18} className="text-white/60" />
             </button>
             <div className="min-w-0">
-              <div className="text-xs text-white/40 truncate">
+              <div className="text-xs text-white/60 truncate">
                 {game.name} / {category.name}
               </div>
               <h1 className="text-lg font-bold text-white leading-tight">Товары</h1>
@@ -492,7 +495,7 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
             {selectMode ? (
               <button
                 onClick={() => { setSelectMode(false); setSelectedIds(new Set()) }}
-                className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-medium text-white/60 transition-colors"
+                className="px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.97] text-xs font-medium text-white/60 transition-all duration-200"
               >
                 Отмена
               </button>
@@ -500,20 +503,20 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
               <>
                 <button
                   onClick={() => setSelectMode(true)}
-                  className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-medium text-white/60 transition-colors"
+                  className="px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.97] text-xs font-medium text-white/60 transition-all duration-200"
                 >
                   Выбрать
                 </button>
                 <button
                   onClick={() => setShowBulkPrice(true)}
                   title="Изменить цены"
-                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                  className="p-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.95] transition-all duration-200"
                 >
                   <PercentSquare size={18} className="text-white/60" />
                 </button>
                 <button
                   onClick={() => navigate(`/admin/catalog/products/new?category_id=${category.id}`)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.97] text-xs font-semibold text-white transition-all duration-200"
                 >
                   <Plus size={15} />
                   Добавить
@@ -526,14 +529,14 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
         {loading ? (
           <div className="space-y-2">
             {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-16 rounded-xl bg-white/5 animate-pulse" />
+              <div key={i} className="h-16 rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
             ))}
           </div>
         ) : error ? (
           <div className="flex flex-col items-center py-16 gap-3 text-white/40">
             <AlertCircle size={36} />
             <p className="text-sm">Ошибка загрузки товаров</p>
-            <button onClick={load} className="text-xs text-blue-400">Попробовать снова</button>
+            <button onClick={load} className="text-xs text-blue-400 active:scale-[0.98] transition-transform">Попробовать снова</button>
           </div>
         ) : products.length === 0 ? (
           <div className="flex flex-col items-center py-16 gap-3 text-white/30">
@@ -541,7 +544,7 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
             <p className="text-sm">Товаров в этой категории нет</p>
             <button
               onClick={() => navigate(`/admin/catalog/products/new?category_id=${category.id}`)}
-              className="text-xs text-blue-400"
+              className="text-xs text-blue-400 active:scale-[0.98] transition-transform"
             >
               Добавить первый товар
             </button>
@@ -562,10 +565,10 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ duration: 0.2, delay: i * 0.03 }}
                       className={[
-                        'flex items-center gap-3 border rounded-xl px-3 py-3 transition-colors',
+                        'flex items-center gap-3 border rounded-xl px-3 py-3 transition-all duration-200',
                         selectedIds.has(product.id)
                           ? 'bg-blue-600/10 border-blue-500/30'
-                          : 'bg-white/[0.03] border-white/5',
+                          : 'bg-white/[0.04] border-white/[0.08]',
                       ].join(' ')}
                     >
                       {selectMode && (
@@ -576,7 +579,7 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
                           className="w-4 h-4 rounded accent-blue-500 shrink-0 cursor-pointer"
                         />
                       )}
-                      <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                      <div className="w-10 h-10 rounded-lg bg-white/[0.05] flex items-center justify-center shrink-0">
                         <Package size={18} className="text-white/20" />
                       </div>
                       <div
@@ -609,14 +612,14 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
                                 toast.error('Ошибка копирования')
                               }
                             }}
-                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors"
+                            className="p-2 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white/40 hover:text-white/80 active:scale-[0.9] transition-all duration-200"
                             title="Дублировать"
                           >
                             <Copy size={15} />
                           </button>
                           <button
                             onClick={() => navigate(`/admin/catalog/products/${product.id}`)}
-                            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                            className="p-1.5 rounded-lg hover:bg-white/[0.08] active:scale-[0.9] transition-all duration-200"
                             title="Редактировать"
                           >
                             <Pencil size={15} className="text-white/40" />
@@ -624,7 +627,7 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
                           <button
                             onClick={() => handleDelete(product.id, product.name)}
                             disabled={deletingId === product.id}
-                            className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-40"
+                            className="p-1.5 rounded-lg hover:bg-red-500/20 active:scale-[0.9] transition-all duration-200 disabled:opacity-40"
                             title="Удалить"
                           >
                             <Trash2 size={15} className="text-red-400/70" />
@@ -656,24 +659,24 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
             initial={{ y: 80 }}
             animate={{ y: 0 }}
             exit={{ y: 80 }}
-            className="fixed bottom-[72px] left-0 right-0 z-40 bg-[#0d1a2e] border-t border-white/10 px-4 py-3 flex items-center gap-3"
+            className="fixed bottom-[72px] left-0 right-0 z-40 bg-[#0d1a2e] border-t border-white/[0.1] px-4 py-3 flex items-center gap-3"
           >
             <span className="text-xs text-white/50 flex-1">Выбрано: {selectedIds.size}</span>
             <button
               onClick={handleBulkActivate}
-              className="px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 text-xs font-medium hover:bg-emerald-500/25 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 text-xs font-medium hover:bg-emerald-500/25 active:scale-[0.97] transition-all duration-200"
             >
               Активировать
             </button>
             <button
               onClick={handleBulkDeactivate}
-              className="px-3 py-1.5 rounded-lg bg-white/5 text-white/60 text-xs font-medium hover:bg-white/10 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-white/[0.05] text-white/60 text-xs font-medium hover:bg-white/[0.1] active:scale-[0.97] transition-all duration-200"
             >
               Деактивировать
             </button>
             <button
               onClick={handleBulkDelete}
-              className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors"
+              className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 active:scale-[0.97] transition-all duration-200"
             >
               Удалить
             </button>
