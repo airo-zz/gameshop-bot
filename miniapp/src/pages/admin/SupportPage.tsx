@@ -679,6 +679,23 @@ export default function AdminSupportPage() {
 
   useEffect(() => { loadList() }, [loadList])
 
+  // Background polling — тихо обновляет список каждые 10 секунд без лоадера
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const r = await apiClient.get<TicketListResponse>('/admin/support/tickets', {
+          params: {
+            status: activeTab || undefined,
+            page,
+            search: search || undefined,
+          },
+        })
+        setListData(r.data)
+      } catch { /* тихо */ }
+    }, 10_000)
+    return () => clearInterval(interval)
+  }, [activeTab, page, search])
+
   // Auto-open ticket from ?ticket= URL param (runs once on first list load)
   useEffect(() => {
     if (autoOpenedRef.current) return

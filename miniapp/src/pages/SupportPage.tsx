@@ -8,7 +8,7 @@ import toast from 'react-hot-toast'
 import { supportApi, ordersApi, type Ticket, type TicketMessage, type Order } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 
-type View = 'list' | 'new' | 'chat'
+type View = 'list' | 'drafting' | 'chat'
 
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
   open:         { label: 'Открыт',      color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
@@ -49,14 +49,19 @@ export default function SupportPage() {
   const [searchParams] = useSearchParams()
   const prefillOrderId = searchParams.get('order_id')
 
-  const [view, setView] = useState<View>(prefillOrderId ? 'new' : 'list')
+  const [view, setView] = useState<View>(prefillOrderId ? 'drafting' : 'list')
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
-  const [message, setMessage] = useState('')
+  const [activeTicketData, setActiveTicketData] = useState<Ticket | null>(null)
   const [replyText, setReplyText] = useState('')
   const [sending, setSending] = useState(false)
   const [attachedFiles, setAttachedFiles] = useState<File[]>([])
   const [uploadingFiles, setUploadingFiles] = useState(false)
-  const [linkedOrderId, setLinkedOrderId] = useState<string>(prefillOrderId ?? '')
+
+  // Drafting state
+  const [draftText, setDraftText] = useState('')
+  const [draftSent, setDraftSent] = useState(false)
+  const [draftOrderId, setDraftOrderId] = useState(prefillOrderId ?? '')
+  const [draftCreating, setDraftCreating] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -69,7 +74,7 @@ export default function SupportPage() {
   const { data: recentOrders = [] } = useQuery<Order[]>({
     queryKey: ['orders-recent'],
     queryFn: () => ordersApi.list(0),
-    enabled: view === 'new',
+    enabled: view === 'drafting',
     select: (data) => data.slice(0, 5),
   })
 
@@ -85,8 +90,9 @@ export default function SupportPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
-  const openChat = useCallback((ticketId: string) => {
+  const openChat = useCallback((ticketId: string, ticketData?: Ticket) => {
     setSelectedTicketId(ticketId)
+    if (ticketData) setActiveTicketData(ticketData)
     setView('chat')
   }, [])
 
@@ -94,33 +100,41 @@ export default function SupportPage() {
     setView('list')
     setSelectedTicketId(null)
     setReplyText('')
+    setDraftText('')
+    setDraftSent(false)
+    setDraftOrderId('')
+    setActiveTicketData(null)
   }, [])
 
-  const handleCreate = async () => {
-    if (!message.trim()) {
-      toast.error('Напиши сообщение')
-      return
-    }
-    setSending(true)
+  const handleSubmitDraft = async () => {
+    if (!draftText.trim()) return
+    setDraftCreating(true)
     haptic.impact('medium')
     try {
-      const subject = message.trim().slice(0, 50)
+      const subject = draftText.trim().slice(0, 50)
       const result = await supportApi.createTicket({
         subject,
-        message: message.trim(),
-        order_id: linkedOrderId || undefined,
+        message: draftText.trim(),
+        order_id: draftOrderId || undefined,
       })
       haptic.success()
-      toast.success('Обращение создано!')
-      setMessage('')
-      setLinkedOrderId('')
+      const newTicket = {
+        id: result.ticket_id,
+        subject,
+        status: 'open',
+        created_at: new Date().toISOString(),
+        closed_at: null,
+      } as Ticket
       refetchTickets()
-      openChat(result.ticket_id)
+      openChat(result.ticket_id, newTicket)
+      setDraftText('')
+      setDraftSent(false)
+      setDraftOrderId('')
     } catch {
       haptic.error()
       toast.error('Ошибка отправки')
     } finally {
-      setSending(false)
+      setDraftCreating(false)
     }
   }
 
@@ -151,48 +165,135 @@ export default function SupportPage() {
   }
 
   const selectedTicket = tickets.find(t => t.id === selectedTicketId)
-  const isClosed = selectedTicket?.status === 'closed' || selectedTicket?.status === 'resolved'
+  const displayTicket = selectedTicket ?? activeTicketData
+  const isClosed = displayTicket?.status === 'closed' || displayTicket?.status === 'resolved'
 
   return (
     <div className="px-4 pt-5 pb-6 animate-fade-in">
-      {/* ── Header (list / new) ───────────────────────────────────── */}
-      {view !== 'chat' && (
+      {/* Header (list only) */}
+      {view === 'list' && (
         <div className="flex items-center justify-between mb-5">
-          {view === 'new' ? (
-            <button
-              onClick={() => setView('list')}
-              className="flex items-center gap-1.5 text-sm font-medium"
-              style={{ color: '#3b82f6' }}
-            >
-              <ArrowLeft size={16} />
-              Назад
-            </button>
-          ) : (
-            <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>
-              Мои обращения
-              {tickets.length > 0 && (
-                <span className="ml-2 text-sm font-medium" style={{ color: 'var(--hint)' }}>
-                  ({tickets.length})
-                </span>
-              )}
-            </h1>
-          )}
+          <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>
+            Мои обращения
+            {tickets.length > 0 && (
+              <span className="ml-2 text-sm font-medium" style={{ color: 'var(--hint)' }}>
+                ({tickets.length})
+              </span>
+            )}
+          </h1>
+          <button
+            onClick={() => setView('drafting')}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all active:scale-95"
+            style={{ background: '#1d4ed8', color: '#fff' }}
+          >
+            <Plus size={14} />
+            Написать
+          </button>
+        </div>
+      )}
 
-          {view === 'list' && (
+      {/* Drafting view — fixed overlay */}
+      {view === 'drafting' && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col bg-[#060f1e]"
+          style={{
+            paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))',
+          }}
+        >
+          {/* Header */}
+          <div className="shrink-0 flex items-center gap-3 px-4 h-14 border-b border-white/5">
             <button
-              onClick={() => setView('new')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all active:scale-95"
-              style={{ background: '#1d4ed8', color: '#fff' }}
+              onClick={backToList}
+              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
             >
-              <Plus size={14} />
-              Новое обращение
+              <ArrowLeft size={18} className="text-white/60" />
             </button>
+            <p className="text-sm font-semibold text-white">Новое обращение</p>
+          </div>
+
+          {/* Messages area */}
+          <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-2">
+            {/* Draft message bubble (после отправки первого сообщения) */}
+            {draftSent && (
+              <div className="flex justify-end">
+                <div className="bg-blue-600/80 text-white rounded-2xl rounded-br-sm ml-auto max-w-[80%] px-3 py-2">
+                  <p className="text-sm whitespace-pre-wrap break-words">{draftText}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Промпт выбора заказа */}
+            {draftSent && (
+              <div className="bg-white/[0.06] text-white rounded-2xl rounded-bl-sm mr-auto max-w-[85%] px-3 py-3 space-y-2">
+                <p className="text-[10px] font-semibold" style={{ color: '#3b82f6' }}>Поддержка</p>
+                <p className="text-sm text-white/80">Хотите привязать обращение к заказу?</p>
+                <select
+                  value={draftOrderId}
+                  onChange={e => setDraftOrderId(e.target.value)}
+                  className="w-full bg-white/10 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white"
+                >
+                  <option value="">— Без заказа —</option>
+                  {recentOrders.map((o: Order) => (
+                    <option key={o.id} value={o.id}>
+                      {o.order_number} — {new Date(o.created_at).toLocaleDateString('ru-RU')}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={handleSubmitDraft}
+                  disabled={draftCreating}
+                  className="w-full py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold disabled:opacity-50 transition-colors"
+                >
+                  {draftCreating ? 'Отправляем...' : draftOrderId ? 'Привязать и создать обращение' : 'Создать без привязки'}
+                </button>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input — только пока не отправлен первый месседж */}
+          {!draftSent && (
+            <div
+              className="shrink-0 border-t border-white/5 px-3 py-2"
+              style={{
+                background: '#060f1e',
+                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+              }}
+            >
+              <div
+                className="flex items-end gap-2 p-2 rounded-2xl"
+                style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+              >
+                <textarea
+                  className="flex-1 bg-transparent text-sm resize-none outline-none py-1.5 px-2"
+                  style={{ color: 'var(--text)', minHeight: 36, maxHeight: 120 }}
+                  placeholder="Опиши проблему..."
+                  value={draftText}
+                  onChange={e => setDraftText(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      if (draftText.trim()) setDraftSent(true)
+                    }
+                  }}
+                  rows={1}
+                />
+                <button
+                  onClick={() => { if (draftText.trim()) setDraftSent(true) }}
+                  disabled={!draftText.trim()}
+                  className="p-2 rounded-xl disabled:opacity-40 transition-all active:scale-90"
+                  style={{ background: '#1d4ed8' }}
+                >
+                  <Send size={18} color="#fff" />
+                </button>
+              </div>
+            </div>
           )}
         </div>
       )}
 
-      {/* ── Chat view — fixed overlay, перекрывает Layout и навигацию ── */}
-      {view === 'chat' && selectedTicket && (
+      {/* Chat view — fixed overlay */}
+      {view === 'chat' && (selectedTicketId || activeTicketData) && (
         <div
           className="fixed inset-0 z-50 flex flex-col"
           style={{
@@ -219,7 +320,7 @@ export default function SupportPage() {
             }}
           />
 
-          {/* 1. Header — не скроллится */}
+          {/* 1. Header */}
           <div className="shrink-0 flex items-center gap-3 px-4 h-14 border-b border-white/5">
             <button
               onClick={backToList}
@@ -229,28 +330,29 @@ export default function SupportPage() {
             </button>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white truncate">
-                {selectedTicket.subject}
+                {displayTicket?.subject}
               </p>
             </div>
-            {(() => {
-              const s = STATUS_LABEL[selectedTicket.status]
+            {displayTicket && (() => {
+              const s = STATUS_LABEL[displayTicket.status]
               return (
                 <span
                   className="text-xs font-semibold px-2.5 py-1 rounded-full shrink-0"
                   style={{ color: s?.color ?? '#6b7280', background: s?.bg ?? 'rgba(107,114,128,0.15)' }}
                 >
-                  {s?.label ?? selectedTicket.status}
+                  {s?.label ?? displayTicket.status}
                 </span>
               )
             })()}
           </div>
 
-          {/* 2. Messages area — только эта зона скроллится */}
+          {/* 2. Messages area */}
           <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">
-            {/* System event: opened */}
-            <div className="text-white/30 text-xs text-center italic py-2">
-              Обращение открыто · {formatDate(selectedTicket.created_at)}
-            </div>
+            {displayTicket && (
+              <div className="text-white/30 text-xs text-center italic py-2">
+                Обращение открыто · {formatDate(displayTicket.created_at)}
+              </div>
+            )}
 
             <div className="space-y-2">
               {messages.map((msg: TicketMessage) => {
@@ -298,9 +400,9 @@ export default function SupportPage() {
             </div>
 
             {/* System event: closed */}
-            {(selectedTicket.status === 'closed' || selectedTicket.status === 'resolved') && selectedTicket.closed_at && (
+            {(displayTicket?.status === 'closed' || displayTicket?.status === 'resolved') && displayTicket?.closed_at && (
               <div className="text-white/30 text-xs text-center italic py-2">
-                Обращение закрыто · {formatDate(selectedTicket.closed_at)}
+                Обращение закрыто · {formatDate(displayTicket.closed_at)}
               </div>
             )}
 
@@ -324,7 +426,7 @@ export default function SupportPage() {
             </div>
           )}
 
-          {/* 4. Input — прилипает к низу */}
+          {/* 4. Input */}
           <div
             className="shrink-0 border-t border-white/5 px-3 py-2"
             style={{
@@ -377,7 +479,7 @@ export default function SupportPage() {
       )}
 
       <AnimatePresence mode="wait">
-        {/* ── List view ─────────────────────────────────────────────── */}
+        {/* List view */}
         {view === 'list' && (
           <motion.div
             key="list"
@@ -399,7 +501,11 @@ export default function SupportPage() {
                   <p className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Обращений пока нет</p>
                   <p className="text-sm" style={{ color: 'var(--hint)' }}>Опиши проблему — мы поможем</p>
                 </div>
-                <button onClick={() => setView('new')} className="btn-primary" style={{ maxWidth: 220 }}>
+                <button
+                  onClick={() => setView('drafting')}
+                  className="btn-primary"
+                  style={{ maxWidth: 220 }}
+                >
                   Создать обращение
                 </button>
               </div>
@@ -453,68 +559,6 @@ export default function SupportPage() {
             )}
           </motion.div>
         )}
-
-        {/* ── New ticket form ───────────────────────────────────────── */}
-        {view === 'new' && (
-          <motion.div
-            key="new"
-            initial={{ opacity: 0, x: 30 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
-            transition={{ duration: 0.22 }}
-            className="space-y-4"
-          >
-            <p className="text-sm" style={{ color: 'var(--hint)' }}>
-              Опиши проблему — мы ответим в ближайшее время
-            </p>
-
-            {/* Order select */}
-            <div>
-              <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--hint)' }}>
-                Привязать к заказу (необязательно)
-              </label>
-              <select
-                className="input"
-                value={linkedOrderId}
-                onChange={e => setLinkedOrderId(e.target.value)}
-                style={{ color: linkedOrderId ? 'var(--text)' : 'var(--hint)' }}
-              >
-                <option value="">— Без заказа —</option>
-                {recentOrders.map((order: Order) => (
-                  <option key={order.id} value={order.id}>
-                    {order.order_number} — {new Date(order.created_at).toLocaleDateString('ru-RU')}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-medium mb-1.5 block" style={{ color: 'var(--hint)' }}>
-                Сообщение *
-              </label>
-              <textarea
-                className="input resize-none"
-                placeholder="Подробно опиши проблему..."
-                rows={5}
-                value={message}
-                onChange={e => setMessage(e.target.value)}
-                maxLength={2000}
-              />
-              <p className="text-xs mt-1 text-right" style={{ color: 'var(--hint)' }}>
-                {message.length}/2000
-              </p>
-            </div>
-
-            <button
-              className="btn-primary gap-2"
-              onClick={handleCreate}
-              disabled={sending || !message.trim()}
-            >
-              {sending ? 'Отправляем...' : <><Send size={16} /> Отправить</>}
-            </button>
-          </motion.div>
-        )}
-
       </AnimatePresence>
     </div>
   )

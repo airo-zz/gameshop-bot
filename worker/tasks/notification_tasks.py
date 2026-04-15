@@ -1,8 +1,11 @@
 """worker/tasks/notification_tasks.py — отправка уведомлений"""
 import json
+import logging
 import httpx
 from worker.main import celery_app
 from shared.config import settings
+
+logger = logging.getLogger(__name__)
 
 
 @celery_app.task(
@@ -65,29 +68,77 @@ def notify_support_user(self, telegram_id: int, text: str, ticket_id: str | None
     """
     Отправляет сообщение юзеру через бот поддержки.
     Используется когда оператор отвечает на тикет или закрывает его.
+    При 403 от support bot (пользователь не писал в него) — fallback на основной бот.
     """
     if not telegram_id:
         return
 
-    token = settings.effective_support_token
-    formatted = f"💬 <b>Ответ поддержки</b>\n\n{text}"
+    formatted = f"<b>Ответ поддержки</b>\n\n{text}"
+    payload = {"chat_id": telegram_id, "text": formatted, "parse_mode": "HTML"}
 
-    payload = {
-        "chat_id": telegram_id,
-        "text": formatted,
-        "parse_mode": "HTML",
-    }
+    tokens_to_try = []
+    support_token = settings.SUPPORT_BOT_TOKEN
+    if support_token and support_token != settings.BOT_TOKEN:
+        tokens_to_try.append(support_token)
+    tokens_to_try.append(settings.BOT_TOKEN)
 
     try:
         with httpx.Client(timeout=10.0) as client:
+            for token in tokens_to_try:
+                resp = client.post(
+                    f"https://api.telegram.org/bot{token}/sendMessage",
+                    json=payload,
+                )
+                if resp.status_code == 200:
+                    return
+                if resp.status_code == 403:
+                    continue
+                raise Exception(f"Telegram API error: {resp.text}")
+            raise Exception(f"All tokens failed for user {telegram_id}")
+    except Exception as exc:
+        raise self.retry(exc=exc)
+
+
+def _send_group_message(text: str, ticket_id: str) -> None:
+    """
+    Отправляет сообщение в группу операторов.
+    Пробует support bot, при 403/400 — fallback на основной бот.
+    """
+    chat_id = settings.SUPPORT_NOTIFY_CHAT_ID
+    if not chat_id:
+        return
+
+    markup = json.dumps({
+        "inline_keyboard": [[
+            {
+                "text": "Открыть в операторской панели",
+                "url": f"{settings.FRONTEND_URL}/app/admin/support?ticket={ticket_id}",
+            }
+        ]]
+    })
+    payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML", "reply_markup": markup}
+
+    tokens = []
+    if settings.SUPPORT_BOT_TOKEN and settings.SUPPORT_BOT_TOKEN != settings.BOT_TOKEN:
+        tokens.append(settings.SUPPORT_BOT_TOKEN)
+    tokens.append(settings.BOT_TOKEN)
+
+    with httpx.Client(timeout=10.0) as client:
+        for token in tokens:
             resp = client.post(
                 f"https://api.telegram.org/bot{token}/sendMessage",
                 json=payload,
             )
-            if resp.status_code != 200:
-                raise Exception(f"Telegram API error: {resp.text}")
-    except Exception as exc:
-        raise self.retry(exc=exc)
+            if resp.status_code == 200:
+                return
+            logger.error(
+                "Group notify failed token=%s... status=%s body=%s",
+                token[:10], resp.status_code, resp.text,
+            )
+            if resp.status_code in (400, 403):
+                continue
+            raise Exception(f"Telegram API error: {resp.text}")
+        raise Exception(f"All tokens failed for group chat {chat_id}")
 
 
 @celery_app.task(
@@ -98,39 +149,17 @@ def notify_support_user(self, telegram_id: int, text: str, ticket_id: str | None
 )
 def notify_operators_new_ticket(self, ticket_id: str, subject: str, message_preview: str, user_name: str = "") -> None:
     """Уведомление в группу операторов о новом тикете."""
-    chat_id = settings.SUPPORT_NOTIFY_CHAT_ID
-    if not chat_id:
+    if not settings.SUPPORT_NOTIFY_CHAT_ID:
         return
 
-    token = settings.effective_support_token
     text = (
         f"<b>Новое обращение</b>\n"
         f"От: {user_name}\n"
         f"{message_preview}"
     )
 
-    payload = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "HTML",
-        "reply_markup": json.dumps({
-            "inline_keyboard": [[
-                {
-                    "text": "Открыть в операторской панели",
-                    "url": f"{settings.FRONTEND_URL}/app/admin/support?ticket={ticket_id}",
-                }
-            ]]
-        }),
-    }
-
     try:
-        with httpx.Client(timeout=10.0) as client:
-            resp = client.post(
-                f"https://api.telegram.org/bot{token}/sendMessage",
-                json=payload,
-            )
-            if resp.status_code != 200:
-                raise Exception(f"Telegram API error: {resp.text}")
+        _send_group_message(text, ticket_id)
     except Exception as exc:
         raise self.retry(exc=exc)
 
@@ -143,11 +172,9 @@ def notify_operators_new_ticket(self, ticket_id: str, subject: str, message_prev
 )
 def notify_operators_new_message(self, ticket_id: str, user_name: str, message_preview: str) -> None:
     """Уведомление в группу операторов о новом сообщении в существующем тикете."""
-    chat_id = settings.SUPPORT_NOTIFY_CHAT_ID
-    if not chat_id:
+    if not settings.SUPPORT_NOTIFY_CHAT_ID:
         return
 
-    token = settings.effective_support_token
     ticket_id_short = ticket_id[:8]
     text = (
         f"<b>Сообщение в обращении #{ticket_id_short}</b>\n"
@@ -155,27 +182,7 @@ def notify_operators_new_message(self, ticket_id: str, user_name: str, message_p
         f"{message_preview}"
     )
 
-    payload = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "HTML",
-        "reply_markup": json.dumps({
-            "inline_keyboard": [[
-                {
-                    "text": "Открыть в операторской панели",
-                    "url": f"{settings.FRONTEND_URL}/app/admin/support?ticket={ticket_id}",
-                }
-            ]]
-        }),
-    }
-
     try:
-        with httpx.Client(timeout=10.0) as client:
-            resp = client.post(
-                f"https://api.telegram.org/bot{token}/sendMessage",
-                json=payload,
-            )
-            if resp.status_code != 200:
-                raise Exception(f"Telegram API error: {resp.text}")
+        _send_group_message(text, ticket_id)
     except Exception as exc:
         raise self.retry(exc=exc)
