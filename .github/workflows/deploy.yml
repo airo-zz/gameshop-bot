@@ -254,7 +254,7 @@ jobs:
             # nginx, db, redis, certbot не трогаем — они не изменились
             DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 \
               docker compose up -d --build --remove-orphans \
-              migrations api bot worker beat flower
+              migrations api bot support_bot worker beat flower
 
             # Ждём стабилизации контейнеров
             echo "Waiting for containers..."
