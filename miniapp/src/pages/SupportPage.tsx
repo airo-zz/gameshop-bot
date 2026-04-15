@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { MessageCircle, Send, Plus, ArrowLeft, Paperclip } from 'lucide-react'
+import { MessageCircle, Send, Plus, ArrowLeft, Paperclip, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { supportApi, type Ticket, type TicketMessage } from '@/api'
@@ -41,8 +41,11 @@ export default function SupportPage() {
   const [message, setMessage] = useState('')
   const [replyText, setReplyText] = useState('')
   const [sending, setSending] = useState(false)
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([])
+  const [uploadingFiles, setUploadingFiles] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: tickets = [], refetch: refetchTickets } = useQuery({
     queryKey: ['tickets'],
@@ -100,16 +103,25 @@ export default function SupportPage() {
   }
 
   const handleReply = async () => {
-    if (!replyText.trim() || !selectedTicketId) return
+    if (!replyText.trim() && attachedFiles.length === 0) return
+    if (!selectedTicketId) return
     setSending(true)
     haptic.impact('light')
     try {
-      await supportApi.reply(selectedTicketId, replyText.trim())
+      let attachmentUrls: string[] = []
+      if (attachedFiles.length > 0) {
+        setUploadingFiles(true)
+        attachmentUrls = await Promise.all(attachedFiles.map(f => supportApi.upload(f).then(r => r.url)))
+        setUploadingFiles(false)
+      }
+      await supportApi.reply(selectedTicketId, replyText.trim(), attachmentUrls)
       setReplyText('')
+      setAttachedFiles([])
       queryClient.invalidateQueries({ queryKey: ['ticket-messages', selectedTicketId] })
       refetchTickets()
     } catch {
       haptic.error()
+      setUploadingFiles(false)
       toast.error('Ошибка отправки')
     } finally {
       setSending(false)
@@ -284,6 +296,25 @@ export default function SupportPage() {
             className="flex flex-col"
             style={{ minHeight: 'calc(100vh - 200px)' }}
           >
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,application/pdf"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? [])
+                const total = attachedFiles.length + files.length
+                if (total > 5) {
+                  toast.error('Максимум 5 файлов')
+                  return
+                }
+                setAttachedFiles(prev => [...prev, ...files])
+                e.target.value = ''
+              }}
+            />
+
             {/* Ticket subject */}
             <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>
               {selectedTicket.subject}
@@ -339,32 +370,56 @@ export default function SupportPage() {
 
             {/* Input */}
             {!isClosed ? (
-              <div
-                className="flex items-end gap-2 p-2 rounded-2xl"
-                style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
-              >
-                <textarea
-                  className="flex-1 bg-transparent text-sm resize-none outline-none py-1.5 px-2"
-                  style={{ color: 'var(--text)', minHeight: 36, maxHeight: 120 }}
-                  placeholder="Написать сообщение..."
-                  value={replyText}
-                  onChange={e => setReplyText(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      handleReply()
-                    }
-                  }}
-                  rows={1}
-                />
-                <button
-                  onClick={handleReply}
-                  disabled={sending || !replyText.trim()}
-                  className="p-2 rounded-xl transition-all active:scale-90 disabled:opacity-40"
-                  style={{ background: '#2d58ad' }}
+              <div className="space-y-1">
+                {attachedFiles.length > 0 && (
+                  <div className="flex flex-wrap gap-2 px-1 pt-1">
+                    {attachedFiles.map((f, i) => (
+                      <div key={i} className="flex items-center gap-1.5 bg-white/5 rounded-lg px-2.5 py-1">
+                        <span className="text-xs text-white/60 truncate max-w-[120px]">{f.name}</span>
+                        <button
+                          onClick={() => setAttachedFiles(prev => prev.filter((_, j) => j !== i))}
+                          className="text-white/30 hover:text-white/70"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div
+                  className="flex items-end gap-2 p-2 rounded-2xl"
+                  style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
                 >
-                  <Send size={18} color="#fff" />
-                </button>
+                  <textarea
+                    className="flex-1 bg-transparent text-sm resize-none outline-none py-1.5 px-2"
+                    style={{ color: 'var(--text)', minHeight: 36, maxHeight: 120 }}
+                    placeholder="Написать сообщение..."
+                    value={replyText}
+                    onChange={e => setReplyText(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        handleReply()
+                      }
+                    }}
+                    rows={1}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="p-2.5 rounded-xl bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+                  >
+                    <Paperclip size={18} />
+                  </button>
+                  <button
+                    onClick={handleReply}
+                    disabled={sending || uploadingFiles || (!replyText.trim() && attachedFiles.length === 0)}
+                    className="p-2 rounded-xl transition-all active:scale-90 disabled:opacity-40"
+                    style={{ background: '#2d58ad' }}
+                  >
+                    <Send size={18} color="#fff" />
+                  </button>
+                </div>
               </div>
             ) : (
               <div

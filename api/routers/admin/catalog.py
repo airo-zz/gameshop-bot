@@ -350,6 +350,75 @@ async def get_product(
     return product
 
 
+@router.post("/products/{product_id}/copy", response_model=ProductOut,
+             status_code=status.HTTP_201_CREATED,
+             dependencies=[require_permission("catalog.edit")])
+async def copy_product(
+    product_id: uuid.UUID,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> ProductOut:
+    """Дублирует товар со всеми лотами. Имя нового: '{имя} (копия)'."""
+    result = await db.execute(
+        select(Product)
+        .options(selectinload(Product.lots))
+        .where(Product.id == product_id)
+    )
+    original = result.scalar_one_or_none()
+    if not original:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Товар не найден")
+
+    new_product = Product(
+        id=uuid.uuid4(),
+        category_id=original.category_id,
+        name=f"{original.name} (копия)",
+        description=original.description,
+        short_description=original.short_description,
+        price=original.price,
+        stock=original.stock,
+        delivery_type=original.delivery_type,
+        input_fields=original.input_fields,
+        instruction=original.instruction,
+        images=original.images,
+        is_active=False,
+        sort_order=original.sort_order + 1,
+    )
+    db.add(new_product)
+    await db.flush()
+
+    for lot in original.lots:
+        new_lot = ProductLot(
+            id=uuid.uuid4(),
+            product_id=new_product.id,
+            name=lot.name,
+            price=lot.price,
+            original_price=lot.original_price,
+            quantity=lot.quantity,
+            badge=lot.badge,
+            is_active=lot.is_active,
+            sort_order=lot.sort_order,
+        )
+        db.add(new_lot)
+
+    await db.flush()
+
+    await log_admin_action(
+        db=db,
+        admin=admin,
+        action="product.copy",
+        entity_type="product",
+        entity_id=new_product.id,
+        after_data={
+            "name": new_product.name,
+            "source_product_id": str(product_id),
+            "category_id": str(new_product.category_id),
+        },
+    )
+
+    await db.refresh(new_product, ["lots"])
+    return new_product
+
+
 @router.post("/products", response_model=ProductOut, status_code=status.HTTP_201_CREATED,
              dependencies=[require_permission("catalog.edit")])
 async def create_product(

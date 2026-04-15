@@ -378,6 +378,9 @@ export const adminApi = {
   updateProduct: (id: string, data: Record<string, unknown>) =>
     apiClient.patch<AdminProductDetail>(`/admin/catalog/products/${id}`, data).then(r => r.data),
 
+  copyProduct: (id: string) =>
+    apiClient.post<AdminProductDetail>(`/admin/catalog/products/${id}/copy`).then(r => r.data),
+
   // Catalog — Categories
   getCategories: (gameId: string) =>
     apiClient.get<AdminCategory[]>(`/admin/catalog/games/${gameId}/categories`).then(r => r.data),

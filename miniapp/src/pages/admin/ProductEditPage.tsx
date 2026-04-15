@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, AlertCircle, Save } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Save, ExternalLink, Copy } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
 import type { AdminGame, AdminCategory, AdminProductDetail } from '@/api/admin'
@@ -256,7 +256,7 @@ export default function ProductEditPage() {
         >
           <ArrowLeft size={18} className="text-white/60" />
         </button>
-        <div>
+        <div className="flex-1 min-w-0">
           <h1 className="text-lg font-bold text-white">
             {isNew ? 'Новый товар' : 'Редактирование товара'}
           </h1>
@@ -264,6 +264,32 @@ export default function ProductEditPage() {
             {isNew ? 'Заполните данные и сохраните' : 'Измените нужные поля'}
           </p>
         </div>
+        {!isNew && (
+          <>
+            <button
+              onClick={() => window.open(`${window.location.origin}/app/product/${id}`, '_blank')}
+              className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
+              title="Открыть в магазине"
+            >
+              <ExternalLink size={16} />
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const copy = await adminApi.copyProduct(id!)
+                  toast.success('Товар скопирован')
+                  navigate(`/admin/catalog/products/${copy.id}`)
+                } catch {
+                  toast.error('Ошибка')
+                }
+              }}
+              className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
+              title="Дублировать"
+            >
+              <Copy size={16} />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Section: Категория — скрыт если предзаполнен из URL */}

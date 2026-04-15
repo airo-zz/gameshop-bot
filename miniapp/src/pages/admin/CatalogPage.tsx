@@ -20,6 +20,7 @@ import {
   ImageOff,
   PercentSquare,
   X,
+  Copy,
 } from 'lucide-react'
 import { adminApi } from '@/api/admin'
 import type { AdminGame, AdminCategory, AdminProductListItem } from '@/api/admin'
@@ -360,6 +361,8 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
   const [error, setError] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [showBulkPrice, setShowBulkPrice] = useState(false)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 
   const load = useCallback(() => {
     setLoading(true)
@@ -387,6 +390,38 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
     }
   }
 
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function handleBulkActivate() {
+    await Promise.all([...selectedIds].map(id => adminApi.updateProduct(id, { is_active: true })))
+    toast.success(`Активировано: ${selectedIds.size}`)
+    setSelectedIds(new Set())
+    load()
+  }
+
+  async function handleBulkDeactivate() {
+    await Promise.all([...selectedIds].map(id => adminApi.updateProduct(id, { is_active: false })))
+    toast.success(`Деактивировано: ${selectedIds.size}`)
+    setSelectedIds(new Set())
+    load()
+  }
+
+  async function handleBulkDelete() {
+    if (!window.confirm(`Удалить ${selectedIds.size} товаров?`)) return
+    await Promise.all([...selectedIds].map(id => adminApi.deleteProduct(id)))
+    toast.success(`Удалено: ${selectedIds.size}`)
+    setSelectedIds(new Set())
+    setSelectMode(false)
+    load()
+  }
+
   return (
     <>
       <div className="space-y-4">
@@ -407,20 +442,37 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              onClick={() => setShowBulkPrice(true)}
-              title="Изменить цены"
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
-            >
-              <PercentSquare size={18} className="text-white/60" />
-            </button>
-            <button
-              onClick={() => navigate(`/admin/catalog/products/new?category_id=${category.id}`)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition-colors"
-            >
-              <Plus size={15} />
-              Добавить
-            </button>
+            {selectMode ? (
+              <button
+                onClick={() => { setSelectMode(false); setSelectedIds(new Set()) }}
+                className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-medium text-white/60 transition-colors"
+              >
+                Отмена
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => setSelectMode(true)}
+                  className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-medium text-white/60 transition-colors"
+                >
+                  Выбрать
+                </button>
+                <button
+                  onClick={() => setShowBulkPrice(true)}
+                  title="Изменить цены"
+                  className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+                >
+                  <PercentSquare size={18} className="text-white/60" />
+                </button>
+                <button
+                  onClick={() => navigate(`/admin/catalog/products/new?category_id=${category.id}`)}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition-colors"
+                >
+                  <Plus size={15} />
+                  Добавить
+                </button>
+              </>
+            )}
           </div>
         </div>
 
@@ -455,14 +507,27 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2, delay: i * 0.03 }}
-                className="flex items-center gap-3 bg-white/[0.03] border border-white/5 rounded-xl px-4 py-3"
+                className={[
+                  'flex items-center gap-3 border rounded-xl px-3 py-3 transition-colors',
+                  selectedIds.has(product.id)
+                    ? 'bg-blue-600/10 border-blue-500/30'
+                    : 'bg-white/[0.03] border-white/5',
+                ].join(' ')}
               >
+                {selectMode && (
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(product.id)}
+                    onChange={() => toggleSelect(product.id)}
+                    className="w-4 h-4 rounded accent-blue-500 shrink-0 cursor-pointer"
+                  />
+                )}
                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
                   <Package size={18} className="text-white/20" />
                 </div>
                 <div
                   className="flex-1 min-w-0 cursor-pointer"
-                  onClick={() => navigate(`/admin/catalog/products/${product.id}`)}
+                  onClick={() => selectMode ? toggleSelect(product.id) : navigate(`/admin/catalog/products/${product.id}`)}
                 >
                   <div className="text-sm font-medium text-white truncate">{product.name}</div>
                   <div className="text-xs text-white/40">
@@ -474,24 +539,44 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
                     </span>
                   </div>
                 </div>
-                <div className="text-sm font-semibold text-white shrink-0 mr-2">
+                <div className="text-sm font-semibold text-white shrink-0 mr-1">
                   {formatMoney(product.price)}
                 </div>
-                <button
-                  onClick={() => navigate(`/admin/catalog/products/${product.id}`)}
-                  className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                  title="Редактировать"
-                >
-                  <Pencil size={15} className="text-white/40" />
-                </button>
-                <button
-                  onClick={() => handleDelete(product.id, product.name)}
-                  disabled={deletingId === product.id}
-                  className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-40"
-                  title="Удалить"
-                >
-                  <Trash2 size={15} className="text-red-400/70" />
-                </button>
+                {!selectMode && (
+                  <>
+                    <button
+                      onClick={async (e) => {
+                        e.preventDefault()
+                        try {
+                          const copy = await adminApi.copyProduct(product.id)
+                          toast.success('Товар скопирован')
+                          navigate(`/admin/catalog/products/${copy.id}`)
+                        } catch {
+                          toast.error('Ошибка копирования')
+                        }
+                      }}
+                      className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors"
+                      title="Дублировать"
+                    >
+                      <Copy size={15} />
+                    </button>
+                    <button
+                      onClick={() => navigate(`/admin/catalog/products/${product.id}`)}
+                      className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                      title="Редактировать"
+                    >
+                      <Pencil size={15} className="text-white/40" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(product.id, product.name)}
+                      disabled={deletingId === product.id}
+                      className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-40"
+                      title="Удалить"
+                    >
+                      <Trash2 size={15} className="text-red-400/70" />
+                    </button>
+                  </>
+                )}
               </motion.div>
             ))}
           </div>
@@ -505,6 +590,37 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
             onClose={() => setShowBulkPrice(false)}
             onApplied={load}
           />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {selectMode && selectedIds.size > 0 && (
+          <motion.div
+            initial={{ y: 80 }}
+            animate={{ y: 0 }}
+            exit={{ y: 80 }}
+            className="fixed bottom-[72px] left-0 right-0 z-40 bg-[#0d1a2e] border-t border-white/10 px-4 py-3 flex items-center gap-3"
+          >
+            <span className="text-xs text-white/50 flex-1">Выбрано: {selectedIds.size}</span>
+            <button
+              onClick={handleBulkActivate}
+              className="px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 text-xs font-medium hover:bg-emerald-500/25 transition-colors"
+            >
+              Активировать
+            </button>
+            <button
+              onClick={handleBulkDeactivate}
+              className="px-3 py-1.5 rounded-lg bg-white/5 text-white/60 text-xs font-medium hover:bg-white/10 transition-colors"
+            >
+              Деактивировать
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors"
+            >
+              Удалить
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </>

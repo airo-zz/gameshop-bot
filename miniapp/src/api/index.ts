@@ -258,4 +258,10 @@ export const supportApi = {
 
   reply: (ticketId: string, text: string, attachments: string[] = []) =>
     apiClient.post<{ ok: boolean; message_id: string }>(`/support/${ticketId}/reply`, { text, attachments }).then(r => r.data),
+
+  upload: (file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return apiClient.post<{ url: string }>('/support/upload', fd).then(r => r.data)
+  },
 }

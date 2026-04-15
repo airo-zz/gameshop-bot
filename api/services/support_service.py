@@ -195,8 +195,11 @@ class SupportService:
             if sender_type == "admin":
                 ticket.status = TicketStatus.waiting_user
                 self._notify_user_reply(ticket, text)
-            elif sender_type == "user" and ticket.status == TicketStatus.waiting_user:
-                ticket.status = TicketStatus.open
+            elif sender_type == "user":
+                if ticket.status == TicketStatus.waiting_user:
+                    ticket.status = TicketStatus.open
+                if ticket.status not in (TicketStatus.closed, TicketStatus.resolved):
+                    self._notify_operators_new_ticket(ticket, text)
 
         await self.db.flush()
         return msg

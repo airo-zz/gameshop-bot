@@ -10,7 +10,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Save, Plus, AlertCircle, Upload, Loader2, ImageOff } from 'lucide-react'
+import { ArrowLeft, Save, Plus, AlertCircle, Upload, Loader2, ImageOff, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
 import type { AdminGame, AdminCategory } from '@/api/admin'
@@ -287,11 +287,20 @@ export default function GameEditPage() {
         >
           <ArrowLeft size={18} className="text-white/60" />
         </button>
-        <h1 className="text-lg font-bold text-white">
+        <h1 className="text-lg font-bold text-white flex-1 min-w-0">
           {isCreate
             ? (form.type === 'service' ? 'Новый сервис' : 'Новая игра')
             : (form.type === 'service' ? 'Редактировать сервис' : 'Редактировать игру')}
         </h1>
+        {!isCreate && form.slug && (
+          <button
+            onClick={() => window.open(`${window.location.origin}/app/catalog/${form.slug}`, '_blank')}
+            className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
+            title="Открыть в магазине"
+          >
+            <ExternalLink size={16} />
+          </button>
+        )}
       </div>
 
       {/* Game form */}
