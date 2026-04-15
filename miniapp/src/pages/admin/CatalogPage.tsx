@@ -4,7 +4,7 @@
  * Реализована как state-машина внутри одного компонента.
  */
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -22,9 +22,24 @@ import {
   X,
   Copy,
 } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
 import { adminApi } from '@/api/admin'
 import type { AdminGame, AdminCategory, AdminProductListItem } from '@/api/admin'
 import { normalizeImageUrl } from '@/utils/imageUrl'
+import SortableRow from '@/components/admin/SortableRow'
 import toast from 'react-hot-toast'
 
 type Step = 'games' | 'categories' | 'products'
@@ -363,6 +378,12 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
   const [showBulkPrice, setShowBulkPrice] = useState(false)
   const [selectMode, setSelectMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } }),
+  )
 
   const load = useCallback(() => {
     setLoading(true)
@@ -375,6 +396,32 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
   }, [category.id])
 
   useEffect(() => { load() }, [load])
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    if (selectMode) return
+
+    setProducts(prev => {
+      const oldIndex = prev.findIndex(p => p.id === active.id)
+      const newIndex = prev.findIndex(p => p.id === over.id)
+      const reordered = arrayMove(prev, oldIndex, newIndex)
+
+      if (saveTimeout.current) clearTimeout(saveTimeout.current)
+      saveTimeout.current = setTimeout(async () => {
+        try {
+          await adminApi.reorderProducts(
+            reordered.map((p, i) => ({ id: p.id, sort_order: i }))
+          )
+        } catch {
+          toast.error('Не удалось сохранить порядок')
+          load()
+        }
+      }, 600)
+
+      return reordered
+    })
+  }
 
   const handleDelete = async (id: string, name: string) => {
     if (!window.confirm(`Удалить товар "${name}"?`)) return
@@ -500,86 +547,96 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
             </button>
           </div>
         ) : (
-          <div className="space-y-2">
-            {products.map((product, i) => (
-              <motion.div
-                key={product.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: i * 0.03 }}
-                className={[
-                  'flex items-center gap-3 border rounded-xl px-3 py-3 transition-colors',
-                  selectedIds.has(product.id)
-                    ? 'bg-blue-600/10 border-blue-500/30'
-                    : 'bg-white/[0.03] border-white/5',
-                ].join(' ')}
-              >
-                {selectMode && (
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(product.id)}
-                    onChange={() => toggleSelect(product.id)}
-                    className="w-4 h-4 rounded accent-blue-500 shrink-0 cursor-pointer"
-                  />
-                )}
-                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
-                  <Package size={18} className="text-white/20" />
-                </div>
-                <div
-                  className="flex-1 min-w-0 cursor-pointer"
-                  onClick={() => selectMode ? toggleSelect(product.id) : navigate(`/admin/catalog/products/${product.id}`)}
-                >
-                  <div className="text-sm font-medium text-white truncate">{product.name}</div>
-                  <div className="text-xs text-white/40">
-                    {product.delivery_type}
-                    {product.stock !== null && ` · склад: ${product.stock}`}
-                    {' · '}
-                    <span className={product.is_active ? 'text-emerald-400' : 'text-white/30'}>
-                      {product.is_active ? 'Активен' : 'Неактивен'}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-sm font-semibold text-white shrink-0 mr-1">
-                  {formatMoney(product.price)}
-                </div>
-                {!selectMode && (
-                  <>
-                    <button
-                      onClick={async (e) => {
-                        e.preventDefault()
-                        try {
-                          const copy = await adminApi.copyProduct(product.id)
-                          toast.success('Товар скопирован')
-                          navigate(`/admin/catalog/products/${copy.id}`)
-                        } catch {
-                          toast.error('Ошибка копирования')
-                        }
-                      }}
-                      className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors"
-                      title="Дублировать"
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={products.map(p => p.id)} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2">
+                {products.map((product, i) => (
+                  <SortableRow
+                    key={product.id}
+                    id={product.id}
+                    disabled={selectMode}
+                    style={{ paddingLeft: selectMode ? 0 : 28 }}
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, delay: i * 0.03 }}
+                      className={[
+                        'flex items-center gap-3 border rounded-xl px-3 py-3 transition-colors',
+                        selectedIds.has(product.id)
+                          ? 'bg-blue-600/10 border-blue-500/30'
+                          : 'bg-white/[0.03] border-white/5',
+                      ].join(' ')}
                     >
-                      <Copy size={15} />
-                    </button>
-                    <button
-                      onClick={() => navigate(`/admin/catalog/products/${product.id}`)}
-                      className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
-                      title="Редактировать"
-                    >
-                      <Pencil size={15} className="text-white/40" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(product.id, product.name)}
-                      disabled={deletingId === product.id}
-                      className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-40"
-                      title="Удалить"
-                    >
-                      <Trash2 size={15} className="text-red-400/70" />
-                    </button>
-                  </>
-                )}
-              </motion.div>
-            ))}
-          </div>
+                      {selectMode && (
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(product.id)}
+                          onChange={() => toggleSelect(product.id)}
+                          className="w-4 h-4 rounded accent-blue-500 shrink-0 cursor-pointer"
+                        />
+                      )}
+                      <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+                        <Package size={18} className="text-white/20" />
+                      </div>
+                      <div
+                        className="flex-1 min-w-0 cursor-pointer"
+                        onClick={() => selectMode ? toggleSelect(product.id) : navigate(`/admin/catalog/products/${product.id}`)}
+                      >
+                        <div className="text-sm font-medium text-white truncate">{product.name}</div>
+                        <div className="text-xs text-white/40">
+                          {product.delivery_type}
+                          {product.stock !== null && ` · склад: ${product.stock}`}
+                          {' · '}
+                          <span className={product.is_active ? 'text-emerald-400' : 'text-white/30'}>
+                            {product.is_active ? 'Активен' : 'Неактивен'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-sm font-semibold text-white shrink-0 mr-1">
+                        {formatMoney(product.price)}
+                      </div>
+                      {!selectMode && (
+                        <>
+                          <button
+                            onClick={async (e) => {
+                              e.preventDefault()
+                              try {
+                                const copy = await adminApi.copyProduct(product.id)
+                                toast.success('Товар скопирован')
+                                navigate(`/admin/catalog/products/${copy.id}`)
+                              } catch {
+                                toast.error('Ошибка копирования')
+                              }
+                            }}
+                            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors"
+                            title="Дублировать"
+                          >
+                            <Copy size={15} />
+                          </button>
+                          <button
+                            onClick={() => navigate(`/admin/catalog/products/${product.id}`)}
+                            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                            title="Редактировать"
+                          >
+                            <Pencil size={15} className="text-white/40" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(product.id, product.name)}
+                            disabled={deletingId === product.id}
+                            className="p-1.5 rounded-lg hover:bg-red-500/20 transition-colors disabled:opacity-40"
+                            title="Удалить"
+                          >
+                            <Trash2 size={15} className="text-red-400/70" />
+                          </button>
+                        </>
+                      )}
+                    </motion.div>
+                  </SortableRow>
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </div>
 

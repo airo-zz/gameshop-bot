@@ -277,6 +277,15 @@ class ProductListItem(BaseModel):
 # ── Catalog — Lots ────────────────────────────────────────────────────────────
 
 
+class SortItem(BaseModel):
+    id: uuid.UUID
+    sort_order: int
+
+
+class ReorderIn(BaseModel):
+    items: list[SortItem]
+
+
 class BulkPriceUpdateIn(BaseModel):
     mode: str = Field(..., pattern="^(percent|fixed)$")
     value: float = Field(..., ge=0)

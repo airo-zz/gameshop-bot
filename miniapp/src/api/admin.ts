@@ -365,6 +365,12 @@ export const adminApi = {
   updateGame: (id: string, data: Partial<{ name: string; slug: string; image_url: string; description: string; is_active: boolean; is_featured: boolean; sort_order: number; type: 'game' | 'service' }>) =>
     apiClient.patch<AdminGame>(`/admin/catalog/games/${id}`, data).then(r => r.data),
 
+  reorderGames: (items: Array<{ id: string; sort_order: number }>) =>
+    apiClient.post('/admin/catalog/games/reorder', { items }),
+
+  reorderProducts: (items: Array<{ id: string; sort_order: number }>) =>
+    apiClient.post('/admin/catalog/products/reorder', { items }),
+
   // Catalog — Products
   getProducts: (params?: { page?: number; page_size?: number; game_id?: string; category_id?: string; search?: string; is_active?: boolean }) =>
     apiClient.get<PaginatedResponse<AdminProductListItem>>('/admin/catalog/products', { params }).then(r => r.data),

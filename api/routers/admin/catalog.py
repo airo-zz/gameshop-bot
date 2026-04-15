@@ -32,6 +32,7 @@ from api.schemas.admin import (
     ProductListItem,
     ProductOut,
     ProductUpdateIn,
+    ReorderIn,
 )
 from api.utils.admin_log import log_admin_action
 from shared.models.catalog import Category, Game, Product, ProductLot
@@ -68,6 +69,23 @@ async def list_games(
         q = q.where(Game.type == type)
     result = await db.execute(q)
     return result.scalars().all()
+
+
+@router.post("/games/reorder", status_code=status.HTTP_204_NO_CONTENT,
+             dependencies=[require_permission("catalog.edit")])
+async def reorder_games(
+    body: ReorderIn,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> None:
+    """Массово обновляет sort_order для игр одним запросом."""
+    for item in body.items:
+        result = await db.execute(select(Game).where(Game.id == item.id))
+        game = result.scalar_one_or_none()
+        if game:
+            game.sort_order = item.sort_order
+    await db.commit()
+    await log_admin_action(db, admin, "games.reorder", "game", description=f"reordered {len(body.items)} items")
 
 
 @router.post("/games", response_model=GameOut, status_code=status.HTTP_201_CREATED,
@@ -331,6 +349,23 @@ async def list_products(
         page_size=page_size,
         pages=ceil(total / page_size) if total else 1,
     )
+
+
+@router.post("/products/reorder", status_code=status.HTTP_204_NO_CONTENT,
+             dependencies=[require_permission("catalog.edit")])
+async def reorder_products(
+    body: ReorderIn,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> None:
+    """Массово обновляет sort_order для товаров."""
+    for item in body.items:
+        result = await db.execute(select(Product).where(Product.id == item.id))
+        product = result.scalar_one_or_none()
+        if product:
+            product.sort_order = item.sort_order
+    await db.commit()
+    await log_admin_action(db, admin, "products.reorder", "product", description=f"reordered {len(body.items)} items")
 
 
 @router.get("/products/{product_id}", response_model=ProductOut)
