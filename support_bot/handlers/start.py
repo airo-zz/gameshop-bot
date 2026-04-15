@@ -86,7 +86,7 @@ def _chat_keyboard() -> ReplyKeyboardMarkup:
 
 def _order_button_label(order) -> str:
     """Метка кнопки заказа: '#001 — Fortnite — 15 апр'."""
-    label = f"#{order.order_number}"
+    label = f"{order.order_number}"
     if order.items:
         first_item = order.items[0]
         game_title = getattr(first_item, "product_title", None) or getattr(first_item, "title", None)

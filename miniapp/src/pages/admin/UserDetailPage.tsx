@@ -233,7 +233,7 @@ export default function UserDetailPage() {
               >
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-white">#{order.order_number}</span>
+                    <span className="text-xs font-mono text-white">{order.order_number}</span>
                     <span className={`text-xs px-1.5 py-0.5 rounded-full ${STATUS_COLORS[order.status] ?? 'bg-white/10 text-white/50'}`}>
                       {order.status}
                     </span>

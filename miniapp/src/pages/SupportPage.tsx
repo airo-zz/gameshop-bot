@@ -482,7 +482,7 @@ export default function SupportPage() {
                 <option value="">— Без заказа —</option>
                 {recentOrders.map((order: Order) => (
                   <option key={order.id} value={order.id}>
-                    #{order.order_number} — {new Date(order.created_at).toLocaleDateString('ru-RU')}
+                    {order.order_number} — {new Date(order.created_at).toLocaleDateString('ru-RU')}
                   </option>
                 ))}
               </select>
