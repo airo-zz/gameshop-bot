@@ -93,14 +93,6 @@ export default function SupportPage() {
     if (prefillOrderId) setView('drafting')
   }, [prefillOrderId])
 
-  // Deep link: startapp=support_{ticket_id} — открыть конкретный тикет
-  useEffect(() => {
-    if (startParam?.startsWith('support_')) {
-      const ticketId = startParam.slice('support_'.length)
-      if (ticketId) openChat(ticketId)
-    }
-  }, [startParam, openChat])
-
   const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets'],
     queryFn: supportApi.list,
@@ -130,6 +122,14 @@ export default function SupportPage() {
     if (ticketData) setActiveTicketData(ticketData)
     setView('chat')
   }, [])
+
+  // Deep link: startapp=support_{ticket_id} — открыть конкретный тикет
+  useEffect(() => {
+    if (startParam?.startsWith('support_')) {
+      const ticketId = startParam.slice('support_'.length)
+      if (ticketId) openChat(ticketId)
+    }
+  }, [startParam, openChat])
 
   const backToList = useCallback(() => {
     setView('list')
