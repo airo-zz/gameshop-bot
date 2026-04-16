@@ -1,4 +1,5 @@
 // src/pages/HomePage.tsx
+
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
