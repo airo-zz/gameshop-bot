@@ -116,6 +116,10 @@ class OrderService:
             # Резервируем ключи для auto-выдачи
             if product.delivery_type.value in ("auto", "mixed"):
                 await self._reserve_keys(product.id, item.lot_id, item.quantity)
+                remaining = await self._count_available_keys(product.id, item.lot_id)
+                if remaining == 0 and product.delivery_type.value == "auto":
+                    from shared.models.catalog import DeliveryType
+                    product.delivery_type = DeliveryType.manual
 
         # Фиксируем скидки в лог
         for applied in discount_result.applied:

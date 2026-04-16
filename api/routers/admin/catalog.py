@@ -11,6 +11,7 @@ from math import ceil
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
@@ -35,7 +36,7 @@ from api.schemas.admin import (
     ReorderIn,
 )
 from api.utils.admin_log import log_admin_action
-from shared.models.catalog import Category, Game, Product, ProductLot
+from shared.models.catalog import Category, Game, Product, ProductKey, ProductLot
 
 router = APIRouter()
 
@@ -764,3 +765,70 @@ async def delete_lot(
     )
 
     await db.delete(lot)
+
+
+# ── Product Keys ──────────────────────────────────────────────────────────────
+
+
+# GET /products/{product_id}/keys — stats (available, used, total)
+@router.get("/products/{product_id}/keys",
+            dependencies=[require_permission("catalog.edit")])
+async def get_product_keys_stats(product_id: uuid.UUID, db: DbSession, admin: CurrentAdmin):
+    from sqlalchemy import func as sqlfunc
+    total_result = await db.execute(
+        select(sqlfunc.count()).select_from(ProductKey).where(ProductKey.product_id == product_id)
+    )
+    used_result = await db.execute(
+        select(sqlfunc.count()).select_from(ProductKey).where(
+            ProductKey.product_id == product_id, ProductKey.is_used == True
+        )
+    )
+    total = total_result.scalar_one() or 0
+    used = used_result.scalar_one() or 0
+    return {"total": total, "used": used, "available": total - used}
+
+
+# POST /products/{product_id}/keys — bulk add (one key per line)
+class AddKeysRequest(BaseModel):
+    keys: list[str]  # plaintext keys, will be encrypted on insert
+
+
+@router.post("/products/{product_id}/keys",
+             dependencies=[require_permission("catalog.edit")])
+async def add_product_keys(product_id: uuid.UUID, body: AddKeysRequest, db: DbSession, admin: CurrentAdmin):
+    from api.services.crypto_service import encrypt_key
+    product_result = await db.execute(select(Product).where(Product.id == product_id))
+    product = product_result.scalar_one_or_none()
+    if not product:
+        raise HTTPException(404, "Товар не найден")
+    keys_to_add = [k.strip() for k in body.keys if k.strip()]
+    if not keys_to_add:
+        raise HTTPException(400, "Нет ключей для добавления")
+    for plaintext in keys_to_add:
+        db.add(ProductKey(product_id=product_id, key_value=encrypt_key(plaintext)))
+    await db.flush()
+    await log_admin_action(db=db, admin=admin, action="product.keys.add",
+                           entity_type="product", entity_id=product_id,
+                           after_data={"count": len(keys_to_add)})
+    return {"added": len(keys_to_add)}
+
+
+# DELETE /products/{product_id}/keys/unused — delete all unused keys
+@router.delete("/products/{product_id}/keys/unused",
+               dependencies=[require_permission("catalog.edit")])
+async def delete_unused_product_keys(product_id: uuid.UUID, db: DbSession, admin: CurrentAdmin):
+    result = await db.execute(
+        select(ProductKey).where(
+            ProductKey.product_id == product_id,
+            ProductKey.is_used == False,
+        )
+    )
+    keys = result.scalars().all()
+    count = len(keys)
+    for k in keys:
+        await db.delete(k)
+    await db.flush()
+    await log_admin_action(db=db, admin=admin, action="product.keys.delete_unused",
+                           entity_type="product", entity_id=product_id,
+                           after_data={"deleted": count})
+    return {"deleted": count}

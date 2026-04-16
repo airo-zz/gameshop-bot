@@ -6,7 +6,7 @@
  *   /admin/catalog/products/:id   — редактирование
  */
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, AlertCircle, Save, ExternalLink, Copy } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -86,6 +86,13 @@ export default function ProductEditPage() {
   const [initError, setInitError] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  // Keys management
+  const [keyStats, setKeyStats] = useState<{ total: number; used: number; available: number } | null>(null)
+  const [keysInput, setKeysInput] = useState('')
+  const [keysLoading, setKeysLoading] = useState(false)
+  const [keysAdding, setKeysAdding] = useState(false)
+  const [keysClearing, setKeysClearing] = useState(false)
+
   // ── Initial load ────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -136,6 +143,22 @@ export default function ProductEditPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
+  const loadKeyStats = useCallback(async () => {
+    if (isNew || !id) return
+    setKeysLoading(true)
+    try {
+      const stats = await adminApi.getProductKeyStats(id)
+      setKeyStats(stats)
+    } catch {}
+    finally { setKeysLoading(false) }
+  }, [isNew, id])
+
+  useEffect(() => {
+    if (form.delivery_type !== 'manual' && !isNew) {
+      loadKeyStats()
+    }
+  }, [form.delivery_type, isNew, loadKeyStats])
+
   function prefillForm(product: AdminProductDetail, gameId: string) {
     setForm({
       game_id: gameId,
@@ -172,6 +195,34 @@ export default function ProductEditPage() {
     if (errors[key as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [key]: undefined }))
     }
+  }
+
+  // ── Keys handlers ───────────────────────────────────────────────────────────
+
+  async function handleAddKeys() {
+    const lines = keysInput.split('\n').map(l => l.trim()).filter(Boolean)
+    if (!lines.length || !id) return
+    setKeysAdding(true)
+    try {
+      const res = await adminApi.addProductKeys(id, lines)
+      toast.success(`Добавлено ${res.added} ключей`)
+      setKeysInput('')
+      await loadKeyStats()
+    } catch {
+      toast.error('Ошибка добавления ключей')
+    } finally { setKeysAdding(false) }
+  }
+
+  async function handleClearUnused() {
+    if (!id || !window.confirm('Удалить все неиспользованные ключи?')) return
+    setKeysClearing(true)
+    try {
+      const res = await adminApi.deleteUnusedProductKeys(id)
+      toast.success(`Удалено ${res.deleted} ключей`)
+      await loadKeyStats()
+    } catch {
+      toast.error('Ошибка')
+    } finally { setKeysClearing(false) }
   }
 
   // ── Submit ──────────────────────────────────────────────────────────────────
@@ -436,6 +487,61 @@ export default function ProductEditPage() {
           </select>
         </div>
       </div>
+
+      {/* Section: Ключи автовыдачи */}
+      {form.delivery_type !== 'manual' && !isNew && (
+        <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Ключи автовыдачи</h2>
+            {keyStats && (
+              <div className="flex gap-3 text-xs">
+                <span className="text-emerald-400">{keyStats.available} доступно</span>
+                <span className="text-white/30">{keyStats.used} использовано</span>
+              </div>
+            )}
+            {keysLoading && <span className="text-xs text-white/30">Загрузка...</span>}
+          </div>
+
+          <div>
+            <label className="text-xs text-white/50 mb-1.5 block">
+              Новые ключи <span className="text-white/30">(по одному на строку)</span>
+            </label>
+            <textarea
+              value={keysInput}
+              onChange={e => setKeysInput(e.target.value)}
+              rows={6}
+              placeholder={"key-abc-123\nkey-def-456\nkey-ghi-789"}
+              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 resize-none font-mono transition-all duration-200"
+            />
+            <div className="flex items-center justify-between mt-1">
+              <span className="text-xs text-white/30">
+                {keysInput.split('\n').filter(l => l.trim()).length} строк
+              </span>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleAddKeys}
+              disabled={keysAdding || !keysInput.trim()}
+              className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm font-medium transition-all active:scale-[0.98]"
+            >
+              {keysAdding ? 'Добавление...' : 'Добавить ключи'}
+            </button>
+            {keyStats && keyStats.available > 0 && (
+              <button
+                type="button"
+                onClick={handleClearUnused}
+                disabled={keysClearing}
+                className="px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-red-500/10 hover:border-red-500/30 disabled:opacity-40 text-white/50 hover:text-red-400 text-sm transition-all active:scale-[0.98]"
+              >
+                {keysClearing ? '...' : 'Очистить'}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Section: Инструкция */}
       <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">

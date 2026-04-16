@@ -385,6 +385,15 @@ export const adminApi = {
   updateProduct: (id: string, data: Record<string, unknown>) =>
     apiClient.patch<AdminProductDetail>(`/admin/catalog/products/${id}`, data).then(r => r.data),
 
+  getProductKeyStats: (productId: string) =>
+    apiClient.get<{ total: number; used: number; available: number }>(`/admin/catalog/products/${productId}/keys`).then(r => r.data),
+
+  addProductKeys: (productId: string, keys: string[]) =>
+    apiClient.post<{ added: number }>(`/admin/catalog/products/${productId}/keys`, { keys }).then(r => r.data),
+
+  deleteUnusedProductKeys: (productId: string) =>
+    apiClient.delete<{ deleted: number }>(`/admin/catalog/products/${productId}/keys/unused`).then(r => r.data),
+
   copyProduct: (id: string) =>
     apiClient.post<AdminProductDetail>(`/admin/catalog/products/${id}/copy`).then(r => r.data),
 
