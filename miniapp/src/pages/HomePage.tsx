@@ -4,9 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Shield, Star, Crown, Gem } from 'lucide-react'
 import { catalogApi, profileApi } from '@/api'
-import { getLoyaltyColor, getLoyaltyIconName } from '@/utils/loyalty'
 import { useShopStore, useUIStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
 import logoSrc from '@/assets/logo.png'
@@ -162,18 +160,6 @@ function IconSparkle() {
       <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" />
     </svg>
   )
-}
-
-// ── Loyalty icon helper ───────────────────────────────────────────────────────
-
-function getLoyaltyIcon(levelName: string | null) {
-  const iconName = getLoyaltyIconName(levelName)
-  switch (iconName) {
-    case 'Star':    return <Star size={12} />
-    case 'Crown':   return <Crown size={12} />
-    case 'Gem':     return <Gem size={12} />
-    default:        return <Shield size={12} />
-  }
 }
 
 // ── Toggle switch ─────────────────────────────────────────────────────────────
@@ -642,8 +628,8 @@ export default function HomePage() {
                       textDecoration: 'none',
                     }}
                   >
-                    <span style={{ display: 'flex', width: 13, height: 13, flexShrink: 0, color: loyaltyColor }}>
-                      {getLoyaltyIcon(profile.loyalty_level_name ?? null)}
+                    <span style={{ fontSize: 13, lineHeight: 1, flexShrink: 0 }}>
+                      {profile.loyalty_level_emoji || '🏅'}
                     </span>
                     {profile.loyalty_level_name || 'Базовый'}
                   </Link>

@@ -3,55 +3,55 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Heart, Package, Share2, MessageCircle, Wallet, ShoppingBag, Users, Shield, Star, Crown, Gem, Gift, Info, Settings } from 'lucide-react'
+import { Heart, Package, Share2, MessageCircle, Wallet, ShoppingBag, Users, Gift, Info, Settings } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { profileApi } from '@/api'
+import { profileApi, type LoyaltyLevelEntry } from '@/api'
 import { adminApi, type AdminMe } from '@/api/admin'
 import { useTelegram } from '@/hooks/useTelegram'
 import PageLoader from '@/components/ui/PageLoader'
 
-// ── Loyalty levels ─────────────────────────────────────────────────────────────
+// ── Loyalty helpers ────────────────────────────────────────────────────────────
 
-interface LoyaltyLevel {
-  name: string
-  icon: React.ReactNode
-  min: number
-  max: number | null
-  nextDiscount: number
-  color: string
-  bg: string
-  border: string
+function hexToRgb(hex: string) {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `${r},${g},${b}`
 }
 
-const LOYALTY_LEVELS: LoyaltyLevel[] = [
-  { name: 'Bronze',   icon: <Shield size={12} />,  min: 0,     max: 1000,  nextDiscount: 3,  color: '#f59e0b', bg: 'rgba(245,158,11,0.15)',  border: 'rgba(245,158,11,0.25)' },
-  { name: 'Silver',   icon: <Star size={12} />,    min: 1000,  max: 5000,  nextDiscount: 5,  color: '#94a3b8', bg: 'rgba(148,163,184,0.15)', border: 'rgba(148,163,184,0.25)' },
-  { name: 'Gold',     icon: <Crown size={12} />,   min: 5000,  max: 15000, nextDiscount: 10, color: '#eab308', bg: 'rgba(234,179,8,0.15)',   border: 'rgba(234,179,8,0.25)' },
-  { name: 'Platinum', icon: <Gem size={12} />,     min: 15000, max: null,  nextDiscount: 0,  color: '#a78bfa', bg: 'rgba(167,139,250,0.15)', border: 'rgba(167,139,250,0.25)' },
-]
+function getLoyaltyProgress(
+  totalSpent: number,
+  levels: LoyaltyLevelEntry[],
+  currentLevelName: string,
+) {
+  if (!levels.length) return { current: null, next: null, percent: 0, remaining: 0 }
 
-function getLoyaltyProgress(totalSpent: number) {
-  const current = [...LOYALTY_LEVELS].reverse().find(l => totalSpent >= l.min) ?? LOYALTY_LEVELS[0]
-  const currentIndex = LOYALTY_LEVELS.indexOf(current)
-  const next = currentIndex < LOYALTY_LEVELS.length - 1 ? LOYALTY_LEVELS[currentIndex + 1] : null
+  const currentIdx = levels.findIndex(l => l.name === currentLevelName)
+  const current = currentIdx >= 0 ? levels[currentIdx] : levels[0]
+  const next = currentIdx >= 0 && currentIdx < levels.length - 1 ? levels[currentIdx + 1] : null
 
-  if (!next || current.max === null) {
-    return { current, next: null, percent: 100, remaining: 0 }
-  }
+  if (!next) return { current, next: null, percent: 100, remaining: 0 }
 
-  const rangeSize = current.max - current.min
-  const progress = totalSpent - current.min
-  const percent = Math.min(100, Math.round((progress / rangeSize) * 100))
-  const remaining = current.max - totalSpent
+  const rangeSize = next.min_spent - current.min_spent
+  const progress = totalSpent - current.min_spent
+  const percent = rangeSize > 0 ? Math.min(100, Math.round((progress / rangeSize) * 100)) : 100
+  const remaining = Math.max(0, next.min_spent - totalSpent)
 
   return { current, next, percent, remaining }
 }
 
 // ── LoyaltyProgressBar ─────────────────────────────────────────────────────────
 
-function LoyaltyProgressBar({ totalSpent, discountPercent, loyaltyColorHex }: { totalSpent: number; discountPercent: number; loyaltyColorHex?: string }) {
-  const { current, next, percent, remaining } = getLoyaltyProgress(totalSpent)
-  const currentColor = loyaltyColorHex ?? current.color
+interface ProgressBarProps {
+  totalSpent: number
+  discountPercent: number
+  loyaltyColorHex: string
+  levels: LoyaltyLevelEntry[]
+  currentLevelName: string
+}
+
+function LoyaltyProgressBar({ totalSpent, discountPercent, loyaltyColorHex, levels, currentLevelName }: ProgressBarProps) {
+  const { current, next, percent, remaining } = getLoyaltyProgress(totalSpent, levels, currentLevelName)
   const barRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -59,29 +59,29 @@ function LoyaltyProgressBar({ totalSpent, discountPercent, loyaltyColorHex }: { 
     if (!el) return
     el.style.width = '0%'
     const raf = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        el.style.width = `${percent}%`
-      })
+      requestAnimationFrame(() => { el.style.width = `${percent}%` })
     })
     return () => cancelAnimationFrame(raf)
   }, [percent])
+
+  if (!current) return null
 
   return (
     <div style={{ marginTop: 16 }}>
       {/* Метки уровней */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 11, fontWeight: 500, color: '#6b9de8', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ display: 'flex', color: currentColor }}>{current.icon}</span>
+        <span style={{ fontSize: 11, fontWeight: 500, color: loyaltyColorHex, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span>{current.icon_emoji}</span>
           {current.name}
           <span style={{ color: 'var(--hint)', fontWeight: 400 }}>(ваш статус)</span>
         </span>
         {next ? (
           <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--hint)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ display: 'flex', color: next.color }}>{next.icon}</span>
+            <span style={{ color: next.color_hex }}>{next.icon_emoji}</span>
             {next.name}
           </span>
         ) : (
-          <span style={{ fontSize: 11, fontWeight: 500, color: '#f59e0b' }}>MAX</span>
+          <span style={{ fontSize: 11, fontWeight: 500, color: loyaltyColorHex }}>MAX</span>
         )}
       </div>
 
@@ -92,8 +92,8 @@ function LoyaltyProgressBar({ totalSpent, discountPercent, loyaltyColorHex }: { 
           style={{
             height: '100%',
             borderRadius: 99,
-            background: 'linear-gradient(90deg, #2d58ad, #6b9de8)',
-            boxShadow: '0 0 8px rgba(45,88,173,0.6)',
+            background: `linear-gradient(90deg, rgba(${hexToRgb(loyaltyColorHex)},0.6), ${loyaltyColorHex})`,
+            boxShadow: `0 0 8px rgba(${hexToRgb(loyaltyColorHex)},0.5)`,
             transition: 'width 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
             width: 0,
           }}
@@ -106,19 +106,19 @@ function LoyaltyProgressBar({ totalSpent, discountPercent, loyaltyColorHex }: { 
           <>
             До{' '}
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-              <span style={{ display: 'flex', color: next.color }}>{next.icon}</span>
+              <span style={{ color: next.color_hex }}>{next.icon_emoji}</span>
               {next.name}:
             </span>
             {' '}
-            <span style={{ color: '#6b9de8', fontWeight: 600 }}>
+            <span style={{ color: loyaltyColorHex, fontWeight: 600 }}>
               {remaining.toLocaleString('ru')} ₽
             </span>
-            {next.nextDiscount > 0 && (
-              <span> — скидка {next.nextDiscount}%</span>
+            {next.discount_percent > 0 && (
+              <span> — скидка {next.discount_percent}%</span>
             )}
           </>
         ) : (
-          <span style={{ color: '#f59e0b', fontWeight: 600 }}>
+          <span style={{ color: loyaltyColorHex, fontWeight: 600 }}>
             Максимальный уровень
             {discountPercent > 0 && ` · скидка ${discountPercent}%`}
           </span>
@@ -242,7 +242,9 @@ export default function ProfilePage() {
   const avatarSrc = user?.photo_url ?? profile?.photo_url ?? null
   const showAvatar = avatarSrc !== null && !avatarError
 
-  const loyaltyInfo = profile ? getLoyaltyProgress(profile.total_spent) : null
+  const loyaltyLevels = profile?.loyalty_levels ?? []
+  const loyaltyColorHex = profile?.loyalty_color_hex ?? '#CD7F32'
+  const loyaltyLevelName = profile?.loyalty_level_name ?? ''
 
   if (isLoading) return <PageLoader />
 
@@ -304,7 +306,9 @@ export default function ProfilePage() {
           <LoyaltyProgressBar
             totalSpent={profile.total_spent}
             discountPercent={profile.loyalty_discount_percent}
-            loyaltyColorHex={profile.loyalty_color_hex}
+            loyaltyColorHex={loyaltyColorHex}
+            levels={loyaltyLevels}
+            currentLevelName={loyaltyLevelName}
           />
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
             <span style={{ fontSize: 10, color: 'var(--hint)', display: 'flex', alignItems: 'center', gap: 3 }}>
@@ -324,34 +328,43 @@ export default function ProfilePage() {
         }}>
           <div style={{ overflow: 'hidden' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {LOYALTY_LEVELS.map(level => (
-              <div
-                key={level.name}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 10,
-                  padding: '8px 10px',
-                  borderRadius: 10,
-                  background: level.bg,
-                  border: `1px solid ${level.border}`,
-                }}
-              >
-                <span style={{ display: 'flex', color: level.color, flexShrink: 0 }}>{level.icon}</span>
-                <span style={{ fontWeight: 600, fontSize: 12, color: level.color, flex: 1 }}>{level.name}</span>
-                <span style={{ fontSize: 11, color: 'var(--hint)' }}>
-                  от {level.min.toLocaleString('ru')} ₽
-                </span>
-                {level.nextDiscount > 0 && (
-                  <span style={{ fontSize: 11, fontWeight: 600, color: level.color }}>
-                    −{level.nextDiscount}%
+            {loyaltyLevels.map((level, idx) => {
+              const isLast = idx === loyaltyLevels.length - 1
+              const isCurrent = level.name === loyaltyLevelName
+              const rgb = hexToRgb(level.color_hex)
+              return (
+                <div
+                  key={level.name}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '8px 10px',
+                    borderRadius: 10,
+                    background: `rgba(${rgb},0.12)`,
+                    border: `1px solid rgba(${rgb},${isCurrent ? '0.4' : '0.2'})`,
+                    boxShadow: isCurrent ? `0 0 0 1px rgba(${rgb},0.25)` : 'none',
+                  }}
+                >
+                  <span style={{ flexShrink: 0, fontSize: 14 }}>{level.icon_emoji}</span>
+                  <span style={{ fontWeight: 600, fontSize: 12, color: level.color_hex, flex: 1 }}>
+                    {level.name}
+                    {isCurrent && <span style={{ fontWeight: 400, color: 'var(--hint)', marginLeft: 4, fontSize: 11 }}>— ваш</span>}
                   </span>
-                )}
-                {level.max === null && (
-                  <span style={{ fontSize: 11, fontWeight: 600, color: level.color }}>MAX</span>
-                )}
-              </div>
-            ))}
+                  <span style={{ fontSize: 11, color: 'var(--hint)' }}>
+                    от {level.min_spent.toLocaleString('ru')} ₽
+                  </span>
+                  {level.discount_percent > 0 && (
+                    <span style={{ fontSize: 11, fontWeight: 600, color: level.color_hex }}>
+                      −{level.discount_percent}%
+                    </span>
+                  )}
+                  {isLast && level.discount_percent === 0 && (
+                    <span style={{ fontSize: 11, fontWeight: 600, color: level.color_hex }}>MAX</span>
+                  )}
+                </div>
+              )
+            })}
           </div>
           </div>
         </div>

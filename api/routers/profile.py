@@ -73,9 +73,11 @@ async def get_profile(db: DbSession, user: CurrentUser):
             {
                 "name": lv.name,
                 "min_spent": float(lv.min_spent),
+                "min_orders": lv.min_orders,
                 "discount_percent": float(lv.discount_percent),
                 "cashback_percent": float(lv.cashback_percent),
                 "color_hex": lv.color_hex,
+                "icon_emoji": lv.icon_emoji,
                 "priority": lv.priority,
             }
             for lv in all_levels

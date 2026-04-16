@@ -154,9 +154,11 @@ export interface TicketMessage {
 export interface LoyaltyLevelEntry {
   name: string
   min_spent: number
+  min_orders: number
   discount_percent: number
   cashback_percent: number
   color_hex: string
+  icon_emoji: string
   priority: number
 }
 
