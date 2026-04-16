@@ -14,12 +14,12 @@ function GameCard({ game }: { game: Game }) {
       type="button"
       onClick={() => navigate(`/catalog/${game.slug}`)}
       className="flex-shrink-0 flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
-      style={{ minWidth: 120 }}
+      style={{ width: 100, minWidth: 100, flexShrink: 0 }}
     >
       <div
-        className="w-full rounded-2xl overflow-hidden flex items-center justify-center"
+        className="rounded-2xl overflow-hidden"
         style={{
-          height: 72,
+          width: 100, height: 100,
           background: 'var(--bg2)',
           border: '1px solid var(--border)',
         }}
