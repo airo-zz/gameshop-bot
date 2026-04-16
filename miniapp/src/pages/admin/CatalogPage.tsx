@@ -312,8 +312,8 @@ function CategoriesLevel({ game, onBack, onSelect }: CategoriesLevelProps) {
       await adminApi.deleteCategory(cat.id)
       setCategories(prev => prev.filter(c => c.id !== cat.id))
       toast.success('Категория удалена')
-    } catch {
-      toast.error('Не удалось удалить категорию')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? 'Не удалось удалить категорию')
     } finally {
       setDeletingId(null)
     }

@@ -289,6 +289,17 @@ async def delete_category(
     if not category:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Категория не найдена")
 
+    from sqlalchemy import func as sqlfunc
+    count_result = await db.execute(
+        select(sqlfunc.count()).select_from(Product).where(Product.category_id == category_id)
+    )
+    products_count = count_result.scalar_one() or 0
+    if products_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Нельзя удалить категорию: в ней {products_count} товар(ов). Сначала удалите или перенесите товары.",
+        )
+
     await log_admin_action(
         db=db,
         admin=admin,
