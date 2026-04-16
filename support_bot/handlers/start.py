@@ -383,3 +383,13 @@ def _extract_content(message: Message) -> tuple[str | None, list[str]]:
         attachments.append(f"tg://doc/{message.document.file_id}")
 
     return text, attachments
+
+
+# ── Fallback — неизвестное состояние или нераспознанная команда ───────────────
+
+
+@router.message()
+async def on_unknown(message: Message, user: User, db: AsyncSession, state: FSMContext):
+    """Сбрасывает любое устаревшее FSM-состояние и возвращает в главное меню."""
+    await state.clear()
+    await _show_main_menu(message, user, db)
