@@ -1,5 +1,5 @@
 // src/pages/SupportPage.tsx
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { MessageCircle, Send, Plus, ArrowLeft, Paperclip, X } from 'lucide-react'
@@ -31,16 +31,31 @@ function timeAgo(dateStr: string): string {
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
   })
 }
 
 function avatarInitial(subject: string): string {
   return (subject?.trim()?.[0] ?? '?').toUpperCase()
+}
+
+// Overlay component — rendered as a sibling to the page, covers the full viewport
+function FullScreenOverlay({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 200,
+        display: 'flex',
+        flexDirection: 'column',
+        background: '#060f1e',
+      }}
+    >
+      {children}
+    </div>
+  )
 }
 
 export default function SupportPage() {
@@ -49,7 +64,7 @@ export default function SupportPage() {
   const [searchParams] = useSearchParams()
   const prefillOrderId = searchParams.get('order_id')
 
-  const [view, setView] = useState<View>(prefillOrderId ? 'drafting' : 'list')
+  const [view, setView] = useState<View>('list')
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null)
   const [activeTicketData, setActiveTicketData] = useState<Ticket | null>(null)
   const [replyText, setReplyText] = useState('')
@@ -58,24 +73,22 @@ export default function SupportPage() {
   const [uploadingFiles, setUploadingFiles] = useState(false)
 
   // Drafting state
-  const [draftText, setDraftText] = useState('')
-  const [draftSent, setDraftSent] = useState(false)
-  const [draftOrderId, setDraftOrderId] = useState(prefillOrderId ?? '')
+  const [draftText, setDraftText] = useState(prefillOrderId ? '' : '')
+  const [draftOrderId] = useState(prefillOrderId ?? '')
   const [draftCreating, setDraftCreating] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const draftInputRef = useRef<HTMLTextAreaElement>(null)
+
+  // Auto-open drafting if prefill order
+  useEffect(() => {
+    if (prefillOrderId) setView('drafting')
+  }, [prefillOrderId])
 
   const { data: tickets = [], refetch: refetchTickets } = useQuery({
     queryKey: ['tickets'],
     queryFn: supportApi.list,
-  })
-
-  const { data: recentOrders = [] } = useQuery<Order[]>({
-    queryKey: ['orders-recent'],
-    queryFn: () => ordersApi.list(0),
-    enabled: view === 'drafting',
-    select: (data) => data.slice(0, 5),
   })
 
   const { data: messages = [] } = useQuery({
@@ -90,6 +103,13 @@ export default function SupportPage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  // Focus draft textarea when view changes to drafting
+  useEffect(() => {
+    if (view === 'drafting') {
+      setTimeout(() => draftInputRef.current?.focus(), 100)
+    }
+  }, [view])
+
   const openChat = useCallback((ticketId: string, ticketData?: Ticket) => {
     setSelectedTicketId(ticketId)
     if (ticketData) setActiveTicketData(ticketData)
@@ -101,13 +121,12 @@ export default function SupportPage() {
     setSelectedTicketId(null)
     setReplyText('')
     setDraftText('')
-    setDraftSent(false)
-    setDraftOrderId('')
     setActiveTicketData(null)
+    setAttachedFiles([])
   }, [])
 
   const handleSubmitDraft = async () => {
-    if (!draftText.trim()) return
+    if (!draftText.trim() || draftCreating) return
     setDraftCreating(true)
     haptic.impact('medium')
     try {
@@ -118,18 +137,16 @@ export default function SupportPage() {
         order_id: draftOrderId || undefined,
       })
       haptic.success()
-      const newTicket = {
+      const newTicket: Ticket = {
         id: result.ticket_id,
         subject,
         status: 'open',
         created_at: new Date().toISOString(),
         closed_at: null,
-      } as Ticket
+      }
       refetchTickets()
-      openChat(result.ticket_id, newTicket)
       setDraftText('')
-      setDraftSent(false)
-      setDraftOrderId('')
+      openChat(result.ticket_id, newTicket)
     } catch {
       haptic.error()
       toast.error('Ошибка отправки')
@@ -192,14 +209,12 @@ export default function SupportPage() {
         </div>
       )}
 
-      {/* Drafting view — fixed overlay */}
+      {/* Drafting overlay */}
       {view === 'drafting' && (
-        <div
-          className="fixed inset-0 z-[120] flex flex-col bg-[#060f1e]"
-          style={{
-            paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))',
-          }}
-        >
+        <FullScreenOverlay>
+          {/* Padding for Telegram safe area */}
+          <div style={{ height: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))' }} />
+
           {/* Header */}
           <div className="shrink-0 flex items-center gap-3 px-4 h-14 border-b border-white/5">
             <button
@@ -211,96 +226,63 @@ export default function SupportPage() {
             <p className="text-sm font-semibold text-white">Новое обращение</p>
           </div>
 
-          {/* Messages area */}
-          <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3 space-y-2">
-            {/* Draft message bubble (после отправки первого сообщения) */}
-            {draftSent && (
-              <div className="flex justify-end">
-                <div className="bg-blue-600/80 text-white rounded-2xl rounded-br-sm ml-auto max-w-[80%] px-3 py-2">
-                  <p className="text-sm whitespace-pre-wrap break-words">{draftText}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Промпт выбора заказа */}
-            {draftSent && (
-              <div className="bg-white/[0.06] text-white rounded-2xl rounded-bl-sm mr-auto max-w-[85%] px-3 py-3 space-y-2">
-                <p className="text-[10px] font-semibold" style={{ color: '#3b82f6' }}>Поддержка</p>
-                <p className="text-sm text-white/80">Хотите привязать обращение к заказу?</p>
-                <select
-                  value={draftOrderId}
-                  onChange={e => setDraftOrderId(e.target.value)}
-                  className="w-full bg-white/10 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-white"
-                >
-                  <option value="">— Без заказа —</option>
-                  {recentOrders.map((o: Order) => (
-                    <option key={o.id} value={o.id}>
-                      {o.order_number} — {new Date(o.created_at).toLocaleDateString('ru-RU')}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={handleSubmitDraft}
-                  disabled={draftCreating}
-                  className="w-full py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold disabled:opacity-50 transition-colors"
-                >
-                  {draftCreating ? 'Отправляем...' : draftOrderId ? 'Привязать и создать обращение' : 'Создать без привязки'}
-                </button>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
+          {/* Hint */}
+          <div className="flex-1 flex flex-col justify-end px-4 py-4">
+            <div className="bg-white/[0.06] rounded-2xl rounded-bl-sm px-4 py-3 mb-4 max-w-[85%]">
+              <p className="text-[10px] font-semibold mb-1" style={{ color: '#3b82f6' }}>Поддержка</p>
+              <p className="text-sm text-white/80">Опишите проблему, и мы поможем как можно быстрее.</p>
+            </div>
           </div>
 
-          {/* Input — только пока не отправлен первый месседж */}
-          {!draftSent && (
+          {/* Input */}
+          <div
+            className="shrink-0 border-t border-white/5 px-3 py-2"
+            style={{
+              background: '#060f1e',
+              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+            }}
+          >
             <div
-              className="shrink-0 border-t border-white/5 px-3 py-2"
-              style={{
-                background: '#060f1e',
-                paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
-              }}
+              className="flex items-end gap-2 p-2 rounded-2xl"
+              style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
             >
-              <div
-                className="flex items-end gap-2 p-2 rounded-2xl"
-                style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+              <textarea
+                ref={draftInputRef}
+                className="flex-1 bg-transparent text-sm resize-none outline-none py-1.5 px-2"
+                style={{ color: 'var(--text)', minHeight: 36, maxHeight: 120 }}
+                placeholder="Опиши проблему..."
+                value={draftText}
+                onChange={e => setDraftText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    handleSubmitDraft()
+                  }
+                }}
+                rows={1}
+              />
+              <button
+                onClick={handleSubmitDraft}
+                disabled={!draftText.trim() || draftCreating}
+                className="p-2 rounded-xl disabled:opacity-40 transition-all active:scale-90"
+                style={{ background: '#1d4ed8' }}
               >
-                <textarea
-                  className="flex-1 bg-transparent text-sm resize-none outline-none py-1.5 px-2"
-                  style={{ color: 'var(--text)', minHeight: 36, maxHeight: 120 }}
-                  placeholder="Опиши проблему..."
-                  value={draftText}
-                  onChange={e => setDraftText(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
-                      e.preventDefault()
-                      if (draftText.trim()) setDraftSent(true)
-                    }
-                  }}
-                  rows={1}
-                />
-                <button
-                  onClick={() => { if (draftText.trim()) setDraftSent(true) }}
-                  disabled={!draftText.trim()}
-                  className="p-2 rounded-xl disabled:opacity-40 transition-all active:scale-90"
-                  style={{ background: '#1d4ed8' }}
-                >
-                  <Send size={18} color="#fff" />
-                </button>
-              </div>
+                {draftCreating
+                  ? <div className="w-[18px] h-[18px] border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  : <Send size={18} color="#fff" />
+                }
+              </button>
             </div>
-          )}
-        </div>
+          </div>
+        </FullScreenOverlay>
       )}
 
-      {/* Chat view — fixed overlay */}
-      {view === 'chat' && (selectedTicketId || activeTicketData) && (
-        <div
-          className="fixed inset-0 z-[120] flex flex-col"
-          style={{
-            background: '#060f1e',
-            paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))',
-          }}
-        >
+      {/* Chat overlay */}
+      {view === 'chat' && (
+        <FullScreenOverlay>
+          {/* Safe area top */}
+          <div style={{ height: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))' }} />
+
           {/* Hidden file input */}
           <input
             ref={fileInputRef}
@@ -311,16 +293,13 @@ export default function SupportPage() {
             onChange={(e) => {
               const files = Array.from(e.target.files ?? [])
               const total = attachedFiles.length + files.length
-              if (total > 5) {
-                toast.error('Максимум 5 файлов')
-                return
-              }
+              if (total > 5) { toast.error('Максимум 5 файлов'); return }
               setAttachedFiles(prev => [...prev, ...files])
               e.target.value = ''
             }}
           />
 
-          {/* 1. Header */}
+          {/* Header */}
           <div className="shrink-0 flex items-center gap-3 px-4 h-14 border-b border-white/5">
             <button
               onClick={backToList}
@@ -330,7 +309,7 @@ export default function SupportPage() {
             </button>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white truncate">
-                {displayTicket?.subject}
+                {displayTicket?.subject ?? 'Обращение'}
               </p>
             </div>
             {displayTicket && (() => {
@@ -346,7 +325,7 @@ export default function SupportPage() {
             })()}
           </div>
 
-          {/* 2. Messages area */}
+          {/* Messages area */}
           <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">
             {displayTicket && (
               <div className="text-white/30 text-xs text-center italic py-2">
@@ -358,10 +337,7 @@ export default function SupportPage() {
               {messages.map((msg: TicketMessage) => {
                 const isUser = msg.sender_type === 'user'
                 return (
-                  <div
-                    key={msg.id}
-                    className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
-                  >
+                  <div key={msg.id} className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
                     <div
                       className={[
                         'max-w-[80%] px-3 py-2',
@@ -375,22 +351,14 @@ export default function SupportPage() {
                           Поддержка
                         </p>
                       )}
-                      <p className="text-sm whitespace-pre-wrap break-words">
-                        {msg.text}
-                      </p>
+                      <p className="text-sm whitespace-pre-wrap break-words">{msg.text}</p>
                       {msg.attachments.length > 0 && (
                         <div className="flex items-center gap-1 mt-1">
                           <Paperclip size={10} className="text-white/40" />
-                          <span className="text-[10px] text-white/40">
-                            {msg.attachments.length} вложений
-                          </span>
+                          <span className="text-[10px] text-white/40">{msg.attachments.length} вложений</span>
                         </div>
                       )}
-                      <p
-                        className={`text-[10px] mt-1 text-right ${
-                          isUser ? 'text-white/50' : 'text-white/30'
-                        }`}
-                      >
+                      <p className={`text-[10px] mt-1 text-right ${isUser ? 'text-white/50' : 'text-white/30'}`}>
                         {timeAgo(msg.created_at)}
                       </p>
                     </div>
@@ -399,8 +367,7 @@ export default function SupportPage() {
               })}
             </div>
 
-            {/* System event: closed */}
-            {(displayTicket?.status === 'closed' || displayTicket?.status === 'resolved') && displayTicket?.closed_at && (
+            {isClosed && displayTicket?.closed_at && (
               <div className="text-white/30 text-xs text-center italic py-2">
                 Обращение закрыто · {formatDate(displayTicket.closed_at)}
               </div>
@@ -409,7 +376,7 @@ export default function SupportPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* 3. Прикреплённые файлы */}
+          {/* Attached files */}
           {attachedFiles.length > 0 && (
             <div className="shrink-0 flex flex-wrap gap-2 px-4 pt-2 border-t border-white/5">
               {attachedFiles.map((f, i) => (
@@ -426,7 +393,7 @@ export default function SupportPage() {
             </div>
           )}
 
-          {/* 4. Input */}
+          {/* Input */}
           <div
             className="shrink-0 border-t border-white/5 px-3 py-2"
             style={{
@@ -435,7 +402,10 @@ export default function SupportPage() {
             }}
           >
             {!isClosed ? (
-              <div className="flex items-end gap-2 p-2 rounded-2xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+              <div
+                className="flex items-end gap-2 p-2 rounded-2xl"
+                style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+              >
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
@@ -475,11 +445,11 @@ export default function SupportPage() {
               </div>
             )}
           </div>
-        </div>
+        </FullScreenOverlay>
       )}
 
+      {/* List view */}
       <AnimatePresence mode="wait">
-        {/* List view */}
         {view === 'list' && (
           <motion.div
             key="list"
@@ -519,19 +489,16 @@ export default function SupportPage() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2, delay: i * 0.04 }}
-                    onClick={() => openChat(ticket.id)}
+                    onClick={() => openChat(ticket.id, ticket)}
                     className="flex items-center gap-3 px-3 py-3 rounded-2xl w-full text-left transition-all active:scale-[0.98]"
                     style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
                   >
-                    {/* Avatar */}
                     <div
                       className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-base font-bold"
                       style={{ background: 'rgba(59,130,246,0.18)', color: '#3b82f6' }}
                     >
                       {initial}
                     </div>
-
-                    {/* Content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-0.5">
                         <p className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>
@@ -547,9 +514,6 @@ export default function SupportPage() {
                           style={{ color: status.color, background: status.bg }}
                         >
                           {status.label}
-                        </span>
-                        <span className="text-xs truncate" style={{ color: 'var(--hint)' }}>
-                          {ticket.subject.length > 60 ? ticket.subject.slice(0, 60) + '...' : ticket.subject}
                         </span>
                       </div>
                     </div>
