@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { MessageCircle, Send, Plus, ArrowLeft, Paperclip, X, ZoomIn } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { supportApi, type Ticket, type TicketMessage } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -483,43 +484,57 @@ export default function SupportPage() {
       )}
 
       {/* Lightbox */}
-      {lightboxUrl && (
-        <div
-          onClick={() => setLightboxUrl(null)}
-          style={{
-            position: 'fixed',
-            top: 0, left: 0, right: 0, bottom: 0,
-            zIndex: 300,
-            background: 'rgba(0,0,0,0.92)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <button
+      <AnimatePresence>
+        {lightboxUrl && (
+          <motion.div
+            key="lightbox"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
             onClick={() => setLightboxUrl(null)}
             style={{
-              position: 'absolute',
-              top: 16, right: 16,
-              zIndex: 301,
-              background: 'rgba(255,255,255,0.12)',
-              border: 'none',
-              borderRadius: 20,
-              width: 36, height: 36,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer',
+              position: 'fixed',
+              top: 0, left: 0, right: 0, bottom: 0,
+              zIndex: 300,
+              background: 'rgba(0,0,0,0.92)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <X size={18} color="#fff" />
-          </button>
-          <img
-            src={lightboxUrl}
-            alt=""
-            onClick={e => e.stopPropagation()}
-            style={{ maxWidth: '92vw', maxHeight: '80vh', borderRadius: 12, objectFit: 'contain' }}
-          />
-        </div>
-      )}
+            {/* Close button — below Telegram safe area */}
+            <button
+              onClick={() => setLightboxUrl(null)}
+              style={{
+                position: 'absolute',
+                top: 'calc(env(safe-area-inset-top, 0px) + 52px)',
+                right: 16,
+                zIndex: 301,
+                background: 'rgba(255,255,255,0.15)',
+                border: 'none',
+                borderRadius: 20,
+                width: 36, height: 36,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <X size={18} color="#fff" />
+            </button>
+
+            <motion.img
+              src={lightboxUrl}
+              alt=""
+              onClick={e => e.stopPropagation()}
+              initial={{ scale: 0.88, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.88, opacity: 0 }}
+              transition={{ duration: 0.22, ease: [0.34, 1.26, 0.64, 1] }}
+              style={{ maxWidth: '92vw', maxHeight: '78vh', borderRadius: 12, objectFit: 'contain' }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* List view */}
       {view === 'list' && (
