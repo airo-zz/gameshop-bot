@@ -153,7 +153,7 @@ export default function Layout() {
                       filter: isActive
                         ? 'drop-shadow(0 0 8px rgba(107,157,232,0.8))'
                         : 'none',
-                      transform: isActive ? 'scale(1.15) translateY(-2px)' : 'scale(1) translateY(0px)',
+                      transform: isActive ? 'scale(1.15)' : 'scale(1)',
                       transition: 'color 0.2s, filter 0.2s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     }}
                   >
@@ -175,19 +175,15 @@ export default function Layout() {
                   )}
                 </div>
 
-                {/* Label — visible only for active item */}
+                {/* Label — always visible */}
                 <span
                   className="text-[10px] font-medium leading-none select-none"
                   style={{
-                    color: 'rgba(255,255,255,0.35)',
-                    opacity: isActive ? 0 : 1,
-                    maxHeight: isActive ? '0px' : '14px',
-                    marginTop: isActive ? '0px' : '3px',
-                    overflow: 'hidden',
-                    transition: 'opacity 0.2s ease, max-height 0.2s ease, margin-top 0.2s ease',
+                    color: isActive ? '#6b9de8' : 'rgba(255,255,255,0.35)',
+                    marginTop: 3,
+                    transition: 'color 0.2s ease',
                     whiteSpace: 'nowrap',
                   }}
-                  aria-hidden={isActive}
                 >
                   {label}
                 </span>
