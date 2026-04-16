@@ -12,7 +12,7 @@ Create Date: 2026-04-16
 import sqlalchemy as sa
 from alembic import op
 
-revision = '007_loyalty_discount_and_shop_settings'
+revision = '007_loyalty_shop_settings'
 down_revision = '006_order_item_product_set_null'
 branch_labels = None
 depends_on = None

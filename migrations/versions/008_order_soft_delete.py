@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = '008_order_soft_delete'
-down_revision = '007_loyalty_discount_and_shop_settings'
+down_revision = '007_loyalty_shop_settings'
 branch_labels = None
 depends_on = None
 
