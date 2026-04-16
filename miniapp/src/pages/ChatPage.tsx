@@ -176,7 +176,6 @@ function ChatView({
     // Optimistic update — add message to cache immediately
     const optimisticMsg: TicketMessage & { optimistic: true } = {
       id: `opt-${Date.now()}`,
-      ticket_id: ticket.id,
       sender_type: 'user',
       sender_id: '',
       text: localText,
