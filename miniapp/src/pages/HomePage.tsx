@@ -475,8 +475,7 @@ export default function HomePage() {
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: profileApi.get,
-    staleTime: 60_000,
-    refetchOnMount: true,
+    staleTime: 0,
   })
 
   return (

@@ -13,13 +13,32 @@ router = APIRouter()
 
 @router.get("", response_model=ProfileOut)
 async def get_profile(db: DbSession, user: CurrentUser):
+    from shared.models import LoyaltyLevel
+
     result = await db.execute(
         select(User)
         .options(selectinload(User.loyalty_level))
         .where(User.id == user.id)
     )
     user_full = result.scalar_one()
-    loyalty = user_full.loyalty_level
+
+    # Пересчитываем уровень лояльности на лету — гарантирует актуальность
+    # даже если loyalty_level_id в БД устарел.
+    level_result = await db.execute(
+        select(LoyaltyLevel)
+        .where(
+            LoyaltyLevel.is_active == True,
+            LoyaltyLevel.min_spent <= user_full.total_spent,
+            LoyaltyLevel.min_orders <= user_full.orders_count,
+        )
+        .order_by(LoyaltyLevel.priority.desc())
+        .limit(1)
+    )
+    loyalty = level_result.scalar_one_or_none() or user_full.loyalty_level
+
+    # Обновляем поле в БД если расхождение (lazy fix)
+    if loyalty and user_full.loyalty_level_id != loyalty.id:
+        user_full.loyalty_level_id = loyalty.id
 
     # Считаем количество рефералов
     ref_result = await db.execute(

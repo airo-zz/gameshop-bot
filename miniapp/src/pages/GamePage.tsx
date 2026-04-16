@@ -3,7 +3,7 @@ import { useState, useRef } from 'react'
 import { useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, Clock, Plus, Minus } from 'lucide-react'
+import { Zap, Clock, Plus, Minus, Heart } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { catalogApi, cartApi, type Category, type Product, type Lot, type InputField } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -144,11 +144,13 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
 interface ProductSectionProps {
   product: Product
   cartQtyMap: Map<string, number>
+  isFavorite: boolean
   onAdd: (product: Product, lot?: Lot, inputData?: Record<string, string>) => void
   onRemove: (product: Product, lot?: Lot) => void
+  onFavoriteToggle: (productId: string, added: boolean) => void
 }
 
-function ProductSection({ product, cartQtyMap, onAdd, onRemove }: ProductSectionProps) {
+function ProductSection({ product, cartQtyMap, isFavorite, onAdd, onRemove, onFavoriteToggle }: ProductSectionProps) {
   const lots = product.lots ?? []
   const inputFields = product.input_fields ?? []
   const isOutOfStock = product.stock !== null && product.stock === 0
@@ -158,6 +160,21 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove }: ProductSection
   const [inputData, setInputData] = useState<Record<string, string>>({})
   const [showInputs, setShowInputs] = useState(false)
   const hasInputs = inputFields.length > 0
+  const [favPending, setFavPending] = useState(false)
+
+  const handleFavorite = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (favPending) return
+    setFavPending(true)
+    try {
+      const res = await catalogApi.toggleFavorite(product.id)
+      onFavoriteToggle(product.id, res.added)
+    } catch {
+      // silent
+    } finally {
+      setFavPending(false)
+    }
+  }
 
   return (
     <div
@@ -166,7 +183,8 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove }: ProductSection
     >
       {/* Product header — не кнопка, просто заголовок */}
       <div className="px-3.5 pt-3 pb-2">
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 flex-wrap flex-1 min-w-0">
           <span className="text-[15px] font-bold" style={{ color: 'var(--text)' }}>
             {product.name}
           </span>
@@ -196,6 +214,17 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove }: ProductSection
               Нет в наличии
             </span>
           )}
+          </div>
+          {/* Favourite button */}
+          <button
+            type="button"
+            onClick={handleFavorite}
+            disabled={favPending}
+            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full active:scale-90 transition-transform"
+            style={{ color: isFavorite ? '#f87171' : 'rgba(255,255,255,0.3)' }}
+          >
+            <Heart size={15} fill={isFavorite ? '#f87171' : 'none'} />
+          </button>
         </div>
         {product.short_description && (
           <p className="text-xs mt-0.5 line-clamp-1" style={{ color: 'var(--hint)' }}>
@@ -388,6 +417,25 @@ export default function GamePage() {
     queryFn: cartApi.get,
     staleTime: 30_000,
   })
+
+  // Favorites for heart buttons
+  const { data: favorites = [] } = useQuery({
+    queryKey: ['favorites'],
+    queryFn: catalogApi.getFavorites,
+    staleTime: 60_000,
+  })
+  const favoriteIds = new Set(favorites.map(f => f.id))
+
+  const handleFavoriteToggle = (productId: string, added: boolean) => {
+    qc.setQueryData<Product[]>(['favorites'], prev => {
+      if (!prev) return prev
+      if (added) {
+        const product = products.find(p => p.id === productId)
+        return product ? [...prev, product] : prev
+      }
+      return prev.filter(p => p.id !== productId)
+    })
+  }
 
   // Build cart qty map with optimistic deltas applied
   const cartQtyMap = new Map<string, number>()
@@ -584,8 +632,10 @@ export default function GamePage() {
               <ProductSection
                 product={product}
                 cartQtyMap={cartQtyMap}
+                isFavorite={favoriteIds.has(product.id)}
                 onAdd={(p, l, data) => handleAdd(p, l, data)}
                 onRemove={handleRemove}
+                onFavoriteToggle={handleFavoriteToggle}
               />
             </motion.div>
           ))
