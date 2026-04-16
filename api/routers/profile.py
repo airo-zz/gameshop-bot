@@ -46,6 +46,14 @@ async def get_profile(db: DbSession, user: CurrentUser):
     )
     referrals_count = ref_result.scalar_one() or 0
 
+    # Все активные уровни лояльности для фронтенда (пороги, цвета)
+    levels_result = await db.execute(
+        select(LoyaltyLevel)
+        .where(LoyaltyLevel.is_active == True)
+        .order_by(LoyaltyLevel.priority)
+    )
+    all_levels = levels_result.scalars().all()
+
     return ProfileOut(
         telegram_id=user_full.telegram_id,
         username=user_full.username,
@@ -60,6 +68,18 @@ async def get_profile(db: DbSession, user: CurrentUser):
         loyalty_level_emoji=loyalty.icon_emoji if loyalty else "🥉",
         loyalty_discount_percent=loyalty.discount_percent if loyalty else 0,
         loyalty_cashback_percent=loyalty.cashback_percent if loyalty else 0,
+        loyalty_color_hex=loyalty.color_hex if loyalty else "#CD7F32",
+        loyalty_levels=[
+            {
+                "name": lv.name,
+                "min_spent": float(lv.min_spent),
+                "discount_percent": float(lv.discount_percent),
+                "cashback_percent": float(lv.cashback_percent),
+                "color_hex": lv.color_hex,
+                "priority": lv.priority,
+            }
+            for lv in all_levels
+        ],
     )
 
 

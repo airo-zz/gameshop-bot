@@ -172,6 +172,8 @@ class ProfileOut(BaseModel):
     loyalty_level_emoji: str = "🥉"
     loyalty_discount_percent: Decimal = Decimal("0")
     loyalty_cashback_percent: Decimal = Decimal("0")
+    loyalty_color_hex: str = "#CD7F32"
+    loyalty_levels: list[dict] = []
 
 
 class TopUpBalanceRequest(BaseModel):

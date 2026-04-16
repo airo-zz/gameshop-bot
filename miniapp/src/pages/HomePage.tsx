@@ -600,7 +600,8 @@ export default function HomePage() {
           {profile && (
             <div style={{ marginTop: 10, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {/* Баланс */}
-              <span
+              <Link
+                to="/balance"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -612,6 +613,7 @@ export default function HomePage() {
                   fontSize: 12,
                   fontWeight: 600,
                   color: '#93b8f0',
+                  textDecoration: 'none',
                 }}
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#93b8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
@@ -619,29 +621,34 @@ export default function HomePage() {
                   <line x1="2" y1="10" x2="22" y2="10"/>
                 </svg>
                 {Number(profile.balance).toLocaleString('ru')} ₽
-              </span>
-              {/* Уровень лояльности */}
-              <Link
-                to="/profile"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '4px 12px 4px 8px',
-                  borderRadius: 999,
-                  background: `${getLoyaltyColor(profile.loyalty_level_name ?? null)}22`,
-                  border: `1px solid ${getLoyaltyColor(profile.loyalty_level_name ?? null)}44`,
-                  fontSize: 12,
-                  fontWeight: 600,
-                  color: getLoyaltyColor(profile.loyalty_level_name ?? null),
-                  textDecoration: 'none',
-                }}
-              >
-                <span style={{ display: 'flex', width: 13, height: 13, flexShrink: 0, color: getLoyaltyColor(profile.loyalty_level_name ?? null) }}>
-                  {getLoyaltyIcon(profile.loyalty_level_name ?? null)}
-                </span>
-                {profile.loyalty_level_name || 'Базовый'}
               </Link>
+              {/* Уровень лояльности */}
+              {(() => {
+                const loyaltyColor = profile.loyalty_color_hex ?? '#CD7F32'
+                return (
+                  <Link
+                    to="/profile"
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 5,
+                      padding: '4px 12px 4px 8px',
+                      borderRadius: 999,
+                      background: `${loyaltyColor}22`,
+                      border: `1px solid ${loyaltyColor}44`,
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: loyaltyColor,
+                      textDecoration: 'none',
+                    }}
+                  >
+                    <span style={{ display: 'flex', width: 13, height: 13, flexShrink: 0, color: loyaltyColor }}>
+                      {getLoyaltyIcon(profile.loyalty_level_name ?? null)}
+                    </span>
+                    {profile.loyalty_level_name || 'Базовый'}
+                  </Link>
+                )
+              })()}
             </div>
           )}
         </div>
@@ -659,13 +666,13 @@ export default function HomePage() {
           <div style={{ position: 'absolute', right: 0, top: 0, bottom: 4, width: 72, zIndex: 2, pointerEvents: 'none', background: 'linear-gradient(to right, transparent 0%, #010509 65%)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 10 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
           </div>
-          <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16, scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
+          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16, scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
             {trendingLoading ? (
               [...Array(4)].map((_, i) => (
                 <div
                   key={i}
                   className="animate-pulse"
-                  style={{ minWidth: 148, height: 88, borderRadius: 16, background: 'rgba(255,255,255,0.06)', flexShrink: 0 }}
+                  style={{ minWidth: 160, height: 100, borderRadius: 16, background: 'rgba(255,255,255,0.06)', flexShrink: 0 }}
                 />
               ))
             ) : trendingCategories.map((cat, i) => {
@@ -675,8 +682,8 @@ export default function HomePage() {
                   key={cat.id}
                   to={`/catalog/${cat.game_slug}`}
                   style={{
-                    minWidth: 148,
-                    height: 88,
+                    minWidth: 160,
+                    height: 100,
                     borderRadius: 16,
                     flexShrink: 0,
                     textDecoration: 'none',

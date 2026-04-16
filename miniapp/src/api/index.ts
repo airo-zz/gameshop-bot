@@ -151,6 +151,15 @@ export interface TicketMessage {
   created_at: string
 }
 
+export interface LoyaltyLevelEntry {
+  name: string
+  min_spent: number
+  discount_percent: number
+  cashback_percent: number
+  color_hex: string
+  priority: number
+}
+
 export interface Profile {
   telegram_id: number
   username: string | null
@@ -165,6 +174,8 @@ export interface Profile {
   loyalty_level_emoji: string
   loyalty_discount_percent: number
   loyalty_cashback_percent: number
+  loyalty_color_hex: string
+  loyalty_levels: LoyaltyLevelEntry[]
 }
 
 // ── Catalog API ───────────────────────────────────────────────────────────────

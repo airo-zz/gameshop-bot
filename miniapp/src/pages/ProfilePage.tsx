@@ -49,8 +49,9 @@ function getLoyaltyProgress(totalSpent: number) {
 
 // ── LoyaltyProgressBar ─────────────────────────────────────────────────────────
 
-function LoyaltyProgressBar({ totalSpent, discountPercent }: { totalSpent: number; discountPercent: number }) {
+function LoyaltyProgressBar({ totalSpent, discountPercent, loyaltyColorHex }: { totalSpent: number; discountPercent: number; loyaltyColorHex?: string }) {
   const { current, next, percent, remaining } = getLoyaltyProgress(totalSpent)
+  const currentColor = loyaltyColorHex ?? current.color
   const barRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -70,7 +71,7 @@ function LoyaltyProgressBar({ totalSpent, discountPercent }: { totalSpent: numbe
       {/* Метки уровней */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
         <span style={{ fontSize: 11, fontWeight: 500, color: '#6b9de8', display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span style={{ display: 'flex', color: current.color }}>{current.icon}</span>
+          <span style={{ display: 'flex', color: currentColor }}>{current.icon}</span>
           {current.name}
           <span style={{ color: 'var(--hint)', fontWeight: 400 }}>(ваш статус)</span>
         </span>
@@ -303,6 +304,7 @@ export default function ProfilePage() {
           <LoyaltyProgressBar
             totalSpent={profile.total_spent}
             discountPercent={profile.loyalty_discount_percent}
+            loyaltyColorHex={profile.loyalty_color_hex}
           />
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
             <span style={{ fontSize: 10, color: 'var(--hint)', display: 'flex', alignItems: 'center', gap: 3 }}>

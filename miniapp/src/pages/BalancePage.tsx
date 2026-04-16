@@ -10,7 +10,7 @@ import { useTelegram } from '@/hooks/useTelegram'
 
 const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'redonate_bot'
 
-const PRESET_AMOUNTS = [100, 300, 500, 1000]
+const PRESET_AMOUNTS = [200, 500, 1000, 5000, 10000]
 const CRYPTO_CURRENCIES = ['USDT', 'TON', 'BTC', 'ETH'] as const
 type CryptoCurrency = typeof CRYPTO_CURRENCIES[number]
 type PaymentMethod = 'card_yukassa' | 'crypto'
@@ -35,7 +35,7 @@ function txIsCredit(type: string) {
 
 export default function BalancePage() {
   const navigate = useNavigate()
-  const { tg, haptic, openLink } = useTelegram()
+  const { tg, haptic } = useTelegram()
 
   const [amount, setAmount] = useState<string>('')
   const [method, setMethod] = useState<PaymentMethod>('card_yukassa')
@@ -55,7 +55,7 @@ export default function BalancePage() {
   })
 
   const numericAmount = Number(amount)
-  const canSubmit = numericAmount >= 10 && !loading
+  const canSubmit = numericAmount >= 100 && !loading
 
   async function handleTopup() {
     if (!canSubmit) return
@@ -70,7 +70,11 @@ export default function BalancePage() {
       const url = res.redirect_url ?? res.pay_url
       if (url) {
         toast.success('Переход к оплате...')
-        openLink(url)
+        if (method === 'crypto' && url.includes('t.me')) {
+          tg?.openTelegramLink(url)
+        } else {
+          tg?.openLink(url)
+        }
       }
     } catch (err: unknown) {
       const message =
@@ -136,7 +140,7 @@ export default function BalancePage() {
 
         {/* Preset amounts */}
         <div>
-          <p className="text-xs mb-2 font-medium" style={{ color: 'var(--hint)' }}>Сумма (мин. 10 ₽)</p>
+          <p className="text-xs mb-2 font-medium" style={{ color: 'var(--hint)' }}>Сумма (мин. 100 ₽)</p>
           <div className="flex gap-2 mb-2">
             {PRESET_AMOUNTS.map(preset => (
               <button
@@ -158,9 +162,9 @@ export default function BalancePage() {
             type="number"
             inputMode="numeric"
             className="input w-full"
-            placeholder="Другая сумма..."
+            placeholder="от 100 ₽"
             value={amount}
-            min={10}
+            min={100}
             onChange={e => setAmount(e.target.value)}
           />
         </div>
@@ -181,7 +185,7 @@ export default function BalancePage() {
                   color: method === m ? '#6b9de8' : 'var(--text)',
                 }}
               >
-                {m === 'card_yukassa' ? 'Карта' : 'Крипто'}
+                {m === 'card_yukassa' ? 'Карта' : 'Криптовалюта'}
               </button>
             ))}
           </div>
