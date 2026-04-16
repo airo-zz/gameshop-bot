@@ -158,6 +158,7 @@ export default function OrderDetailPage() {
                       <div key={idx} className="flex items-center justify-between gap-2 mt-1">
                         <code className="text-xs flex-1 break-all" style={{ color: 'var(--text)' }}>{key}</code>
                         <button
+                          type="button"
                           onClick={() => copyToClipboard(key)}
                           className="p-1 rounded-lg transition-all active:scale-90"
                           style={{ background: 'var(--bg3)' }}
@@ -213,6 +214,7 @@ export default function OrderDetailPage() {
       {/* Кнопка поддержки для проблемных статусов */}
       {SUPPORT_STATUSES.has(order.status) && (
         <button
+          type="button"
           onClick={() => navigate('/support?order_id=' + order.id)}
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm transition-all active:scale-95"
           style={{

@@ -135,6 +135,74 @@ const MENU_ITEMS = [
   { to: '/support',   icon: <MessageCircle size={18} />, label: 'Поддержка' },
 ]
 
+// ── Module-level components (stable identity across ProfilePage renders) ───────
+
+interface AvatarBlockProps {
+  showAvatar: boolean
+  avatarSrc: string | null
+  avatarInitial: string
+  onError: () => void
+}
+
+function AvatarBlock({ showAvatar, avatarSrc, avatarInitial, onError }: AvatarBlockProps) {
+  return showAvatar ? (
+    <img
+      src={avatarSrc!}
+      alt=""
+      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
+      style={{ boxShadow: '0 0 0 2px rgba(45,88,173,0.35)' }}
+      onError={onError}
+    />
+  ) : (
+    <div
+      className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 text-2xl font-bold"
+      style={{
+        background: 'linear-gradient(135deg, #2d58ad, #7c3aed)',
+        color: '#fff',
+        boxShadow: '0 0 0 2px rgba(45,88,173,0.35)',
+      }}
+    >
+      {avatarInitial}
+    </div>
+  )
+}
+
+function MenuBlock() {
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {MENU_ITEMS.map(({ to, icon, label }) => (
+        <Link
+          key={to}
+          to={to}
+          className="flex flex-col items-center gap-2 py-4 px-2 rounded-2xl active:scale-[0.96] transition-transform"
+          style={{
+            background: 'var(--bg2)',
+            border: '1px solid var(--border)',
+            textDecoration: 'none',
+          }}
+        >
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{
+              background: 'rgba(107,157,232,0.12)',
+              border: '1px solid rgba(107,157,232,0.18)',
+              boxShadow: '0 0 12px rgba(107,157,232,0.08)',
+            }}
+          >
+            <span style={{ color: '#6b9de8' }}>{icon}</span>
+          </div>
+          <span
+            className="text-xs font-medium text-center leading-tight"
+            style={{ color: 'var(--text)' }}
+          >
+            {label}
+          </span>
+        </Link>
+      ))}
+    </div>
+  )
+}
+
 export default function ProfilePage() {
   const { user, haptic, tg } = useTelegram()
   const [avatarError, setAvatarError] = useState(false)
@@ -177,63 +245,6 @@ export default function ProfilePage() {
 
   if (isLoading) return <PageLoader />
 
-  // Аватар-блок (общий)
-  const AvatarBlock = () => showAvatar ? (
-    <img
-      src={avatarSrc!}
-      alt=""
-      className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-      style={{ boxShadow: '0 0 0 2px rgba(45,88,173,0.35)' }}
-      onError={() => setAvatarError(true)}
-    />
-  ) : (
-    <div
-      className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 text-2xl font-bold"
-      style={{
-        background: 'linear-gradient(135deg, #2d58ad, #7c3aed)',
-        color: '#fff',
-        boxShadow: '0 0 0 2px rgba(45,88,173,0.35)',
-      }}
-    >
-      {avatarInitial}
-    </div>
-  )
-
-  // Меню-блок (общий)
-  const MenuBlock = () => (
-    <div className="grid grid-cols-3 gap-2">
-      {MENU_ITEMS.map(({ to, icon, label }) => (
-        <Link
-          key={to}
-          to={to}
-          className="flex flex-col items-center gap-2 py-4 px-2 rounded-2xl active:scale-[0.96] transition-transform"
-          style={{
-            background: 'var(--bg2)',
-            border: '1px solid var(--border)',
-            textDecoration: 'none',
-          }}
-        >
-          <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{
-              background: 'rgba(107,157,232,0.12)',
-              border: '1px solid rgba(107,157,232,0.18)',
-              boxShadow: '0 0 12px rgba(107,157,232,0.08)',
-            }}
-          >
-            <span style={{ color: '#6b9de8' }}>{icon}</span>
-          </div>
-          <span
-            className="text-xs font-medium text-center leading-tight"
-            style={{ color: 'var(--text)' }}
-          >
-            {label}
-          </span>
-        </Link>
-      ))}
-    </div>
-  )
-
   if (!profile) {
     return (
       <motion.div
@@ -244,7 +255,7 @@ export default function ProfilePage() {
       >
         <div className="flex flex-col gap-3 p-4 rounded-2xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
           <div className="flex items-center gap-3">
-            <AvatarBlock />
+            <AvatarBlock showAvatar={showAvatar} avatarSrc={avatarSrc} avatarInitial={avatarInitial} onError={() => setAvatarError(true)} />
             <div className="min-w-0">
               <p className="font-bold text-base truncate" style={{ color: 'var(--text)' }}>{displayName}</p>
               {displayUsername && (
@@ -273,7 +284,7 @@ export default function ProfilePage() {
       <div className="flex flex-col gap-3 p-4 rounded-2xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
         {/* Аватар + имя */}
         <div className="flex items-center gap-3">
-          <AvatarBlock />
+          <AvatarBlock showAvatar={showAvatar} avatarSrc={avatarSrc} avatarInitial={avatarInitial} onError={() => setAvatarError(true)} />
           <div className="min-w-0 flex-1">
             <p className="font-bold text-base truncate" style={{ color: 'var(--text)' }}>
               {profile.first_name}
@@ -373,6 +384,7 @@ export default function ProfilePage() {
         </p>
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={handleCopyLink}
             className="flex items-center flex-1 p-3 rounded-xl active:scale-95 transition-transform"
             style={{ background: 'var(--bg3)', border: '1px solid var(--border)', minWidth: 0 }}
@@ -382,6 +394,7 @@ export default function ProfilePage() {
             </code>
           </button>
           <button
+            type="button"
             onClick={handleShareTelegram}
             className="flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
             style={{

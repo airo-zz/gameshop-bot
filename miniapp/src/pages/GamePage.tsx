@@ -94,6 +94,7 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
               className="flex items-center w-full"
             >
               <button
+                type="button"
                 onClick={onRemove}
                 className="flex items-center justify-center w-[28px] h-[34px] active:scale-90 transition-transform"
                 style={{ color: '#f87171' }}
@@ -107,6 +108,7 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
                 {cartQty}
               </span>
               <button
+                type="button"
                 disabled={disabled}
                 onClick={onAdd}
                 className="flex items-center justify-center w-[28px] h-[34px] active:scale-90 transition-transform"
@@ -118,6 +120,7 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
           ) : (
             <motion.button
               key="add"
+              type="button"
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
@@ -208,6 +211,7 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove }: ProductSection
       {hasInputs && (
         <div className="px-3.5 pt-2.5 pb-1">
           <button
+            type="button"
             className="text-xs font-medium mb-2 flex items-center gap-1"
             style={{ color: '#6b9de8' }}
             onClick={() => setShowInputs(!showInputs)}
@@ -303,7 +307,7 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove }: ProductSection
                       transition={{ duration: 0.15 }}
                       className="flex items-center w-full"
                     >
-                      <button onClick={() => onRemove(product)}
+                      <button type="button" onClick={() => onRemove(product)}
                         className="flex items-center justify-center w-[36px] h-[38px] active:scale-90 transition-transform"
                         style={{ color: '#f87171' }}>
                         <Minus size={14} />
@@ -311,7 +315,7 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove }: ProductSection
                       <span className="flex-1 text-center text-sm font-bold" style={{ color: '#6b9de8' }}>
                         {qty}
                       </span>
-                      <button disabled={isOutOfStock} onClick={() => onAdd(product, undefined, inputData)}
+                      <button type="button" disabled={isOutOfStock} onClick={() => onAdd(product, undefined, inputData)}
                         className="flex items-center justify-center w-[36px] h-[38px] active:scale-90 transition-transform"
                         style={{ color: '#6b9de8' }}>
                         <Plus size={14} />

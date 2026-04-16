@@ -85,6 +85,34 @@ export default function CheckoutPage() {
     </div>
   )
 
+  const loyaltyHint = profile ? (() => {
+    const spent = profile.total_spent
+    const current = [...LOYALTY_LEVELS].reverse().find(l => spent >= l.min) ?? LOYALTY_LEVELS[0]
+    const currentIdx = LOYALTY_LEVELS.indexOf(current)
+    const next = currentIdx < LOYALTY_LEVELS.length - 1 ? LOYALTY_LEVELS[currentIdx + 1] : null
+    if (!next || current.max === null) return null
+    const remaining = current.max - spent
+    const discount = LOYALTY_DISCOUNTS[next.name] ?? 0
+    return (
+      <div
+        style={{
+          marginTop: 10,
+          padding: '7px 10px',
+          borderRadius: 10,
+          background: 'rgba(45,88,173,0.08)',
+          border: '1px solid rgba(45,88,173,0.18)',
+          fontSize: 12,
+          color: '#6b9de8',
+          lineHeight: 1.4,
+        }}
+      >
+        До {next.name} осталось{' '}
+        <strong>{fmtPrice(remaining)} ₽</strong>
+        {discount > 0 && ` — апгрейд даст скидку ${discount}%`}
+      </div>
+    )
+  })() : null
+
   return (
     <div className="px-4 pt-5 pb-8 space-y-5 animate-slide-up">
       <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>💳 Оформление</h1>
@@ -118,33 +146,7 @@ export default function CheckoutPage() {
         </div>
 
         {/* Подсказка о прогрессе лояльности */}
-        {profile && (() => {
-          const spent = profile.total_spent
-          const current = [...LOYALTY_LEVELS].reverse().find(l => spent >= l.min) ?? LOYALTY_LEVELS[0]
-          const currentIdx = LOYALTY_LEVELS.indexOf(current)
-          const next = currentIdx < LOYALTY_LEVELS.length - 1 ? LOYALTY_LEVELS[currentIdx + 1] : null
-          if (!next || current.max === null) return null
-          const remaining = current.max - spent
-          const discount = LOYALTY_DISCOUNTS[next.name] ?? 0
-          return (
-            <div
-              style={{
-                marginTop: 10,
-                padding: '7px 10px',
-                borderRadius: 10,
-                background: 'rgba(45,88,173,0.08)',
-                border: '1px solid rgba(45,88,173,0.18)',
-                fontSize: 12,
-                color: '#6b9de8',
-                lineHeight: 1.4,
-              }}
-            >
-              ⭐ До {next.name} осталось{' '}
-              <strong>{fmtPrice(remaining)} ₽</strong>
-              {discount > 0 && ` — апгрейд даст скидку ${discount}%`}
-            </div>
-          )
-        })()}
+        {loyaltyHint}
       </div>
 
       {/* Способы оплаты */}
@@ -158,6 +160,7 @@ export default function CheckoutPage() {
             const isDisabled = method.id === 'balance' && insufficientBalance
             return (
               <button
+                type="button"
                 key={method.id}
                 onClick={() => { setSelectedMethod(method.id); haptic.select() }}
                 className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all duration-150 active:scale-[0.98]"
@@ -198,6 +201,7 @@ export default function CheckoutPage() {
                 const active = selectedCrypto === coin.id
                 return (
                   <button
+                    type="button"
                     key={coin.id}
                     onClick={() => { setSelectedCrypto(coin.id); haptic.select() }}
                     className="flex flex-col items-center justify-center py-3 rounded-2xl transition-all active:scale-[0.97]"
@@ -237,11 +241,19 @@ export default function CheckoutPage() {
       )}
 
       <button
+        type="button"
         className="btn-primary"
         disabled={placing || !!insufficientBalance}
         onClick={handlePlaceOrder}
       >
-        {placing ? '⏳ Оформляем...' : `Оплатить ${fmtPrice(cart.total)} ₽`}
+        {placing ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+            </svg>
+            Оформляем...
+          </span>
+        ) : `Оплатить ${fmtPrice(cart.total)} ₽`}
       </button>
 
       <p className="text-xs text-center" style={{ color: 'var(--hint)' }}>
