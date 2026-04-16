@@ -445,7 +445,7 @@ export default function HomePage() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const { data: featured = [] } = useQuery({
+  const { data: featured = [], isLoading: featuredLoading } = useQuery({
     queryKey: ['trending'],
     queryFn: catalogApi.getTrending,
     staleTime: 2 * 60 * 1000,
@@ -650,7 +650,29 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {featured.length > 0 ? (
+          {featuredLoading ? (
+            <div style={{ background: 'var(--bg2)', borderRadius: 12, overflow: 'hidden' }}>
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    height: 64,
+                    borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0 16px',
+                    gap: 12,
+                  }}
+                >
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div className="animate-pulse" style={{ height: 14, width: '55%', borderRadius: 6, background: 'rgba(255,255,255,0.07)' }} />
+                    <div className="animate-pulse" style={{ height: 11, width: '35%', borderRadius: 6, background: 'rgba(255,255,255,0.04)' }} />
+                  </div>
+                  <div className="animate-pulse" style={{ width: 14, height: 14, borderRadius: 4, background: 'rgba(255,255,255,0.04)', flexShrink: 0 }} />
+                </div>
+              ))}
+            </div>
+          ) : featured.length > 0 ? (
             <div style={{ background: 'var(--bg2)', borderRadius: 12, overflow: 'hidden' }}>
               {featured.slice(0, 6).map((product, i) => (
                 <Link
@@ -754,6 +776,23 @@ export default function HomePage() {
             </Link>
           </div>
 
+          {gamesLoading ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+              {[...Array(9)].map((_, i) => (
+                <div
+                  key={i}
+                  className="animate-pulse"
+                  style={{
+                    borderRadius: 18,
+                    overflow: 'hidden',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    aspectRatio: '1 / 1',
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
           <AnimatePresence mode="wait">
             <motion.div
               key={homeType}
@@ -827,6 +866,7 @@ export default function HomePage() {
               }
             </motion.div>
           </AnimatePresence>
+          )}
         </section>
 
         {/* ── Open catalog CTA ─────────────────────────────────────────── */}
