@@ -372,7 +372,16 @@ class OrderService:
             key.used_at = datetime.now(timezone.utc)
 
     async def _release_reserved_keys(self, order: Order) -> None:
-        """Освобождает зарезервированные ключи при отмене заказа."""
+        """Освобождает зарезервированные ключи при отмене заказа.
+
+        Два случая:
+        1. Ключи уже привязаны к order_item (фаза _auto_deliver завершена) —
+           ищем по order_item_id.
+        2. Ключи зарезервированы (_reserve_keys), но _auto_deliver ещё не
+           успел их привязать: is_used=True, order_item_id IS NULL.
+           Без этого второго шага ключи зависают навсегда (zombie keys).
+        """
+        # 1. Ключи, уже привязанные к позициям заказа (фаза delivered)
         result = await self.db.execute(
             select(ProductKey).where(
                 ProductKey.order_item_id.in_(
@@ -384,6 +393,27 @@ class OrderService:
             key.is_used = False
             key.used_at = None
             key.order_item_id = None
+
+        # 2. Ключи зарезервированные, но ещё не привязанные к позициям заказа
+        items_result = await self.db.execute(
+            select(OrderItem).where(OrderItem.order_id == order.id)
+        )
+        items = items_result.scalars().all()
+
+        for item in items:
+            reserved_result = await self.db.execute(
+                select(ProductKey).where(
+                    ProductKey.product_id == item.product_id,
+                    ProductKey.lot_id == item.lot_id,
+                    ProductKey.is_used == True,
+                    ProductKey.order_item_id.is_(None),
+                )
+                .limit(item.quantity)
+                .with_for_update(skip_locked=True)
+            )
+            for key in reserved_result.scalars().all():
+                key.is_used = False
+                key.used_at = None
 
     # ── Статистика и кэшбек ───────────────────────────────────────────────────
 

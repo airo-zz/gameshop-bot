@@ -27,7 +27,7 @@ from decimal import Decimal
 
 from sqlalchemy import (
     Boolean, DateTime, Enum, ForeignKey,
-    Integer, Numeric, String, Text, func,
+    Integer, Numeric, String, Text, UniqueConstraint, func,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -185,6 +185,12 @@ class PromoCode(Base, UUIDMixin):
 class PromoCodeUsage(Base, UUIDMixin):
     """Лог использований промокода — для проверки per_user_limit."""
     __tablename__ = "promo_code_usages"
+    __table_args__ = (
+        UniqueConstraint(
+            "promo_code_id", "user_id", "order_id",
+            name="uq_promo_usage_per_order",
+        ),
+    )
 
     promo_code_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("promo_codes.id", ondelete="CASCADE"),

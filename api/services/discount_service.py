@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -251,18 +251,31 @@ class DiscountService:
         user_id: uuid.UUID,
         order_id: uuid.UUID,
     ) -> None:
-        """Фиксирует использование промокода после создания заказа."""
-        # Увеличиваем счётчик
+        """Фиксирует использование промокода после создания заказа.
+
+        Использует атомарный UPDATE вместо ORM read-modify-write,
+        чтобы два конкурентных заказа не обнулили счётчик друг друга.
+        """
+        # Атомарный инкремент used_count — безопасен под конкурентной нагрузкой
+        await self.db.execute(
+            update(PromoCode)
+            .where(PromoCode.id == promo_id)
+            .values(used_count=PromoCode.used_count + 1)
+        )
+
+        # Атомарный инкремент usage_count для связанного DiscountRule (если есть)
         promo_result = await self.db.execute(
             select(PromoCode)
             .options(selectinload(PromoCode.discount_rule))
             .where(PromoCode.id == promo_id)
         )
         promo = promo_result.scalar_one_or_none()
-        if promo:
-            promo.used_count += 1
-            if promo.discount_rule:
-                promo.discount_rule.usage_count += 1
+        if promo and promo.discount_rule:
+            await self.db.execute(
+                update(DiscountRule)
+                .where(DiscountRule.id == promo.discount_rule.id)
+                .values(usage_count=DiscountRule.usage_count + 1)
+            )
 
         # Лог
         self.db.add(PromoCodeUsage(
