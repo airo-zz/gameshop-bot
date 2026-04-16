@@ -42,6 +42,7 @@ export default function SearchPage() {
         />
         {query && (
           <button
+            type="button"
             onClick={() => setQuery('')}
             className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center transition-all active:scale-90"
             style={{ background: 'var(--bg3)' }}
@@ -66,7 +67,13 @@ export default function SearchPage() {
       {/* Результаты */}
       {debouncedQ.length >= 2 && (
         <section>
-          {isFetching ? null : results.length === 0 ? (
+          {isFetching ? (
+            <div className="grid grid-cols-2 gap-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="rounded-2xl animate-pulse" style={{ background: 'var(--bg2)', height: 180 }} />
+              ))}
+            </div>
+          ) : results.length === 0 ? (
             <div className="text-center py-16">
               <p className="text-5xl mb-3">🔍</p>
               <p className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Ничего не найдено</p>

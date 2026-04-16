@@ -169,7 +169,15 @@ export default function CartPage() {
             >
               {item.product_image
                 ? <img src={item.product_image} alt={item.product_name} className="w-full h-full object-cover" />
-                : <div className="w-full h-full flex items-center justify-center text-2xl">🎮</div>
+                : <div className="w-full h-full flex items-center justify-center">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                      <rect x="2" y="7" width="20" height="12" rx="4" stroke="var(--hint)" strokeWidth="1.5"/>
+                      <path d="M8 11v4M6 13h4" stroke="var(--hint)" strokeWidth="1.5" strokeLinecap="round"/>
+                      <circle cx="16" cy="12" r="1" fill="var(--hint)"/>
+                      <circle cx="18" cy="14" r="1" fill="var(--hint)"/>
+                      <path d="M9 4l1.5 3M15 4l-1.5 3" stroke="var(--hint)" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </div>
               }
             </div>
 
@@ -196,6 +204,7 @@ export default function CartPage() {
                 </p>
                 <div className="flex items-center gap-1.5">
                   <button
+                    type="button"
                     onClick={() => handleQtyChange(item, -1)}
                     className="w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-transform"
                     style={{ background: 'var(--bg3)', color: 'var(--text)' }}
@@ -210,6 +219,7 @@ export default function CartPage() {
                     {item.quantity}
                   </span>
                   <button
+                    type="button"
                     onClick={() => handleQtyChange(item, 1)}
                     className="w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-transform"
                     style={{ background: 'var(--bg3)', color: 'var(--text)' }}
@@ -239,6 +249,7 @@ export default function CartPage() {
             />
           </div>
           <button
+            type="button"
             onClick={handleApplyPromo}
             disabled={!promoInput.trim() || promoApplying}
             className="px-4 py-3 rounded-2xl font-semibold text-sm transition-all active:scale-95 disabled:opacity-40"
@@ -283,12 +294,13 @@ export default function CartPage() {
           </div>
         </div>
 
-        <button className="btn-primary" onClick={() => navigate('/checkout')}>
+        <button type="button" className="btn-primary" onClick={() => navigate('/checkout')}>
           Оформить заказ
         </button>
 
         <div className="flex justify-center">
           <button
+            type="button"
             onClick={handleClear}
             disabled={clearing}
             style={{

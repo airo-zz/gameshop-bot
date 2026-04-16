@@ -18,6 +18,7 @@ export default function FavoritesPage() {
       <p className="text-5xl mb-4">😔</p>
       <p className="text-sm mb-4" style={{ color: 'var(--hint)' }}>Не удалось загрузить данные</p>
       <button
+        type="button"
         onClick={() => refetch()}
         className="px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
         style={{ background: 'rgba(45,88,173,0.16)', border: '1px solid rgba(45,88,173,0.38)', color: '#6b9de8' }}

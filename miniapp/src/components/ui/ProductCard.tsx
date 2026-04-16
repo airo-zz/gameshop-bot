@@ -106,6 +106,7 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
 
           {/* Favorite button */}
           <button
+            type="button"
             className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-transform active:scale-90 z-20"
             style={{
               background: 'rgba(8,8,16,0.65)',
@@ -184,6 +185,7 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
       {/* Favorite button — shown in corner when no image */}
       {!hasImage && (
         <button
+          type="button"
           className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center transition-transform active:scale-90"
           style={{
             background: 'rgba(8,8,16,0.5)',
