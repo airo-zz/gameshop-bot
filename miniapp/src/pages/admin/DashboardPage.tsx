@@ -5,7 +5,6 @@
 
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import {
   ShoppingCart,
   Users,
@@ -23,7 +22,6 @@ function StatCard({
   sub,
   icon,
   accent = 'blue',
-  index = 0,
   to,
 }: {
   label: string
@@ -31,7 +29,6 @@ function StatCard({
   sub?: string
   icon: React.ReactNode
   accent?: 'blue' | 'violet' | 'green' | 'orange'
-  index?: number
   to?: string
 }) {
   const accentMap = {
@@ -53,10 +50,7 @@ function StatCard({
   )
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: index * 0.05 }}
+    <div
       className={`relative rounded-2xl border bg-gradient-to-br p-4 transition-all duration-200 ${accentMap[accent]}`}
     >
       {to ? (
@@ -64,7 +58,7 @@ function StatCard({
           {inner}
         </Link>
       ) : inner}
-    </motion.div>
+    </div>
   )
 }
 
@@ -85,13 +79,7 @@ export default function DashboardPage() {
   }, [])
 
   if (loading) {
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="h-28 bg-white/[0.06] animate-pulse rounded-xl" />
-        ))}
-      </div>
-    )
+    return <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
   }
 
   if (error || !stats) {
@@ -117,7 +105,6 @@ export default function DashboardPage() {
           sub={`Всего: ${stats.orders_total}`}
           icon={<ShoppingCart size={18} />}
           accent="blue"
-          index={0}
           to="/admin/orders"
         />
         <StatCard
@@ -126,7 +113,6 @@ export default function DashboardPage() {
           sub={`За неделю: ${formatMoney(stats.revenue_week)}`}
           icon={<TrendingUp size={18} />}
           accent="green"
-          index={1}
           to="/admin/orders"
         />
         <StatCard
@@ -135,7 +121,6 @@ export default function DashboardPage() {
           sub={`+${stats.users_today} сегодня`}
           icon={<Users size={18} />}
           accent="violet"
-          index={2}
           to="/admin/users"
         />
         <StatCard
@@ -143,7 +128,6 @@ export default function DashboardPage() {
           value={stats.pending_orders}
           icon={<Clock size={18} />}
           accent="orange"
-          index={3}
           to="/admin/orders"
         />
         <StatCard
@@ -152,7 +136,6 @@ export default function DashboardPage() {
           sub={`${stats.products_out_of_stock} нет в наличии`}
           icon={<Package size={18} />}
           accent="blue"
-          index={4}
           to="/admin/catalog"
         />
         <StatCard
@@ -161,7 +144,6 @@ export default function DashboardPage() {
           sub={`Всего: ${formatMoney(stats.revenue_total)}`}
           icon={<TrendingUp size={18} />}
           accent="green"
-          index={5}
           to="/admin/orders"
         />
       </div>

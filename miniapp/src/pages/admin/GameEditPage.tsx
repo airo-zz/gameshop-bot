@@ -9,7 +9,6 @@
 
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { ArrowLeft, Save, Plus, AlertCircle, Upload, Loader2, ImageOff, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
@@ -251,12 +250,7 @@ export default function GameEditPage() {
 
   // ── loading skeleton ──
   if (loadingGame) {
-    return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-8 w-40 bg-white/5 rounded-xl" />
-        <div className="h-64 bg-white/5 rounded-2xl" />
-      </div>
-    )
+    return <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
   }
 
   // ── load error ──
@@ -273,12 +267,7 @@ export default function GameEditPage() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className="space-y-4"
-    >
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
@@ -394,13 +383,7 @@ export default function GameEditPage() {
 
               {/* Image preview */}
               {form.image_url && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="relative w-full h-36 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center"
-                >
+                <div className="relative w-full h-36 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
                   <img
                     src={normalizeImageUrl(form.image_url) ?? form.image_url}
                     alt="Превью"
@@ -417,7 +400,7 @@ export default function GameEditPage() {
                     <ImageOff size={24} />
                     <span className="text-xs">Не удалось загрузить</span>
                   </div>
-                </motion.div>
+                </div>
               )}
             </div>
           </Field>
@@ -463,12 +446,7 @@ export default function GameEditPage() {
 
       {/* Categories section — edit mode only */}
       {!isCreate && (
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, delay: 0.05 }}
-          className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-3"
-        >
+        <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-3">
           <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">
             Категории {categories.length > 0 && `(${categories.length})`}
           </h2>
@@ -478,12 +456,9 @@ export default function GameEditPage() {
             <p className="text-sm text-white/25 py-2">Категорий пока нет</p>
           ) : (
             <div className="space-y-1.5">
-              {categories.map((cat, i) => (
-                <motion.div
+              {categories.map((cat) => (
+                <div
                   key={cat.id}
-                  initial={{ opacity: 0, x: -4 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.15, delay: i * 0.03 }}
                   className="flex items-center justify-between bg-white/[0.06] border border-white/[0.08] rounded-xl px-3 py-2.5"
                 >
                   <span className="text-sm text-white font-medium truncate flex-1 min-w-0 pr-2">
@@ -499,7 +474,7 @@ export default function GameEditPage() {
                   >
                     {cat.is_active ? 'Активна' : 'Неактивна'}
                   </span>
-                </motion.div>
+                </div>
               ))}
             </div>
           )}
@@ -523,8 +498,8 @@ export default function GameEditPage() {
               Добавить
             </button>
           </form>
-        </motion.div>
+        </div>
       )}
-    </motion.div>
+    </div>
   )
 }

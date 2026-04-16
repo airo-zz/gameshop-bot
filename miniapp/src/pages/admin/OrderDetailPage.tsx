@@ -5,7 +5,6 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { ArrowLeft, AlertCircle, Save, Trash2 } from 'lucide-react'
 import { adminApi } from '@/api/admin'
 import type { AdminOrderDetail } from '@/api/admin'
@@ -96,13 +95,7 @@ export default function OrderDetailPage() {
   }
 
   if (loading) {
-    return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-8 w-48 bg-white/[0.05] rounded-xl" />
-        <div className="h-40 bg-white/[0.04] border border-white/[0.08] rounded-2xl" />
-        <div className="h-32 bg-white/[0.04] border border-white/[0.08] rounded-2xl" />
-      </div>
-    )
+    return <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
   }
 
   if (error || !order) {
@@ -118,12 +111,7 @@ export default function OrderDetailPage() {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className="space-y-4"
-    >
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
@@ -234,6 +222,6 @@ export default function OrderDetailPage() {
           </button>
         )}
       </div>
-    </motion.div>
+    </div>
   )
 }

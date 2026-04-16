@@ -101,7 +101,7 @@ class TicketMessage(Base, UUIDMixin):
     sender_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     attachments: Mapped[list[str]] = mapped_column(
-        ARRAY(String), nullable=False, default=[]
+        ARRAY(String), nullable=False, default=list
     )
     is_template_response: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False
@@ -193,7 +193,7 @@ class AdminUser(Base, UUIDMixin, TimestampMixin):
         nullable=False,
         default=AdminRole.operator,
     )
-    permissions: Mapped[list] = mapped_column(JSONB, nullable=False, default=[])
+    permissions: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     # Дополнительные/переопределённые права поверх роли
 
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

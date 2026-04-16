@@ -1,5 +1,7 @@
 """api/routers/payments.py"""
 
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
@@ -40,13 +42,11 @@ async def refresh_token(body: RefreshTokenRequest, db: DbSession):
 
 
 @router.post("/orders/{order_id}/pay", response_model=PaymentInitResponse)
-async def initiate_payment(order_id: str, db: DbSession, user: CurrentUser):
-    import uuid
-
+async def initiate_payment(order_id: UUID, db: DbSession, user: CurrentUser):
     # Блокируем заказ FOR UPDATE чтобы предотвратить параллельную оплату
     result = await db.execute(
         select(Order)
-        .where(Order.id == uuid.UUID(order_id), Order.user_id == user.id)
+        .where(Order.id == order_id, Order.user_id == user.id)
         .with_for_update()
     )
     order = result.scalar_one_or_none()

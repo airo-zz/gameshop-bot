@@ -57,8 +57,8 @@ class Game(Base, UUIDMixin, TimestampMixin):
     # Неактивна при создании — активирует админ после проверки
     is_featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=[])
-    meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default={})
+    tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     # Расширяемые атрибуты (платформа, жанр и т.д.)
 
     # Relationships
@@ -96,6 +96,7 @@ class Category(Base, UUIDMixin, TimestampMixin):
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    is_featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     # Relationships
@@ -161,19 +162,19 @@ class Product(Base, UUIDMixin, TimestampMixin):
     )
 
     # JSON-схема полей ввода от клиента (логин, сервер, ID и т.д.)
-    input_fields: Mapped[list] = mapped_column(JSONB, nullable=False, default=[])
+    input_fields: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
 
     instruction: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Текст инструкции, который отправляется клиенту после выполнения заказа
 
-    images: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=[])
-    tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=[])
+    images: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
+    tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
 
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
-    meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default={})
+    meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
 
     # Relationships
     category: Mapped[Category] = relationship("Category", back_populates="products")

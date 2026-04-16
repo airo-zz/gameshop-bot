@@ -10,8 +10,7 @@
  * ─────────────────────────────────────────────────────────────────────────
  */
 
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -91,8 +90,6 @@ function BottomNavLink({ item }: { item: NavItem }) {
 }
 
 export default function AdminLayout() {
-  const location = useLocation()
-
   return (
     <div className="flex min-h-screen bg-[#060f1e] text-white"
          style={{ paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))' }}>
@@ -119,15 +116,9 @@ export default function AdminLayout() {
 
         {/* Page */}
         <main className="flex-1 overflow-y-auto md:pb-4" style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}>
-          <motion.div
-            key={location.pathname}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.2, ease: 'easeOut' }}
-            className="p-4 md:p-6 max-w-6xl mx-auto"
-          >
+          <div className="p-4 md:p-6 max-w-6xl mx-auto">
             <Outlet />
-          </motion.div>
+          </div>
         </main>
       </div>
 

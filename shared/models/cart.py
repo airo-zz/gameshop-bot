@@ -97,7 +97,7 @@ class CartItem(Base, UUIDMixin):
     price_snapshot: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     # Цена зафиксирована на момент добавления — защита от изменений цены
 
-    input_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default={})
+    input_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     # Введённые данные: {"game_id": "123456", "server": "EU"}
 
     added_at: Mapped[datetime] = mapped_column(

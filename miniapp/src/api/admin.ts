@@ -262,6 +262,7 @@ export interface AdminCategory {
   name: string
   slug: string
   is_active: boolean
+  is_featured: boolean
   sort_order: number
 }
 
@@ -393,6 +394,9 @@ export const adminApi = {
 
   createCategory: (data: { game_id: string; parent_id?: string; name: string; slug?: string; is_active?: boolean; sort_order?: number }) =>
     apiClient.post<AdminCategory>('/admin/catalog/categories', data).then(r => r.data),
+
+  updateCategory: (id: string, data: { is_featured?: boolean; is_active?: boolean; sort_order?: number; name?: string }) =>
+    apiClient.patch<AdminCategory>(`/admin/catalog/categories/${id}`, data).then(r => r.data),
 
   deleteProduct: (id: string) =>
     apiClient.delete(`/admin/catalog/products/${id}`).then(r => r.data),

@@ -4,7 +4,6 @@
  */
 
 import { useEffect, useState, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import {
   Plus, AlertCircle, Tag, ToggleLeft, ToggleRight, X, Check, Trash2,
 } from 'lucide-react'
@@ -128,16 +127,8 @@ export default function DiscountsPage() {
       </div>
 
       {/* Create form */}
-      <AnimatePresence>
-        {showForm && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
+      {showForm && (
+        <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-sm font-semibold text-white">Новый промокод</h2>
                 <button
@@ -312,18 +303,12 @@ export default function DiscountsPage() {
                 )}
                 Создать промокод
               </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
 
       {/* List */}
       {loading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-20 rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
-          ))}
-        </div>
+        <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
       ) : error ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
@@ -337,12 +322,9 @@ export default function DiscountsPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {promos.map((promo, i) => (
-            <motion.div
+          {promos.map((promo) => (
+            <div
               key={promo.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: i * 0.04 }}
               className="bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3.5"
             >
               <div className="flex items-start justify-between gap-3">
@@ -383,7 +365,7 @@ export default function DiscountsPage() {
                   </button>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}

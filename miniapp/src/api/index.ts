@@ -33,6 +33,14 @@ export interface Category {
   children: Category[]
 }
 
+export interface TrendingCategory {
+  id: string
+  name: string
+  slug: string
+  game_name: string
+  game_slug: string
+}
+
 export interface Lot {
   id: string
   name: string
@@ -180,6 +188,9 @@ export const catalogApi = {
 
   getTrending: () =>
     apiClient.get<Product[]>('/catalog/products/trending').then(r => r.data),
+
+  getTrendingCategories: () =>
+    apiClient.get<TrendingCategory[]>('/catalog/categories/trending').then(r => r.data),
 
   toggleFavorite: (productId: string) =>
     apiClient.post<{ added: boolean }>(`/catalog/products/${productId}/favorite`).then(r => r.data),

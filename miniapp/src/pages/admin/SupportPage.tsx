@@ -133,12 +133,10 @@ function TicketCard({
   ticket,
   selected,
   onClick,
-  index,
 }: {
   ticket: AdminTicket
   selected: boolean
   onClick: () => void
-  index: number
 }) {
   const displayName = ticket.user
     ? ticket.user.username
@@ -147,10 +145,7 @@ function TicketCard({
     : 'Неизвестный'
 
   return (
-    <motion.button
-      initial={{ opacity: 0, x: -8 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.2, delay: index * 0.03 }}
+    <button
       onClick={onClick}
       className={[
         'w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 active:scale-[0.99]',
@@ -172,7 +167,7 @@ function TicketCard({
         <Clock size={11} />
         <span className="shrink-0">{timeAgo(ticket.created_at)}</span>
       </div>
-    </motion.button>
+    </button>
   )
 }
 
@@ -480,23 +475,8 @@ function ChatPanel({
 
   if (loading) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-white/[0.06]">
-          <div className="w-8 h-8 rounded-lg bg-white/[0.05] animate-pulse" />
-          <div className="h-4 w-40 rounded bg-white/[0.05] animate-pulse" />
-        </div>
-        <div className="flex-1 flex flex-col gap-3 p-4">
-          <div className="h-16 rounded-2xl bg-white/[0.04] animate-pulse" />
-          <div className="flex-1 space-y-3">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className={`h-12 rounded-2xl bg-white/[0.04] animate-pulse ${i % 2 ? 'ml-auto w-3/4' : 'w-3/4'}`}
-              />
-            ))}
-          </div>
-          <div className="h-20 rounded-2xl bg-white/[0.04] animate-pulse" />
-        </div>
+      <div className="flex items-center justify-center h-full">
+        <p className="text-white/40 text-sm">Загрузка...</p>
       </div>
     )
   }
@@ -591,18 +571,11 @@ function ChatPanel({
             <p className="text-sm">Нет сообщений</p>
           </div>
         ) : (
-          <AnimatePresence initial={false}>
-            {detail.messages.map((msg, i) => (
-              <motion.div
-                key={msg.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2, delay: i < 10 ? i * 0.02 : 0 }}
-              >
-                <ChatMessage msg={msg} />
-              </motion.div>
+          <>
+            {detail.messages.map((msg) => (
+              <ChatMessage key={msg.id} msg={msg} />
             ))}
-          </AnimatePresence>
+          </>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -789,9 +762,7 @@ export default function AdminSupportPage() {
           {/* Ticket list */}
           <div className="flex-1 overflow-y-auto space-y-2 pr-0.5">
             {listLoading ? (
-              Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-16 rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
-              ))
+              <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
             ) : listError ? (
               <div className="flex flex-col items-center py-12 gap-3 text-white/40">
                 <AlertCircle size={32} />
@@ -809,13 +780,12 @@ export default function AdminSupportPage() {
                 <p className="text-sm">Тикетов не найдено</p>
               </div>
             ) : (
-              listData.items.map((ticket, i) => (
+              listData.items.map((ticket) => (
                 <TicketCard
                   key={ticket.id}
                   ticket={ticket}
                   selected={selectedId === ticket.id}
                   onClick={() => handleSelectTicket(ticket.id)}
-                  index={i}
                 />
               ))
             )}
@@ -854,32 +824,18 @@ export default function AdminSupportPage() {
             'flex-col',
           ].join(' ')}
         >
-          <AnimatePresence mode="wait">
-            {selectedId ? (
-              <motion.div
-                key={selectedId}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="flex flex-col h-full"
-              >
-                <ChatPanel ticketId={selectedId} onBack={handleMobileBack} />
-              </motion.div>
-            ) : (
-              <motion.div
-                key="empty"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="flex flex-col items-center justify-center h-full gap-3 text-white/20 p-8"
-              >
-                <MessageSquare size={48} strokeWidth={1.5} />
-                <p className="text-sm text-center">
-                  Выберите тикет из списка слева, чтобы просмотреть переписку
-                </p>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {selectedId ? (
+            <div className="flex flex-col h-full">
+              <ChatPanel ticketId={selectedId} onBack={handleMobileBack} />
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-white/20 p-8">
+              <MessageSquare size={48} strokeWidth={1.5} />
+              <p className="text-sm text-center">
+                Выберите тикет из списка слева, чтобы просмотреть переписку
+              </p>
+            </div>
+          )}
         </div>
 
       </div>

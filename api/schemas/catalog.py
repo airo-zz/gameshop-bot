@@ -118,6 +118,14 @@ class ReviewOut(BaseModel):
     user: UserSnap
 
 
+class TrendingCategoryOut(BaseModel):
+    id: uuid.UUID
+    name: str
+    slug: str
+    game_name: str
+    game_slug: str
+
+
 class CatalogSearchParams(BaseModel):
     """Параметры поиска по каталогу."""
     q: str = Field("", min_length=0, max_length=100)

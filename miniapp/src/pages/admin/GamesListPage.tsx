@@ -7,7 +7,6 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { Plus, AlertCircle, Gamepad2, Star, ImageOff, ArrowLeft } from 'lucide-react'
 import {
   DndContext,
@@ -126,29 +125,18 @@ export default function GamesListPage() {
             className={[
               'relative px-4 py-2.5 text-sm font-medium transition-all duration-200',
               tab === t
-                ? 'text-white'
-                : 'text-white/50 hover:text-white/70',
+                ? 'text-white border-b-2 border-blue-400'
+                : 'text-white/50 hover:text-white/70 border-b-2 border-transparent',
             ].join(' ')}
           >
             {TAB_LABELS[t]}
-            {tab === t && (
-              <motion.span
-                layoutId="tab-underline"
-                className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-400 rounded-full"
-                transition={{ duration: 0.2 }}
-              />
-            )}
           </button>
         ))}
       </div>
 
       {/* Content */}
       {loading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-[72px] rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
-          ))}
-        </div>
+        <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
       ) : error ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
@@ -169,12 +157,9 @@ export default function GamesListPage() {
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={games.map(g => g.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-2">
-              {games.map((game, i) => (
+              {games.map((game) => (
                 <SortableRow key={game.id} id={game.id} style={{ paddingLeft: 28 }}>
-                  <motion.div
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: i * 0.03 }}
+                  <div
                     onClick={() => navigate(`/admin/catalog/games/${game.id}`)}
                     className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-3 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
                   >
@@ -220,7 +205,7 @@ export default function GamesListPage() {
                       className="text-white/20 shrink-0">
                       <path d="M9 18l6-6-6-6" />
                     </svg>
-                  </motion.div>
+                  </div>
                 </SortableRow>
               ))}
             </div>

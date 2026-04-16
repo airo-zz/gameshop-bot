@@ -1,5 +1,7 @@
 """api/routers/orders.py"""
 
+from uuid import UUID
+
 from fastapi import APIRouter, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -52,13 +54,11 @@ async def list_orders(
 
 
 @router.get("/{order_id}", response_model=OrderOut)
-async def get_order(order_id: str, db: DbSession, user: CurrentUser):
-    import uuid
-
+async def get_order(order_id: UUID, db: DbSession, user: CurrentUser):
     result = await db.execute(
         select(Order)
         .options(selectinload(Order.items))
-        .where(Order.id == uuid.UUID(order_id), Order.user_id == user.id)
+        .where(Order.id == order_id, Order.user_id == user.id)
     )
     order = result.scalar_one_or_none()
     if not order:

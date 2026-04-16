@@ -284,6 +284,45 @@ class CatalogService:
 
     # ── Trending ──────────────────────────────────────────────────────────────
 
+    async def get_trending_categories(self, limit: int = 6) -> list[Category]:
+        """Топ-N категорий по количеству заказов за последние 3 дня."""
+        since = datetime.now(timezone.utc) - timedelta(days=3)
+
+        trending_subq = (
+            select(
+                Product.category_id,
+                func.count(OrderItem.id).label("order_count"),
+            )
+            .join(OrderItem, OrderItem.product_id == Product.id)
+            .join(Order, Order.id == OrderItem.order_id)
+            .where(Order.created_at >= since)
+            .group_by(Product.category_id)
+            .subquery()
+        )
+
+        result = await self.db.execute(
+            select(Category)
+            .join(trending_subq, trending_subq.c.category_id == Category.id)
+            .options(selectinload(Category.game))
+            .where(Category.is_active == True)
+            .order_by(trending_subq.c.order_count.desc())
+            .limit(limit)
+        )
+        categories = result.scalars().all()
+
+        # Fallback: если нет данных за 3 дня — показываем закреплённые категории
+        if not categories:
+            fallback = await self.db.execute(
+                select(Category)
+                .options(selectinload(Category.game))
+                .where(Category.is_active == True, Category.is_featured == True)
+                .order_by(Category.sort_order, Category.name)
+                .limit(limit)
+            )
+            categories = fallback.scalars().all()
+
+        return categories
+
     async def get_trending(self, limit: int = 6) -> list[Product]:
         """Топ-N товаров по количеству заказов за последние 3 дня."""
         since = datetime.now(timezone.utc) - timedelta(days=3)

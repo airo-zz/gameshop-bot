@@ -117,7 +117,7 @@ class Order(Base, UUIDMixin, TimestampMixin):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Заметки оператора (внутренние, клиент не видит)
     cancel_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
-    meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default={})
+    meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     # idempotency_key, внешние ID и т.д.
 
     # Relationships
@@ -167,10 +167,10 @@ class OrderItem(Base, UUIDMixin):
     total_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
 
     # Данные от клиента (логин, сервер, ID)
-    input_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default={})
+    input_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
 
     # Данные выдачи (ключи, коды — зашифрованы)
-    delivery_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default={})
+    delivery_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
@@ -266,7 +266,7 @@ class Payment(Base, UUIDMixin):
     )
     # Защита от двойного списания
 
-    raw_response: Mapped[dict] = mapped_column(JSONB, nullable=False, default={})
+    raw_response: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     # Сырой ответ от платёжной системы (для отладки и диспутов)
 
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

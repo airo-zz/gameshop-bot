@@ -6,7 +6,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import {
   Plus,
   AlertCircle,
@@ -21,6 +21,7 @@ import {
   PercentSquare,
   X,
   Copy,
+  Pin,
 } from 'lucide-react'
 import {
   DndContext,
@@ -95,13 +96,7 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm">
-      <motion.div
-        initial={{ y: 80, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 80, opacity: 0 }}
-        transition={{ duration: 0.22 }}
-        className="w-full max-w-lg bg-[#0a1628] border border-white/[0.1] rounded-t-2xl p-5 space-y-4"
-      >
+      <div className="w-full max-w-lg bg-[#0a1628] border border-white/[0.1] rounded-t-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-white">Изменить цены</h3>
           <button
@@ -175,7 +170,7 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
         >
           {loading ? 'Применяем...' : 'Применить'}
         </button>
-      </motion.div>
+      </div>
     </div>
   )
 }
@@ -221,11 +216,7 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
       </div>
 
       {loading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-[72px] rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
-          ))}
-        </div>
+        <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
       ) : error ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
@@ -239,12 +230,9 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
         </div>
       ) : (
         <div className="space-y-2">
-          {games.map((game, i) => (
-            <motion.div
+          {games.map((game) => (
+            <div
               key={game.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: i * 0.03 }}
               onClick={() => onSelect(game)}
               className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-4 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
             >
@@ -270,7 +258,7 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
                   </span>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       )}
@@ -290,6 +278,7 @@ function CategoriesLevel({ game, onBack, onSelect }: CategoriesLevelProps) {
   const [categories, setCategories] = useState<AdminCategory[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
+  const [togglingId, setTogglingId] = useState<string | null>(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -300,6 +289,19 @@ function CategoriesLevel({ game, onBack, onSelect }: CategoriesLevelProps) {
       .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [game.id])
+
+  const toggleFeatured = useCallback(async (cat: AdminCategory, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setTogglingId(cat.id)
+    try {
+      const updated = await adminApi.updateCategory(cat.id, { is_featured: !cat.is_featured })
+      setCategories(prev => prev.map(c => c.id === cat.id ? updated : c))
+    } catch {
+      toast.error('Не удалось обновить')
+    } finally {
+      setTogglingId(null)
+    }
+  }, [])
 
   useEffect(() => { load() }, [load])
 
@@ -320,11 +322,7 @@ function CategoriesLevel({ game, onBack, onSelect }: CategoriesLevelProps) {
       </div>
 
       {loading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-14 rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
-          ))}
-        </div>
+        <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
       ) : error ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
@@ -338,25 +336,38 @@ function CategoriesLevel({ game, onBack, onSelect }: CategoriesLevelProps) {
         </div>
       ) : (
         <div className="space-y-2">
-          {categories.map((cat, i) => (
-            <motion.div
+          {categories.map((cat) => (
+            <div
               key={cat.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: i * 0.03 }}
               onClick={() => onSelect(cat)}
               className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-4 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
             >
               <FolderOpen size={18} className="text-white/40 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-white truncate">{cat.name}</div>
-                <div className="text-xs text-white/50">
-                  <span className={cat.is_active ? 'text-emerald-400' : 'text-white/30'}>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className={`text-xs ${cat.is_active ? 'text-emerald-400' : 'text-white/30'}`}>
                     {cat.is_active ? 'Активна' : 'Неактивна'}
                   </span>
+                  {cat.is_featured && (
+                    <span className="text-xs text-amber-400">на главной</span>
+                  )}
                 </div>
               </div>
-            </motion.div>
+              <button
+                type="button"
+                onClick={e => toggleFeatured(cat, e)}
+                disabled={togglingId === cat.id}
+                className={`shrink-0 p-1.5 rounded-lg transition-all ${
+                  cat.is_featured
+                    ? 'text-amber-400 bg-amber-400/10 border border-amber-400/30'
+                    : 'text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-white/50'
+                }`}
+                title={cat.is_featured ? 'Убрать с главной' : 'Закрепить на главной'}
+              >
+                <Pin size={14} className={cat.is_featured ? 'fill-amber-400' : ''} />
+              </button>
+            </div>
           ))}
         </div>
       )}
@@ -527,11 +538,7 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
         </div>
 
         {loading ? (
-          <div className="space-y-2">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="h-16 rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
-            ))}
-          </div>
+          <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
         ) : error ? (
           <div className="flex flex-col items-center py-16 gap-3 text-white/40">
             <AlertCircle size={36} />
@@ -560,10 +567,7 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
                     disabled={selectMode}
                     style={{ paddingLeft: selectMode ? 0 : 28 }}
                   >
-                    <motion.div
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.2, delay: i * 0.03 }}
+                    <div
                       className={[
                         'flex items-center gap-3 border rounded-xl px-3 py-3 transition-all duration-200',
                         selectedIds.has(product.id)
@@ -634,7 +638,7 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
                           </button>
                         </>
                       )}
-                    </motion.div>
+                    </div>
                   </SortableRow>
                 ))}
               </div>
@@ -653,14 +657,8 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {selectMode && selectedIds.size > 0 && (
-          <motion.div
-            initial={{ y: 80 }}
-            animate={{ y: 0 }}
-            exit={{ y: 80 }}
-            className="fixed bottom-[72px] left-0 right-0 z-40 bg-[#0d1a2e] border-t border-white/[0.1] px-4 py-3 flex items-center gap-3"
-          >
+      {selectMode && selectedIds.size > 0 && (
+        <div className="fixed bottom-[72px] left-0 right-0 z-40 bg-[#0d1a2e] border-t border-white/[0.1] px-4 py-3 flex items-center gap-3">
             <span className="text-xs text-white/50 flex-1">Выбрано: {selectedIds.size}</span>
             <button
               onClick={handleBulkActivate}
@@ -680,9 +678,8 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
             >
               Удалить
             </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
     </>
   )
 }
@@ -716,50 +713,26 @@ export default function CatalogPage() {
   }
 
   return (
-    <AnimatePresence mode="wait">
+    <>
       {step === 'games' && (
-        <motion.div
-          key="games"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -20 }}
-          transition={{ duration: 0.18 }}
-        >
-          <GamesLevel onSelect={handleSelectGame} />
-        </motion.div>
+        <GamesLevel onSelect={handleSelectGame} />
       )}
 
       {step === 'categories' && selectedGame && (
-        <motion.div
-          key="categories"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 20 }}
-          transition={{ duration: 0.18 }}
-        >
-          <CategoriesLevel
-            game={selectedGame}
-            onBack={handleBackToGames}
-            onSelect={handleSelectCategory}
-          />
-        </motion.div>
+        <CategoriesLevel
+          game={selectedGame}
+          onBack={handleBackToGames}
+          onSelect={handleSelectCategory}
+        />
       )}
 
       {step === 'products' && selectedGame && selectedCategory && (
-        <motion.div
-          key="products"
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 20 }}
-          transition={{ duration: 0.18 }}
-        >
-          <ProductsLevel
-            game={selectedGame}
-            category={selectedCategory}
-            onBack={handleBackToCategories}
-          />
-        </motion.div>
+        <ProductsLevel
+          game={selectedGame}
+          category={selectedCategory}
+          onBack={handleBackToCategories}
+        />
       )}
-    </AnimatePresence>
+    </>
   )
 }

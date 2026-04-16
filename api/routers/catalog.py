@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Query
 
 from api.deps import CurrentUser, OptionalUser, DbSession
@@ -6,6 +8,7 @@ from api.schemas.catalog import (
     CategoryOut,
     ProductListOut,
     ProductDetailOut,
+    TrendingCategoryOut,
 )
 from api.services.catalog_service import CatalogService, _product_to_list_out
 
@@ -32,6 +35,22 @@ async def list_categories(slug: str, db: DbSession):
     return await svc.get_categories_by_game(game.id)
 
 
+@router.get("/categories/trending", response_model=list[TrendingCategoryOut])
+async def get_trending_categories(db: DbSession):
+    svc = CatalogService(db)
+    categories = await svc.get_trending_categories(limit=6)
+    return [
+        TrendingCategoryOut(
+            id=cat.id,
+            name=cat.name,
+            slug=cat.slug,
+            game_name=cat.game.name if cat.game else "",
+            game_slug=cat.game.slug if cat.game else "",
+        )
+        for cat in categories
+    ]
+
+
 @router.get("/products/trending", response_model=list[ProductListOut])
 async def get_trending(db: DbSession):
     svc = CatalogService(db)
@@ -42,15 +61,12 @@ async def get_trending(db: DbSession):
 @router.get("/products", response_model=list[ProductListOut])
 async def list_products(
     db: DbSession,
-    category_id: str | None = Query(None),
+    category_id: UUID | None = Query(None),
     page: int = Query(0, ge=0),
     page_size: int = Query(20, ge=1, le=100),
 ):
-    import uuid
-
     svc = CatalogService(db)
-    cat_uuid = uuid.UUID(category_id) if category_id else None
-    products, _ = await svc.get_products_by_category(cat_uuid, page, page_size)
+    products, _ = await svc.get_products_by_category(category_id, page, page_size)
     return [_product_to_list_out(p) for p in products]
 
 
@@ -66,12 +82,11 @@ async def search_products(
 
 
 @router.get("/products/{product_id}", response_model=ProductDetailOut)
-async def get_product(product_id: str, db: DbSession, user: OptionalUser = None):
-    import uuid
+async def get_product(product_id: UUID, db: DbSession, user: OptionalUser = None):
     from fastapi import HTTPException
 
     svc = CatalogService(db)
-    product = await svc.get_product_detail(uuid.UUID(product_id))
+    product = await svc.get_product_detail(product_id)
     if not product:
         raise HTTPException(404, "Товар не найден")
     if user:
@@ -88,11 +103,9 @@ async def get_product(product_id: str, db: DbSession, user: OptionalUser = None)
 
 
 @router.post("/products/{product_id}/favorite")
-async def toggle_favorite(product_id: str, db: DbSession, user: CurrentUser):
-    import uuid
-
+async def toggle_favorite(product_id: UUID, db: DbSession, user: CurrentUser):
     svc = CatalogService(db)
-    added = await svc.toggle_favorite(user.id, uuid.UUID(product_id))
+    added = await svc.toggle_favorite(user.id, product_id)
     return {"added": added}
 
 

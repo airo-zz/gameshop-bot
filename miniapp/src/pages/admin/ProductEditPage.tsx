@@ -8,7 +8,6 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { ArrowLeft, AlertCircle, Save, ExternalLink, Copy } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
@@ -217,14 +216,7 @@ export default function ProductEditPage() {
   // ── Loading skeleton ────────────────────────────────────────────────────────
 
   if (loadingInit) {
-    return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-8 w-48 bg-white/5 rounded-xl" />
-        <div className="h-48 bg-white/5 rounded-2xl" />
-        <div className="h-64 bg-white/5 rounded-2xl" />
-        <div className="h-32 bg-white/5 rounded-2xl" />
-      </div>
-    )
+    return <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
   }
 
   if (initError) {
@@ -242,12 +234,7 @@ export default function ProductEditPage() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
-      className="space-y-4 pb-8"
-    >
+    <div className="space-y-4 pb-8">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
@@ -502,6 +489,6 @@ export default function ProductEditPage() {
         )}
         {isNew ? 'Создать товар' : 'Сохранить изменения'}
       </button>
-    </motion.div>
+    </div>
   )
 }

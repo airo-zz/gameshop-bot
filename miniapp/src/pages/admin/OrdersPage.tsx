@@ -5,7 +5,6 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { Search, AlertCircle } from 'lucide-react'
 import { adminApi } from '@/api/admin'
 import type { AdminOrderListItem, PaginatedResponse } from '@/api/admin'
@@ -116,11 +115,7 @@ export default function OrdersPage() {
 
       {/* List */}
       {loading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-16 rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
-          ))}
-        </div>
+        <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
       ) : error ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
@@ -135,44 +130,38 @@ export default function OrdersPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {data.items.map((order, i) => (
-            <motion.div
+          {data.items.map((order) => (
+            <Link
               key={order.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: i * 0.03 }}
+              to={`/admin/orders/${order.id}`}
+              className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-4 py-3.5 transition-all duration-200 active:scale-[0.99]"
             >
-              <Link
-                to={`/admin/orders/${order.id}`}
-                className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-4 py-3.5 transition-all duration-200 active:scale-[0.99]"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-mono font-medium text-white">
-                      {order.order_number}
-                    </span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[order.status] ?? 'bg-white/10 text-white/50'}`}>
-                      {STATUS_LABELS[order.status] ?? order.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 text-xs text-white/50">
-                    <span>
-                      {order.user_first_name}
-                      {order.user_username ? ` @${order.user_username}` : ''}
-                    </span>
-                    <span>·</span>
-                    <span>{formatDate(order.created_at)}</span>
-                    <span>·</span>
-                    <span>{order.items_count} поз.</span>
-                  </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-mono font-medium text-white">
+                    {order.order_number}
+                  </span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[order.status] ?? 'bg-white/10 text-white/50'}`}>
+                    {STATUS_LABELS[order.status] ?? order.status}
+                  </span>
                 </div>
-                <div className="text-right shrink-0">
-                  <div className="text-sm font-semibold text-white">
-                    {formatMoney(order.total_amount)}
-                  </div>
+                <div className="flex items-center gap-2 text-xs text-white/50">
+                  <span>
+                    {order.user_first_name}
+                    {order.user_username ? ` @${order.user_username}` : ''}
+                  </span>
+                  <span>·</span>
+                  <span>{formatDate(order.created_at)}</span>
+                  <span>·</span>
+                  <span>{order.items_count} поз.</span>
                 </div>
-              </Link>
-            </motion.div>
+              </div>
+              <div className="text-right shrink-0">
+                <div className="text-sm font-semibold text-white">
+                  {formatMoney(order.total_amount)}
+                </div>
+              </div>
+            </Link>
           ))}
         </div>
       )}

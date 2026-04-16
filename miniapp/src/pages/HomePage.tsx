@@ -421,6 +421,17 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
   )
 }
 
+// ── Trending category card gradients ──────────────────────────────────────────
+
+const CARD_GRADIENTS = [
+  'linear-gradient(135deg, #162d5c 0%, #2d5aad 100%)',
+  'linear-gradient(135deg, #2e1459 0%, #7b35d0 100%)',
+  'linear-gradient(135deg, #0f3a2a 0%, #1a7a5a 100%)',
+  'linear-gradient(135deg, #3a1f0a 0%, #a05828 100%)',
+  'linear-gradient(135deg, #152e3a 0%, #1e7a9a 100%)',
+  'linear-gradient(135deg, #3a1020 0%, #8a2a5a 100%)',
+]
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function HomePage() {
@@ -445,9 +456,9 @@ export default function HomePage() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const { data: featured = [], isLoading: featuredLoading } = useQuery({
-    queryKey: ['trending'],
-    queryFn: catalogApi.getTrending,
+  const { data: trendingCategories = [], isLoading: trendingLoading } = useQuery({
+    queryKey: ['trending-categories'],
+    queryFn: catalogApi.getTrendingCategories,
     staleTime: 2 * 60 * 1000,
   })
 
@@ -606,109 +617,61 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* ── Featured products ────────────────────────────────────────────── */}
+        {/* ── Trending categories ───────────────────────────────────────────── */}
         <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(45,88,173,0.2) 30%, rgba(45,88,173,0.2) 70%, transparent)', marginBottom: 24 }} />
         <section className="mb-8">
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 12,
-            }}
-          >
-            <h2
-              style={{
-                margin: 0,
-                fontWeight: 700,
-                fontSize: '1.05rem',
-                color: 'var(--text)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-              }}
-            >
-              <span style={{ color: '#fbbf24', display: 'flex' }}>
-                <IconZap />
-              </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <h2 style={{ margin: 0, fontWeight: 700, fontSize: '1.05rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ color: '#fbbf24', display: 'flex' }}><IconZap /></span>
               Популярное
             </h2>
-            <Link
-              to="/catalog"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 3,
-                fontSize: 13,
-                fontWeight: 500,
-                color: '#6b9de8',
-                textDecoration: 'none',
-              }}
-            >
-              Все
-              <IconChevronRight />
+            <Link to="/catalog" style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 13, fontWeight: 500, color: '#6b9de8', textDecoration: 'none' }}>
+              Все<IconChevronRight />
             </Link>
           </div>
 
-          {featuredLoading ? (
-            <div style={{ background: 'var(--bg2)', borderRadius: 12, overflow: 'hidden' }}>
-              {[...Array(6)].map((_, i) => (
+          <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16, scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
+            {trendingLoading ? (
+              [...Array(4)].map((_, i) => (
                 <div
                   key={i}
-                  style={{
-                    height: 64,
-                    borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '0 16px',
-                    gap: 12,
-                  }}
-                >
-                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <div className="animate-pulse" style={{ height: 14, width: '55%', borderRadius: 6, background: 'rgba(255,255,255,0.07)' }} />
-                    <div className="animate-pulse" style={{ height: 11, width: '35%', borderRadius: 6, background: 'rgba(255,255,255,0.04)' }} />
-                  </div>
-                  <div className="animate-pulse" style={{ width: 14, height: 14, borderRadius: 4, background: 'rgba(255,255,255,0.04)', flexShrink: 0 }} />
-                </div>
-              ))}
-            </div>
-          ) : featured.length > 0 ? (
-            <div style={{ background: 'var(--bg2)', borderRadius: 12, overflow: 'hidden' }}>
-              {featured.slice(0, 6).map((product, i) => (
-                <Link
-                  key={product.id}
-                  to={product.game_slug ? `/catalog/${product.game_slug}` : `/product/${product.id}`}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0 16px',
-                    height: 64,
-                    textDecoration: 'none',
-                    borderTop: i > 0 ? '1px solid rgba(255,255,255,0.05)' : 'none',
-                    transition: 'background 0.15s',
-                    WebkitTapHighlightColor: 'transparent',
-                  }}
-                  onTouchStart={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.03)' }}
-                  onTouchEnd={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
-                >
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <p style={{ margin: 0, fontSize: 15, fontWeight: 500, color: 'var(--text)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                      {product.name}
-                    </p>
-                    {product.game_name && (
-                      <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--hint)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                        {product.game_name}
-                      </p>
-                    )}
-                  </div>
-                  <span style={{ color: 'rgba(255,255,255,0.2)', display: 'flex', flexShrink: 0, marginLeft: 8 }}>
-                    <IconChevronRight />
-                  </span>
-                </Link>
-              ))}
-            </div>
-          ) : null}
+                  className="animate-pulse"
+                  style={{ minWidth: 148, height: 88, borderRadius: 16, background: 'rgba(255,255,255,0.06)', flexShrink: 0 }}
+                />
+              ))
+            ) : trendingCategories.map((cat, i) => (
+              <Link
+                key={cat.id}
+                to={`/catalog/${cat.game_slug}`}
+                style={{
+                  minWidth: 148,
+                  height: 88,
+                  borderRadius: 16,
+                  flexShrink: 0,
+                  textDecoration: 'none',
+                  background: CARD_GRADIENTS[i % CARD_GRADIENTS.length],
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-end',
+                  padding: '0 14px 12px',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  WebkitTapHighlightColor: 'transparent',
+                }}
+                onTouchStart={e => { (e.currentTarget as HTMLElement).style.opacity = '0.8' }}
+                onTouchEnd={e => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
+              >
+                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.4) 100%)' }} />
+                <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#fff', position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                  {cat.name}
+                </p>
+                <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.55)', position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                  {cat.game_name}
+                </p>
+              </Link>
+            ))}
+          </div>
         </section>
 
         {/* ── Games horizontal scroll ──────────────────────────────────────── */}

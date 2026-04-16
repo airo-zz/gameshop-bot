@@ -5,7 +5,6 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
 import { Search, AlertCircle, ShieldAlert } from 'lucide-react'
 import { adminApi } from '@/api/admin'
 import type { AdminUserListItem, PaginatedResponse } from '@/api/admin'
@@ -89,11 +88,7 @@ export default function UsersPage() {
 
       {/* List */}
       {loading ? (
-        <div className="space-y-2">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-16 rounded-xl bg-white/[0.04] border border-white/[0.08] animate-pulse" />
-          ))}
-        </div>
+        <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
       ) : error ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
@@ -104,35 +99,29 @@ export default function UsersPage() {
         <div className="text-center py-16 text-white/30 text-sm">Пользователи не найдены</div>
       ) : (
         <div className="space-y-2">
-          {data.items.map((user, i) => (
-            <motion.div
+          {data.items.map((user) => (
+            <Link
               key={user.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.2, delay: i * 0.03 }}
+              to={`/admin/users/${user.id}`}
+              className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-4 py-3.5 transition-all duration-200 active:scale-[0.99]"
             >
-              <Link
-                to={`/admin/users/${user.id}`}
-                className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-4 py-3.5 transition-all duration-200 active:scale-[0.99]"
-              >
-                <div className="w-9 h-9 rounded-full bg-blue-600/20 shrink-0" />
+              <div className="w-9 h-9 rounded-full bg-blue-600/20 shrink-0" />
 
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-white truncate">
-                      {user.first_name}
-                    </span>
-                    {user.is_blocked && (
-                      <ShieldAlert size={13} className="text-red-400 shrink-0" />
-                    )}
-                  </div>
-                  <div className="text-xs text-white/50">
-                    {user.username ? `@${user.username} · ` : ''}
-                    {user.orders_count} заказов · {formatMoney(user.total_spent)}
-                  </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-white truncate">
+                    {user.first_name}
+                  </span>
+                  {user.is_blocked && (
+                    <ShieldAlert size={13} className="text-red-400 shrink-0" />
+                  )}
                 </div>
-              </Link>
-            </motion.div>
+                <div className="text-xs text-white/50">
+                  {user.username ? `@${user.username} · ` : ''}
+                  {user.orders_count} заказов · {formatMoney(user.total_spent)}
+                </div>
+              </div>
+            </Link>
           ))}
         </div>
       )}

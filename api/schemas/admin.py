@@ -178,6 +178,7 @@ class CategoryUpdateIn(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=128)
     slug: str | None = Field(None, max_length=64)
     is_active: bool | None = None
+    is_featured: bool | None = None
     sort_order: int | None = None
 
 
@@ -190,6 +191,7 @@ class CategoryOut(BaseModel):
     name: str
     slug: str
     is_active: bool
+    is_featured: bool
     sort_order: int
 
 
