@@ -91,7 +91,7 @@ export default function OrdersPage() {
             placeholder="Поиск по номеру заказа, пользователю..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 transition-all duration-200"
+            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/20 transition-all duration-200"
           />
         </div>
 
@@ -103,7 +103,7 @@ export default function OrdersPage() {
               className={[
                 'shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 active:scale-[0.98]',
                 status === key
-                  ? 'bg-blue-600 text-white'
+                  ? 'bg-white/15 text-white'
                   : 'bg-white/[0.05] text-white/50 hover:bg-white/[0.08]',
               ].join(' ')}
             >
@@ -120,7 +120,7 @@ export default function OrdersPage() {
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
           <p className="text-sm">Ошибка загрузки заказов</p>
-          <button onClick={load} className="text-xs text-blue-400 hover:text-blue-300 active:scale-[0.98] transition-transform">
+          <button onClick={load} className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform">
             Попробовать снова
           </button>
         </div>
@@ -134,7 +134,7 @@ export default function OrdersPage() {
             <Link
               key={order.id}
               to={`/admin/orders/${order.id}`}
-              className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-4 py-3.5 transition-all duration-200 active:scale-[0.99]"
+              className="flex items-center gap-3 bg-[#1a1f2e] hover:bg-[#1f2538] border border-white/[0.06] rounded-xl px-4 py-3.5 transition-all duration-200 active:scale-[0.99]"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">

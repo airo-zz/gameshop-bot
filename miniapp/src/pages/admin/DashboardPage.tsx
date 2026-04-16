@@ -31,27 +31,20 @@ function StatCard({
   accent?: 'blue' | 'violet' | 'green' | 'orange'
   to?: string
 }) {
-  const accentMap = {
-    blue:   'from-blue-500/10 to-blue-600/5 border-blue-500/25 text-blue-400',
-    violet: 'from-violet-500/10 to-violet-600/5 border-violet-500/25 text-violet-400',
-    green:  'from-emerald-500/10 to-emerald-600/5 border-emerald-500/25 text-emerald-400',
-    orange: 'from-orange-500/10 to-orange-600/5 border-orange-500/25 text-orange-400',
-  }
-
   const inner = (
     <>
       <div className="flex items-start justify-between mb-3">
-        <span className="text-xs font-medium text-white/45">{label}</span>
-        <span>{icon}</span>
+        <span className="text-xs font-medium text-white/50">{label}</span>
+        <span className="text-white/30">{icon}</span>
       </div>
       <div className="text-2xl font-bold text-white">{value}</div>
-      {sub && <div className="text-xs text-white/35 mt-1">{sub}</div>}
+      {sub && <div className="text-xs text-white/50 mt-1">{sub}</div>}
     </>
   )
 
   return (
     <div
-      className={`relative rounded-2xl border bg-gradient-to-br p-4 transition-all duration-200 ${accentMap[accent]}`}
+      className="relative rounded-xl border bg-[#1a1f2e] border-white/[0.06] p-4 transition-all duration-200 hover:bg-[#1f2538]"
     >
       {to ? (
         <Link to={to} className={`block${to ? ' active:scale-[0.98] transition-transform' : ''}`}>

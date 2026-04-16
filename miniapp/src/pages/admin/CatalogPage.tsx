@@ -53,7 +53,7 @@ function formatMoney(v: number) {
   }).format(v)
 }
 
-const inputCls = 'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 transition-all duration-200'
+const inputCls = 'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/20 transition-all duration-200'
 
 // ── Модалка массового изменения цен ──────────────────────────────────────────
 
@@ -96,7 +96,7 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-lg bg-[#0a1628] border border-white/[0.1] rounded-t-2xl p-5 space-y-4">
+      <div className="w-full max-w-lg bg-[#1a1f2e] border border-white/[0.1] rounded-t-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold text-white">Изменить цены</h3>
           <button
@@ -150,7 +150,7 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
             onClick={() => setIncludeLots((v) => !v)}
             className={[
               'w-10 h-6 rounded-full transition-colors flex items-center px-0.5',
-              includeLots ? 'bg-blue-600' : 'bg-white/10',
+              includeLots ? 'bg-indigo-600' : 'bg-white/10',
             ].join(' ')}
           >
             <div
@@ -166,7 +166,7 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
         <button
           onClick={handleApply}
           disabled={loading || !value}
-          className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
+          className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
         >
           {loading ? 'Применяем...' : 'Применить'}
         </button>
@@ -221,7 +221,7 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
           <p className="text-sm">Ошибка загрузки игр</p>
-          <button onClick={load} className="text-xs text-blue-400 active:scale-[0.98] transition-transform">Попробовать снова</button>
+          <button onClick={load} className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform">Попробовать снова</button>
         </div>
       ) : games.length === 0 ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/30">
@@ -234,7 +234,7 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
             <div
               key={game.id}
               onClick={() => onSelect(game)}
-              className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-4 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
+              className="flex items-center gap-3 bg-[#1a1f2e] hover:bg-[#1f2538] border border-white/[0.06] rounded-xl px-4 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
             >
               <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/[0.05] shrink-0 flex items-center justify-center">
                 {game.image_url ? (
@@ -327,7 +327,7 @@ function CategoriesLevel({ game, onBack, onSelect }: CategoriesLevelProps) {
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
           <p className="text-sm">Ошибка загрузки категорий</p>
-          <button onClick={load} className="text-xs text-blue-400 active:scale-[0.98] transition-transform">Попробовать снова</button>
+          <button onClick={load} className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform">Попробовать снова</button>
         </div>
       ) : categories.length === 0 ? (
         <div className="flex flex-col items-center py-16 gap-3 text-white/30">
@@ -340,7 +340,7 @@ function CategoriesLevel({ game, onBack, onSelect }: CategoriesLevelProps) {
             <div
               key={cat.id}
               onClick={() => onSelect(cat)}
-              className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-4 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
+              className="flex items-center gap-3 bg-[#1a1f2e] hover:bg-[#1f2538] border border-white/[0.06] rounded-xl px-4 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
             >
               <FolderOpen size={18} className="text-white/40 shrink-0" />
               <div className="flex-1 min-w-0">
@@ -527,7 +527,7 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
                 </button>
                 <button
                   onClick={() => navigate(`/admin/catalog/products/new?category_id=${category.id}`)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.97] text-xs font-semibold text-white transition-all duration-200"
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.97] text-xs font-semibold text-white transition-all duration-200"
                 >
                   <Plus size={15} />
                   Добавить
@@ -543,7 +543,7 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
           <div className="flex flex-col items-center py-16 gap-3 text-white/40">
             <AlertCircle size={36} />
             <p className="text-sm">Ошибка загрузки товаров</p>
-            <button onClick={load} className="text-xs text-blue-400 active:scale-[0.98] transition-transform">Попробовать снова</button>
+            <button onClick={load} className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform">Попробовать снова</button>
           </div>
         ) : products.length === 0 ? (
           <div className="flex flex-col items-center py-16 gap-3 text-white/30">
@@ -551,7 +551,7 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
             <p className="text-sm">Товаров в этой категории нет</p>
             <button
               onClick={() => navigate(`/admin/catalog/products/new?category_id=${category.id}`)}
-              className="text-xs text-blue-400 active:scale-[0.98] transition-transform"
+              className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform"
             >
               Добавить первый товар
             </button>
@@ -571,8 +571,8 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
                       className={[
                         'flex items-center gap-3 border rounded-xl px-3 py-3 transition-all duration-200',
                         selectedIds.has(product.id)
-                          ? 'bg-blue-600/10 border-blue-500/30'
-                          : 'bg-white/[0.04] border-white/[0.08]',
+                          ? 'bg-indigo-600/10 border-indigo-500/30'
+                          : 'bg-[#1a1f2e] border-white/[0.06]',
                       ].join(' ')}
                     >
                       {selectMode && (
@@ -580,7 +580,7 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
                           type="checkbox"
                           checked={selectedIds.has(product.id)}
                           onChange={() => toggleSelect(product.id)}
-                          className="w-4 h-4 rounded accent-blue-500 shrink-0 cursor-pointer"
+                          className="w-4 h-4 rounded accent-indigo-500 shrink-0 cursor-pointer"
                         />
                       )}
                       <div className="w-10 h-10 rounded-lg bg-white/[0.05] flex items-center justify-center shrink-0">
@@ -658,7 +658,7 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
       </AnimatePresence>
 
       {selectMode && selectedIds.size > 0 && (
-        <div className="fixed bottom-[72px] left-0 right-0 z-40 bg-[#0d1a2e] border-t border-white/[0.1] px-4 py-3 flex items-center gap-3">
+        <div className="fixed bottom-[72px] left-0 right-0 z-40 bg-[#111827] border-t border-white/10 px-4 py-3 flex items-center gap-3">
             <span className="text-xs text-white/50 flex-1">Выбрано: {selectedIds.size}</span>
             <button
               onClick={handleBulkActivate}

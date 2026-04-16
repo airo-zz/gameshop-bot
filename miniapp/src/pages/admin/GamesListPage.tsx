@@ -109,7 +109,7 @@ export default function GamesListPage() {
         </div>
         <Link
           to={`/admin/catalog/games/new?type=${tab}`}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-sm font-semibold text-white transition-all duration-200 shrink-0"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-sm font-semibold text-white transition-all duration-200 shrink-0"
         >
           <Plus size={16} />
           {tab === 'game' ? 'Добавить игру' : 'Добавить сервис'}
@@ -117,7 +117,7 @@ export default function GamesListPage() {
       </div>
 
       {/* Underline tabs */}
-      <div className="flex border-b border-white/[0.08]">
+      <div className="flex border-b border-white/10">
         {(Object.keys(TAB_LABELS) as TabType[]).map((t) => (
           <button
             key={t}
@@ -125,7 +125,7 @@ export default function GamesListPage() {
             className={[
               'relative px-4 py-2.5 text-sm font-medium transition-all duration-200',
               tab === t
-                ? 'text-white border-b-2 border-blue-400'
+                ? 'text-white border-b-2 border-white/60'
                 : 'text-white/50 hover:text-white/70 border-b-2 border-transparent',
             ].join(' ')}
           >
@@ -141,7 +141,7 @@ export default function GamesListPage() {
         <div className="flex flex-col items-center py-16 gap-3 text-white/40">
           <AlertCircle size={36} />
           <p className="text-sm">Ошибка загрузки игр</p>
-          <button onClick={() => load(tab)} className="text-xs text-blue-400 hover:text-blue-300 active:scale-[0.98] transition-transform">
+          <button onClick={() => load(tab)} className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform">
             Попробовать снова
           </button>
         </div>
@@ -149,7 +149,7 @@ export default function GamesListPage() {
         <div className="flex flex-col items-center py-16 gap-3 text-white/30">
           <Gamepad2 size={36} />
           <p className="text-sm">Игр пока нет</p>
-          <Link to="/admin/catalog/games/new" className="text-xs text-blue-400 hover:text-blue-300">
+          <Link to="/admin/catalog/games/new" className="text-xs text-white/50 hover:text-white/70">
             Создать первую игру
           </Link>
         </div>
@@ -161,7 +161,7 @@ export default function GamesListPage() {
                 <SortableRow key={game.id} id={game.id} style={{ paddingLeft: 28 }}>
                   <div
                     onClick={() => navigate(`/admin/catalog/games/${game.id}`)}
-                    className="flex items-center gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] rounded-2xl px-3 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
+                    className="flex items-center gap-3 bg-[#1a1f2e] hover:bg-[#1f2538] border border-white/[0.06] rounded-xl px-3 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
                   >
                     {/* Image / placeholder */}
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/[0.05] shrink-0 flex items-center justify-center">

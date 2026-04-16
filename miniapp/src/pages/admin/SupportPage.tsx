@@ -150,8 +150,8 @@ function TicketCard({
       className={[
         'w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 active:scale-[0.99]',
         selected
-          ? 'bg-blue-600/15 border-blue-500/40'
-          : 'bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07] hover:border-white/[0.12]',
+          ? 'bg-white/10 border-white/20'
+          : 'bg-[#1a1f2e] border-white/[0.06] hover:bg-[#1f2538] hover:border-white/10',
       ].join(' ')}
     >
       <div className="flex items-start justify-between gap-2 mb-1">
@@ -181,7 +181,7 @@ function ChatMessage({ msg }: { msg: TicketMessage }) {
         className={[
           'max-w-[78%] px-4 py-2.5',
           isAdmin
-            ? 'bg-blue-600 text-white rounded-2xl rounded-br-md shadow-[0_2px_8px_rgba(59,130,246,0.25)] shadow-sm'
+            ? 'bg-indigo-600 text-white rounded-2xl rounded-br-md shadow-sm'
             : 'bg-white/[0.08] border border-white/[0.08] text-white/90 rounded-2xl rounded-bl-md shadow-sm',
         ].join(' ')}
       >
@@ -216,7 +216,7 @@ function ChatMessage({ msg }: { msg: TicketMessage }) {
         )}
         <div
           className={`flex items-center gap-1.5 mt-1.5 text-xs ${
-            isAdmin ? 'text-blue-200/60 justify-end' : 'text-white/30'
+            isAdmin ? 'text-white/40 justify-end' : 'text-white/30'
           }`}
         >
           {msg.is_template_response && (
@@ -276,7 +276,7 @@ function TemplateDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute bottom-full mb-2 left-0 w-64 bg-[#0d1f3c] border border-white/[0.1] rounded-xl shadow-xl z-20 overflow-hidden"
+            className="absolute bottom-full mb-2 left-0 w-64 bg-[#1a1f2e] border border-white/[0.1] rounded-xl shadow-xl z-20 overflow-hidden"
           >
             <div className="p-1.5 max-h-52 overflow-y-auto">
               {templates.map((t) => (
@@ -348,7 +348,7 @@ function StatusDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full mt-1 right-0 w-44 bg-[#0d1f3c] border border-white/[0.1] rounded-xl shadow-xl z-20 overflow-hidden"
+            className="absolute top-full mt-1 right-0 w-44 bg-[#1a1f2e] border border-white/[0.1] rounded-xl shadow-xl z-20 overflow-hidden"
           >
             <div className="p-1.5">
               {STATUS_OPTIONS.map((opt) => {
@@ -516,7 +516,7 @@ function ChatPanel({
         <p className="text-sm">Не удалось загрузить тикет</p>
         <button
           onClick={() => { setLoading(true); fetchDetail().finally(() => setLoading(false)) }}
-          className="text-xs text-blue-400 hover:text-blue-300 active:scale-[0.98] transition-transform"
+          className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform"
         >
           Попробовать снова
         </button>
@@ -619,13 +619,13 @@ function ChatPanel({
               onKeyDown={handleKeyDown}
               placeholder="Напишите ответ... (Enter — отправить, Shift+Enter — перенос)"
               rows={3}
-              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/60 resize-none leading-relaxed transition-all duration-200"
+              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/15 focus:border-white/20 resize-none leading-relaxed transition-all duration-200"
             />
           </div>
           <button
             onClick={handleSend}
             disabled={!replyText.trim() || sending}
-            className="p-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.95] shrink-0 self-end"
+            className="p-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.95] shrink-0 self-end"
           >
             {sending ? (
               <RefreshCw size={16} className="animate-spin" />
@@ -765,7 +765,7 @@ export default function AdminSupportPage() {
               placeholder="Поиск по теме, пользователю..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 transition-all duration-200"
+              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/20 transition-all duration-200"
             />
           </div>
 
@@ -778,7 +778,7 @@ export default function AdminSupportPage() {
                 className={[
                   'shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 active:scale-[0.97]',
                   activeTab === tab.key
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-white/15 text-white'
                     : 'bg-white/[0.05] text-white/50 hover:bg-white/[0.08]',
                 ].join(' ')}
               >
@@ -797,7 +797,7 @@ export default function AdminSupportPage() {
                 <p className="text-sm">Ошибка загрузки</p>
                 <button
                   onClick={loadList}
-                  className="text-xs text-blue-400 hover:text-blue-300 active:scale-[0.98] transition-transform"
+                  className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform"
                 >
                   Попробовать снова
                 </button>
@@ -846,8 +846,8 @@ export default function AdminSupportPage() {
         {/* Right panel: chat view */}
         <div
           className={[
-            'flex-1 min-w-0 rounded-2xl border border-white/[0.08] overflow-hidden',
-            'bg-white/[0.02]',
+            'flex-1 min-w-0 rounded-xl border border-white/[0.06] overflow-hidden',
+            'bg-[#1a1f2e]',
             mobileShowChat ? 'flex' : 'hidden md:flex',
             'flex-col',
           ].join(' ')}

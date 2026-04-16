@@ -43,9 +43,9 @@ function SidebarLink({ item }: { item: NavItem }) {
       className={({ isActive }) =>
         [
           'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-          'hover:bg-white/[0.05]',
+          'hover:bg-white/10',
           isActive
-            ? 'bg-blue-600/20 text-blue-400 shadow-[0_0_12px_rgba(96,165,250,0.12)]'
+            ? 'bg-white/10 text-white'
             : 'text-white/55 hover:text-white/85',
         ].join(' ')
       }
@@ -53,9 +53,9 @@ function SidebarLink({ item }: { item: NavItem }) {
       {({ isActive }) => (
         <>
           {isActive && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-blue-500" />
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-white/60" />
           )}
-          <span className={isActive ? 'text-blue-400' : 'text-white/35'}>{item.icon}</span>
+          <span className={isActive ? 'text-white/80' : 'text-white/35'}>{item.icon}</span>
           <span className="flex-1">{item.label}</span>
         </>
       )}
@@ -72,16 +72,16 @@ function BottomNavLink({ item }: { item: NavItem }) {
         [
           'relative flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl transition-all duration-200 flex-1 min-h-[52px] justify-center',
           isActive
-            ? 'text-blue-400'
+            ? 'text-white'
             : 'text-white/35 hover:text-white/55',
         ].join(' ')
       }
     >
       {({ isActive }) => (
         <>
-          <span className={isActive ? 'text-blue-400' : 'text-white/35'}>{item.icon}</span>
+          <span className={isActive ? 'text-white' : 'text-white/35'}>{item.icon}</span>
           {isActive && (
-            <span className="w-1 h-1 rounded-full bg-blue-500" />
+            <span className="w-1 h-1 rounded-full bg-white/60" />
           )}
         </>
       )}
@@ -91,7 +91,7 @@ function BottomNavLink({ item }: { item: NavItem }) {
 
 export default function AdminLayout() {
   return (
-    <div className="flex min-h-screen bg-[#060f1e] text-white"
+    <div className="flex min-h-screen bg-[#111827] text-white"
          style={{ paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))' }}>
       {/* Sidebar — hidden on mobile */}
       <aside className="hidden md:flex flex-col w-56 shrink-0 border-r border-white/[0.06] p-4 gap-1">
@@ -124,7 +124,7 @@ export default function AdminLayout() {
 
       {/* Bottom nav — mobile only */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center bg-[#060f1e]/96 backdrop-blur-md border-t border-white/[0.06] px-1"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 flex items-center bg-[#111827]/96 backdrop-blur-md border-t border-white/10 px-1"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
         {NAV_ITEMS.map((item) => (
