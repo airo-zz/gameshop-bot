@@ -24,6 +24,15 @@ async def list_games(
     return await svc.get_active_games(type=type)
 
 
+@router.get("/games/search", response_model=list[GameOut])
+async def search_games(
+    db: DbSession,
+    q: str = Query("", min_length=1),
+):
+    svc = CatalogService(db)
+    return await svc.search_games(q)
+
+
 @router.get("/games/{slug}/categories", response_model=list[CategoryOut])
 async def list_categories(slug: str, db: DbSession):
     svc = CatalogService(db)

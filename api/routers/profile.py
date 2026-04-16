@@ -63,7 +63,7 @@ async def get_profile(db: DbSession, user: CurrentUser):
     )
 
 
-@router.get("/referral-stats")
+@router.get("/referrals")
 async def get_referral_stats(db: DbSession, user: CurrentUser):
     """Статистика реферальной программы пользователя."""
     result = await db.execute(

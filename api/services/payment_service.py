@@ -273,6 +273,19 @@ class PaymentService:
         )
         payment = result.scalar_one_or_none()
         if not payment:
+            # Проверяем: возможно, это пополнение баланса (не привязано к заказу)
+            meta = payment_data.get("metadata", {})
+            if meta.get("type") == "balance_topup" and event_type == "payment.succeeded":
+                user_id_str = meta.get("user_id")
+                amount_str = meta.get("amount_rub")
+                if user_id_str and amount_str:
+                    await self._credit_balance_topup(
+                        uuid.UUID(user_id_str),
+                        Decimal(amount_str),
+                        "yukassa",
+                        external_id,
+                    )
+                return True
             return False
 
         # Идемпотентность — уже обработан
@@ -309,6 +322,20 @@ class PaymentService:
         """Обработка webhook от CryptoBot."""
         invoice_id = str(payload.get("invoice_id", ""))
         status = payload.get("status")
+        payload_str = payload.get("payload", "")
+
+        # Топап-инвойс: payload начинается с "topup:"
+        if str(payload_str).startswith("topup:") and status == "paid":
+            parts = str(payload_str).split(":")
+            # parts: ["topup", user_id, amount_rub]
+            if len(parts) == 3:
+                await self._credit_balance_topup(
+                    uuid.UUID(parts[1]),
+                    Decimal(parts[2]),
+                    "cryptobot",
+                    str(payload.get("invoice_id", "")),
+                )
+            return True
 
         result = await self.db.execute(
             select(Payment).where(Payment.external_id == invoice_id)
@@ -340,6 +367,119 @@ class PaymentService:
                 await self._notify_user_payment_success(order)
 
         return True
+
+    async def topup_yukassa(self, user: User, amount: Decimal) -> dict:
+        """Создаёт платёж ЮKassa для пополнения баланса."""
+        if not settings.YUKASSA_SHOP_ID or not settings.YUKASSA_SECRET_KEY:
+            raise ValueError("ЮKassa не настроена")
+        if amount < Decimal("10"):
+            raise ValueError("Минимальная сумма пополнения: 10 ₽")
+
+        idempotency_key = str(uuid.uuid5(uuid.NAMESPACE_URL, f"topup:{user.id}:{amount}:{datetime.now(timezone.utc).date()}"))
+
+        payload = {
+            "amount": {"value": f"{amount:.2f}", "currency": "RUB"},
+            "confirmation": {
+                "type": "redirect",
+                "return_url": f"{settings.MINIAPP_URL}?topup=success",
+            },
+            "description": f"Пополнение баланса — {settings.SHOP_NAME}",
+            "metadata": {
+                "type": "balance_topup",
+                "user_id": str(user.id),
+                "amount_rub": f"{amount:.2f}",
+            },
+            "capture": True,
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.yookassa.ru/v3/payments",
+                json=payload,
+                auth=(settings.YUKASSA_SHOP_ID, settings.YUKASSA_SECRET_KEY),
+                headers={"Idempotence-Key": idempotency_key},
+                timeout=10.0,
+            )
+
+        data = response.json()
+        if response.status_code != 200:
+            raise ValueError(f"Ошибка ЮKassa: {data.get('description', 'Unknown error')}")
+
+        confirm_url = data.get("confirmation", {}).get("confirmation_url")
+        return {"redirect_url": confirm_url, "payment_id": data.get("id")}
+
+    async def topup_crypto(self, user: User, amount_rub: Decimal, currency: str = "USDT") -> dict:
+        """Создаёт инвойс CryptoBot для пополнения баланса."""
+        if not settings.CRYPTOBOT_TOKEN:
+            raise ValueError("CryptoBot не настроен")
+        if amount_rub < Decimal("10"):
+            raise ValueError("Минимальная сумма пополнения: 10 ₽")
+
+        rate_rub = await _get_crypto_rate_rub(currency)
+        crypto_amount = amount_rub / rate_rub
+
+        base_url = (
+            "https://pay.crypt.bot/api"
+            if settings.CRYPTOBOT_NETWORK == "mainnet"
+            else "https://testnet-pay.crypt.bot/api"
+        )
+
+        topup_payload = f"topup:{user.id}:{amount_rub:.2f}"
+
+        payload = {
+            "asset": currency,
+            "amount": str(crypto_amount.quantize(Decimal("0.000001"))),
+            "description": f"Пополнение баланса — {settings.SHOP_NAME}",
+            "payload": topup_payload,
+            "paid_btn_name": "openBot",
+            "paid_btn_url": f"https://t.me/{settings.BOT_USERNAME}",
+        }
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{base_url}/createInvoice",
+                json=payload,
+                headers={"Crypto-Pay-API-Token": settings.CRYPTOBOT_TOKEN},
+                timeout=10.0,
+            )
+
+        data = response.json()
+        if not data.get("ok"):
+            raise ValueError(f"Ошибка CryptoBot: {data.get('error', 'Unknown')}")
+
+        invoice = data["result"]
+        return {
+            "pay_url": invoice.get("pay_url") or invoice.get("bot_invoice_url"),
+            "invoice_id": invoice.get("invoice_id"),
+        }
+
+    async def _credit_balance_topup(
+        self,
+        user_id: uuid.UUID,
+        amount: Decimal,
+        provider: str,
+        external_id: str,
+    ) -> None:
+        """Зачисляет пополнение баланса пользователю."""
+        from shared.models import BalanceTransaction
+        result = await self.db.execute(select(User).where(User.id == user_id).with_for_update())
+        user = result.scalar_one_or_none()
+        if not user:
+            logger.warning("topup: user %s not found", user_id)
+            return
+
+        balance_before = user.balance
+        user.balance += amount
+        self.db.add(BalanceTransaction(
+            user_id=user.id,
+            amount=amount,
+            balance_before=balance_before,
+            balance_after=user.balance,
+            type="top_up",
+            description=f"Пополнение через {provider}",
+            reference_id=user.id,
+        ))
+        logger.info("Balance topup: user %s +%s RUB via %s (%s)", user_id, amount, provider, external_id)
 
     async def _notify_user_payment_success(self, order: Order) -> None:
         """Отправляет уведомление пользователю через aiogram Bot."""

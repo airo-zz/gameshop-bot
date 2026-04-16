@@ -187,6 +187,9 @@ export const catalogApi = {
   search: (q: string, page = 0) =>
     apiClient.get<Product[]>('/catalog/products/search', { params: { q, page } }).then(r => r.data),
 
+  searchGames: (q: string) =>
+    apiClient.get<Game[]>('/catalog/games/search', { params: { q } }).then(r => r.data),
+
   getTrending: () =>
     apiClient.get<Product[]>('/catalog/products/trending').then(r => r.data),
 
@@ -278,6 +281,16 @@ export const profileApi = {
 
   getReferralStats: () =>
     apiClient.get<ReferralStats>('/profile/referrals').then(r => r.data),
+}
+
+// ── Payments API ──────────────────────────────────────────────────────────────
+
+export const paymentsApi = {
+  topupBalance: (amount: number, method: 'card_yukassa' | 'crypto', currency?: string) =>
+    apiClient.post<{ redirect_url?: string; pay_url?: string; payment_id?: string; invoice_id?: string }>(
+      '/payments/balance/topup',
+      { amount, method, currency: currency ?? 'USDT' }
+    ).then(r => r.data),
 }
 
 // ── Support API ───────────────────────────────────────────────────────────────

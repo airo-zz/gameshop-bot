@@ -147,6 +147,19 @@ class CatalogService:
         avg = float(row.avg) if row.avg else None
         return avg, row.cnt
 
+    async def search_games(self, query: str, limit: int = 10) -> list[Game]:
+        """Поиск игр по названию."""
+        result = await self.db.execute(
+            select(Game)
+            .where(
+                Game.is_active == True,
+                Game.name.ilike(f"%{query}%") | Game.description.ilike(f"%{query}%"),
+            )
+            .order_by(Game.is_featured.desc(), Game.sort_order)
+            .limit(limit)
+        )
+        return result.scalars().all()
+
     async def search_products(
         self,
         query: str,

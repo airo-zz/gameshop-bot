@@ -1,8 +1,10 @@
 """api/routers/payments.py"""
 
+from decimal import Decimal
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from api.deps import CurrentUser, DbSession
@@ -86,3 +88,22 @@ async def initiate_payment(order_id: UUID, db: DbSession, user: CurrentUser):
         return PaymentInitResponse(method="crypto", status="pending", **data)
 
     raise HTTPException(400, "Неподдерживаемый метод оплаты")
+
+
+class BalanceTopupRequest(BaseModel):
+    amount: Decimal = Field(..., ge=10, le=100000, description="Сумма в рублях")
+    method: str = Field(..., pattern="^(card_yukassa|crypto)$")
+    currency: str = Field("USDT", description="Криптовалюта (для метода crypto)")
+
+
+@router.post("/balance/topup")
+async def topup_balance(body: BalanceTopupRequest, db: DbSession, user: CurrentUser):
+    svc = PaymentService(db)
+    try:
+        if body.method == "card_yukassa":
+            data = await svc.topup_yukassa(user, body.amount)
+        else:
+            data = await svc.topup_crypto(user, body.amount, body.currency)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    return data
