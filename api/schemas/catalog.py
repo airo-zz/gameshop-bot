@@ -124,6 +124,7 @@ class TrendingCategoryOut(BaseModel):
     slug: str
     game_name: str
     game_slug: str
+    game_image_url: str | None = None
 
 
 class CatalogSearchParams(BaseModel):

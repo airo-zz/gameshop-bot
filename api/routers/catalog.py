@@ -46,6 +46,7 @@ async def get_trending_categories(db: DbSession):
             slug=cat.slug,
             game_name=cat.game.name if cat.game else "",
             game_slug=cat.game.slug if cat.game else "",
+            game_image_url=cat.game.image_url if cat.game else None,
         )
         for cat in categories
     ]

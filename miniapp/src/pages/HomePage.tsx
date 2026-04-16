@@ -10,6 +10,7 @@ import { useShopStore, useUIStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
 import logoSrc from '@/assets/logo.png'
 import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
+import { normalizeImageUrl } from '@/utils/imageUrl'
 
 // ── Inline SVG icons ─────────────────────────────────────────────────────────
 
@@ -74,6 +75,15 @@ function IconZap() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+    </svg>
+  )
+}
+
+function IconSearch() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8"/>
+      <path d="M21 21l-4.35-4.35"/>
     </svg>
   )
 }
@@ -525,8 +535,24 @@ export default function HomePage() {
             </span>
           </div>
 
-          {/* Right actions — только меню */}
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          {/* Right actions — поиск + меню */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <Link
+              to="/search"
+              style={{
+                width: 44,
+                height: 44,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: 12,
+                color: 'rgba(255,255,255,0.6)',
+                textDecoration: 'none',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              <IconSearch />
+            </Link>
             <button
               onClick={() => setMenuOpen(v => !v)}
               style={{
@@ -620,15 +646,10 @@ export default function HomePage() {
         {/* ── Trending categories ───────────────────────────────────────────── */}
         <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(45,88,173,0.2) 30%, rgba(45,88,173,0.2) 70%, transparent)', marginBottom: 24 }} />
         <section className="mb-8">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-            <h2 style={{ margin: 0, fontWeight: 700, fontSize: '1.05rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ color: '#fbbf24', display: 'flex' }}><IconZap /></span>
-              Популярное
-            </h2>
-            <Link to="/catalog" style={{ display: 'flex', alignItems: 'center', gap: 3, fontSize: 13, fontWeight: 500, color: '#6b9de8', textDecoration: 'none' }}>
-              Все<IconChevronRight />
-            </Link>
-          </div>
+          <h2 style={{ margin: '0 0 12px', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: '#fbbf24', display: 'flex' }}><IconZap /></span>
+            Популярное
+          </h2>
 
           <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16, scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
             {trendingLoading ? (
@@ -639,104 +660,121 @@ export default function HomePage() {
                   style={{ minWidth: 148, height: 88, borderRadius: 16, background: 'rgba(255,255,255,0.06)', flexShrink: 0 }}
                 />
               ))
-            ) : trendingCategories.map((cat, i) => (
-              <Link
-                key={cat.id}
-                to={`/catalog/${cat.game_slug}`}
-                style={{
-                  minWidth: 148,
-                  height: 88,
-                  borderRadius: 16,
-                  flexShrink: 0,
-                  textDecoration: 'none',
-                  background: CARD_GRADIENTS[i % CARD_GRADIENTS.length],
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'flex-end',
-                  padding: '0 14px 12px',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  WebkitTapHighlightColor: 'transparent',
-                }}
-                onTouchStart={e => { (e.currentTarget as HTMLElement).style.opacity = '0.8' }}
-                onTouchEnd={e => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
-              >
-                <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(180deg, transparent 30%, rgba(0,0,0,0.4) 100%)' }} />
-                <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#fff', position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                  {cat.name}
-                </p>
-                <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.55)', position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                  {cat.game_name}
-                </p>
-              </Link>
-            ))}
+            ) : trendingCategories.map((cat, i) => {
+              const imgSrc = normalizeImageUrl(cat.game_image_url)
+              return (
+                <Link
+                  key={cat.id}
+                  to={`/catalog/${cat.game_slug}`}
+                  style={{
+                    minWidth: 148,
+                    height: 88,
+                    borderRadius: 16,
+                    flexShrink: 0,
+                    textDecoration: 'none',
+                    background: CARD_GRADIENTS[i % CARD_GRADIENTS.length],
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'flex-end',
+                    padding: '0 14px 12px',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                  onTouchStart={e => { (e.currentTarget as HTMLElement).style.opacity = '0.85' }}
+                  onTouchEnd={e => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
+                >
+                  {/* Game image background */}
+                  {imgSrc && (
+                    <img
+                      src={imgSrc}
+                      alt=""
+                      style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        width: '100%', height: '100%',
+                        objectFit: 'cover',
+                        opacity: 0.22,
+                        pointerEvents: 'none',
+                        userSelect: 'none',
+                      }}
+                    />
+                  )}
+                  {/* Gradient overlay — stronger at bottom for text legibility */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.62) 100%)' }} />
+                  <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#fff', position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                    {cat.name}
+                  </p>
+                  <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.6)', position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                    {cat.game_name}
+                  </p>
+                </Link>
+              )
+            })}
           </div>
         </section>
 
         {/* ── Games horizontal scroll ──────────────────────────────────────── */}
         <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(45,88,173,0.2) 30%, rgba(45,88,173,0.2) 70%, transparent)', marginBottom: 24 }} />
         <section>
-          <div
+          {/* Открыть полный каталог */}
+          <Link
+            to="/catalog"
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              padding: '10px 14px',
+              borderRadius: 14,
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              textDecoration: 'none',
               marginBottom: 12,
+              WebkitTapHighlightColor: 'transparent',
             }}
+            onTouchStart={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)' }}
+            onTouchEnd={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)' }}
           >
-            {/* Segment control */}
-            <div
-              className="flex flex-1 p-1 rounded-2xl"
-              style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', marginRight: 12 }}
-            >
-              {([
-                { value: 'game' as const, label: 'Игры' },
-                { value: 'service' as const, label: 'Сервисы' },
-              ]).map(tab => {
-                const isActive = homeType === tab.value
-                return (
-                  <button
-                    key={tab.value}
-                    onClick={() => setHomeType(tab.value)}
-                    className="relative flex-1 flex items-center justify-center rounded-xl py-2 text-sm font-semibold transition-colors"
-                    style={{
-                      color: isActive ? 'var(--text)' : 'var(--hint)',
-                      border: 'none',
-                      background: 'none',
-                      cursor: 'pointer',
-                      zIndex: 1,
-                    }}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="home-tab-pill"
-                        className="absolute inset-0 rounded-xl"
-                        style={{ background: 'rgba(255,255,255,0.1)', zIndex: -1 }}
-                        transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-                      />
-                    )}
-                    {tab.label}
-                  </button>
-                )
-              })}
-            </div>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Открыть полный каталог</span>
+            <span style={{ color: 'rgba(107,157,232,0.7)', display: 'flex' }}><IconChevronRight /></span>
+          </Link>
 
-            <Link
-              to="/catalog"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 3,
-                fontSize: 13,
-                fontWeight: 500,
-                color: '#6b9de8',
-                textDecoration: 'none',
-              }}
-            >
-              Все
-              <IconChevronRight />
-            </Link>
+          {/* Segment control */}
+          <div
+            className="flex p-1 rounded-2xl"
+            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 12 }}
+          >
+            {([
+              { value: 'game' as const, label: 'Игры' },
+              { value: 'service' as const, label: 'Сервисы' },
+            ]).map(tab => {
+              const isActive = homeType === tab.value
+              return (
+                <button
+                  key={tab.value}
+                  onClick={() => setHomeType(tab.value)}
+                  className="relative flex-1 flex items-center justify-center rounded-xl py-2 text-sm font-semibold transition-colors"
+                  style={{
+                    color: isActive ? 'var(--text)' : 'var(--hint)',
+                    border: 'none',
+                    background: 'none',
+                    cursor: 'pointer',
+                    zIndex: 1,
+                  }}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="home-tab-pill"
+                      className="absolute inset-0 rounded-xl"
+                      style={{ background: 'rgba(255,255,255,0.1)', zIndex: -1 }}
+                      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                    />
+                  )}
+                  {tab.label}
+                </button>
+              )
+            })}
           </div>
 
           {gamesLoading ? (

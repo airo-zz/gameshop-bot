@@ -39,6 +39,7 @@ export interface TrendingCategory {
   slug: string
   game_name: string
   game_slug: string
+  game_image_url: string | null
 }
 
 export interface Lot {
