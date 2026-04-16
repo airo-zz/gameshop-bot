@@ -149,9 +149,9 @@ class OrderItem(Base, UUIDMixin):
         UUID(as_uuid=True), ForeignKey("orders.id", ondelete="CASCADE"),
         nullable=False, index=True,
     )
-    product_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("products.id", ondelete="RESTRICT"),
-        nullable=False,
+    product_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("products.id", ondelete="SET NULL"),
+        nullable=True,
     )
     lot_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("product_lots.id", ondelete="SET NULL"),
