@@ -2,35 +2,29 @@
 support_bot/handlers/start.py
 ─────────────────────────────────────────────────────────────────────────────
 /start, главное меню, создание тикета, список тикетов, вход в чат.
+Только InlineKeyboard — никакого ReplyKeyboard.
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+import asyncio
 import uuid
+
 from aiogram import Router, F
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (
-    KeyboardButton,
+    CallbackQuery,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
     Message,
-    ReplyKeyboardMarkup,
-    ReplyKeyboardRemove,
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User
 from shared.models.support import TicketStatus
 from api.services.support_service import SupportService
-from support_bot.utils.texts import (
-    texts,
-    BTN_CREATE,
-    BTN_MY_TICKETS,
-    BTN_CONTINUE,
-    BTN_NEW,
-    BTN_EXIT_CHAT,
-    BTN_NO_ORDER,
-    BTN_BACK,
-)
+from support_bot.utils.texts import texts
 
 router = Router(name="support:start")
 
@@ -39,69 +33,63 @@ router = Router(name="support:start")
 
 
 class SupportStates(StatesGroup):
-    choosing_order = State()    # выбор заказа при создании
-    writing_message = State()   # первое сообщение
-    choosing_ticket = State()   # выбор тикета из списка
-    in_chat = State()           # live chat — всё идёт в открытый тикет
+    writing_message = State()   # первое сообщение → создаёт тикет
+    choosing_ticket = State()   # список тикетов открыт
+    in_chat = State()           # live chat — сообщения идут в открытый тикет
 
 
 # ── Keyboards ─────────────────────────────────────────────────────────────────
 
 
-def _main_menu_keyboard(has_active: bool) -> ReplyKeyboardMarkup:
+def _main_menu_kb(has_active: bool) -> InlineKeyboardMarkup:
     if has_active:
-        rows = [
-            [KeyboardButton(text=BTN_CONTINUE)],
-            [KeyboardButton(text=BTN_MY_TICKETS), KeyboardButton(text=BTN_NEW)],
+        buttons = [
+            [
+                InlineKeyboardButton(text="▶️ Продолжить", callback_data="support:continue"),
+                InlineKeyboardButton(text="🆕 Новое обращение", callback_data="support:create"),
+            ],
+            [
+                InlineKeyboardButton(text="📋 Все обращения", callback_data="support:tickets"),
+            ],
         ]
     else:
-        rows = [
-            [KeyboardButton(text=BTN_CREATE)],
-            [KeyboardButton(text=BTN_MY_TICKETS)],
+        buttons = [
+            [
+                InlineKeyboardButton(text="💬 Написать в поддержку", callback_data="support:create"),
+                InlineKeyboardButton(text="📋 Мои обращения", callback_data="support:tickets"),
+            ],
         ]
-    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True)
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def _order_keyboard(order_buttons: list[str]) -> ReplyKeyboardMarkup:
-    rows = [[KeyboardButton(text=label)] for label in order_buttons]
-    rows.append([KeyboardButton(text=BTN_NO_ORDER)])
-    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True, one_time_keyboard=True)
+def _cancel_kb() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="support:cancel")],
+    ])
 
 
-def _tickets_keyboard(ticket_buttons: list[str]) -> ReplyKeyboardMarkup:
-    rows = [[KeyboardButton(text=label)] for label in ticket_buttons]
-    rows.append([KeyboardButton(text=BTN_BACK)])
-    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True, one_time_keyboard=True)
+def _created_kb(ticket_id: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="❌ Закрыть обращение", callback_data=f"support:close:{ticket_id}")],
+    ])
 
 
-def _chat_keyboard() -> ReplyKeyboardMarkup:
-    return ReplyKeyboardMarkup(
-        keyboard=[[KeyboardButton(text=BTN_EXIT_CHAT)]],
-        resize_keyboard=True,
-    )
+def _ticket_detail_kb(ticket_id: str, is_active: bool) -> InlineKeyboardMarkup:
+    rows = []
+    if is_active:
+        rows.append([InlineKeyboardButton(text="▶️ Продолжить переписку", callback_data=f"support:enter:{ticket_id}")])
+        rows.append([
+            InlineKeyboardButton(text="❌ Закрыть", callback_data=f"support:close:{ticket_id}"),
+            InlineKeyboardButton(text="⬅️ Назад", callback_data="support:tickets"),
+        ])
+    else:
+        rows.append([InlineKeyboardButton(text="⬅️ Назад", callback_data="support:tickets")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-
-
-def _order_button_label(order) -> str:
-    """Метка кнопки заказа: '#001 — Fortnite — 15 апр'."""
-    label = f"{order.order_number}"
-    if order.items:
-        first_item = order.items[0]
-        game_title = getattr(first_item, "product_title", None) or getattr(first_item, "title", None)
-        if game_title:
-            label += f" — {game_title[:20]}"
-    if order.created_at:
-        months = ["янв", "фев", "мар", "апр", "май", "июн",
-                  "июл", "авг", "сен", "окт", "ноя", "дек"]
-        label += f" — {order.created_at.day} {months[order.created_at.month - 1]}"
-    return label
-
-
-def _ticket_button_label(ticket) -> str:
-    """Метка кнопки тикета: '#abcd1234 · открыт · 15 апр'."""
-    short_id = str(ticket.id)[:8]
+def _tickets_list_kb(tickets: list) -> InlineKeyboardMarkup:
+    months = ["янв", "фев", "мар", "апр", "май", "июн",
+              "июл", "авг", "сен", "окт", "ноя", "дек"]
     status_map = {
         TicketStatus.open: "открыт",
         TicketStatus.in_progress: "в работе",
@@ -109,41 +97,88 @@ def _ticket_button_label(ticket) -> str:
         TicketStatus.resolved: "решён",
         TicketStatus.closed: "закрыт",
     }
-    status_label = status_map.get(ticket.status, ticket.status)
-    label = f"#{short_id} · {status_label}"
-    if ticket.created_at:
-        months = ["янв", "фев", "мар", "апр", "май", "июн",
-                  "июл", "авг", "сен", "окт", "ноя", "дек"]
-        label += f" · {ticket.created_at.day} {months[ticket.created_at.month - 1]}"
-    return label
+    buttons = []
+    for ticket in tickets:
+        short_id = str(ticket.id)[:8]
+        status_label = status_map.get(ticket.status, str(ticket.status))
+        date_label = ""
+        if ticket.created_at:
+            date_label = f" · {ticket.created_at.day} {months[ticket.created_at.month - 1]}"
+        label = f"#{short_id} · {status_label}{date_label}"
+        buttons.append([
+            InlineKeyboardButton(
+                text=label,
+                callback_data=f"support:ticket:{ticket.id}",
+            )
+        ])
+    buttons.append([
+        InlineKeyboardButton(text="⬅️ Назад", callback_data="support:back"),
+    ])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
 
 
 def _format_messages_preview(messages) -> str:
-    """Последние 3 сообщения для контекста при входе в тикет."""
     lines = []
     for msg in messages[-3:]:
         who = "Вы" if msg.sender_type == "user" else "Оператор"
-        text = (msg.text or "(вложение)")[:120]
-        lines.append(f"<b>{who}:</b> {text}")
-    return "\n\n".join(lines)
+        body = (msg.text or "(вложение)")[:120]
+        lines.append(f"{who}: {body}")
+    return "\n".join(lines)
 
 
-async def _show_main_menu(message: Message, user: User, db: AsyncSession) -> None:
-    """Показать главное меню с учётом активного тикета."""
+def _status_label(status: TicketStatus) -> str:
+    return {
+        TicketStatus.open: "открыто",
+        TicketStatus.in_progress: "в работе",
+        TicketStatus.waiting_user: "ждёт ответа",
+        TicketStatus.resolved: "решено",
+        TicketStatus.closed: "закрыто",
+    }.get(status, str(status))
+
+
+def _is_active(status: TicketStatus) -> bool:
+    return status not in (TicketStatus.closed, TicketStatus.resolved)
+
+
+def _extract_content(message: Message) -> tuple[str | None, list[str]]:
+    text = message.text or message.caption
+    attachments: list[str] = []
+    if message.photo:
+        attachments.append(f"tg://photo/{message.photo[-1].file_id}")
+    if message.document:
+        attachments.append(f"tg://doc/{message.document.file_id}")
+    return text, attachments
+
+
+async def _show_main_menu(
+    target: Message | CallbackQuery,
+    user: User,
+    db: AsyncSession,
+) -> None:
+    """Отправить (или отредактировать) главное меню."""
     svc = SupportService(db)
     active = await svc.get_open_ticket_for_user(user.id)
 
     if active:
+        ticket = await svc.get_ticket_with_messages(active.id)
         short_id = str(active.id)[:8]
-        text = texts.welcome_active(short_id)
+        preview = _format_messages_preview(ticket.messages) if (ticket and ticket.messages) else ""
+        text = texts.welcome_active(short_id, preview) if preview else texts.welcome
     else:
         text = texts.welcome
 
-    await message.answer(
-        text,
-        reply_markup=_main_menu_keyboard(has_active=bool(active)),
-        parse_mode="HTML",
-    )
+    kb = _main_menu_kb(has_active=bool(active))
+
+    if isinstance(target, CallbackQuery):
+        try:
+            await target.message.edit_text(text, reply_markup=kb, parse_mode="HTML")
+        except Exception:
+            await target.message.answer(text, reply_markup=kb, parse_mode="HTML")
+    else:
+        await target.answer(text, reply_markup=kb, parse_mode="HTML")
 
 
 # ── /start ────────────────────────────────────────────────────────────────────
@@ -155,77 +190,49 @@ async def cmd_start(message: Message, user: User, db: AsyncSession, state: FSMCo
     await _show_main_menu(message, user, db)
 
 
-# ── "Создать обращение" / "Новое обращение" ───────────────────────────────────
+# ── support:create ────────────────────────────────────────────────────────────
 
 
-@router.message(F.text == BTN_CREATE)
-@router.message(F.text == BTN_NEW)
-async def on_create_ticket(message: Message, user: User, db: AsyncSession, state: FSMContext):
+@router.callback_query(F.data == "support:create")
+async def cb_create(callback: CallbackQuery, state: FSMContext):
     await state.clear()
-
-    svc = SupportService(db)
-    orders = await svc.get_user_recent_orders(user.id, limit=5)
-
-    if not orders:
-        await message.answer(
-            texts.no_orders,
-            reply_markup=ReplyKeyboardMarkup(
-                keyboard=[[KeyboardButton(text=BTN_NO_ORDER)]],
-                resize_keyboard=True,
-                one_time_keyboard=True,
-            ),
+    await state.set_state(SupportStates.writing_message)
+    await callback.answer()
+    try:
+        await callback.message.edit_text(
+            texts.describe_problem,
+            reply_markup=_cancel_kb(),
             parse_mode="HTML",
         )
-        await state.set_state(SupportStates.choosing_order)
-        await state.update_data(order_map={})
-        return
-
-    order_map = {_order_button_label(o): str(o.id) for o in orders}
-    await state.update_data(order_map=order_map)
-
-    await message.answer(
-        texts.choose_order,
-        reply_markup=_order_keyboard(list(order_map.keys())),
-        parse_mode="HTML",
-    )
-    await state.set_state(SupportStates.choosing_order)
+    except Exception:
+        await callback.message.answer(
+            texts.describe_problem,
+            reply_markup=_cancel_kb(),
+            parse_mode="HTML",
+        )
 
 
-# ── choosing_order state ──────────────────────────────────────────────────────
+# ── support:cancel ────────────────────────────────────────────────────────────
 
 
-@router.message(SupportStates.choosing_order, F.text == BTN_NO_ORDER)
-async def on_no_order(message: Message, state: FSMContext):
-    await state.update_data(order_id=None)
-    await message.answer(
-        texts.describe_problem,
-        reply_markup=ReplyKeyboardRemove(),
-        parse_mode="HTML",
-    )
-    await state.set_state(SupportStates.writing_message)
+@router.callback_query(F.data == "support:cancel")
+async def cb_cancel(callback: CallbackQuery, user: User, db: AsyncSession, state: FSMContext):
+    await state.clear()
+    await callback.answer()
+    await _show_main_menu(callback, user, db)
 
 
-@router.message(SupportStates.choosing_order, F.text)
-async def on_order_selected(message: Message, state: FSMContext):
-    data = await state.get_data()
-    order_map: dict[str, str] = data.get("order_map", {})
-    order_id_str = order_map.get(message.text)
-
-    if order_id_str is None:
-        # Нераспознанная кнопка — просим выбрать снова
-        await message.answer(texts.unknown_command, parse_mode="HTML")
-        return
-
-    await state.update_data(order_id=order_id_str)
-    await message.answer(
-        texts.describe_problem,
-        reply_markup=ReplyKeyboardRemove(),
-        parse_mode="HTML",
-    )
-    await state.set_state(SupportStates.writing_message)
+# ── support:back ─────────────────────────────────────────────────────────────
 
 
-# ── writing_message state ─────────────────────────────────────────────────────
+@router.callback_query(F.data == "support:back")
+async def cb_back(callback: CallbackQuery, user: User, db: AsyncSession, state: FSMContext):
+    await state.clear()
+    await callback.answer()
+    await _show_main_menu(callback, user, db)
+
+
+# ── writing_message state — первое сообщение ─────────────────────────────────
 
 
 @router.message(SupportStates.writing_message, F.text | F.photo | F.document)
@@ -234,10 +241,6 @@ async def on_first_message(message: Message, user: User, db: AsyncSession, state
     if not text and not attachments:
         return
 
-    data = await state.get_data()
-    order_id_str = data.get("order_id")
-    order_id = uuid.UUID(order_id_str) if order_id_str else None
-
     subject = (text[:50] + "...") if text and len(text) > 50 else (text or "Обращение")
 
     svc = SupportService(db)
@@ -245,151 +248,250 @@ async def on_first_message(message: Message, user: User, db: AsyncSession, state
         user_id=user.id,
         subject=subject,
         message_text=text or "(вложение)",
-        order_id=order_id,
+        order_id=None,
         attachments=attachments,
         source="bot",
     )
 
-    await state.update_data(ticket_id=str(ticket.id))
+    short_id = str(ticket.id)[:8]
+    ticket_id_str = str(ticket.id)
+
+    await state.update_data(ticket_id=ticket_id_str)
     await state.set_state(SupportStates.in_chat)
 
     await message.answer(
-        texts.ticket_created,
-        reply_markup=_chat_keyboard(),
+        texts.ticket_created(short_id),
+        reply_markup=_created_kb(ticket_id_str),
         parse_mode="HTML",
     )
 
 
-# ── "Мои обращения" ───────────────────────────────────────────────────────────
+# ── support:continue ──────────────────────────────────────────────────────────
 
 
-@router.message(F.text == BTN_MY_TICKETS)
-async def on_my_tickets(message: Message, user: User, db: AsyncSession, state: FSMContext):
+@router.callback_query(F.data == "support:continue")
+async def cb_continue(callback: CallbackQuery, user: User, db: AsyncSession, state: FSMContext):
     await state.clear()
+    await callback.answer()
 
     svc = SupportService(db)
-    tickets = await svc.list_user_tickets(user.id, limit=5)
+    active = await svc.get_open_ticket_for_user(user.id)
 
-    if not tickets:
-        await message.answer(
-            texts.no_tickets,
-            reply_markup=_main_menu_keyboard(has_active=False),
+    if not active:
+        await _show_main_menu(callback, user, db)
+        return
+
+    ticket = await svc.get_ticket_with_messages(active.id)
+    short_id = str(active.id)[:8]
+    ticket_id_str = str(active.id)
+
+    if ticket and ticket.messages:
+        preview = _format_messages_preview(ticket.messages)
+        text = texts.ticket_preview(short_id, _status_label(active.status), preview)
+    else:
+        text = texts.ticket_preview_empty(short_id, _status_label(active.status))
+
+    await state.update_data(ticket_id=ticket_id_str)
+    await state.set_state(SupportStates.in_chat)
+
+    try:
+        await callback.message.edit_text(
+            text,
+            reply_markup=_created_kb(ticket_id_str),
             parse_mode="HTML",
         )
+    except Exception:
+        await callback.message.answer(
+            text,
+            reply_markup=_created_kb(ticket_id_str),
+            parse_mode="HTML",
+        )
+
+
+# ── support:enter:{ticket_id} — вход в чат из просмотра тикета ───────────────
+
+
+@router.callback_query(F.data.startswith("support:enter:"))
+async def cb_enter_ticket(callback: CallbackQuery, user: User, db: AsyncSession, state: FSMContext):
+    ticket_id_str = callback.data.removeprefix("support:enter:")
+    await callback.answer()
+
+    try:
+        ticket_id = uuid.UUID(ticket_id_str)
+    except ValueError:
+        await callback.message.answer(texts.ticket_not_found, parse_mode="HTML")
         return
 
-    ticket_map = {_ticket_button_label(tk): str(tk.id) for tk in tickets}
-    await state.update_data(ticket_map=ticket_map)
-
-    await message.answer(
-        texts.my_tickets_header,
-        reply_markup=_tickets_keyboard(list(ticket_map.keys())),
-        parse_mode="HTML",
-    )
-    await state.set_state(SupportStates.choosing_ticket)
-
-
-# ── choosing_ticket state ─────────────────────────────────────────────────────
-
-
-@router.message(SupportStates.choosing_ticket, F.text == BTN_BACK)
-async def on_tickets_back(message: Message, user: User, db: AsyncSession, state: FSMContext):
-    await state.clear()
-    await _show_main_menu(message, user, db)
-
-
-@router.message(SupportStates.choosing_ticket, F.text)
-async def on_ticket_selected(message: Message, user: User, db: AsyncSession, state: FSMContext):
-    data = await state.get_data()
-    ticket_map: dict[str, str] = data.get("ticket_map", {})
-    ticket_id_str = ticket_map.get(message.text)
-
-    if not ticket_id_str:
-        await message.answer(texts.unknown_command, parse_mode="HTML")
-        return
-
-    ticket_id = uuid.UUID(ticket_id_str)
     svc = SupportService(db)
     ticket = await svc.get_ticket_with_messages(ticket_id, user_id=user.id)
 
     if not ticket:
-        await message.answer(texts.ticket_not_found, parse_mode="HTML")
+        await callback.message.answer(texts.ticket_not_found, parse_mode="HTML")
         return
 
     short_id = str(ticket.id)[:8]
 
     if ticket.messages:
         preview = _format_messages_preview(ticket.messages)
-        context_text = texts.ticket_context(short_id, preview)
+        text = texts.ticket_preview(short_id, _status_label(ticket.status), preview)
     else:
-        context_text = texts.ticket_context_empty(short_id)
+        text = texts.ticket_preview_empty(short_id, _status_label(ticket.status))
 
     await state.update_data(ticket_id=ticket_id_str)
     await state.set_state(SupportStates.in_chat)
 
-    await message.answer(
-        context_text,
-        reply_markup=_chat_keyboard(),
-        parse_mode="HTML",
-    )
+    try:
+        await callback.message.edit_text(
+            text,
+            reply_markup=_created_kb(ticket_id_str),
+            parse_mode="HTML",
+        )
+    except Exception:
+        await callback.message.answer(
+            text,
+            reply_markup=_created_kb(ticket_id_str),
+            parse_mode="HTML",
+        )
 
 
-# ── "Продолжить обращение" ────────────────────────────────────────────────────
+# ── support:tickets — список обращений ───────────────────────────────────────
 
 
-@router.message(F.text == BTN_CONTINUE)
-async def on_continue_ticket(message: Message, user: User, db: AsyncSession, state: FSMContext):
+@router.callback_query(F.data == "support:tickets")
+async def cb_tickets(callback: CallbackQuery, user: User, db: AsyncSession, state: FSMContext):
     await state.clear()
+    await callback.answer()
 
     svc = SupportService(db)
-    active = await svc.get_open_ticket_for_user(user.id)
+    tickets = await svc.list_user_tickets(user.id, limit=10)
 
-    if not active:
-        # Активный тикет исчез — показываем главное меню
-        await message.answer(texts.welcome, reply_markup=_main_menu_keyboard(has_active=False), parse_mode="HTML")
+    if not tickets:
+        try:
+            await callback.message.edit_text(
+                texts.no_tickets,
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="⬅️ Назад", callback_data="support:back")],
+                ]),
+                parse_mode="HTML",
+            )
+        except Exception:
+            await callback.message.answer(texts.no_tickets, parse_mode="HTML")
         return
 
-    ticket = await svc.get_ticket_with_messages(active.id)
-    short_id = str(active.id)[:8]
+    await state.set_state(SupportStates.choosing_ticket)
 
-    if ticket and ticket.messages:
+    try:
+        await callback.message.edit_text(
+            texts.my_tickets_header,
+            reply_markup=_tickets_list_kb(tickets),
+            parse_mode="HTML",
+        )
+    except Exception:
+        await callback.message.answer(
+            texts.my_tickets_header,
+            reply_markup=_tickets_list_kb(tickets),
+            parse_mode="HTML",
+        )
+
+
+# ── support:ticket:{id} — просмотр тикета ────────────────────────────────────
+
+
+@router.callback_query(F.data.startswith("support:ticket:"))
+async def cb_ticket_detail(callback: CallbackQuery, user: User, db: AsyncSession, state: FSMContext):
+    ticket_id_str = callback.data.removeprefix("support:ticket:")
+    await callback.answer()
+
+    try:
+        ticket_id = uuid.UUID(ticket_id_str)
+    except ValueError:
+        await callback.message.answer(texts.ticket_not_found, parse_mode="HTML")
+        return
+
+    svc = SupportService(db)
+    ticket = await svc.get_ticket_with_messages(ticket_id, user_id=user.id)
+
+    if not ticket:
+        await callback.message.answer(texts.ticket_not_found, parse_mode="HTML")
+        return
+
+    short_id = str(ticket.id)[:8]
+    active = _is_active(ticket.status)
+
+    if ticket.messages:
         preview = _format_messages_preview(ticket.messages)
-        context_text = texts.ticket_context(short_id, preview)
+        text = texts.ticket_preview(short_id, _status_label(ticket.status), preview)
     else:
-        context_text = texts.ticket_context_empty(short_id)
+        text = texts.ticket_preview_empty(short_id, _status_label(ticket.status))
 
-    await state.update_data(ticket_id=str(active.id))
-    await state.set_state(SupportStates.in_chat)
-
-    await message.answer(
-        context_text,
-        reply_markup=_chat_keyboard(),
-        parse_mode="HTML",
-    )
-
-
-# ── Helper: извлечение контента из сообщения ──────────────────────────────────
-
-
-def _extract_content(message: Message) -> tuple[str | None, list[str]]:
-    text = message.text or message.caption
-    attachments: list[str] = []
-
-    if message.photo:
-        photo = message.photo[-1]
-        attachments.append(f"tg://photo/{photo.file_id}")
-
-    if message.document:
-        attachments.append(f"tg://doc/{message.document.file_id}")
-
-    return text, attachments
+    try:
+        await callback.message.edit_text(
+            text,
+            reply_markup=_ticket_detail_kb(ticket_id_str, is_active=active),
+            parse_mode="HTML",
+        )
+    except Exception:
+        await callback.message.answer(
+            text,
+            reply_markup=_ticket_detail_kb(ticket_id_str, is_active=active),
+            parse_mode="HTML",
+        )
 
 
-# ── Fallback — неизвестное состояние или нераспознанная команда ───────────────
+# ── support:close:{id} — закрыть тикет ───────────────────────────────────────
+
+
+@router.callback_query(F.data.startswith("support:close:"))
+async def cb_close_ticket(callback: CallbackQuery, user: User, db: AsyncSession, state: FSMContext):
+    ticket_id_str = callback.data.removeprefix("support:close:")
+    await callback.answer()
+
+    try:
+        ticket_id = uuid.UUID(ticket_id_str)
+    except ValueError:
+        await callback.message.answer(texts.ticket_not_found, parse_mode="HTML")
+        return
+
+    svc = SupportService(db)
+    ticket = await svc.get_ticket(ticket_id, user_id=user.id)
+
+    short_id = str(ticket_id)[:8]
+
+    if ticket and _is_active(ticket.status):
+        await svc.change_status(ticket_id, TicketStatus.closed)
+
+    await state.clear()
+
+    try:
+        await callback.message.edit_text(
+            texts.ticket_closed(short_id),
+            reply_markup=None,
+            parse_mode="HTML",
+        )
+    except Exception:
+        await callback.message.answer(
+            texts.ticket_closed(short_id),
+            parse_mode="HTML",
+        )
+
+    # Отправить главное меню новым сообщением (не редактировать "закрыто")
+    await asyncio.sleep(0.5)
+    svc2 = SupportService(db)
+    active = await svc2.get_open_ticket_for_user(user.id)
+    if active:
+        ticket2 = await svc2.get_ticket_with_messages(active.id)
+        short_id2 = str(active.id)[:8]
+        preview2 = _format_messages_preview(ticket2.messages) if (ticket2 and ticket2.messages) else ""
+        menu_text = texts.welcome_active(short_id2, preview2) if preview2 else texts.welcome
+    else:
+        menu_text = texts.welcome
+    await callback.message.answer(menu_text, reply_markup=_main_menu_kb(has_active=bool(active)), parse_mode="HTML")
+
+
+# ── Fallback ──────────────────────────────────────────────────────────────────
 
 
 @router.message()
 async def on_unknown(message: Message, user: User, db: AsyncSession, state: FSMContext):
-    """Сбрасывает любое устаревшее FSM-состояние и возвращает в главное меню."""
     await state.clear()
     await _show_main_menu(message, user, db)
