@@ -246,7 +246,6 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
   const touchStartY = useRef<number>(0)
   const dragDelta = useRef<number>(0)
   const panelRef = useRef<HTMLDivElement>(null)
-  const trendingScrollRef = useRef<HTMLDivElement>(null)
 
   // Lock scroll while sheet is open
   useEffect(() => {
@@ -463,6 +462,8 @@ export default function HomePage() {
     queryFn: () => catalogApi.getGames(homeType),
     staleTime: 5 * 60 * 1000,
   })
+
+  const trendingScrollRef = useRef<HTMLDivElement>(null)
 
   const { data: trendingCategories = [], isLoading: trendingLoading } = useQuery({
     queryKey: ['trending-categories'],
