@@ -89,7 +89,7 @@ export default function SupportPage() {
     if (prefillOrderId) setView('drafting')
   }, [prefillOrderId])
 
-  const { data: tickets = [], refetch: refetchTickets } = useQuery({
+  const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets'],
     queryFn: supportApi.list,
   })
@@ -239,10 +239,10 @@ export default function SupportPage() {
 
           {/* Input */}
           <div
-            className="shrink-0 border-t border-white/5 px-3 py-2"
+            className="shrink-0 border-t border-white/5 px-3 pt-2"
             style={{
               background: '#060f1e',
-              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+              paddingBottom: 'max(env(safe-area-inset-bottom, 20px), 20px)',
             }}
           >
             <div
@@ -398,10 +398,10 @@ export default function SupportPage() {
 
           {/* Input */}
           <div
-            className="shrink-0 border-t border-white/5 px-3 py-2"
+            className="shrink-0 border-t border-white/5 px-3 pt-2"
             style={{
               background: '#060f1e',
-              paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+              paddingBottom: 'max(env(safe-area-inset-bottom, 20px), 20px)',
             }}
           >
             {!isClosed ? (
@@ -462,7 +462,18 @@ export default function SupportPage() {
             transition={{ duration: 0.22 }}
             className="space-y-1"
           >
-            {tickets.length === 0 ? (
+            {ticketsLoading ? (
+              // Скелетон — не мелькает пустое состояние
+              <div className="space-y-2 mt-1">
+                {[1, 2, 3].map(i => (
+                  <div
+                    key={i}
+                    className="h-[72px] rounded-2xl animate-pulse"
+                    style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+                  />
+                ))}
+              </div>
+            ) : tickets.length === 0 ? (
               <div className="flex flex-col items-center py-16 gap-5">
                 <div
                   className="w-24 h-24 rounded-3xl flex items-center justify-center"

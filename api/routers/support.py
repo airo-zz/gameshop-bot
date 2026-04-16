@@ -6,8 +6,10 @@ api/routers/support.py
 """
 
 import uuid
+from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, Query
+import aiofiles
+from fastapi import APIRouter, HTTPException, Query, UploadFile, status
 
 from api.deps import CurrentUser, DbSession
 from api.schemas.support import (
@@ -19,6 +21,43 @@ from api.schemas.support import (
 from api.services.support_service import SupportService
 
 router = APIRouter()
+
+SUPPORT_UPLOAD_DIR = Path("/static/uploads/support")
+ALLOWED_TYPES = {
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+}
+MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
+
+
+@router.post("/upload")
+async def upload_attachment(file: UploadFile, user: CurrentUser) -> dict:
+    """Загрузка вложения к тикету. Только изображения, макс 5 МБ."""
+    content_type = (file.content_type or "").lower()
+    ext = ALLOWED_TYPES.get(content_type)
+    if ext is None:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Неподдерживаемый тип: {content_type}. Разрешены: jpg, png, webp",
+        )
+
+    contents = await file.read(MAX_UPLOAD_SIZE + 1)
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Файл слишком большой. Максимум 5 МБ.",
+        )
+
+    SUPPORT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    filename = f"{uuid.uuid4()}.{ext}"
+    dest = SUPPORT_UPLOAD_DIR / filename
+
+    async with aiofiles.open(dest, "wb") as f:
+        await f.write(contents)
+
+    return {"url": f"/static/uploads/support/{filename}"}
 
 
 @router.post("")
