@@ -5,7 +5,8 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, AlertCircle } from 'lucide-react'
+import { Search, AlertCircle, Trash2 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { adminApi } from '@/api/admin'
 import type { AdminOrderListItem, PaginatedResponse } from '@/api/admin'
 import { useAdminOrdersStore } from '@/store/adminStore'
@@ -44,6 +45,12 @@ function formatDate(iso: string) {
 
 export default function OrdersPage() {
   const { page, status, search, setPage, setStatus, setSearch } = useAdminOrdersStore()
+
+  const { data: trashData } = useQuery({
+    queryKey: ['admin', 'orders', 'trash', 1],
+    queryFn: () => adminApi.getTrashOrders(1, 1),
+    staleTime: 60_000,
+  })
   const [data, setData] = useState<PaginatedResponse<AdminOrderListItem> | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -75,11 +82,25 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-xl font-bold text-white">Заказы</h1>
-        {data && (
-          <p className="text-sm text-white/40 mt-0.5">Всего: {data.total}</p>
-        )}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-white">Заказы</h1>
+          {data && (
+            <p className="text-sm text-white/40 mt-0.5">Всего: {data.total}</p>
+          )}
+        </div>
+        <Link
+          to="/admin/orders/trash"
+          className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors duration-200 mt-1"
+        >
+          <Trash2 size={13} />
+          Корзина
+          {(trashData?.total ?? 0) > 0 && (
+            <span className="bg-red-500/20 text-red-400 text-[10px] font-medium px-1.5 py-0.5 rounded-full leading-none">
+              {trashData!.total}
+            </span>
+          )}
+        </Link>
       </div>
 
       {/* Filters */}

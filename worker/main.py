@@ -23,6 +23,7 @@ celery_app = Celery(
     include=[
         "worker.tasks.cart_tasks",
         "worker.tasks.notification_tasks",
+        "worker.tasks.cleanup_tasks",
     ],
 )
 
@@ -53,5 +54,10 @@ celery_app.conf.beat_schedule = {
     "expire-pending-orders": {
         "task": "worker.tasks.order_tasks.expire_pending_orders",
         "schedule": crontab(minute="*/10"),
+    },
+    # Раз в сутки в 04:00 UTC — удаление заказов из корзины старше 7 дней
+    "purge-old-deleted-orders": {
+        "task": "worker.tasks.cleanup_tasks.purge_old_deleted_orders",
+        "schedule": crontab(hour=4, minute=0),
     },
 }

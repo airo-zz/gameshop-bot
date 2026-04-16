@@ -343,8 +343,17 @@ export const adminApi = {
   updateOrderStatus: (id: string, status: string, reason?: string) =>
     apiClient.patch(`/admin/orders/${id}/status`, { status, reason }).then(r => r.data),
 
-  deleteOrder: (id: string) =>
-    apiClient.delete(`/admin/orders/${id}`).then(r => r.data),
+  deleteOrder: (id: string, reason?: string) =>
+    apiClient.delete(`/admin/orders/${id}`, { params: reason ? { reason } : {} }).then(r => r.data),
+
+  getTrashOrders: (page = 1, pageSize = 20) =>
+    apiClient.get('/admin/orders/trash', { params: { page, page_size: pageSize } }).then(r => r.data),
+
+  restoreOrder: (id: string) =>
+    apiClient.post(`/admin/orders/${id}/restore`).then(r => r.data),
+
+  forceDeleteOrder: (id: string) =>
+    apiClient.delete(`/admin/orders/${id}/force`).then(r => r.data),
 
   addOrderNotes: (id: string, text: string) =>
     apiClient.post(`/admin/orders/${id}/notes`, { text }).then(r => r.data),

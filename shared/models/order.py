@@ -117,6 +117,8 @@ class Order(Base, UUIDMixin, TimestampMixin):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Заметки оператора (внутренние, клиент не видит)
     cancel_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delete_reason: Mapped[str | None] = mapped_column(String(255), nullable=True)
     meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     # idempotency_key, внешние ID и т.д.
 
@@ -125,12 +127,15 @@ class Order(Base, UUIDMixin, TimestampMixin):
     items: Mapped[list["OrderItem"]] = relationship(
         "OrderItem", back_populates="order", cascade="all, delete-orphan"
     )
-    payments: Mapped[list["Payment"]] = relationship("Payment", back_populates="order")
+    payments: Mapped[list["Payment"]] = relationship(
+        "Payment", back_populates="order", passive_deletes=True
+    )
     discount_log: Mapped[list["OrderDiscountLog"]] = relationship(
-        "OrderDiscountLog", back_populates="order"
+        "OrderDiscountLog", back_populates="order", passive_deletes=True
     )
     status_history: Mapped[list["OrderStatusHistory"]] = relationship(
-        "OrderStatusHistory", back_populates="order", order_by="OrderStatusHistory.created_at"
+        "OrderStatusHistory", back_populates="order", passive_deletes=True,
+        order_by="OrderStatusHistory.created_at"
     )
     promo_code: Mapped["PromoCode | None"] = relationship("PromoCode")
 

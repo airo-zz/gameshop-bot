@@ -78,6 +78,7 @@ class OrderListItem(BaseModel):
     paid_at: datetime | None = None
     completed_at: datetime | None = None
     items_count: int
+    deleted_at: datetime | None = None
 
 
 class OrderDetailOut(BaseModel):

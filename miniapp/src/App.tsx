@@ -73,6 +73,7 @@ const AdminGamesList   = lazy(() => import('@/pages/admin/GamesListPage'))
 const AdminSupport     = lazy(() => import('@/pages/admin/SupportPage'))
 const AdminLogin       = lazy(() => import('@/pages/admin/LoginPage'))
 const AdminLoyalty     = lazy(() => import('@/pages/admin/LoyaltySettingsPage'))
+const AdminOrdersTrash = lazy(() => import('@/pages/admin/OrdersTrashPage'))
 
 const BalancePage   = lazy(() => import('@/pages/BalancePage'))
 const ReferralsPage = lazy(() => import('@/pages/ReferralsPage'))
@@ -182,6 +183,7 @@ export default function App() {
           >
             <Route index element={<LazyPage><AdminDashboard /></LazyPage>} />
             <Route path="orders" element={<LazyPage><AdminOrders /></LazyPage>} />
+            <Route path="orders/trash" element={<LazyPage><AdminOrdersTrash /></LazyPage>} />
             <Route path="orders/:id" element={<LazyPage><AdminOrderDetail /></LazyPage>} />
             <Route path="catalog" element={<LazyPage><AdminCatalog /></LazyPage>} />
             <Route path="catalog/products/:id" element={<LazyPage><AdminProductEdit /></LazyPage>} />
