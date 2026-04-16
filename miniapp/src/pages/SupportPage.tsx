@@ -2,10 +2,9 @@
 import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { MessageCircle, Send, Plus, ArrowLeft, Paperclip, X } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { MessageCircle, Send, Plus, ArrowLeft, Paperclip, X, ZoomIn } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { supportApi, ordersApi, type Ticket, type TicketMessage, type Order } from '@/api'
+import { supportApi, type Ticket, type TicketMessage } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 
 type View = 'list' | 'drafting' | 'chat'
@@ -74,6 +73,7 @@ export default function SupportPage() {
   const [sending, setSending] = useState(false)
   const [attachedFiles, setAttachedFiles] = useState<File[]>([])
   const [uploadingFiles, setUploadingFiles] = useState(false)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
   // Drafting state
   const [draftText, setDraftText] = useState(prefillOrderId ? '' : '')
@@ -356,9 +356,40 @@ export default function SupportPage() {
                       )}
                       <p className="text-sm whitespace-pre-wrap break-words">{msg.text}</p>
                       {msg.attachments.length > 0 && (
-                        <div className="flex items-center gap-1 mt-1">
-                          <Paperclip size={10} className="text-white/40" />
-                          <span className="text-[10px] text-white/40">{msg.attachments.length} вложений</span>
+                        <div className="flex flex-wrap gap-1.5 mt-2">
+                          {msg.attachments.map((url, idx) => {
+                            const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(url)
+                            return isImage ? (
+                              <button
+                                key={idx}
+                                type="button"
+                                onClick={() => setLightboxUrl(url)}
+                                className="relative rounded-lg overflow-hidden shrink-0 group"
+                                style={{ width: 80, height: 80 }}
+                              >
+                                <img
+                                  src={url}
+                                  alt=""
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/30 opacity-0 group-active:opacity-100 flex items-center justify-center transition-opacity">
+                                  <ZoomIn size={20} className="text-white" />
+                                </div>
+                              </button>
+                            ) : (
+                              <a
+                                key={idx}
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs"
+                                style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}
+                              >
+                                <Paperclip size={11} />
+                                Файл {idx + 1}
+                              </a>
+                            )
+                          })}
                         </div>
                       )}
                       <p className={`text-[10px] mt-1 text-right ${isUser ? 'text-white/50' : 'text-white/30'}`}>
@@ -451,93 +482,119 @@ export default function SupportPage() {
         </FullScreenOverlay>
       )}
 
-      {/* List view */}
-      <AnimatePresence mode="wait">
-        {view === 'list' && (
-          <motion.div
-            key="list"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ x: -30, opacity: 0 }}
-            transition={{ duration: 0.22 }}
-            className="space-y-1"
+      {/* Lightbox */}
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          style={{
+            position: 'fixed',
+            top: 0, left: 0, right: 0, bottom: 0,
+            zIndex: 300,
+            background: 'rgba(0,0,0,0.92)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <button
+            onClick={() => setLightboxUrl(null)}
+            style={{
+              position: 'absolute',
+              top: 16, right: 16,
+              zIndex: 301,
+              background: 'rgba(255,255,255,0.12)',
+              border: 'none',
+              borderRadius: 20,
+              width: 36, height: 36,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer',
+            }}
           >
-            {ticketsLoading ? (
-              // Скелетон — не мелькает пустое состояние
-              <div className="space-y-2 mt-1">
-                {[1, 2, 3].map(i => (
-                  <div
-                    key={i}
-                    className="h-[72px] rounded-2xl animate-pulse"
-                    style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
-                  />
-                ))}
-              </div>
-            ) : tickets.length === 0 ? (
-              <div className="flex flex-col items-center py-16 gap-5">
+            <X size={18} color="#fff" />
+          </button>
+          <img
+            src={lightboxUrl}
+            alt=""
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: '92vw', maxHeight: '80vh', borderRadius: 12, objectFit: 'contain' }}
+          />
+        </div>
+      )}
+
+      {/* List view */}
+      {view === 'list' && (
+        <div className="space-y-2">
+          {ticketsLoading ? (
+            <>
+              {[1, 2, 3].map(i => (
                 <div
-                  className="w-24 h-24 rounded-3xl flex items-center justify-center"
+                  key={i}
+                  className="h-[72px] rounded-2xl animate-pulse"
+                  style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+                />
+              ))}
+            </>
+          ) : tickets.length === 0 ? (
+            <div className="flex flex-col items-center py-16 gap-5">
+              <div
+                className="w-24 h-24 rounded-3xl flex items-center justify-center"
+                style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+              >
+                <MessageCircle size={40} style={{ color: 'var(--hint)' }} />
+              </div>
+              <div className="text-center">
+                <p className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Обращений пока нет</p>
+                <p className="text-sm" style={{ color: 'var(--hint)' }}>Опиши проблему — мы поможем</p>
+              </div>
+              <button
+                onClick={() => setView('drafting')}
+                className="btn-primary"
+                style={{ maxWidth: 220 }}
+              >
+                Создать обращение
+              </button>
+            </div>
+          ) : (
+            tickets.map((ticket: Ticket) => {
+              const status = STATUS_LABEL[ticket.status] ?? { label: ticket.status, color: '#6b7280', bg: 'rgba(107,114,128,0.15)' }
+              const initial = avatarInitial(ticket.subject)
+              return (
+                <button
+                  key={ticket.id}
+                  onClick={() => openChat(ticket.id, ticket)}
+                  className="flex items-center gap-3 px-3 py-3 rounded-2xl w-full text-left transition-all active:scale-[0.98]"
                   style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
                 >
-                  <MessageCircle size={40} style={{ color: 'var(--hint)' }} />
-                </div>
-                <div className="text-center">
-                  <p className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Обращений пока нет</p>
-                  <p className="text-sm" style={{ color: 'var(--hint)' }}>Опиши проблему — мы поможем</p>
-                </div>
-                <button
-                  onClick={() => setView('drafting')}
-                  className="btn-primary"
-                  style={{ maxWidth: 220 }}
-                >
-                  Создать обращение
-                </button>
-              </div>
-            ) : (
-              tickets.map((ticket: Ticket, i: number) => {
-                const status = STATUS_LABEL[ticket.status] ?? { label: ticket.status, color: '#6b7280', bg: 'rgba(107,114,128,0.15)' }
-                const initial = avatarInitial(ticket.subject)
-                return (
-                  <motion.button
-                    key={ticket.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: i * 0.04 }}
-                    onClick={() => openChat(ticket.id, ticket)}
-                    className="flex items-center gap-3 px-3 py-3 rounded-2xl w-full text-left transition-all active:scale-[0.98]"
-                    style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+                  <div
+                    className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-base font-bold"
+                    style={{ background: 'rgba(59,130,246,0.18)', color: '#3b82f6' }}
                   >
-                    <div
-                      className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-base font-bold"
-                      style={{ background: 'rgba(59,130,246,0.18)', color: '#3b82f6' }}
-                    >
-                      {initial}
+                    {initial}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-0.5">
+                      <p className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>
+                        {ticket.subject}
+                      </p>
+                      <span className="text-xs shrink-0" style={{ color: 'var(--hint)' }}>
+                        {timeAgo(ticket.created_at)}
+                      </span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-0.5">
-                        <p className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>
-                          {ticket.subject}
-                        </p>
-                        <span className="text-xs shrink-0" style={{ color: 'var(--hint)' }}>
-                          {timeAgo(ticket.created_at)}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span
-                          className="text-xs font-medium px-1.5 py-0.5 rounded-md"
-                          style={{ color: status.color, background: status.bg }}
-                        >
-                          {status.label}
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="text-xs font-medium px-1.5 py-0.5 rounded-md"
+                        style={{ color: status.color, background: status.bg }}
+                      >
+                        {status.label}
+                      </span>
                     </div>
-                  </motion.button>
-                )
-              })
-            )}
-          </motion.div>
-        )}
-      </AnimatePresence>
+                  </div>
+                </button>
+              )
+            })
+          )}
+        </div>
+      )}
     </div>
   )
 }
