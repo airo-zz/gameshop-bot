@@ -398,6 +398,9 @@ export const adminApi = {
   updateCategory: (id: string, data: { is_featured?: boolean; is_active?: boolean; sort_order?: number; name?: string }) =>
     apiClient.patch<AdminCategory>(`/admin/catalog/categories/${id}`, data).then(r => r.data),
 
+  deleteCategory: (id: string) =>
+    apiClient.delete(`/admin/catalog/categories/${id}`),
+
   deleteProduct: (id: string) =>
     apiClient.delete(`/admin/catalog/products/${id}`).then(r => r.data),
 

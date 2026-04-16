@@ -279,6 +279,7 @@ function CategoriesLevel({ game, onBack, onSelect }: CategoriesLevelProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   const load = useCallback(() => {
     setLoading(true)
@@ -300,6 +301,21 @@ function CategoriesLevel({ game, onBack, onSelect }: CategoriesLevelProps) {
       toast.error('Не удалось обновить')
     } finally {
       setTogglingId(null)
+    }
+  }, [])
+
+  const handleDeleteCategory = useCallback(async (cat: AdminCategory, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!window.confirm(`Удалить категорию "${cat.name}"? Это действие нельзя отменить.`)) return
+    setDeletingId(cat.id)
+    try {
+      await adminApi.deleteCategory(cat.id)
+      setCategories(prev => prev.filter(c => c.id !== cat.id))
+      toast.success('Категория удалена')
+    } catch {
+      toast.error('Не удалось удалить категорию')
+    } finally {
+      setDeletingId(null)
     }
   }, [])
 
@@ -366,6 +382,15 @@ function CategoriesLevel({ game, onBack, onSelect }: CategoriesLevelProps) {
                 title={cat.is_featured ? 'Убрать с главной' : 'Закрепить на главной'}
               >
                 <Pin size={14} className={cat.is_featured ? 'fill-amber-400' : ''} />
+              </button>
+              <button
+                type="button"
+                onClick={e => handleDeleteCategory(cat, e)}
+                disabled={deletingId === cat.id}
+                className="shrink-0 p-1.5 rounded-lg text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-red-400 hover:border-red-400/30 transition-all"
+                title="Удалить категорию"
+              >
+                <Trash2 size={14} />
               </button>
             </div>
           ))}

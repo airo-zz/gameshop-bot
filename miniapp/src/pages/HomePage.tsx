@@ -475,7 +475,8 @@ export default function HomePage() {
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: profileApi.get,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60_000,
+    refetchOnMount: true,
   })
 
   return (
@@ -620,7 +621,8 @@ export default function HomePage() {
                 {Number(profile.balance).toLocaleString('ru')} ₽
               </span>
               {/* Уровень лояльности */}
-              <span
+              <Link
+                to="/profile"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -632,13 +634,14 @@ export default function HomePage() {
                   fontSize: 12,
                   fontWeight: 600,
                   color: getLoyaltyColor(profile.loyalty_level_name ?? null),
+                  textDecoration: 'none',
                 }}
               >
                 <span style={{ display: 'flex', width: 13, height: 13, flexShrink: 0, color: getLoyaltyColor(profile.loyalty_level_name ?? null) }}>
                   {getLoyaltyIcon(profile.loyalty_level_name ?? null)}
                 </span>
                 {profile.loyalty_level_name || 'Базовый'}
-              </span>
+              </Link>
             </div>
           )}
         </div>

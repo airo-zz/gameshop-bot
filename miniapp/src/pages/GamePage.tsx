@@ -333,7 +333,7 @@ function ProductSection({ product, cartQtyMap, onAdd, onRemove }: ProductSection
                       className="flex items-center justify-center gap-2 px-5 h-full text-sm font-semibold active:scale-95 transition-transform"
                       style={{ color: isOutOfStock ? '#f87171' : '#6b9de8' }}
                     >
-                      {isOutOfStock ? 'Нет в наличии' : <><Plus size={14} /> В корзину</>}
+                      {isOutOfStock ? 'Нет в наличии' : <Plus size={15} />}
                     </motion.button>
                   )}
                 </AnimatePresence>

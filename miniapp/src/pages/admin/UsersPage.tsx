@@ -105,8 +105,6 @@ export default function UsersPage() {
               to={`/admin/users/${user.id}`}
               className="flex items-center gap-3 bg-[#1a1f2e] hover:bg-[#1f2538] border border-white/[0.06] rounded-xl px-4 py-3.5 transition-all duration-200 active:scale-[0.99]"
             >
-              <div className="w-9 h-9 rounded-full bg-white/[0.08] shrink-0" />
-
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-white truncate">

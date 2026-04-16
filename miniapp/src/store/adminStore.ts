@@ -37,12 +37,12 @@ interface AdminOrdersState {
 
 export const useAdminOrdersStore = create<AdminOrdersState>((set) => ({
   page: 1,
-  status: 'all',
+  status: 'new',
   search: '',
   setPage: (page) => set({ page }),
   setStatus: (status) => set({ status, page: 1 }),
   setSearch: (search) => set({ search, page: 1 }),
-  reset: () => set({ page: 1, status: 'all', search: '' }),
+  reset: () => set({ page: 1, status: 'new', search: '' }),
 }))
 
 // ── Admin Users Store ─────────────────────────────────────────────────────────

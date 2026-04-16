@@ -73,8 +73,8 @@ export default function OrderDetailPage() {
       await adminApi.deleteOrder(order.id)
       toast.success('Заказ удалён')
       navigate('/admin/orders')
-    } catch {
-      toast.error('Не удалось удалить заказ')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? 'Не удалось удалить заказ')
     } finally {
       setDeleting(false)
     }

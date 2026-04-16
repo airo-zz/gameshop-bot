@@ -28,14 +28,10 @@ export default function FavoritesPage() {
     </div>
   )
 
-  const handleToggle = async (id: string, _added: boolean) => {
-    // Optimistic: убираем сразу
-    qc.setQueryData<Product[]>(['favorites'], prev => prev?.filter(p => p.id !== id) ?? [])
-    try {
-      await catalogApi.toggleFavorite(id)
-    } catch {
-      // При ошибке восстанавливаем
-      qc.invalidateQueries({ queryKey: ['favorites'] })
+  const handleToggle = (id: string, added: boolean) => {
+    // ProductCard уже вызвал API; здесь только обновляем локальный кэш
+    if (!added) {
+      qc.setQueryData<Product[]>(['favorites'], prev => prev?.filter(p => p.id !== id) ?? [])
     }
   }
 
