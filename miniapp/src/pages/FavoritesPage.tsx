@@ -1,6 +1,6 @@
 // src/pages/FavoritesPage.tsx
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { catalogApi } from '@/api'
+import { catalogApi, type Product } from '@/api'
 import ProductCard from '@/components/ui/ProductCard'
 import { Heart } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -29,12 +29,14 @@ export default function FavoritesPage() {
   )
 
   const handleToggle = async (id: string, _added: boolean) => {
+    // Optimistic: убираем сразу
+    qc.setQueryData<Product[]>(['favorites'], prev => prev?.filter(p => p.id !== id) ?? [])
     try {
       await catalogApi.toggleFavorite(id)
     } catch {
-      // silent fail
+      // При ошибке восстанавливаем
+      qc.invalidateQueries({ queryKey: ['favorites'] })
     }
-    qc.invalidateQueries({ queryKey: ['favorites'] })
   }
 
   if (isLoading) return (
@@ -45,7 +47,10 @@ export default function FavoritesPage() {
 
   return (
     <div className="px-4 pt-5 pb-4 space-y-4">
-      <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>❤️ Избранное</h1>
+      <h1 className="text-xl font-extrabold flex items-center gap-2" style={{ color: 'var(--text)' }}>
+        <Heart size={20} fill="currentColor" style={{ color: '#f87171' }} />
+        Избранное
+      </h1>
 
       {favorites.length === 0 ? (
         <div className="flex flex-col items-center py-16 gap-5">
@@ -57,7 +62,7 @@ export default function FavoritesPage() {
           </div>
           <div className="text-center">
             <p className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Нет избранных товаров</p>
-            <p className="text-sm" style={{ color: 'var(--hint)' }}>Добавляй товары в избранное через ❤️</p>
+            <p className="text-sm" style={{ color: 'var(--hint)' }}>Добавляй товары в избранное через иконку сердца</p>
           </div>
           <Link to="/catalog" className="btn-primary" style={{ maxWidth: 200 }}>В каталог</Link>
         </div>
