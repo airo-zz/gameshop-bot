@@ -48,7 +48,7 @@ export default function FavoritesPage() {
   )
 
   return (
-    <div className="px-4 pt-5 pb-4 space-y-4 animate-fade-in">
+    <div className="px-4 pt-5 pb-4 space-y-4">
       <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>❤️ Избранное</h1>
 
       {favorites.length === 0 ? (

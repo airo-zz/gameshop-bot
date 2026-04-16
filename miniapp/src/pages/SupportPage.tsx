@@ -46,7 +46,10 @@ function FullScreenOverlay({ children }: { children: ReactNode }) {
     <div
       style={{
         position: 'fixed',
-        inset: 0,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         zIndex: 200,
         display: 'flex',
         flexDirection: 'column',
@@ -186,7 +189,7 @@ export default function SupportPage() {
   const isClosed = displayTicket?.status === 'closed' || displayTicket?.status === 'resolved'
 
   return (
-    <div className="px-4 pt-5 pb-6 animate-fade-in">
+    <div className="px-4 pt-5 pb-6">
       {/* Header (list only) */}
       {view === 'list' && (
         <div className="flex items-center justify-between mb-5">

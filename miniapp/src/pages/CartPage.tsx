@@ -144,7 +144,7 @@ export default function CartPage() {
   if (!cart || cart.items.length === 0) return null
 
   return (
-    <div className="px-4 pt-5 pb-6 space-y-4 animate-fade-in">
+    <div className="px-4 pt-5 pb-6 space-y-4">
       {/* Заголовок */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>🛒 Корзина</h1>

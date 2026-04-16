@@ -542,7 +542,7 @@ export default function HomePage() {
       <div className="px-4 pb-4" style={{ paddingTop: 56 }}>
 
         {/* ── Hero greeting ────────────────────────────────────────────────── */}
-        <div className="pt-5 pb-4 animate-fade-in">
+        <div className="pt-5 pb-4">
           <h1
             style={{
               margin: 0,
@@ -608,7 +608,7 @@ export default function HomePage() {
 
         {/* ── Featured products ────────────────────────────────────────────── */}
         <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(45,88,173,0.2) 30%, rgba(45,88,173,0.2) 70%, transparent)', marginBottom: 24 }} />
-        <section className="mb-8 animate-fade-in delay-150">
+        <section className="mb-8">
           <div
             style={{
               display: 'flex',
@@ -691,7 +691,7 @@ export default function HomePage() {
 
         {/* ── Games horizontal scroll ──────────────────────────────────────── */}
         <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(45,88,173,0.2) 30%, rgba(45,88,173,0.2) 70%, transparent)', marginBottom: 24 }} />
-        <section className="animate-fade-in delay-225">
+        <section>
           <div
             style={{
               display: 'flex',
@@ -830,7 +830,7 @@ export default function HomePage() {
         </section>
 
         {/* ── Open catalog CTA ─────────────────────────────────────────── */}
-        <div className="mt-5 animate-fade-in delay-300">
+        <div className="mt-5">
           <Link
             to="/catalog"
             className="btn-primary"

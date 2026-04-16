@@ -24,7 +24,7 @@ export default function SearchPage() {
   })
 
   return (
-    <div className="px-4 pt-5 space-y-5 animate-fade-in">
+    <div className="px-4 pt-5 space-y-5">
       {/* Поиск */}
       <div className="relative">
         <Search

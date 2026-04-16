@@ -10,8 +10,9 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: false,
-      staleTime: 30_000,
+      staleTime: 5 * 60_000,   // 5 минут — данные считаются свежими, не перезагружаются при навигации
       refetchOnWindowFocus: false,
+      refetchOnMount: false,    // не перезагружать при переходе на страницу если данные свежие
     },
   },
 })
