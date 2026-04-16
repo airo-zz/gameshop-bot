@@ -71,10 +71,10 @@ function IconMenu({ open }: { open: boolean }) {
   )
 }
 
-function IconZap() {
+function IconFire() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <path d="M12 2C12 2 8 7 8 11a4 4 0 0 0 8 0c0-1.5-.8-3-1.5-4 0 0-.5 2-2 2-.8 0-1.5-.7-1.5-1.5C11 6 12 2 12 2zM6.3 14.7C5.5 13.4 5 11.8 5 11c0 0-2 2.5-2 5a9 9 0 0 0 18 0c0-3-1.5-5.5-3-7 0 2-1 4-3 5-1.2.6-2 .5-2 .5s1-1.5 1-3c-1 1.5-2.7 2.5-4 2.5-.9 0-1.6-.5-2.7-1.3C7 12 6 11 6 11z"/>
     </svg>
   )
 }
@@ -647,7 +647,7 @@ export default function HomePage() {
         <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(45,88,173,0.2) 30%, rgba(45,88,173,0.2) 70%, transparent)', marginBottom: 24 }} />
         <section className="mb-8">
           <h2 style={{ margin: '0 0 12px', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ color: '#fbbf24', display: 'flex' }}><IconZap /></span>
+            <span style={{ color: '#fb923c', display: 'flex' }}><IconFire /></span>
             Популярное
           </h2>
 
@@ -685,7 +685,7 @@ export default function HomePage() {
                   onTouchStart={e => { (e.currentTarget as HTMLElement).style.opacity = '0.85' }}
                   onTouchEnd={e => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
                 >
-                  {/* Game image background */}
+                  {/* Game image — смещена вправо */}
                   {imgSrc && (
                     <img
                       src={imgSrc}
@@ -695,14 +695,15 @@ export default function HomePage() {
                         top: 0, left: 0, right: 0, bottom: 0,
                         width: '100%', height: '100%',
                         objectFit: 'cover',
-                        opacity: 0.22,
+                        objectPosition: 'right center',
+                        opacity: 0.35,
                         pointerEvents: 'none',
                         userSelect: 'none',
                       }}
                     />
                   )}
-                  {/* Gradient overlay — stronger at bottom for text legibility */}
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.62) 100%)' }} />
+                  {/* Градиент: слева непрозрачно (текст), справа прозрачно (фото) */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.1) 100%)' }} />
                   <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#fff', position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                     {cat.name}
                   </p>
