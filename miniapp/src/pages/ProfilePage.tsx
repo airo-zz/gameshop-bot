@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Heart, Package, Share2, MessageCircle, Wallet, ShoppingBag, Users, Gift, Info, Settings } from 'lucide-react'
+import { Heart, Package, Share2, MessageCircle, Wallet, ShoppingBag, Users, Gift, Info, Settings, Shield, Star, Crown, Gem } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { profileApi, type LoyaltyLevelEntry } from '@/api'
 import { adminApi, type AdminMe } from '@/api/admin'
@@ -11,6 +11,13 @@ import { useTelegram } from '@/hooks/useTelegram'
 import PageLoader from '@/components/ui/PageLoader'
 
 // ── Loyalty helpers ────────────────────────────────────────────────────────────
+
+function getLevelIcon(idx: number, size = 12) {
+  if (idx === 1) return <Star size={size} />
+  if (idx === 2) return <Crown size={size} />
+  if (idx >= 3) return <Gem size={size} />
+  return <Shield size={size} />
+}
 
 function hexToRgb(hex: string) {
   const r = parseInt(hex.slice(1, 3), 16)
@@ -66,18 +73,21 @@ function LoyaltyProgressBar({ totalSpent, discountPercent, loyaltyColorHex, leve
 
   if (!current) return null
 
+  const currentIdx = levels.indexOf(current)
+  const nextIdx = next ? levels.indexOf(next) : -1
+
   return (
     <div style={{ marginTop: 16 }}>
       {/* Метки уровней */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
         <span style={{ fontSize: 11, fontWeight: 500, color: loyaltyColorHex, display: 'flex', alignItems: 'center', gap: 4 }}>
-          <span>{current.icon_emoji}</span>
+          <span style={{ display: 'flex' }}>{getLevelIcon(currentIdx)}</span>
           {current.name}
           <span style={{ color: 'var(--hint)', fontWeight: 400 }}>(ваш статус)</span>
         </span>
         {next ? (
           <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--hint)', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ color: next.color_hex }}>{next.icon_emoji}</span>
+            <span style={{ display: 'flex', color: next.color_hex }}>{getLevelIcon(nextIdx)}</span>
             {next.name}
           </span>
         ) : (
@@ -106,7 +116,7 @@ function LoyaltyProgressBar({ totalSpent, discountPercent, loyaltyColorHex, leve
           <>
             До{' '}
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-              <span style={{ color: next.color_hex }}>{next.icon_emoji}</span>
+              <span style={{ display: 'flex', color: next.color_hex }}>{getLevelIcon(nextIdx)}</span>
               {next.name}:
             </span>
             {' '}
@@ -346,7 +356,7 @@ export default function ProfilePage() {
                     boxShadow: isCurrent ? `0 0 0 1px rgba(${rgb},0.25)` : 'none',
                   }}
                 >
-                  <span style={{ flexShrink: 0, fontSize: 14 }}>{level.icon_emoji}</span>
+                  <span style={{ display: 'flex', flexShrink: 0, color: level.color_hex }}>{getLevelIcon(idx)}</span>
                   <span style={{ fontWeight: 600, fontSize: 12, color: level.color_hex, flex: 1 }}>
                     {level.name}
                     {isCurrent && <span style={{ fontWeight: 400, color: 'var(--hint)', marginLeft: 4, fontSize: 11 }}>— ваш</span>}

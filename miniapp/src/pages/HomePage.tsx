@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Shield, Star, Crown, Gem } from 'lucide-react'
 import { catalogApi, profileApi } from '@/api'
 import { useShopStore, useUIStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -162,6 +163,15 @@ function IconSparkle() {
   )
 }
 
+// ── Loyalty icon (index-based, works with any custom level names) ─────────────
+
+function getLevelIcon(idx: number, size = 12) {
+  if (idx === 1) return <Star size={size} />
+  if (idx === 2) return <Crown size={size} />
+  if (idx >= 3) return <Gem size={size} />
+  return <Shield size={size} />
+}
+
 // ── Toggle switch ─────────────────────────────────────────────────────────────
 
 function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
@@ -236,6 +246,7 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
   const touchStartY = useRef<number>(0)
   const dragDelta = useRef<number>(0)
   const panelRef = useRef<HTMLDivElement>(null)
+  const trendingScrollRef = useRef<HTMLDivElement>(null)
 
   // Lock scroll while sheet is open
   useEffect(() => {
@@ -628,8 +639,8 @@ export default function HomePage() {
                       textDecoration: 'none',
                     }}
                   >
-                    <span style={{ fontSize: 13, lineHeight: 1, flexShrink: 0 }}>
-                      {profile.loyalty_level_emoji || '🏅'}
+                    <span style={{ display: 'flex', flexShrink: 0 }}>
+                      {getLevelIcon(profile.loyalty_levels.findIndex(l => l.name === profile.loyalty_level_name))}
                     </span>
                     {profile.loyalty_level_name || 'Базовый'}
                   </Link>
@@ -648,11 +659,26 @@ export default function HomePage() {
           </h2>
 
           <div style={{ position: 'relative' }}>
-          {/* Right fade + arrow hint */}
-          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 4, width: 72, zIndex: 2, pointerEvents: 'none', background: 'linear-gradient(to right, transparent 0%, #010509 65%)', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 10 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-          </div>
-          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16, scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
+          {/* Right fade — extends 16px past container to reach screen edge */}
+          <div style={{ position: 'absolute', right: -16, top: 0, bottom: 4, width: 110, zIndex: 2, pointerEvents: 'none', background: 'linear-gradient(to right, transparent 0%, #010509 60%)' }} />
+          {/* Clickable arrow */}
+          <button
+            type="button"
+            onClick={() => {
+              const el = trendingScrollRef.current
+              if (!el) return
+              const maxScroll = el.scrollWidth - el.clientWidth
+              if (el.scrollLeft >= maxScroll - 4) {
+                el.scrollTo({ left: 0, behavior: 'smooth' })
+              } else {
+                el.scrollBy({ left: 200, behavior: 'smooth' })
+              }
+            }}
+            style={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', zIndex: 3, width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' } as React.CSSProperties}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </button>
+          <div ref={trendingScrollRef} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16, scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
             {trendingLoading ? (
               [...Array(4)].map((_, i) => (
                 <div
