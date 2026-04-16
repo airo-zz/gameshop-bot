@@ -1,5 +1,6 @@
 // src/pages/SupportPage.tsx
 import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { MessageCircle, Send, Plus, ArrowLeft, Paperclip, X, ZoomIn } from 'lucide-react'
@@ -40,9 +41,10 @@ function avatarInitial(subject: string): string {
   return (subject?.trim()?.[0] ?? '?').toUpperCase()
 }
 
-// Overlay component — rendered as a sibling to the page, covers the full viewport
+// Overlay component — rendered via portal into document.body to avoid
+// z-index/stacking context issues with any ancestor transforms (e.g. Framer Motion)
 function FullScreenOverlay({ children }: { children: ReactNode }) {
-  return (
+  return createPortal(
     <div
       style={{
         position: 'fixed',
@@ -57,7 +59,8 @@ function FullScreenOverlay({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-    </div>
+    </div>,
+    document.body
   )
 }
 
@@ -483,9 +486,9 @@ export default function SupportPage() {
         </FullScreenOverlay>
       )}
 
-      {/* Lightbox */}
+      {/* Lightbox — portal to avoid stacking context issues */}
       <AnimatePresence>
-        {lightboxUrl && (
+        {lightboxUrl && createPortal(
           <motion.div
             key="lightbox"
             initial={{ opacity: 0 }}
@@ -532,7 +535,8 @@ export default function SupportPage() {
               transition={{ duration: 0.22, ease: [0.34, 1.26, 0.64, 1] }}
               style={{ maxWidth: '92vw', maxHeight: '78vh', borderRadius: 12, objectFit: 'contain' }}
             />
-          </motion.div>
+          </motion.div>,
+          document.body
         )}
       </AnimatePresence>
 

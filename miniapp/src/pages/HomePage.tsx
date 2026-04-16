@@ -778,7 +778,7 @@ export default function HomePage() {
 
           {gamesLoading ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-              {[...Array(9)].map((_, i) => (
+              {[...Array(6)].map((_, i) => (
                 <div
                   key={i}
                   className="animate-pulse"
