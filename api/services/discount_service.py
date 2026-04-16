@@ -63,9 +63,14 @@ class DiscountService:
         applicable_rules: list[DiscountRule] = []
         promo_code: PromoCode | None = None
 
+        # Пересчитываем актуальный уровень лояльности на лету —
+        # loyalty_level_id в БД может быть устаревшим (обновляется лениво).
+        actual_loyalty = await self._recalculate_loyalty_level(user)
+        actual_loyalty_id = actual_loyalty.id if actual_loyalty else user.loyalty_level_id
+
         # ── 1. Скидки по уровню лояльности ───────────────────────────────────
-        if user.loyalty_level_id:
-            loyalty_rules = await self._get_loyalty_rules(user.loyalty_level_id)
+        if actual_loyalty_id:
+            loyalty_rules = await self._get_loyalty_rules(actual_loyalty_id)
             applicable_rules.extend(loyalty_rules)
 
         # ── 2. Временные акции (time_based) ──────────────────────────────────
@@ -83,18 +88,14 @@ class DiscountService:
         applied = self._apply_rules(applicable_rules, subtotal)
 
         # ── 4. Прямая скидка уровня лояльности ───────────────────────────────
-        # Применяется независимо от DiscountRule-записей: берём discount_percent
-        # прямо из LoyaltyLevel и добавляем отдельной записью (stackable).
-        if user.loyalty_level_id:
-            level = await self._get_loyalty_level(user.loyalty_level_id)
-            if level and level.is_active and level.discount_percent > 0:
-                loyalty_amount = subtotal * level.discount_percent / Decimal("100")
-                if loyalty_amount > 0:
-                    applied.append(AppliedDiscount(
-                        rule=None,
-                        amount=loyalty_amount,
-                        reason=f"{level.name}: скидка {level.discount_percent}%",
-                    ))
+        if actual_loyalty and actual_loyalty.is_active and actual_loyalty.discount_percent > 0:
+            loyalty_amount = subtotal * actual_loyalty.discount_percent / Decimal("100")
+            if loyalty_amount > 0:
+                applied.append(AppliedDiscount(
+                    rule=None,
+                    amount=loyalty_amount,
+                    reason=f"{actual_loyalty.name}: скидка {actual_loyalty.discount_percent}%",
+                ))
 
         total = sum(a.amount for a in applied)
         # Скидка не может превышать сумму заказа
@@ -153,6 +154,21 @@ class DiscountService:
         if rule.discount_value_type == DiscountValueType.percent:
             return f"{rule.name}: скидка {rule.discount_value}%"
         return f"{rule.name}: скидка {rule.discount_value} ₽"
+
+    async def _recalculate_loyalty_level(self, user: User) -> LoyaltyLevel | None:
+        """Возвращает актуальный уровень лояльности по текущим total_spent/orders_count.
+        Не зависит от loyalty_level_id в БД — пересчитывает на лету."""
+        result = await self.db.execute(
+            select(LoyaltyLevel)
+            .where(
+                LoyaltyLevel.is_active == True,
+                LoyaltyLevel.min_spent <= user.total_spent,
+                LoyaltyLevel.min_orders <= user.orders_count,
+            )
+            .order_by(LoyaltyLevel.priority.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
 
     async def _get_loyalty_rules(self, loyalty_level_id: uuid.UUID) -> list[DiscountRule]:
         result = await self.db.execute(
