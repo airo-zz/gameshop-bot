@@ -185,7 +185,35 @@ function ChatMessage({ msg }: { msg: TicketMessage }) {
             : 'bg-white/[0.08] border border-white/[0.08] text-white/90 rounded-2xl rounded-bl-md shadow-sm',
         ].join(' ')}
       >
-        <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>
+        {msg.text && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>}
+        {msg.attachments.length > 0 && (
+          <div className={`flex flex-wrap gap-1.5 ${msg.text ? 'mt-2' : ''}`}>
+            {msg.attachments.map((url, i) => {
+              const isImage = /\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url)
+              const fullUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`
+              return isImage ? (
+                <a key={i} href={fullUrl} target="_blank" rel="noopener noreferrer">
+                  <img
+                    src={fullUrl}
+                    className="max-w-[180px] max-h-[180px] rounded-xl object-cover border border-white/10"
+                    loading="lazy"
+                  />
+                </a>
+              ) : (
+                <a
+                  key={i}
+                  href={fullUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border ${isAdmin ? 'border-white/20 text-white/80' : 'border-white/10 text-white/60'}`}
+                >
+                  <FileText size={12} />
+                  {url.split('/').pop() ?? 'Файл'}
+                </a>
+              )
+            })}
+          </div>
+        )}
         <div
           className={`flex items-center gap-1.5 mt-1.5 text-xs ${
             isAdmin ? 'text-blue-200/60 justify-end' : 'text-white/30'

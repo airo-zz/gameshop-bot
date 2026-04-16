@@ -65,7 +65,7 @@ function FullScreenOverlay({ children }: { children: ReactNode }) {
 }
 
 export default function SupportPage() {
-  const { haptic } = useTelegram()
+  const { haptic, startParam } = useTelegram()
   const queryClient = useQueryClient()
   const [searchParams] = useSearchParams()
   const prefillOrderId = searchParams.get('order_id')
@@ -92,6 +92,14 @@ export default function SupportPage() {
   useEffect(() => {
     if (prefillOrderId) setView('drafting')
   }, [prefillOrderId])
+
+  // Deep link: startapp=support_{ticket_id} — открыть конкретный тикет
+  useEffect(() => {
+    if (startParam?.startsWith('support_')) {
+      const ticketId = startParam.slice('support_'.length)
+      if (ticketId) openChat(ticketId)
+    }
+  }, [startParam, openChat])
 
   const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
     queryKey: ['tickets'],
@@ -133,15 +141,23 @@ export default function SupportPage() {
   }, [])
 
   const handleSubmitDraft = async () => {
-    if (!draftText.trim() || draftCreating) return
+    if (!draftText.trim() && attachedFiles.length === 0) return
+    if (draftCreating) return
     setDraftCreating(true)
     haptic.impact('medium')
     try {
-      const subject = draftText.trim().slice(0, 50)
+      let attachmentUrls: string[] = []
+      if (attachedFiles.length > 0) {
+        setUploadingFiles(true)
+        attachmentUrls = await Promise.all(attachedFiles.map(f => supportApi.upload(f).then(r => r.url)))
+        setUploadingFiles(false)
+      }
+      const subject = (draftText.trim() || 'Вложение').slice(0, 50)
       const result = await supportApi.createTicket({
         subject,
-        message: draftText.trim(),
+        message: draftText.trim() || ' ',
         order_id: draftOrderId || undefined,
+        attachments: attachmentUrls,
       })
       haptic.success()
       const newTicket: Ticket = {
@@ -153,9 +169,11 @@ export default function SupportPage() {
       }
       refetchTickets()
       setDraftText('')
+      setAttachedFiles([])
       openChat(result.ticket_id, newTicket)
     } catch {
       haptic.error()
+      setUploadingFiles(false)
       toast.error('Ошибка отправки')
     } finally {
       setDraftCreating(false)
@@ -188,6 +206,12 @@ export default function SupportPage() {
     }
   }
 
+  const [ticketTab, setTicketTab] = useState<'active' | 'closed'>('active')
+
+  const activeTickets = tickets.filter(t => t.status !== 'closed' && t.status !== 'resolved')
+  const closedTickets = tickets.filter(t => t.status === 'closed' || t.status === 'resolved')
+  const visibleTickets = ticketTab === 'active' ? activeTickets : closedTickets
+
   const selectedTicket = tickets.find(t => t.id === selectedTicketId)
   const displayTicket = selectedTicket ?? activeTicketData
   const isClosed = displayTicket?.status === 'closed' || displayTicket?.status === 'resolved'
@@ -196,23 +220,44 @@ export default function SupportPage() {
     <div className="px-4 pt-5 pb-6">
       {/* Header (list only) */}
       {view === 'list' && (
-        <div className="flex items-center justify-between mb-5">
-          <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>
-            Мои обращения
-            {tickets.length > 0 && (
-              <span className="ml-2 text-sm font-medium" style={{ color: 'var(--hint)' }}>
-                ({tickets.length})
-              </span>
-            )}
-          </h1>
-          <button
-            onClick={() => setView('drafting')}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all active:scale-95"
-            style={{ background: '#1d4ed8', color: '#fff' }}
-          >
-            <Plus size={14} />
-            Написать
-          </button>
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-4">
+            <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>Мои обращения</h1>
+            <button
+              onClick={() => setView('drafting')}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all active:scale-95"
+              style={{ background: '#1d4ed8', color: '#fff' }}
+            >
+              <Plus size={14} />
+              Написать
+            </button>
+          </div>
+          {tickets.length > 0 && (
+            <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+              {([
+                { key: 'active' as const, label: 'Активные', count: activeTickets.length },
+                { key: 'closed' as const, label: 'Закрытые', count: closedTickets.length },
+              ]).map(tab => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setTicketTab(tab.key)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-sm font-medium transition-all"
+                  style={{
+                    background: ticketTab === tab.key ? 'rgba(255,255,255,0.1)' : 'transparent',
+                    color: ticketTab === tab.key ? 'var(--text)' : 'var(--hint)',
+                  }}
+                >
+                  {tab.label}
+                  {tab.count > 0 && (
+                    <span className="text-xs px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--hint)' }}>
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -249,13 +294,61 @@ export default function SupportPage() {
               paddingBottom: 'max(env(safe-area-inset-bottom, 20px), 20px)',
             }}
           >
+            {/* Attached files preview */}
+            {attachedFiles.length > 0 && (
+              <div className="flex gap-2 flex-wrap mb-2 px-1">
+                {attachedFiles.map((f, i) => (
+                  <div key={i} className="relative">
+                    {f.type.startsWith('image/') ? (
+                      <img
+                        src={URL.createObjectURL(f)}
+                        className="w-14 h-14 object-cover rounded-xl border border-white/10"
+                      />
+                    ) : (
+                      <div className="w-14 h-14 rounded-xl border border-white/10 flex items-center justify-center text-xs text-white/50" style={{ background: 'var(--bg2)' }}>
+                        {f.name.split('.').pop()?.toUpperCase()}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setAttachedFiles(prev => prev.filter((_, j) => j !== i))}
+                      className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white/20 flex items-center justify-center"
+                    >
+                      <X size={10} color="#fff" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? [])
+                const total = attachedFiles.length + files.length
+                if (total > 5) { toast.error('Максимум 5 файлов'); return }
+                setAttachedFiles(prev => [...prev, ...files])
+                e.target.value = ''
+              }}
+            />
             <div
               className="flex items-end gap-2 p-2 rounded-2xl"
               style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
             >
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="p-1.5 rounded-xl transition-colors active:scale-90"
+                style={{ color: 'var(--hint)' }}
+              >
+                <Paperclip size={18} />
+              </button>
               <textarea
                 ref={draftInputRef}
-                className="flex-1 bg-transparent text-sm resize-none outline-none py-1.5 px-2"
+                className="flex-1 bg-transparent text-sm resize-none outline-none py-1.5 px-1"
                 style={{ color: 'var(--text)', minHeight: 36, maxHeight: 120 }}
                 placeholder="Опиши проблему..."
                 value={draftText}
@@ -269,12 +362,13 @@ export default function SupportPage() {
                 rows={1}
               />
               <button
+                type="button"
                 onClick={handleSubmitDraft}
-                disabled={!draftText.trim() || draftCreating}
+                disabled={(!draftText.trim() && attachedFiles.length === 0) || draftCreating || uploadingFiles}
                 className="p-2 rounded-xl disabled:opacity-40 transition-all active:scale-90"
                 style={{ background: '#1d4ed8' }}
               >
-                {draftCreating
+                {draftCreating || uploadingFiles
                   ? <div className="w-[18px] h-[18px] border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   : <Send size={18} color="#fff" />
                 }
@@ -573,8 +667,14 @@ export default function SupportPage() {
                 Создать обращение
               </button>
             </div>
+          ) : visibleTickets.length === 0 ? (
+            <div className="flex flex-col items-center py-10 gap-3">
+              <p className="text-sm" style={{ color: 'var(--hint)' }}>
+                {ticketTab === 'active' ? 'Нет активных обращений' : 'Нет закрытых обращений'}
+              </p>
+            </div>
           ) : (
-            tickets.map((ticket: Ticket) => {
+            visibleTickets.map((ticket: Ticket) => {
               const status = STATUS_LABEL[ticket.status] ?? { label: ticket.status, color: '#6b7280', bg: 'rgba(107,114,128,0.15)' }
               const initial = avatarInitial(ticket.subject)
               return (

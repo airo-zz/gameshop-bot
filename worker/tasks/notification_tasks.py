@@ -73,8 +73,23 @@ def notify_support_user(self, telegram_id: int, text: str, ticket_id: str | None
     if not telegram_id:
         return
 
-    formatted = f"<b>Ответ поддержки</b>\n\n{text}"
-    payload = {"chat_id": telegram_id, "text": formatted, "parse_mode": "HTML"}
+    # Краткое уведомление с кнопкой перехода в чат
+    preview = text[:120] + ("..." if len(text) > 120 else "")
+    formatted = f"💬 <b>Новый ответ в поддержке</b>\n<i>{preview}</i>"
+
+    reply_markup = None
+    if ticket_id and settings.MINIAPP_URL:
+        miniapp_url = settings.MINIAPP_URL.rstrip("/")
+        reply_markup = {
+            "inline_keyboard": [[{
+                "text": "Открыть чат",
+                "url": f"https://t.me/{settings.BOT_USERNAME}?startapp=support_{ticket_id}",
+            }]]
+        }
+
+    payload: dict = {"chat_id": telegram_id, "text": formatted, "parse_mode": "HTML"}
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
 
     tokens_to_try = []
     support_token = settings.SUPPORT_BOT_TOKEN
