@@ -18,6 +18,8 @@ import {
   ChevronDown,
   FileText,
   UserCheck,
+  Paperclip,
+  X,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { apiClient } from '@/api/client'
@@ -399,9 +401,12 @@ function ChatPanel({
   const [sending, setSending] = useState(false)
   const [changingStatus, setChangingStatus] = useState(false)
   const [assigning, setAssigning] = useState(false)
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([])
+  const [uploading, setUploading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const fetchDetail = useCallback(async () => {
     try {
@@ -443,18 +448,32 @@ function ChatPanel({
 
   async function handleSend() {
     const text = replyText.trim()
-    if (!text || sending) return
+    if ((!text && attachedFiles.length === 0) || sending) return
     setSending(true)
     try {
+      let attachmentUrls: string[] = []
+      if (attachedFiles.length > 0) {
+        setUploading(true)
+        attachmentUrls = await Promise.all(
+          attachedFiles.map((f) => {
+            const fd = new FormData()
+            fd.append('file', f)
+            return apiClient.post<{ url: string }>('/support/upload', fd).then((r) => r.data.url)
+          })
+        )
+        setUploading(false)
+      }
       await apiClient.post(`/admin/support/tickets/${ticketId}/reply`, {
         text,
-        attachments: [],
+        attachments: attachmentUrls,
         is_template: false,
       })
       setReplyText('')
+      setAttachedFiles([])
       await fetchDetail()
       textareaRef.current?.focus()
     } catch {
+      setUploading(false)
       toast.error('Не удалось отправить сообщение')
     } finally {
       setSending(false)
@@ -610,7 +629,60 @@ function ChatPanel({
 
       {/* Input area */}
       <div className="px-4 py-3 border-t border-white/[0.06] shrink-0">
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,.pdf"
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files ?? [])
+            const total = attachedFiles.length + files.length
+            if (total > 5) { toast.error('Максимум 5 файлов'); return }
+            setAttachedFiles((prev) => [...prev, ...files])
+            e.target.value = ''
+          }}
+        />
+
+        {/* Attachment previews */}
+        {attachedFiles.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {attachedFiles.map((f, i) => (
+              <div key={i} className="relative">
+                {f.type.startsWith('image/') ? (
+                  <img
+                    src={URL.createObjectURL(f)}
+                    className="w-14 h-14 object-cover rounded-xl border border-white/[0.1]"
+                  />
+                ) : (
+                  <div className="w-14 h-14 rounded-xl border border-white/[0.1] bg-white/[0.05] flex flex-col items-center justify-center gap-1 px-1">
+                    <FileText size={16} className="text-white/40 shrink-0" />
+                    <span className="text-[9px] text-white/40 truncate w-full text-center leading-tight">
+                      {f.name.split('.').pop()?.toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setAttachedFiles((prev) => prev.filter((_, j) => j !== i))}
+                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center transition-colors"
+                >
+                  <X size={9} color="#fff" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="flex items-end gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="p-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/40 hover:bg-white/[0.08] hover:text-white/70 active:scale-[0.95] transition-all duration-200 shrink-0 self-end"
+          >
+            <Paperclip size={15} />
+          </button>
           <div className="flex-1 relative">
             <textarea
               ref={textareaRef}
@@ -624,10 +696,10 @@ function ChatPanel({
           </div>
           <button
             onClick={handleSend}
-            disabled={!replyText.trim() || sending}
+            disabled={(!replyText.trim() && attachedFiles.length === 0) || sending || uploading}
             className="p-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.95] shrink-0 self-end"
           >
-            {sending ? (
+            {sending || uploading ? (
               <RefreshCw size={16} className="animate-spin" />
             ) : (
               <Send size={16} />

@@ -35,11 +35,7 @@ export default function FavoritesPage() {
     }
   }
 
-  if (isLoading) return (
-    <div className="px-4 pt-5 pb-4">
-      <p className="text-sm" style={{ color: 'var(--hint)' }}>Загрузка...</p>
-    </div>
-  )
+  if (isLoading) return null
 
   return (
     <div className="px-4 pt-5 pb-4 space-y-4">

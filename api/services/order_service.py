@@ -121,11 +121,12 @@ class OrderService:
                     from shared.models.catalog import DeliveryType
                     product.delivery_type = DeliveryType.manual
 
-        # Фиксируем скидки в лог
+        # Фиксируем скидки в лог (только DiscountRule-based; прямые loyalty-скидки
+        # не имеют rule и логируются без discount_rule_id)
         for applied in discount_result.applied:
             self.db.add(OrderDiscountLog(
                 order_id=order.id,
-                discount_rule_id=applied.rule.id,
+                discount_rule_id=applied.rule.id if applied.rule is not None else None,
                 applied_value=applied.amount,
                 reason=applied.reason,
             ))

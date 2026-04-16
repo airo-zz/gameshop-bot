@@ -246,9 +246,38 @@ export const ordersApi = {
 
 // ── Profile API ───────────────────────────────────────────────────────────────
 
+export interface BalanceTransaction {
+  id: string
+  amount: number
+  balance_before: number
+  balance_after: number
+  type: string
+  description: string | null
+  created_at: string
+}
+
+export interface ReferralUser {
+  telegram_id: number
+  first_name: string
+  username: string | null
+  orders_count: number
+  joined_at: string
+}
+
+export interface ReferralStats {
+  referrals_count: number
+  referrals: ReferralUser[]
+}
+
 export const profileApi = {
   get: () =>
     apiClient.get<Profile>('/profile').then(r => r.data),
+
+  getBalanceHistory: () =>
+    apiClient.get<BalanceTransaction[]>('/profile/balance-history').then(r => r.data),
+
+  getReferralStats: () =>
+    apiClient.get<ReferralStats>('/profile/referrals').then(r => r.data),
 }
 
 // ── Support API ───────────────────────────────────────────────────────────────

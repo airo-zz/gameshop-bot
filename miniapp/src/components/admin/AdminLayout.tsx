@@ -18,6 +18,7 @@ import {
   Users,
   Tag,
   MessageSquare,
+  Settings,
 } from 'lucide-react'
 
 interface NavItem {
@@ -32,7 +33,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/admin/catalog',   label: 'Каталог',       icon: <Package size={22} /> },
   { to: '/admin/users',     label: 'Пользователи',  icon: <Users size={22} /> },
   { to: '/admin/discounts', label: 'Скидки',        icon: <Tag size={22} /> },
-  { to: '/admin/support',   label: 'Поддержка',     icon: <MessageSquare size={22} /> },
+  { to: '/admin/support',           label: 'Поддержка',  icon: <MessageSquare size={22} /> },
+  { to: '/admin/settings/loyalty', label: 'Настройки',  icon: <Settings size={22} /> },
 ]
 
 function SidebarLink({ item }: { item: NavItem }) {
@@ -70,7 +72,7 @@ function BottomNavLink({ item }: { item: NavItem }) {
       end={item.to === '/admin'}
       className={({ isActive }) =>
         [
-          'relative flex flex-col items-center gap-1 py-2.5 px-2 rounded-xl transition-all duration-200 flex-1 min-h-[52px] justify-center',
+          'relative flex flex-col items-center gap-1 py-3 px-1 rounded-xl transition-all duration-200 flex-1 min-h-[64px] justify-center active:scale-95',
           isActive
             ? 'text-white'
             : 'text-white/35 hover:text-white/55',
@@ -79,10 +81,10 @@ function BottomNavLink({ item }: { item: NavItem }) {
     >
       {({ isActive }) => (
         <>
-          <span className={isActive ? 'text-white' : 'text-white/35'}>{item.icon}</span>
-          {isActive && (
-            <span className="w-1 h-1 rounded-full bg-white/60" />
-          )}
+          <span className={isActive ? 'text-white' : 'text-white/35'} style={{ transform: 'scale(1.15)' }}>{item.icon}</span>
+          <span className="text-[10px] font-medium mt-0.5 truncate max-w-full px-1" style={{ color: isActive ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.3)' }}>
+            {item.label}
+          </span>
         </>
       )}
     </NavLink>

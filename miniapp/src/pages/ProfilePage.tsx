@@ -358,18 +358,20 @@ export default function ProfilePage() {
       {/* ── Статистика ── */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: 'Баланс',    value: `${Number(profile.balance).toLocaleString('ru')} ₽`, color: '#6b9de8', icon: <Wallet size={14} /> },
-          { label: 'Заказов',   value: String(profile.orders_count),   color: 'var(--text)', icon: <ShoppingBag size={14} /> },
-          { label: 'Рефералов', value: String(profile.referrals_count), color: '#34d399',    icon: <Users size={14} /> },
-        ].map(({ label, value, color, icon }) => (
-          <div
+          { label: 'Баланс',    value: `${Number(profile.balance).toLocaleString('ru')} ₽`, color: '#6b9de8', icon: <Wallet size={14} />, to: '/balance' },
+          { label: 'Заказов',   value: String(profile.orders_count),   color: 'var(--text)', icon: <ShoppingBag size={14} />, to: '/orders' },
+          { label: 'Рефералов', value: String(profile.referrals_count), color: '#34d399',    icon: <Users size={14} />, to: '/referrals' },
+        ].map(({ label, value, color, icon, to }) => (
+          <Link
             key={label}
-            style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '12px 10px', textAlign: 'center' }}
+            to={to}
+            style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '12px 10px', textAlign: 'center', textDecoration: 'none', display: 'block' }}
+            className="active:scale-95 transition-transform"
           >
             <div style={{ color, opacity: 0.6, display: 'flex', justifyContent: 'center', marginBottom: 4 }}>{icon}</div>
             <p className="text-base font-bold truncate" style={{ color }}>{value}</p>
             <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>{label}</p>
-          </div>
+          </Link>
         ))}
       </div>
 

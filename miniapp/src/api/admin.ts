@@ -301,6 +301,23 @@ export interface PromoCode {
   created_at: string
 }
 
+// ── Settings ─────────────────────────────────────────────────────────────────
+
+export interface LoyaltyLevel {
+  id: string
+  name: string
+  min_spent: number
+  discount_percent: number
+  cashback_percent: number
+  is_active: boolean
+  color_hex: string | null
+  icon_emoji: string | null
+}
+
+export interface ReferralSettings {
+  bonus_amount: number
+}
+
 // ── Admin API ────────────────────────────────────────────────────────────────
 
 export const adminApi = {
@@ -475,4 +492,40 @@ export const adminApi = {
 
   deletePromo: (id: string) =>
     apiClient.delete(`/admin/discounts/promos/${id}`).then(r => r.data),
+
+  // Settings — Loyalty levels
+  getLoyaltyLevels: () =>
+    apiClient.get<LoyaltyLevel[]>('/admin/settings/loyalty').then(r => r.data),
+
+  createLoyaltyLevel: (data: {
+    name: string
+    min_spent: number
+    discount_percent: number
+    cashback_percent: number
+    is_active?: boolean
+    color_hex?: string
+    icon_emoji?: string
+  }) =>
+    apiClient.post<LoyaltyLevel>('/admin/settings/loyalty', data).then(r => r.data),
+
+  updateLoyaltyLevel: (id: string, data: Partial<{
+    name: string
+    min_spent: number
+    discount_percent: number
+    cashback_percent: number
+    is_active: boolean
+    color_hex: string
+    icon_emoji: string
+  }>) =>
+    apiClient.patch<LoyaltyLevel>(`/admin/settings/loyalty/${id}`, data).then(r => r.data),
+
+  deleteLoyaltyLevel: (id: string) =>
+    apiClient.delete(`/admin/settings/loyalty/${id}`),
+
+  // Settings — Referral
+  getReferralSettings: () =>
+    apiClient.get<ReferralSettings>('/admin/settings/referral').then(r => r.data),
+
+  updateReferralSettings: (data: { bonus_amount: number }) =>
+    apiClient.patch<ReferralSettings>('/admin/settings/referral', data).then(r => r.data),
 }

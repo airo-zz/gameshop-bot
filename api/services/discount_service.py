@@ -29,7 +29,7 @@ from shared.models import (
 
 @dataclass
 class AppliedDiscount:
-    rule: DiscountRule
+    rule: DiscountRule | None  # None для прямых скидок по уровню лояльности
     amount: Decimal
     reason: str
 
@@ -81,6 +81,20 @@ class DiscountService:
 
         # ── Применяем правила ─────────────────────────────────────────────────
         applied = self._apply_rules(applicable_rules, subtotal)
+
+        # ── 4. Прямая скидка уровня лояльности ───────────────────────────────
+        # Применяется независимо от DiscountRule-записей: берём discount_percent
+        # прямо из LoyaltyLevel и добавляем отдельной записью (stackable).
+        if user.loyalty_level_id:
+            level = await self._get_loyalty_level(user.loyalty_level_id)
+            if level and level.is_active and level.discount_percent > 0:
+                loyalty_amount = subtotal * level.discount_percent / Decimal("100")
+                if loyalty_amount > 0:
+                    applied.append(AppliedDiscount(
+                        rule=None,
+                        amount=loyalty_amount,
+                        reason=f"{level.name}: скидка {level.discount_percent}%",
+                    ))
 
         total = sum(a.amount for a in applied)
         # Скидка не может превышать сумму заказа
@@ -149,6 +163,12 @@ class DiscountService:
             )
         )
         return result.scalars().all()
+
+    async def _get_loyalty_level(self, loyalty_level_id: uuid.UUID) -> LoyaltyLevel | None:
+        result = await self.db.execute(
+            select(LoyaltyLevel).where(LoyaltyLevel.id == loyalty_level_id)
+        )
+        return result.scalar_one_or_none()
 
     async def _get_time_based_rules(self, subtotal: Decimal) -> list[DiscountRule]:
         now = datetime.now(timezone.utc)

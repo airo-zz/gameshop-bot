@@ -215,9 +215,9 @@ class OrderDiscountLog(Base, UUIDMixin):
         UUID(as_uuid=True), ForeignKey("orders.id", ondelete="CASCADE"),
         nullable=False, index=True,
     )
-    discount_rule_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("discount_rules.id", ondelete="RESTRICT"),
-        nullable=False,
+    discount_rule_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("discount_rules.id", ondelete="SET NULL"),
+        nullable=True,
     )
     applied_value: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -226,7 +226,7 @@ class OrderDiscountLog(Base, UUIDMixin):
     )
 
     order: Mapped[Order] = relationship("Order", back_populates="discount_log")
-    discount_rule: Mapped["DiscountRule"] = relationship("DiscountRule")
+    discount_rule: Mapped["DiscountRule | None"] = relationship("DiscountRule")
 
 
 class Payment(Base, UUIDMixin):

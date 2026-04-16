@@ -13,6 +13,7 @@ from .user import (
     User,
     BalanceTransaction,
     ReferralReward,
+    ShopSettings,
 )
 
 from .catalog import (
@@ -68,7 +69,7 @@ __all__ = [
     # Base
     "Base", "TimestampMixin", "UUIDMixin",
     # User
-    "LoyaltyLevel", "User", "BalanceTransaction", "ReferralReward",
+    "LoyaltyLevel", "User", "BalanceTransaction", "ReferralReward", "ShopSettings",
     # Catalog
     "DeliveryType", "Game", "Category", "Product",
     "ProductLot", "ProductKey", "UserFavorite", "UserViewedProduct", "Review",

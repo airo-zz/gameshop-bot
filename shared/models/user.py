@@ -170,6 +170,28 @@ class BalanceTransaction(Base, UUIDMixin):
     user: Mapped[User] = relationship("User", back_populates="balance_transactions")
 
 
+class ShopSettings(Base):
+    """
+    Хранилище настроек магазина в формате ключ-значение.
+    Используется для конфигурируемых параметров вроде суммы реферального бонуса.
+
+    Ключи (примеры):
+      referral_bonus_amount — сумма бонуса в ₽ за первую оплату реферала
+    """
+    __tablename__ = "shop_settings"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True, nullable=False)
+    value: Mapped[str] = mapped_column(Text, nullable=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(),
+        onupdate=func.now(), nullable=False,
+    )
+
+    def __repr__(self) -> str:
+        return f"<ShopSettings {self.key}={self.value!r}>"
+
+
 class ReferralReward(Base, UUIDMixin):
     """Начисления за реферальную программу."""
     __tablename__ = "referral_rewards"

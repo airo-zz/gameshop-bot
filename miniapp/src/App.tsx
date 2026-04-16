@@ -72,6 +72,10 @@ const AdminGameEdit    = lazy(() => import('@/pages/admin/GameEditPage'))
 const AdminGamesList   = lazy(() => import('@/pages/admin/GamesListPage'))
 const AdminSupport     = lazy(() => import('@/pages/admin/SupportPage'))
 const AdminLogin       = lazy(() => import('@/pages/admin/LoginPage'))
+const AdminLoyalty     = lazy(() => import('@/pages/admin/LoyaltySettingsPage'))
+
+const BalancePage   = lazy(() => import('@/pages/BalancePage'))
+const ReferralsPage = lazy(() => import('@/pages/ReferralsPage'))
 
 export default function App() {
   const { initData } = useTelegram()
@@ -152,6 +156,8 @@ export default function App() {
           <Route path="favorites"    element={<LazyPage><FavoritesPage /></LazyPage>} />
           <Route path="search"       element={<LazyPage><SearchPage /></LazyPage>} />
           <Route path="support"      element={<LazyPage><SupportPage /></LazyPage>} />
+          <Route path="balance"      element={<LazyPage><BalancePage /></LazyPage>} />
+          <Route path="referrals"    element={<LazyPage><ReferralsPage /></LazyPage>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
 
@@ -185,6 +191,7 @@ export default function App() {
             <Route path="users/:id" element={<LazyPage><AdminUserDetail /></LazyPage>} />
             <Route path="discounts" element={<LazyPage><AdminDiscounts /></LazyPage>} />
             <Route path="support" element={<LazyPage><AdminSupport /></LazyPage>} />
+            <Route path="settings/loyalty" element={<LazyPage><AdminLoyalty /></LazyPage>} />
           </Route>
         </Route>
       </Routes>

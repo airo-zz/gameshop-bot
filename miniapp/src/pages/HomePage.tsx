@@ -653,6 +653,11 @@ export default function HomePage() {
             Популярное
           </h2>
 
+          <div style={{ position: 'relative' }}>
+          {/* Right fade + arrow hint */}
+          <div style={{ position: 'absolute', right: 0, top: 0, bottom: 4, width: 48, zIndex: 2, pointerEvents: 'none', background: 'linear-gradient(to right, transparent, var(--bg))', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', paddingRight: 6 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </div>
           <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16, scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
             {trendingLoading ? (
               [...Array(4)].map((_, i) => (
@@ -715,6 +720,7 @@ export default function HomePage() {
                 </Link>
               )
             })}
+          </div>
           </div>
         </section>
 

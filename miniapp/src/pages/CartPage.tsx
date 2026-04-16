@@ -109,11 +109,7 @@ export default function CartPage() {
     }
   }
 
-  if (isLoading) return (
-    <div className="px-4 pt-5 pb-4">
-      <p className="text-sm" style={{ color: 'var(--hint)' }}>Загрузка...</p>
-    </div>
-  )
+  if (isLoading) return null
 
   // Показываем "Корзина пуста" если: нет данных/ошибка, или корзина пуста, или после анимации рассыпания
   if (!clearing && (showEmpty || isError || !cart || cart.items.length === 0)) return (
