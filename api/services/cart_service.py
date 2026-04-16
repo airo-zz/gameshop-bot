@@ -202,7 +202,7 @@ class CartService:
             "promo_code": promo_code_str,
             "promo_discount": promo_discount,
             "applied_discounts": [
-                {"name": a.rule.name, "amount": a.amount, "reason": a.reason}
+                {"name": a.rule.name if a.rule else a.reason, "amount": a.amount, "reason": a.reason}
                 for a in discount_result.applied
             ],
         }
