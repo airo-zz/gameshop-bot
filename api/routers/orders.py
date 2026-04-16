@@ -24,9 +24,12 @@ async def create_order(body: CreateOrderRequest, db: DbSession, user: CurrentUse
     if cart.is_empty:
         raise HTTPException(400, "Корзина пуста")
 
-    order = await order_svc.create_from_cart(
-        user, cart, body.payment_method, body.promo_code
-    )
+    try:
+        order = await order_svc.create_from_cart(
+            user, cart, body.payment_method, body.promo_code
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     # Сохраняем выбранную криптовалюту если метод crypto
     if body.payment_method == 'crypto' and body.crypto_currency:
         order.meta = {**(order.meta or {}), 'crypto_currency': body.crypto_currency}

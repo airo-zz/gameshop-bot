@@ -56,10 +56,17 @@ class OrderService:
         # Загружаем товары с лотами
         items_with_products = await self._load_cart_items(cart)
 
-        # Проверяем наличие
+        # Проверяем наличие и ключи ДО создания заказа
         for item, product in items_with_products:
             if product.stock is not None and product.stock < item.quantity:
                 raise ValueError(f"Товар '{product.name}' недоступен в нужном количестве")
+            if product.delivery_type.value in ("auto", "mixed"):
+                available = await self._count_available_keys(product.id, item.lot_id)
+                if available < item.quantity:
+                    raise ValueError(
+                        f"Товар '{product.name}' временно недоступен — "
+                        f"нет ключей для выдачи. Свяжитесь с поддержкой."
+                    )
 
         # Считаем скидки
         discount_result = await self.discount_svc.calculate_cart_discounts(
@@ -312,6 +319,23 @@ class OrderService:
                 order, OrderStatus.processing, changed_by_type="system",
                 reason="Частичная/ручная выдача"
             )
+
+    async def _count_available_keys(
+        self,
+        product_id: uuid.UUID,
+        lot_id: uuid.UUID | None,
+    ) -> int:
+        from sqlalchemy import func as sqlfunc
+        result = await self.db.execute(
+            select(sqlfunc.count())
+            .select_from(ProductKey)
+            .where(
+                ProductKey.product_id == product_id,
+                ProductKey.lot_id == lot_id,
+                ProductKey.is_used == False,
+            )
+        )
+        return result.scalar_one() or 0
 
     async def _reserve_keys(
         self,
