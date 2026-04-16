@@ -110,12 +110,8 @@ export default function CartPage() {
   }
 
   if (isLoading) return (
-    <div className="px-4 pt-5 pb-4 space-y-4">
-      <div className="h-7 w-36 rounded-xl animate-pulse" style={{ background: 'var(--bg2)' }} />
-      {[...Array(3)].map((_, i) => (
-        <div key={i} className="rounded-2xl animate-pulse" style={{ background: 'var(--bg2)', height: 72 }} />
-      ))}
-      <div className="rounded-2xl animate-pulse" style={{ background: 'var(--bg2)', height: 52 }} />
+    <div className="px-4 pt-5 pb-4">
+      <p className="text-sm" style={{ color: 'var(--hint)' }}>Загрузка...</p>
     </div>
   )
 
