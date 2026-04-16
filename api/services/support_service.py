@@ -116,6 +116,23 @@ class SupportService:
         )
         return result.scalar_one_or_none()
 
+    async def get_ticket_by_order_id(
+        self,
+        order_id: uuid.UUID,
+        user_id: uuid.UUID,
+    ) -> SupportTicket | None:
+        """Находит тикет по order_id для данного пользователя."""
+        result = await self.db.execute(
+            select(SupportTicket)
+            .where(
+                SupportTicket.order_id == order_id,
+                SupportTicket.user_id == user_id,
+            )
+            .order_by(SupportTicket.created_at.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
+
     async def list_user_tickets(
         self,
         user_id: uuid.UUID,

@@ -83,6 +83,20 @@ async def list_tickets(db: DbSession, user: CurrentUser):
     return [TicketOut.model_validate(t) for t in tickets]
 
 
+@router.get("/by-order/{order_id}", response_model=TicketOut)
+async def get_ticket_by_order(
+    order_id: uuid.UUID,
+    db: DbSession,
+    user: CurrentUser,
+):
+    """Найти тикет по ID заказа."""
+    svc = SupportService(db)
+    ticket = await svc.get_ticket_by_order_id(order_id, user_id=user.id)
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Тикет не найден")
+    return TicketOut.model_validate(ticket)
+
+
 @router.get("/{ticket_id}", response_model=TicketOut)
 async def get_ticket(ticket_id: uuid.UUID, db: DbSession, user: CurrentUser):
     svc = SupportService(db)

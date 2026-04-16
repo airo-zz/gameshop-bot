@@ -53,7 +53,7 @@ export default function CheckoutPage() {
       if (payment.success) {
         setItemsCount(0)
         haptic.success()
-        navigate(`/orders/${order.id}?success=1`, { replace: true })
+        navigate(`/chat?order_id=${order.id}`, { replace: true })
         return
       }
       if (payment.redirect_url) {
@@ -64,7 +64,7 @@ export default function CheckoutPage() {
           openLink(payment.redirect_url)
         }
         setItemsCount(0)
-        navigate(`/orders/${order.id}?pending=1`, { replace: true })
+        navigate(`/chat?order_id=${order.id}`, { replace: true })
         return
       }
       toast.error('Ошибка инициализации оплаты')

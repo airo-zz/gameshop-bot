@@ -137,6 +137,7 @@ export interface Ticket {
   id: string
   subject: string
   status: 'open' | 'in_progress' | 'waiting_user' | 'resolved' | 'closed'
+  order_id?: string | null
   created_at: string
   closed_at: string | null
 }
@@ -331,4 +332,7 @@ export const supportApi = {
     fd.append('file', file)
     return apiClient.post<{ url: string }>('/support/upload', fd).then(r => r.data)
   },
+
+  getByOrderId: (orderId: string) =>
+    apiClient.get<Ticket>(`/support/by-order/${orderId}`).then(r => r.data),
 }

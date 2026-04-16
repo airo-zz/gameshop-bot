@@ -56,6 +56,7 @@ const ProfilePage    = lazy(() => import('@/pages/ProfilePage'))
 const FavoritesPage  = lazy(() => import('@/pages/FavoritesPage'))
 const SearchPage     = lazy(() => import('@/pages/SearchPage'))
 const SupportPage    = lazy(() => import('@/pages/SupportPage'))
+const ChatPage       = lazy(() => import('@/pages/ChatPage'))
 
 // Admin
 const AdminLayout      = lazy(() => import('@/components/admin/AdminLayout'))
@@ -156,6 +157,7 @@ export default function App() {
           <Route path="profile"      element={<LazyPage><ProfilePage /></LazyPage>} />
           <Route path="favorites"    element={<LazyPage><FavoritesPage /></LazyPage>} />
           <Route path="search"       element={<LazyPage><SearchPage /></LazyPage>} />
+          <Route path="chat"         element={<LazyPage><ChatPage /></LazyPage>} />
           <Route path="support"      element={<LazyPage><SupportPage /></LazyPage>} />
           <Route path="balance"      element={<LazyPage><BalancePage /></LazyPage>} />
           <Route path="referrals"    element={<LazyPage><ReferralsPage /></LazyPage>} />

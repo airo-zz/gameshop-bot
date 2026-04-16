@@ -1,5 +1,5 @@
 """api/routers/profile.py"""
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from sqlalchemy.orm import selectinload
 from sqlalchemy import select, func
 
@@ -106,3 +106,33 @@ async def get_referral_stats(db: DbSession, user: CurrentUser):
             for r in referrals
         ],
     }
+
+
+@router.get("/balance-history")
+async def get_balance_history(
+    db: DbSession,
+    user: CurrentUser,
+    limit: int = Query(50, ge=1, le=100),
+):
+    from shared.models import BalanceTransaction
+    from sqlalchemy import select
+    result = await db.execute(
+        select(BalanceTransaction)
+        .where(BalanceTransaction.user_id == user.id)
+        .order_by(BalanceTransaction.created_at.desc())
+        .limit(limit)
+    )
+    transactions = result.scalars().all()
+    return [
+        {
+            "id": str(t.id),
+            "amount": float(t.amount),
+            "balance_before": float(t.balance_before),
+            "balance_after": float(t.balance_after),
+            "type": t.type,
+            "description": t.description,
+            "reference_id": str(t.reference_id) if t.reference_id else None,
+            "created_at": t.created_at.isoformat(),
+        }
+        for t in transactions
+    ]

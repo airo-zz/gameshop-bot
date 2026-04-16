@@ -32,6 +32,7 @@ class TicketOut(BaseModel):
     id: uuid.UUID
     subject: str
     status: str
+    order_id: uuid.UUID | None = None
     created_at: datetime
     closed_at: datetime | None = None
 
