@@ -255,8 +255,10 @@ function MessageBubble({
 
 function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
   const [scale, setScale] = useState(1)
-  const lastTapRef = useRef(0)
+  const [pos, setPos] = useState({ x: 0, y: 0 })
   const pinchRef = useRef<{ dist: number; baseScale: number } | null>(null)
+  const dragRef = useRef<{ startX: number; startY: number; posX: number; posY: number } | null>(null)
+  const gestureRef = useRef<'none' | 'drag' | 'pinch'>('none')
 
   const getPinchDist = (touches: React.TouchList) => {
     const dx = touches[0].clientX - touches[1].clientX
@@ -264,46 +266,54 @@ function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
     return Math.hypot(dx, dy)
   }
 
+  const resetView = () => { setScale(1); setPos({ x: 0, y: 0 }) }
+
   const handleImgTouchStart = (e: React.TouchEvent) => {
     e.stopPropagation()
     if (e.touches.length === 2) {
+      gestureRef.current = 'pinch'
+      dragRef.current = null
       pinchRef.current = { dist: getPinchDist(e.touches), baseScale: scale }
+    } else if (e.touches.length === 1 && scale > 1) {
+      gestureRef.current = 'drag'
+      dragRef.current = { startX: e.touches[0].clientX, startY: e.touches[0].clientY, posX: pos.x, posY: pos.y }
+    } else {
+      gestureRef.current = 'none'
     }
   }
 
   const handleImgTouchMove = (e: React.TouchEvent) => {
     e.stopPropagation()
     if (e.touches.length === 2 && pinchRef.current) {
+      gestureRef.current = 'pinch'
       const ratio = getPinchDist(e.touches) / pinchRef.current.dist
-      setScale(Math.min(4, Math.max(1, pinchRef.current.baseScale * ratio)))
+      const next = Math.min(5, Math.max(1, pinchRef.current.baseScale * ratio))
+      if (next <= 1) { setScale(1); setPos({ x: 0, y: 0 }) }
+      else setScale(next)
+    } else if (e.touches.length === 1 && gestureRef.current === 'drag' && dragRef.current) {
+      const dx = e.touches[0].clientX - dragRef.current.startX
+      const dy = e.touches[0].clientY - dragRef.current.startY
+      setPos({ x: dragRef.current.posX + dx, y: dragRef.current.posY + dy })
     }
   }
 
   const handleImgTouchEnd = (e: React.TouchEvent) => {
     e.stopPropagation()
-    if (e.touches.length < 2) pinchRef.current = null
-  }
-
-  const handleImgClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    const now = Date.now()
-    if (now - lastTapRef.current < 280) {
-      setScale(s => s > 1 ? 1 : 2.5)
-    }
-    lastTapRef.current = now
+    if (e.touches.length < 2) { pinchRef.current = null }
+    if (e.touches.length === 0) { dragRef.current = null; gestureRef.current = 'none' }
   }
 
   const handleBgClick = () => {
-    if (scale > 1) { setScale(1); return }
+    if (scale > 1) { resetView(); return }
     onClose()
   }
 
   return (
     <div
       onClick={handleBgClick}
-      style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
     >
-      {/* Close button — below Telegram header using tg-content-safe-area-inset */}
+      {/* Close button — below Telegram header */}
       <button
         onClick={e => { e.stopPropagation(); onClose() }}
         style={{
@@ -332,38 +342,21 @@ function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
         onTouchStart={handleImgTouchStart}
         onTouchMove={handleImgTouchMove}
         onTouchEnd={handleImgTouchEnd}
-        onClick={handleImgClick}
+        onClick={e => e.stopPropagation()}
         draggable={false}
         style={{
           maxWidth: '88vw',
           maxHeight: '60vh',
-          borderRadius: scale > 1 ? 4 : 14,
+          borderRadius: 14,
           objectFit: 'contain',
-          transform: `scale(${scale})`,
-          transition: pinchRef.current ? 'none' : 'transform 0.22s ease',
+          transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`,
+          transition: gestureRef.current !== 'none' ? 'none' : 'transform 0.22s ease',
           touchAction: 'none',
           userSelect: 'none',
           WebkitUserSelect: 'none',
-          cursor: scale > 1 ? 'zoom-out' : 'zoom-in',
+          cursor: scale > 1 ? 'grab' : 'default',
         }}
       />
-
-      {/* Hint */}
-      <div style={{
-        position: 'absolute',
-        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 110px)',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        background: 'rgba(0,0,0,0.5)',
-        borderRadius: 20,
-        padding: '5px 14px',
-        whiteSpace: 'nowrap',
-        pointerEvents: 'none',
-      }}>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
-          {scale > 1 ? 'Двойной тап — сбросить масштаб' : 'Двойной тап — увеличить'}
-        </span>
-      </div>
     </div>
   )
 }
