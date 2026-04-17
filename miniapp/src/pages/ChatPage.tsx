@@ -8,6 +8,9 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Send, Paperclip, X, ZoomIn } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import Yarl from 'yet-another-react-lightbox'
+import YarlZoom from 'yet-another-react-lightbox/plugins/zoom'
+import 'yet-another-react-lightbox/styles.css'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
 import { chatApi, type ChatMessage } from '@/api'
@@ -247,116 +250,6 @@ function MessageBubble({
           {msg.optimistic ? '...' : formatTime(msg.created_at)}
         </p>
       </div>
-    </div>
-  )
-}
-
-// ── Lightbox ──────────────────────────────────────────────────────────────────
-
-function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
-  const [scale, setScale] = useState(1)
-  const [pos, setPos] = useState({ x: 0, y: 0 })
-  const pinchRef = useRef<{ dist: number; baseScale: number } | null>(null)
-  const dragRef = useRef<{ startX: number; startY: number; posX: number; posY: number } | null>(null)
-  const gestureRef = useRef<'none' | 'drag' | 'pinch'>('none')
-
-  const getPinchDist = (touches: React.TouchList) => {
-    const dx = touches[0].clientX - touches[1].clientX
-    const dy = touches[0].clientY - touches[1].clientY
-    return Math.hypot(dx, dy)
-  }
-
-  const resetView = () => { setScale(1); setPos({ x: 0, y: 0 }) }
-
-  const handleImgTouchStart = (e: React.TouchEvent) => {
-    e.stopPropagation()
-    if (e.touches.length === 2) {
-      gestureRef.current = 'pinch'
-      dragRef.current = null
-      pinchRef.current = { dist: getPinchDist(e.touches), baseScale: scale }
-    } else if (e.touches.length === 1 && scale > 1) {
-      gestureRef.current = 'drag'
-      dragRef.current = { startX: e.touches[0].clientX, startY: e.touches[0].clientY, posX: pos.x, posY: pos.y }
-    } else {
-      gestureRef.current = 'none'
-    }
-  }
-
-  const handleImgTouchMove = (e: React.TouchEvent) => {
-    e.stopPropagation()
-    if (e.touches.length === 2 && pinchRef.current) {
-      gestureRef.current = 'pinch'
-      const ratio = getPinchDist(e.touches) / pinchRef.current.dist
-      const next = Math.min(5, Math.max(1, pinchRef.current.baseScale * ratio))
-      if (next <= 1) { setScale(1); setPos({ x: 0, y: 0 }) }
-      else setScale(next)
-    } else if (e.touches.length === 1 && gestureRef.current === 'drag' && dragRef.current) {
-      const dx = e.touches[0].clientX - dragRef.current.startX
-      const dy = e.touches[0].clientY - dragRef.current.startY
-      setPos({ x: dragRef.current.posX + dx, y: dragRef.current.posY + dy })
-    }
-  }
-
-  const handleImgTouchEnd = (e: React.TouchEvent) => {
-    e.stopPropagation()
-    if (e.touches.length < 2) { pinchRef.current = null }
-    if (e.touches.length === 0) { dragRef.current = null; gestureRef.current = 'none' }
-  }
-
-  const handleBgClick = () => {
-    if (scale > 1) { resetView(); return }
-    onClose()
-  }
-
-  return (
-    <div
-      onClick={handleBgClick}
-      style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}
-    >
-      {/* Close button — below Telegram header */}
-      <button
-        onClick={e => { e.stopPropagation(); onClose() }}
-        style={{
-          position: 'absolute',
-          top: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px) + 10px)',
-          right: 16,
-          zIndex: 301,
-          background: 'rgba(255,255,255,0.15)',
-          backdropFilter: 'blur(8px)',
-          border: 'none',
-          borderRadius: 20,
-          width: 36,
-          height: 36,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-        }}
-      >
-        <X size={18} color="#fff" />
-      </button>
-
-      <img
-        src={url}
-        alt=""
-        onTouchStart={handleImgTouchStart}
-        onTouchMove={handleImgTouchMove}
-        onTouchEnd={handleImgTouchEnd}
-        onClick={e => e.stopPropagation()}
-        draggable={false}
-        style={{
-          maxWidth: '88vw',
-          maxHeight: '60vh',
-          borderRadius: 14,
-          objectFit: 'contain',
-          transform: `translate(${pos.x}px, ${pos.y}px) scale(${scale})`,
-          transition: gestureRef.current !== 'none' ? 'none' : 'transform 0.22s ease',
-          touchAction: 'none',
-          userSelect: 'none',
-          WebkitUserSelect: 'none',
-          cursor: scale > 1 ? 'grab' : 'default',
-        }}
-      />
     </div>
   )
 }
@@ -710,7 +603,18 @@ export default function ChatPage() {
       </div>
 
       {/* Lightbox */}
-      {lightboxUrl && <Lightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
+      {/* Lightbox */}
+      <Yarl
+        open={!!lightboxUrl}
+        close={() => setLightboxUrl(null)}
+        slides={lightboxUrl ? [{ src: lightboxUrl }] : []}
+        plugins={[YarlZoom]}
+        controller={{ closeOnBackdropClick: true }}
+        zoom={{ maxZoomPixelRatio: 5, scrollToZoom: false }}
+        styles={{ root: { '--yarl__color_backdrop': 'rgba(0,0,0,0.93)' } }}
+        carousel={{ finite: true }}
+        render={{ buttonPrev: () => null, buttonNext: () => null }}
+      />
     </div>
   )
 }
