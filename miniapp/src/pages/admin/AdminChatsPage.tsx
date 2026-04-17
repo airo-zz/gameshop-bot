@@ -22,6 +22,7 @@ import {
   X,
   ChevronLeft,
 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 // ── Notify Modal ──────────────────────────────────────────────────────────────
 
@@ -48,6 +49,8 @@ function NotifyModal({
     try {
       await onSend(text.trim())
       onClose()
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? 'Не удалось отправить уведомление')
     } finally {
       setSending(false)
     }

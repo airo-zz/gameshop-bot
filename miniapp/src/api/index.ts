@@ -126,6 +126,7 @@ export interface OrderItem {
   id: string
   product_id: string
   product_name: string
+  game_name: string | null
   lot_name: string | null
   quantity: number
   unit_price: number

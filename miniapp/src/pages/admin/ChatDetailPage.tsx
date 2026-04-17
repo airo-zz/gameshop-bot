@@ -10,6 +10,7 @@ import {
 } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Send, Bell, ArrowLeft } from 'lucide-react'
+import toast from 'react-hot-toast'
 import { adminApi, type AdminChatDetail, type AdminChatMessage } from '@/api/admin'
 
 function formatTime(dateStr: string): string {
@@ -236,8 +237,8 @@ export default function ChatDetailPage() {
       await adminApi.notifyUserChat(chatId)
       setNotifySuccess(true)
       setTimeout(() => setNotifySuccess(false), 3000)
-    } catch {
-      // ignore
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? 'Не удалось отправить уведомление')
     } finally {
       setNotifying(false)
     }

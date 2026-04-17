@@ -169,6 +169,14 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
           </div>
         )}
 
+        {product.game_name && (
+          <p
+            className="text-[10px] font-medium leading-tight"
+            style={{ color: 'var(--hint)' }}
+          >
+            {product.game_name}
+          </p>
+        )}
         <p
           className="text-sm font-semibold line-clamp-2 leading-snug"
           style={{ color: 'rgba(255,255,255,0.9)' }}

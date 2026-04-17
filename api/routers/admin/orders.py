@@ -126,6 +126,71 @@ async def list_orders(
     )
 
 
+# ── GET /trash — список мягко удалённых заказов ──────────────────────────────
+# NOTE: /trash must be registered BEFORE /{order_id} to avoid route collision.
+
+
+@router.get("/trash", response_model=PaginatedResponse[OrderListItem],
+            dependencies=[require_permission("orders.manage")])
+async def list_trash_orders(
+    db: DbSession,
+    admin: CurrentAdmin,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+) -> PaginatedResponse[OrderListItem]:
+    """Список мягко удалённых заказов (корзина). Отображает только deleted_at IS NOT NULL."""
+    query = (
+        select(Order)
+        .join(Order.user)
+        .where(Order.deleted_at.is_not(None))
+    )
+
+    count_query = select(func.count()).select_from(query.subquery())
+    total_result = await db.execute(count_query)
+    total = total_result.scalar_one()
+
+    offset = (page - 1) * page_size
+    query = (
+        query.options(
+            selectinload(Order.user),
+            selectinload(Order.items),
+        )
+        .order_by(Order.deleted_at.desc())
+        .offset(offset)
+        .limit(page_size)
+    )
+
+    result = await db.execute(query)
+    orders = result.scalars().unique().all()
+
+    items = [
+        OrderListItem(
+            id=o.id,
+            order_number=o.order_number,
+            status=o.status.value,
+            total_amount=float(o.total_amount),
+            payment_method=o.payment_method.value if o.payment_method else None,
+            user_telegram_id=o.user.telegram_id,
+            user_first_name=o.user.first_name,
+            user_username=o.user.username,
+            created_at=o.created_at,
+            paid_at=o.paid_at,
+            completed_at=o.completed_at,
+            items_count=len(o.items),
+            deleted_at=o.deleted_at,
+        )
+        for o in orders
+    ]
+
+    return PaginatedResponse(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        pages=(total + page_size - 1) // page_size if total > 0 else 1,
+    )
+
+
 # ── GET /{order_id} — детали заказа ──────────────────────────────────────────
 
 
@@ -325,71 +390,6 @@ async def notify_user(
     )
 
     return {"ok": True}
-
-
-# ── GET /trash — список мягко удалённых заказов ──────────────────────────────
-# NOTE: /trash must be registered BEFORE /{order_id} to avoid route collision.
-
-
-@router.get("/trash", response_model=PaginatedResponse[OrderListItem],
-            dependencies=[require_permission("orders.manage")])
-async def list_trash_orders(
-    db: DbSession,
-    admin: CurrentAdmin,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
-) -> PaginatedResponse[OrderListItem]:
-    """Список мягко удалённых заказов (корзина). Отображает только deleted_at IS NOT NULL."""
-    query = (
-        select(Order)
-        .join(Order.user)
-        .where(Order.deleted_at.is_not(None))
-    )
-
-    count_query = select(func.count()).select_from(query.subquery())
-    total_result = await db.execute(count_query)
-    total = total_result.scalar_one()
-
-    offset = (page - 1) * page_size
-    query = (
-        query.options(
-            selectinload(Order.user),
-            selectinload(Order.items),
-        )
-        .order_by(Order.deleted_at.desc())
-        .offset(offset)
-        .limit(page_size)
-    )
-
-    result = await db.execute(query)
-    orders = result.scalars().unique().all()
-
-    items = [
-        OrderListItem(
-            id=o.id,
-            order_number=o.order_number,
-            status=o.status.value,
-            total_amount=float(o.total_amount),
-            payment_method=o.payment_method.value if o.payment_method else None,
-            user_telegram_id=o.user.telegram_id,
-            user_first_name=o.user.first_name,
-            user_username=o.user.username,
-            created_at=o.created_at,
-            paid_at=o.paid_at,
-            completed_at=o.completed_at,
-            items_count=len(o.items),
-            deleted_at=o.deleted_at,
-        )
-        for o in orders
-    ]
-
-    return PaginatedResponse(
-        items=items,
-        total=total,
-        page=page,
-        page_size=page_size,
-        pages=(total + page_size - 1) // page_size if total > 0 else 1,
-    )
 
 
 # ── DELETE /{order_id} — мягкое удаление заказа ──────────────────────────────

@@ -499,13 +499,16 @@ class PaymentService:
             )
             order_with_user = result.scalar_one()
             telegram_id = order_with_user.user.telegram_id
-            # Уникальные названия товаров через запятую
+            # Уникальные названия товаров через запятую (формат "Игра, Товар")
             seen: list[str] = []
             for item in order_with_user.items:
-                name = item.product_name
+                if item.game_name:
+                    name = f"{item.game_name}, {item.product_name}"
+                else:
+                    name = item.product_name
                 if name not in seen:
                     seen.append(name)
-            items_str = ", ".join(seen)
+            items_str = "; ".join(seen)
         except Exception as exc:
             logger.warning("Не удалось загрузить пользователя заказа: %s", exc)
 

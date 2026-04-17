@@ -100,11 +100,18 @@ class OrderService:
                 lot = next((l for l in product.lots if l.id == item.lot_id), None)
                 lot_name = lot.name if lot else None
 
+            game_name: str | None = None
+            try:
+                game_name = product.category.game.name
+            except AttributeError:
+                pass
+
             order_item = OrderItem(
                 order_id=order.id,
                 product_id=product.id,
                 lot_id=item.lot_id,
                 product_name=product.name,
+                game_name=game_name,
                 lot_name=lot_name,
                 quantity=item.quantity,
                 unit_price=item.price_snapshot,
@@ -497,9 +504,16 @@ class OrderService:
     async def _load_cart_items(
         self, cart: Cart
     ) -> list[tuple[CartItem, Product]]:
+        from shared.models.catalog import Category
         result = await self.db.execute(
             select(CartItem)
-            .options(selectinload(CartItem.product).selectinload(Product.lots))
+            .options(
+                selectinload(CartItem.product)
+                .selectinload(Product.lots),
+                selectinload(CartItem.product)
+                .selectinload(Product.category)
+                .selectinload(Category.game),
+            )
             .where(CartItem.cart_id == cart.id)
         )
         items = result.scalars().all()

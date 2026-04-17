@@ -165,6 +165,7 @@ class OrderItem(Base, UUIDMixin):
 
     # Снимки данных на момент покупки (не изменятся если товар будет переименован)
     product_name: Mapped[str] = mapped_column(String(256), nullable=False)
+    game_name: Mapped[str | None] = mapped_column(String(256), nullable=True)
     lot_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)

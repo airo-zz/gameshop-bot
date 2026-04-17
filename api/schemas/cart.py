@@ -85,6 +85,7 @@ class OrderItemOut(BaseModel):
     id: uuid.UUID
     product_id: uuid.UUID
     product_name: str
+    game_name: str | None = None
     lot_name: str | None
     quantity: int
     unit_price: Decimal
