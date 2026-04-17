@@ -215,23 +215,35 @@ function MessageBubble({
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: msg.text ? 6 : 0 }}>
             {msg.attachments.map((url, idx) => {
               const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(url)
+              const absUrl = url.startsWith('http') ? url : `https://redonate.su${url}`
+              const openFile = () => {
+                const tg = (window as any).Telegram?.WebApp
+                if (tg?.openLink) tg.openLink(absUrl)
+                else window.open(absUrl, '_blank')
+              }
               return isImage ? (
                 <button
                   key={idx}
                   type="button"
-                  onClick={e => { e.stopPropagation(); onImageClick(url) }}
-                  style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: 'none', padding: 0, cursor: 'pointer', position: 'relative', background: 'transparent', touchAction: 'manipulation' }}
+                  onTouchEnd={e => { e.preventDefault(); e.stopPropagation(); onImageClick(absUrl) }}
+                  onClick={e => { e.stopPropagation(); onImageClick(absUrl) }}
+                  style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: 'none', padding: 0, cursor: 'pointer', position: 'relative', background: 'transparent', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
                 >
-                  <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  <img src={absUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                     <ZoomIn size={16} color="rgba(255,255,255,0.8)" />
                   </div>
                 </button>
               ) : (
-                <a key={idx} href={url} target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', fontSize: 11, textDecoration: 'none' }}>
-                  <Paperclip size={11} /> Файл {idx + 1}
-                </a>
+                <button
+                  key={idx}
+                  type="button"
+                  onTouchEnd={e => { e.preventDefault(); openFile() }}
+                  onClick={openFile}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 12, cursor: 'pointer', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent' }}
+                >
+                  <Paperclip size={12} /> Файл {idx + 1}
+                </button>
               )
             })}
           </div>
@@ -263,19 +275,18 @@ export default function ChatPage() {
   const [keyboardOpen, setKeyboardOpen] = useState(false)
 
   useEffect(() => {
+    let maxHeight = window.visualViewport?.height ?? window.innerHeight
     const tgWA = (window as any).Telegram?.WebApp
-    const handler = () => {
-      if (tgWA?.viewportStableHeight) {
-        setKeyboardOpen(tgWA.viewportHeight < tgWA.viewportStableHeight - 100)
-      } else if (window.visualViewport) {
-        setKeyboardOpen(window.visualViewport.height < window.innerHeight - 150)
-      }
+    const check = () => {
+      const h = window.visualViewport?.height ?? window.innerHeight
+      if (h > maxHeight) maxHeight = h
+      setKeyboardOpen(maxHeight - h > 100)
     }
-    tgWA?.onEvent?.('viewportChanged', handler)
-    window.visualViewport?.addEventListener('resize', handler)
+    tgWA?.onEvent?.('viewportChanged', check)
+    window.visualViewport?.addEventListener('resize', check)
     return () => {
-      tgWA?.offEvent?.('viewportChanged', handler)
-      window.visualViewport?.removeEventListener('resize', handler)
+      tgWA?.offEvent?.('viewportChanged', check)
+      window.visualViewport?.removeEventListener('resize', check)
     }
   }, [])
 

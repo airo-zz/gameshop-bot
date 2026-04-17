@@ -271,34 +271,45 @@ function MessageBubble({
         )}
         {msg.attachments && msg.attachments.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: msg.text ? 6 : 0 }}>
-            {msg.attachments.map((url, idx) =>
-              isImageUrl(url) ? (
-                <img
+            {msg.attachments.map((url, idx) => {
+              const absUrl = url.startsWith('http') ? url : `https://redonate.su${url}`
+              const openFile = () => {
+                const tg = (window as any).Telegram?.WebApp
+                if (tg?.openLink) tg.openLink(absUrl)
+                else window.open(absUrl, '_blank')
+              }
+              return isImageUrl(url) ? (
+                <button
                   key={idx}
-                  src={url}
-                  alt=""
-                  onClick={() => onImageClick(url)}
+                  type="button"
+                  onTouchEnd={e => { e.preventDefault(); e.stopPropagation(); onImageClick(absUrl) }}
+                  onClick={e => { e.stopPropagation(); onImageClick(absUrl) }}
                   style={{
-                    width: 80, height: 80, objectFit: 'cover', borderRadius: 8,
-                    border: '1px solid rgba(255,255,255,0.1)', display: 'block', cursor: 'pointer',
+                    width: 80, height: 80, borderRadius: 8, overflow: 'hidden', flexShrink: 0,
+                    border: '1px solid rgba(255,255,255,0.1)', padding: 0, cursor: 'pointer',
+                    background: 'transparent', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
                   }}
-                />
+                >
+                  <img src={absUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </button>
               ) : (
-                <a
+                <button
                   key={idx}
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  type="button"
+                  onTouchEnd={e => { e.preventDefault(); openFile() }}
+                  onClick={openFile}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px',
                     borderRadius: 8, background: 'rgba(255,255,255,0.08)',
-                    color: 'rgba(255,255,255,0.6)', fontSize: 11, textDecoration: 'none',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    color: 'rgba(255,255,255,0.6)', fontSize: 11, cursor: 'pointer',
+                    touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
                   }}
                 >
-                  Файл {idx + 1}
-                </a>
+                  <Paperclip size={11} /> Файл {idx + 1}
+                </button>
               )
-            )}
+            })}
           </div>
         )}
         <p style={{
