@@ -107,9 +107,10 @@ export default function OrdersPage() {
                   {new Date(order.created_at).toLocaleDateString('ru', {
                     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
                   })}
-                  {order.items.length > 0 && (
-                    <span style={{ marginLeft: 6 }}>&middot; {order.items.length} {order.items.length === 1 ? 'позиция' : order.items.length < 5 ? 'позиции' : 'позиций'}</span>
-                  )}
+                  {(order.items_count ?? order.items?.length ?? 0) > 0 && (() => {
+                    const n = order.items_count ?? order.items?.length ?? 0
+                    return <span style={{ marginLeft: 6 }}>&middot; {n} {n === 1 ? 'позиция' : n < 5 ? 'позиции' : 'позиций'}</span>
+                  })()}
                 </p>
               </div>
               <ChevronRight size={16} style={{ color: 'var(--hint)' }} />

@@ -1,6 +1,6 @@
 // src/pages/GamePage.tsx
-import { useState, useRef } from 'react'
-import { useParams } from 'react-router-dom'
+import { useState, useRef, useEffect } from 'react'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Zap, Clock, Plus, Minus, Heart } from 'lucide-react'
@@ -379,7 +379,9 @@ function ProductSection({ product, cartQtyMap, isFavorite, onAdd, onRemove, onFa
 
 export default function GamePage() {
   const { slug } = useParams<{ slug: string }>()
+  const [searchParams] = useSearchParams()
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null)
+  const catFromUrlApplied = useRef(false)
   const { haptic } = useTelegram()
   const { increment, decrement } = useCartStore()
   const qc = useQueryClient()
@@ -401,6 +403,15 @@ export default function GamePage() {
     enabled: !!slug,
     staleTime: 5 * 60 * 1000,
   })
+
+  // Применить ?cat= из URL один раз после загрузки категорий
+  useEffect(() => {
+    if (catFromUrlApplied.current || categories.length === 0) return
+    const catParam = searchParams.get('cat')
+    if (!catParam) return
+    catFromUrlApplied.current = true
+    if (categories.find(c => c.id === catParam)) setSelectedCatId(catParam)
+  }, [categories.length, searchParams])
 
   const activeCatId = selectedCatId ?? categories[0]?.id ?? null
 

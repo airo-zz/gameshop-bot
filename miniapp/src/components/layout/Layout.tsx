@@ -1,8 +1,11 @@
 // src/components/layout/Layout.tsx
-import { Outlet, useLocation, Link } from 'react-router-dom'
+import { useState } from 'react'
+import { Outlet, useLocation, Link, useNavigate } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
 import { useCartStore, useUIStore } from '@/store'
 import ParticleCanvas from '@/components/ui/ParticleCanvas'
 import logo from '@/assets/logo.png'
+import { chatApi } from '@/api'
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
 
@@ -67,11 +70,29 @@ export default function Layout() {
   const { itemsCount } = useCartStore()
   const particlesEnabled = useUIStore(s => s.particlesEnabled)
 
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const [chatLoading, setChatLoading] = useState(false)
+
   const activeIndex = NAV.findIndex(({ to }) =>
     to === '/' ? pathname === '/' : pathname.startsWith(to)
   )
   const safeActiveIndex = activeIndex === -1 ? 0 : activeIndex
   const isChatPage = pathname.startsWith('/chat')
+
+  const handleChatClick = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    if (isChatPage) return
+    // Already cached → navigate immediately
+    if (queryClient.getQueryData(['chat'])) { navigate('/chat'); return }
+    setChatLoading(true)
+    try {
+      await queryClient.prefetchQuery({ queryKey: ['chat'], queryFn: chatApi.getOrCreate, staleTime: Infinity })
+    } finally {
+      setChatLoading(false)
+      navigate('/chat')
+    }
+  }
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--bg)' }}>
@@ -131,9 +152,10 @@ export default function Layout() {
             if (featured) {
               // ── Featured Chat button ──────────────────────────────
               return (
-                <Link
+                <a
                   key={to}
-                  to={to}
+                  href={to}
+                  onClick={handleChatClick}
                   className="relative flex items-center justify-center active:scale-90"
                   style={{
                     flex: 1,
@@ -141,6 +163,7 @@ export default function Layout() {
                     padding: '4px',
                     WebkitTapHighlightColor: 'transparent',
                     transition: 'transform 0.15s ease',
+                    textDecoration: 'none',
                   }}
                 >
                   <div
@@ -164,7 +187,10 @@ export default function Layout() {
                       transform: 'translateY(-6px)',
                     }}
                   >
-                    <img src={logo} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4 }} />
+                    {chatLoading
+                      ? <div style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                      : <img src={logo} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4 }} />
+                    }
                     <span
                       className="text-[9px] font-semibold leading-none select-none"
                       style={{ color: '#fff', whiteSpace: 'nowrap' }}
@@ -172,7 +198,7 @@ export default function Layout() {
                       {label}
                     </span>
                   </div>
-                </Link>
+                </a>
               )
             }
 

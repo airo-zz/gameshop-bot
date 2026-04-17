@@ -115,6 +115,7 @@ export interface Order {
   total_amount: number
   payment_method: string | null
   items: OrderItem[]
+  items_count?: number   // присутствует в list-endpoint вместо items
   created_at: string
   paid_at: string | null
   completed_at: string | null

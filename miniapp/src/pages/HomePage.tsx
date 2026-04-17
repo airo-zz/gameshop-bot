@@ -710,7 +710,7 @@ export default function HomePage() {
               return (
                 <Link
                   key={cat.id}
-                  to={`/catalog/${cat.game_slug}`}
+                  to={`/catalog/${cat.game_slug}?cat=${cat.id}`}
                   style={{
                     minWidth: 160,
                     height: 100,
