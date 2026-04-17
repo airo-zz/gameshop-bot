@@ -143,7 +143,7 @@ export default function Layout() {
       </main>
 
       {/* ── Floating bottom navigation ─────────────────────────────────── */}
-      {!keyboardOpen && <nav
+      <nav
         className="fixed left-3 right-3"
         style={{
           bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
@@ -316,7 +316,7 @@ export default function Layout() {
             )
           })}
         </div>
-      </nav>}
+      </nav>
     </div>
   )
 }

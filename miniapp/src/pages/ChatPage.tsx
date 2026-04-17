@@ -337,6 +337,13 @@ export default function ChatPage() {
     messagesEndRef.current?.scrollIntoView()
   }, [messages.length])
 
+  // Scroll to bottom when keyboard opens so last message stays visible
+  useEffect(() => {
+    if (keyboardOpen) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
+  }, [keyboardOpen])
+
   const handleSend = useCallback(async (e?: FormEvent) => {
     e?.preventDefault()
     const trimmed = text.trim()
