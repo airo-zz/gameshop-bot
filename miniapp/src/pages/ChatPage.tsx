@@ -199,10 +199,8 @@ function MessageBubble({
                 <button
                   key={idx}
                   type="button"
-                  onTouchStart={e => e.stopPropagation()}
-                  onTouchEnd={e => { e.stopPropagation(); e.preventDefault(); onImageClick(url) }}
                   onClick={e => { e.stopPropagation(); onImageClick(url) }}
-                  style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: 'none', padding: 0, cursor: 'pointer', position: 'relative', background: 'transparent' }}
+                  style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: 'none', padding: 0, cursor: 'pointer', position: 'relative', background: 'transparent', touchAction: 'manipulation' }}
                 >
                   <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
@@ -242,6 +240,24 @@ export default function ChatPage() {
 
   const [searchParams, setSearchParams] = useSearchParams()
   const orderIdParam = searchParams.get('order_id')
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
+
+  useEffect(() => {
+    const tgWA = (window as any).Telegram?.WebApp
+    const handler = () => {
+      if (tgWA?.viewportStableHeight) {
+        setKeyboardOpen(tgWA.viewportHeight < tgWA.viewportStableHeight - 100)
+      } else if (window.visualViewport) {
+        setKeyboardOpen(window.visualViewport.height < window.innerHeight - 150)
+      }
+    }
+    tgWA?.onEvent?.('viewportChanged', handler)
+    window.visualViewport?.addEventListener('resize', handler)
+    return () => {
+      tgWA?.offEvent?.('viewportChanged', handler)
+      window.visualViewport?.removeEventListener('resize', handler)
+    }
+  }, [])
 
   const { data: chat, isLoading: chatLoading } = useQuery({
     queryKey: ['chat'],
@@ -456,7 +472,7 @@ export default function ChatPage() {
       {/* Input bar */}
       <div style={{
         flexShrink: 0, padding: '8px 12px',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
+        paddingBottom: keyboardOpen ? '8px' : 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
         background: '#060f1e', borderTop: '1px solid rgba(255,255,255,0.05)',
       }}>
         <form

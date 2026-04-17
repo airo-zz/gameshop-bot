@@ -113,6 +113,7 @@ class PaymentService:
             await self.order_svc.pay_with_balance(order, user)
             payment.status = PaymentStatus.succeeded
             payment.paid_at = datetime.now(timezone.utc)
+            await self._notify_user_payment_success(order)
             return {"success": True, "payment_id": str(payment.id)}
         except ValueError:
             payment.status = PaymentStatus.failed

@@ -1,5 +1,5 @@
 // src/components/layout/Layout.tsx
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Outlet, useLocation, Link, useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useCartStore, useUIStore } from '@/store'
@@ -73,6 +73,24 @@ export default function Layout() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [chatLoading, setChatLoading] = useState(false)
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
+
+  useEffect(() => {
+    const tgWA = (window as any).Telegram?.WebApp
+    const handler = () => {
+      if (tgWA?.viewportStableHeight) {
+        setKeyboardOpen(tgWA.viewportHeight < tgWA.viewportStableHeight - 100)
+      } else if (window.visualViewport) {
+        setKeyboardOpen(window.visualViewport.height < window.innerHeight - 150)
+      }
+    }
+    tgWA?.onEvent?.('viewportChanged', handler)
+    window.visualViewport?.addEventListener('resize', handler)
+    return () => {
+      tgWA?.offEvent?.('viewportChanged', handler)
+      window.visualViewport?.removeEventListener('resize', handler)
+    }
+  }, [])
 
   const activeIndex = NAV.findIndex(({ to }) =>
     to === '/' ? pathname === '/' : pathname.startsWith(to)
@@ -102,7 +120,7 @@ export default function Layout() {
         className={`flex-1 ${isChatPage ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}
         style={{
           position: 'relative',
-          paddingBottom: isChatPage ? 0 : 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
+          paddingBottom: isChatPage || keyboardOpen ? 0 : 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
           paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))',
         }}
       >
@@ -110,7 +128,7 @@ export default function Layout() {
       </main>
 
       {/* ── Floating bottom navigation ─────────────────────────────────── */}
-      <nav
+      {!keyboardOpen && <nav
         className="fixed left-3 right-3"
         style={{
           bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
@@ -259,7 +277,7 @@ export default function Layout() {
             )
           })}
         </div>
-      </nav>
+      </nav>}
     </div>
   )
 }
