@@ -21,17 +21,32 @@ import {
   Paperclip,
   X,
   ChevronLeft,
+  Plus,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 
 // ── Notify Modal ──────────────────────────────────────────────────────────────
 
-const NOTIFY_TEMPLATES = [
+const DEFAULT_TEMPLATES = [
   'Ваш заказ обрабатывается',
   'Ответим в ближайшее время',
   'Пожалуйста, уточните детали',
   'Товар зарезервирован',
 ]
+
+const LS_KEY = 'admin_notify_templates'
+
+function loadTemplates(): string[] {
+  try {
+    const raw = localStorage.getItem(LS_KEY)
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return DEFAULT_TEMPLATES
+}
+
+function saveTemplates(t: string[]) {
+  localStorage.setItem(LS_KEY, JSON.stringify(t))
+}
 
 function NotifyModal({
   onSend,
@@ -42,6 +57,9 @@ function NotifyModal({
 }) {
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  const [templates, setTemplates] = useState<string[]>(loadTemplates)
+  const [newTpl, setNewTpl] = useState('')
+  const [addingTpl, setAddingTpl] = useState(false)
 
   const handleSend = async () => {
     if (sending) return
@@ -54,6 +72,24 @@ function NotifyModal({
     } finally {
       setSending(false)
     }
+  }
+
+  const addTemplate = () => {
+    const t = newTpl.trim()
+    if (!t || templates.includes(t)) return
+    const next = [...templates, t]
+    setTemplates(next)
+    saveTemplates(next)
+    setNewTpl('')
+    setAddingTpl(false)
+    setText(t)
+  }
+
+  const removeTemplate = (t: string) => {
+    const next = templates.filter(x => x !== t)
+    setTemplates(next)
+    saveTemplates(next)
+    if (text === t) setText('')
   }
 
   return (
@@ -88,21 +124,85 @@ function NotifyModal({
 
         {/* Templates */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-          {NOTIFY_TEMPLATES.map(t => (
+          {templates.map(t => (
+            <div key={t} style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+              <button
+                onClick={() => setText(prev => prev === t ? '' : t)}
+                style={{
+                  padding: '5px 8px 5px 10px', borderRadius: text === t ? '20px 0 0 20px' : 20,
+                  fontSize: 12, cursor: 'pointer',
+                  background: text === t ? 'rgba(37,99,235,0.3)' : 'rgba(255,255,255,0.07)',
+                  border: text === t ? '1px solid rgba(96,165,250,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                  borderRight: text === t ? 'none' : undefined,
+                  color: text === t ? '#93c5fd' : 'rgba(255,255,255,0.6)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                {t}
+              </button>
+              <button
+                onClick={() => removeTemplate(t)}
+                title="Удалить заготовку"
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 22, height: 26,
+                  padding: 0,
+                  borderRadius: text === t ? '0 20px 20px 0' : '0 20px 20px 0',
+                  fontSize: 11, cursor: 'pointer',
+                  background: text === t ? 'rgba(37,99,235,0.3)' : 'rgba(255,255,255,0.07)',
+                  border: text === t ? '1px solid rgba(96,165,250,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                  borderLeft: 'none',
+                  color: 'rgba(255,255,255,0.35)',
+                  transition: 'all 0.15s',
+                }}
+              >
+                <X size={10} />
+              </button>
+            </div>
+          ))}
+
+          {/* Add template button */}
+          {addingTpl ? (
+            <div style={{ display: 'flex', gap: 4, width: '100%', marginTop: 2 }}>
+              <input
+                autoFocus
+                value={newTpl}
+                onChange={e => setNewTpl(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') addTemplate(); if (e.key === 'Escape') setAddingTpl(false) }}
+                placeholder="Текст заготовки..."
+                style={{
+                  flex: 1, background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(96,165,250,0.3)', borderRadius: 8,
+                  padding: '4px 8px', fontSize: 12, color: '#fff', outline: 'none',
+                }}
+              />
+              <button
+                onClick={addTemplate}
+                style={{ padding: '4px 10px', borderRadius: 8, background: 'rgba(37,99,235,0.4)', border: '1px solid rgba(96,165,250,0.4)', color: '#93c5fd', fontSize: 12, cursor: 'pointer' }}
+              >
+                Добавить
+              </button>
+              <button
+                onClick={() => setAddingTpl(false)}
+                style={{ padding: '4px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.4)', fontSize: 12, cursor: 'pointer' }}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ) : (
             <button
-              key={t}
-              onClick={() => setText(t)}
+              onClick={() => setAddingTpl(true)}
               style={{
                 padding: '5px 10px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
-                background: text === t ? 'rgba(37,99,235,0.3)' : 'rgba(255,255,255,0.07)',
-                border: text === t ? '1px solid rgba(96,165,250,0.5)' : '1px solid rgba(255,255,255,0.1)',
-                color: text === t ? '#93c5fd' : 'rgba(255,255,255,0.6)',
-                transition: 'all 0.15s',
+                background: 'transparent',
+                border: '1px dashed rgba(255,255,255,0.2)',
+                color: 'rgba(255,255,255,0.35)',
+                display: 'flex', alignItems: 'center', gap: 4,
               }}
             >
-              {t}
+              <Plus size={11} /> Добавить
             </button>
-          ))}
+          )}
         </div>
 
         {/* Text input */}
@@ -121,13 +221,13 @@ function NotifyModal({
 
         <button
           onClick={handleSend}
-          disabled={sending}
+          disabled={sending || !text.trim()}
           style={{
             marginTop: 12, width: '100%', padding: '12px',
-            borderRadius: 12, border: 'none', cursor: sending ? 'default' : 'pointer',
+            borderRadius: 12, border: 'none', cursor: (sending || !text.trim()) ? 'default' : 'pointer',
             background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
             color: '#fff', fontSize: 14, fontWeight: 600,
-            opacity: sending ? 0.7 : 1, transition: 'opacity 0.2s',
+            opacity: (sending || !text.trim()) ? 0.5 : 1, transition: 'opacity 0.2s',
           }}
         >
           {sending ? 'Отправка...' : 'Отправить уведомление'}
