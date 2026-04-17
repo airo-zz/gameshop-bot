@@ -87,19 +87,23 @@ export default function Layout() {
   const chatUnreadCount = (chatInfo as any)?.unread_count ?? 0
 
   useEffect(() => {
-    const tgWA = (window as any).Telegram?.WebApp
-    const handler = () => {
-      if (tgWA?.viewportStableHeight) {
-        setKeyboardOpen(tgWA.viewportHeight < tgWA.viewportStableHeight - 100)
-      } else if (window.visualViewport) {
-        setKeyboardOpen(window.visualViewport.height < window.innerHeight - 150)
-      }
+    // Отслеживаем максимальную высоту viewport — это высота без клавиатуры.
+    // Когда клавиатура открывается, высота уменьшается.
+    let maxHeight = window.visualViewport?.height ?? window.innerHeight
+
+    const check = () => {
+      const h = window.visualViewport?.height ?? window.innerHeight
+      if (h > maxHeight) maxHeight = h
+      setKeyboardOpen(maxHeight - h > 100)
     }
-    tgWA?.onEvent?.('viewportChanged', handler)
-    window.visualViewport?.addEventListener('resize', handler)
+
+    const tgWA = (window as any).Telegram?.WebApp
+    tgWA?.onEvent?.('viewportChanged', check)
+    window.visualViewport?.addEventListener('resize', check)
+
     return () => {
-      tgWA?.offEvent?.('viewportChanged', handler)
-      window.visualViewport?.removeEventListener('resize', handler)
+      tgWA?.offEvent?.('viewportChanged', check)
+      window.visualViewport?.removeEventListener('resize', check)
     }
   }, [])
 
