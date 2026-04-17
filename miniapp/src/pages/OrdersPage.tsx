@@ -6,14 +6,14 @@ import { Package, ChevronRight } from 'lucide-react'
 import { ordersApi } from '@/api'
 
 const STATUS_LABEL: Record<string, string> = {
-  new:             '🆕 Новый',
-  pending_payment: '⏳ Ожидает оплаты',
-  paid:            '💚 Оплачен',
-  processing:      '⚙️ В обработке',
-  clarification:   '❓ Уточнение',
-  completed:       '✅ Выполнен',
-  cancelled:       '❌ Отменён',
-  dispute:         '⚠️ Спор',
+  new:             'Новый',
+  pending_payment: 'Ожидает оплаты',
+  paid:            'Оплачен',
+  processing:      'В обработке',
+  clarification:   'Уточнение',
+  completed:       'Выполнен',
+  cancelled:       'Отменён',
+  dispute:         'Спор',
 }
 
 const STATUS_COLOR: Record<string, string> = {
@@ -36,7 +36,6 @@ export default function OrdersPage() {
 
   if (isError) return (
     <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-      <p className="text-5xl mb-4">😔</p>
       <p className="text-sm mb-4" style={{ color: 'var(--hint)' }}>Не удалось загрузить данные</p>
       <button
         type="button"
@@ -65,7 +64,7 @@ export default function OrdersPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
     >
-      <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>📋 Мои заказы</h1>
+      <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>Мои заказы</h1>
 
       {orders.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 gap-5">
@@ -99,14 +98,18 @@ export default function OrdersPage() {
                     {order.total_amount.toLocaleString('ru')} ₽
                   </p>
                 </div>
-                <p className="text-xs font-medium"
+                <p className="text-xs font-medium flex items-center"
                    style={{ color: STATUS_COLOR[order.status] ?? 'var(--hint)' }}>
+                  <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: STATUS_COLOR[order.status] ?? 'rgba(255,255,255,0.3)', marginRight: 6, flexShrink: 0 }} />
                   {STATUS_LABEL[order.status] ?? order.status}
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>
                   {new Date(order.created_at).toLocaleDateString('ru', {
                     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
                   })}
+                  {order.items.length > 0 && (
+                    <span style={{ marginLeft: 6 }}>&middot; {order.items.length} {order.items.length === 1 ? 'позиция' : order.items.length < 5 ? 'позиции' : 'позиций'}</span>
+                  )}
                 </p>
               </div>
               <ChevronRight size={16} style={{ color: 'var(--hint)' }} />

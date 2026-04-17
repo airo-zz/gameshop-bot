@@ -464,6 +464,7 @@ export default function HomePage() {
   })
 
   const trendingScrollRef = useRef<HTMLDivElement>(null)
+  const [trendingAtEnd, setTrendingAtEnd] = useState(false)
 
   const { data: trendingCategories = [], isLoading: trendingLoading } = useQuery({
     queryKey: ['trending-categories'],
@@ -476,6 +477,13 @@ export default function HomePage() {
     queryFn: profileApi.get,
     staleTime: 0,
   })
+
+  useEffect(() => {
+    const el = trendingScrollRef.current
+    if (!el) return
+    const maxScroll = el.scrollWidth - el.clientWidth
+    setTrendingAtEnd(maxScroll <= 0 || el.scrollLeft >= maxScroll - 4)
+  }, [trendingCategories.length])
 
   return (
     <div style={{ position: 'relative', zIndex: 1 }}>
@@ -661,7 +669,7 @@ export default function HomePage() {
 
           <div style={{ position: 'relative' }}>
           {/* Right fade — extends 16px past container to reach screen edge */}
-          <div style={{ position: 'absolute', right: -16, top: 0, bottom: 4, width: 110, zIndex: 2, pointerEvents: 'none', background: 'linear-gradient(to right, transparent 0%, #010509 60%)' }} />
+          <div style={{ position: 'absolute', right: -16, top: 0, bottom: 4, width: 110, zIndex: 2, pointerEvents: 'none', background: 'linear-gradient(to right, transparent 0%, #010509 60%)', opacity: trendingAtEnd ? 0 : 1, transition: 'opacity 0.3s ease' }} />
           {/* Clickable arrow */}
           <button
             type="button"
@@ -672,14 +680,23 @@ export default function HomePage() {
               if (el.scrollLeft >= maxScroll - 4) {
                 el.scrollTo({ left: 0, behavior: 'smooth' })
               } else {
-                el.scrollBy({ left: 200, behavior: 'smooth' })
+                el.scrollTo({ left: maxScroll, behavior: 'smooth' })
               }
             }}
-            style={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', zIndex: 3, width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' } as React.CSSProperties}
+            style={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', zIndex: 3, width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', opacity: trendingAtEnd ? 0 : 1, transition: 'opacity 0.3s ease', pointerEvents: trendingAtEnd ? 'none' : 'auto' } as React.CSSProperties}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
           </button>
-          <div ref={trendingScrollRef} style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16, scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
+          <div
+            ref={trendingScrollRef}
+            onScroll={() => {
+              const el = trendingScrollRef.current
+              if (!el) return
+              const maxScroll = el.scrollWidth - el.clientWidth
+              setTrendingAtEnd(el.scrollLeft >= maxScroll - 4)
+            }}
+            style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16, scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
+          >
             {trendingLoading ? (
               [...Array(4)].map((_, i) => (
                 <div
