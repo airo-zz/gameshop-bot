@@ -355,6 +355,19 @@ async def adjust_balance(
 
     await db.flush()
 
+    # Уведомление пользователю при начислении баланса
+    if body.type == "manual_credit":
+        from api.telegram_utils import send_tg_message
+        from bot.utils.texts import texts
+        await send_tg_message(
+            user.telegram_id,
+            texts.balance_credited_by_admin(
+                float(amount),
+                float(balance_after),
+                body.description or None,
+            ),
+        )
+
     return {
         "user_id": user_id,
         "balance_before": float(balance_before),

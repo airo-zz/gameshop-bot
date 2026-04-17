@@ -141,6 +141,22 @@ class BotTexts:
             f"Выбери способ оплаты:"
         )
 
+    def balance_topup_success(self, amount: float, new_balance: float) -> str:
+        return (
+            f"💰 <b>Баланс пополнен</b>\n\n"
+            f"Зачислено: <b>+{amount:,.0f} ₽</b>\n"
+            f"Текущий баланс: <b>{new_balance:,.0f} ₽</b>"
+        )
+
+    def balance_credited_by_admin(self, amount: float, new_balance: float, reason: str | None = None) -> str:
+        reason_part = f"\n\nПричина: {reason}" if reason else ""
+        return (
+            f"💰 <b>Начисление баланса</b>\n\n"
+            f"Администратор начислил вам <b>+{amount:,.0f} ₽</b>\n"
+            f"Текущий баланс: <b>{new_balance:,.0f} ₽</b>"
+            f"{reason_part}"
+        )
+
     def order_paid(self, order_number: str) -> str:
         return (
             f"💚 Оплата прошла успешно!\n\n"

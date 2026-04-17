@@ -482,16 +482,24 @@ class PaymentService:
         ))
         logger.info("Balance topup: user %s +%s RUB via %s (%s)", user_id, amount, provider, external_id)
 
+        # Уведомление пользователю о пополнении
+        from bot.utils.texts import texts
+        from api.telegram_utils import send_tg_message
+        await send_tg_message(
+            user.telegram_id,
+            texts.balance_topup_success(float(amount), float(user.balance)),
+        )
+
     async def _notify_user_payment_success(self, order: Order) -> None:
-        """Отправляет уведомление пользователю через aiogram Bot и добавляет системное сообщение в чат."""
+        """Отправляет уведомление пользователю и добавляет системное сообщение в чат."""
         from sqlalchemy.orm import selectinload
         from bot.utils.texts import texts
+        from api.telegram_utils import send_tg_message
 
         # Загружаем связь с пользователем и позициями заказа
         telegram_id: int | None = None
         items_str: str = ""
         try:
-            from shared.models import OrderItem
             result = await self.db.execute(
                 select(Order)
                 .options(selectinload(Order.user), selectinload(Order.items))
@@ -499,27 +507,17 @@ class PaymentService:
             )
             order_with_user = result.scalar_one()
             telegram_id = order_with_user.user.telegram_id
-            # Уникальные названия товаров через запятую (формат "Игра, Товар")
             seen: list[str] = []
             for item in order_with_user.items:
-                if item.game_name:
-                    name = f"{item.game_name}, {item.product_name}"
-                else:
-                    name = item.product_name
+                name = f"{item.game_name}, {item.product_name}" if item.game_name else item.product_name
                 if name not in seen:
                     seen.append(name)
             items_str = "; ".join(seen)
         except Exception as exc:
             logger.warning("Не удалось загрузить пользователя заказа: %s", exc)
 
-        # Telegram уведомление
         if telegram_id is not None:
-            try:
-                from api.bot_instance import get_bot
-                bot = get_bot()
-                await bot.send_message(telegram_id, texts.order_paid(order.order_number), parse_mode="HTML")
-            except Exception as exc:
-                logger.warning("Не удалось отправить уведомление об оплате: %s", exc)
+            await send_tg_message(telegram_id, texts.order_paid(order.order_number))
 
         # Системное сообщение в чат
         if telegram_id is not None:
