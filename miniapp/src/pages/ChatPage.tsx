@@ -270,31 +270,41 @@ export default function ChatPage() {
   const [keyboardOpen, setKeyboardOpen] = useState(false)
 
   // Native document-level capture listeners for image/file taps.
-  // Must be at capture phase to fire before iOS WKWebView scroll handling.
+  // No preventDefault on touchstart — some iOS WKWebView versions block touchend if prevented.
+  // Movement threshold (10px) distinguishes taps from scrolls.
   useEffect(() => {
+    let startX = 0, startY = 0
+    let touchBtn: HTMLElement | null = null
+
     const onStart = (e: TouchEvent) => {
-      const el = (e.target as HTMLElement).closest('[data-img-url],[data-file-url]')
-      if (el) e.preventDefault() // prevent scroll gesture from claiming this touch
+      const t = e.touches[0]
+      startX = t.clientX
+      startY = t.clientY
+      touchBtn = (e.target as HTMLElement).closest('[data-img-url],[data-file-url]') as HTMLElement | null
     }
     const onEnd = (e: TouchEvent) => {
-      const imgEl = (e.target as HTMLElement).closest('[data-img-url]') as HTMLElement | null
-      const fileEl = (e.target as HTMLElement).closest('[data-file-url]') as HTMLElement | null
-      if (imgEl?.dataset.imgUrl) {
-        setLightboxUrl(imgEl.dataset.imgUrl)
-      } else if (fileEl?.dataset.fileUrl) {
-        const url = fileEl.dataset.fileUrl
+      const btn = touchBtn
+      touchBtn = null
+      if (!btn) return
+      const t = e.changedTouches[0]
+      if (Math.abs(t.clientX - startX) > 10 || Math.abs(t.clientY - startY) > 10) return
+      // Haptic confirms handler fired (diagnostic)
+      ;(window as any).Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('heavy')
+      if (btn.dataset.imgUrl) {
+        setLightboxUrl(btn.dataset.imgUrl)
+      } else if (btn.dataset.fileUrl) {
         const tg = (window as any).Telegram?.WebApp
-        if (tg?.openLink) tg.openLink(url)
-        else window.open(url, '_blank')
+        if (tg?.openLink) tg.openLink(btn.dataset.fileUrl)
+        else window.open(btn.dataset.fileUrl, '_blank')
       }
     }
-    document.addEventListener('touchstart', onStart, { capture: true, passive: false })
+    document.addEventListener('touchstart', onStart, { capture: true })
     document.addEventListener('touchend', onEnd, { capture: true })
     return () => {
       document.removeEventListener('touchstart', onStart, { capture: true })
       document.removeEventListener('touchend', onEnd, { capture: true })
     }
-  }, []) // setLightboxUrl is a stable React state setter
+  }, [])
 
   useEffect(() => {
     let maxHeight = window.visualViewport?.height ?? window.innerHeight
