@@ -282,28 +282,30 @@ function MessageBubble({
                 <button
                   key={idx}
                   type="button"
+                  onTouchStart={e => e.stopPropagation()}
                   onTouchEnd={e => { e.preventDefault(); e.stopPropagation(); onImageClick(absUrl) }}
                   onClick={e => { e.stopPropagation(); onImageClick(absUrl) }}
                   style={{
                     width: 80, height: 80, borderRadius: 8, overflow: 'hidden', flexShrink: 0,
                     border: '1px solid rgba(255,255,255,0.1)', padding: 0, cursor: 'pointer',
-                    background: 'transparent', touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                    background: 'transparent', touchAction: 'none', WebkitTapHighlightColor: 'transparent',
                   }}
                 >
-                  <img src={absUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  <img src={absUrl} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none', userSelect: 'none', WebkitUserSelect: 'none' }} />
                 </button>
               ) : (
                 <button
                   key={idx}
                   type="button"
-                  onTouchEnd={e => { e.preventDefault(); openFile() }}
+                  onTouchStart={e => e.stopPropagation()}
+                  onTouchEnd={e => { e.preventDefault(); e.stopPropagation(); openFile() }}
                   onClick={openFile}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px',
                     borderRadius: 8, background: 'rgba(255,255,255,0.08)',
                     border: '1px solid rgba(255,255,255,0.12)',
                     color: 'rgba(255,255,255,0.6)', fontSize: 11, cursor: 'pointer',
-                    touchAction: 'manipulation', WebkitTapHighlightColor: 'transparent',
+                    touchAction: 'none', WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   <Paperclip size={11} /> Файл {idx + 1}
