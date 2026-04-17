@@ -251,6 +251,123 @@ function MessageBubble({
   )
 }
 
+// ── Lightbox ──────────────────────────────────────────────────────────────────
+
+function Lightbox({ url, onClose }: { url: string; onClose: () => void }) {
+  const [scale, setScale] = useState(1)
+  const lastTapRef = useRef(0)
+  const pinchRef = useRef<{ dist: number; baseScale: number } | null>(null)
+
+  const getPinchDist = (touches: React.TouchList) => {
+    const dx = touches[0].clientX - touches[1].clientX
+    const dy = touches[0].clientY - touches[1].clientY
+    return Math.hypot(dx, dy)
+  }
+
+  const handleImgTouchStart = (e: React.TouchEvent) => {
+    e.stopPropagation()
+    if (e.touches.length === 2) {
+      pinchRef.current = { dist: getPinchDist(e.touches), baseScale: scale }
+    }
+  }
+
+  const handleImgTouchMove = (e: React.TouchEvent) => {
+    e.stopPropagation()
+    if (e.touches.length === 2 && pinchRef.current) {
+      const ratio = getPinchDist(e.touches) / pinchRef.current.dist
+      setScale(Math.min(4, Math.max(1, pinchRef.current.baseScale * ratio)))
+    }
+  }
+
+  const handleImgTouchEnd = (e: React.TouchEvent) => {
+    e.stopPropagation()
+    if (e.touches.length < 2) pinchRef.current = null
+  }
+
+  const handleImgClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    const now = Date.now()
+    if (now - lastTapRef.current < 280) {
+      setScale(s => s > 1 ? 1 : 2.5)
+    }
+    lastTapRef.current = now
+  }
+
+  const handleBgClick = () => {
+    if (scale > 1) { setScale(1); return }
+    onClose()
+  }
+
+  return (
+    <div
+      onClick={handleBgClick}
+      style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+    >
+      {/* Close button — below Telegram header using tg-content-safe-area-inset */}
+      <button
+        onClick={e => { e.stopPropagation(); onClose() }}
+        style={{
+          position: 'absolute',
+          top: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px) + 10px)',
+          right: 16,
+          zIndex: 301,
+          background: 'rgba(255,255,255,0.15)',
+          backdropFilter: 'blur(8px)',
+          border: 'none',
+          borderRadius: 20,
+          width: 36,
+          height: 36,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+        }}
+      >
+        <X size={18} color="#fff" />
+      </button>
+
+      <img
+        src={url}
+        alt=""
+        onTouchStart={handleImgTouchStart}
+        onTouchMove={handleImgTouchMove}
+        onTouchEnd={handleImgTouchEnd}
+        onClick={handleImgClick}
+        draggable={false}
+        style={{
+          maxWidth: '88vw',
+          maxHeight: '60vh',
+          borderRadius: scale > 1 ? 4 : 14,
+          objectFit: 'contain',
+          transform: `scale(${scale})`,
+          transition: pinchRef.current ? 'none' : 'transform 0.22s ease',
+          touchAction: 'none',
+          userSelect: 'none',
+          WebkitUserSelect: 'none',
+          cursor: scale > 1 ? 'zoom-out' : 'zoom-in',
+        }}
+      />
+
+      {/* Hint */}
+      <div style={{
+        position: 'absolute',
+        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 110px)',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        background: 'rgba(0,0,0,0.5)',
+        borderRadius: 20,
+        padding: '5px 14px',
+        whiteSpace: 'nowrap',
+        pointerEvents: 'none',
+      }}>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.45)' }}>
+          {scale > 1 ? 'Двойной тап — сбросить масштаб' : 'Двойной тап — увеличить'}
+        </span>
+      </div>
+    </div>
+  )
+}
+
 // ── Main ChatPage ─────────────────────────────────────────────────────────────
 
 export default function ChatPage() {
@@ -600,25 +717,7 @@ export default function ChatPage() {
       </div>
 
       {/* Lightbox */}
-      {lightboxUrl && (
-        <div
-          onClick={() => setLightboxUrl(null)}
-          style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        >
-          <button
-            onClick={e => { e.stopPropagation(); setLightboxUrl(null) }}
-            style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', right: 16, zIndex: 301, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 20, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-          >
-            <X size={18} color="#fff" />
-          </button>
-          <img
-            src={lightboxUrl}
-            alt=""
-            onClick={e => e.stopPropagation()}
-            style={{ maxWidth: '92vw', maxHeight: '82vh', borderRadius: 12, objectFit: 'contain' }}
-          />
-        </div>
-      )}
+      {lightboxUrl && <Lightbox url={lightboxUrl} onClose={() => setLightboxUrl(null)} />}
     </div>
   )
 }
