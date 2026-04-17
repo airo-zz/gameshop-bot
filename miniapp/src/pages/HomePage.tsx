@@ -754,6 +754,7 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ── Games section ────────────────────────────────────────────────── */}
         {/* ── Games horizontal scroll ──────────────────────────────────────── */}
         <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(45,88,173,0.2) 30%, rgba(45,88,173,0.2) 70%, transparent)', marginBottom: 24 }} />
         <section>
@@ -817,12 +818,12 @@ export default function HomePage() {
           </div>
 
           <AnimatePresence mode="wait">
-            <motion.div
+            {games.length > 0 && <motion.div
               key={homeType}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15 }}
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
@@ -886,7 +887,7 @@ export default function HomePage() {
                   </div>
                 </Link>
               ))}
-            </motion.div>
+            </motion.div>}
           </AnimatePresence>
         </section>
 

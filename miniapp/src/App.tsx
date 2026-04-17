@@ -84,7 +84,6 @@ export default function App() {
   const { isReady, isError, setReady, setError } = useAuthStore()
   const { setItemsCount } = useCartStore()
   const initialized = useRef(false)
-  // Плавный fade-out сплэша: exiting=true запускает анимацию, затем убираем сплэш
   const [splashExiting, setSplashExiting] = useState(false)
   const [splashGone, setSplashGone] = useState(false)
 
@@ -119,11 +118,10 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Когда приложение готово — запускаем fade-out сплэша
   useEffect(() => {
     if (!isReady) return
     setSplashExiting(true)
-    const t = setTimeout(() => setSplashGone(true), 380)
+    const t = setTimeout(() => setSplashGone(true), 400)
     return () => clearTimeout(t)
   }, [isReady])
 

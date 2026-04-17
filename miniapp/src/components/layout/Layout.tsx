@@ -4,7 +4,6 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCartStore, useUIStore } from '@/store'
 import ParticleCanvas from '@/components/ui/ParticleCanvas'
-import TopProgressBar from '@/components/ui/TopProgressBar'
 import logo from '@/assets/logo.png'
 import { catalogApi, cartApi, profileApi, chatApi } from '@/api'
 
@@ -73,8 +72,6 @@ export default function Layout() {
 
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [chatLoading, setChatLoading] = useState(false)
-  const [navLoading, setNavLoading] = useState<string | null>(null)
   const [keyboardOpen, setKeyboardOpen] = useState(false)
 
   const isChatPageEarly = pathname.startsWith('/chat')
@@ -108,20 +105,11 @@ export default function Layout() {
   }, [])
 
   const prefetchAndNavigate = useCallback(async (to: string, prefetchFn?: () => Promise<void>) => {
-    // Already on this page
     if (pathname === to || (to !== '/' && pathname.startsWith(to))) return
-    // Already loading
-    if (navLoading) return
-    // No prefetch — navigate immediately
     if (!prefetchFn) { navigate(to); return }
-    setNavLoading(to)
-    try {
-      await prefetchFn()
-    } finally {
-      setNavLoading(null)
-      navigate(to)
-    }
-  }, [pathname, navigate, navLoading, queryClient])
+    await prefetchFn()
+    navigate(to)
+  }, [pathname, navigate])
 
   const activeIndex = NAV.findIndex(({ to }) =>
     to === '/' ? pathname === '/' : pathname.startsWith(to)
@@ -132,23 +120,17 @@ export default function Layout() {
   const handleChatClick = async (e: React.MouseEvent) => {
     e.preventDefault()
     if (isChatPage) return
-    if (navLoading) return
-    // Already cached → navigate immediately
-    if (queryClient.getQueryData(['chat'])) { navigate('/chat'); return }
-    setChatLoading(true)
-    setNavLoading('/chat')
-    try {
-      await queryClient.prefetchQuery({ queryKey: ['chat'], queryFn: chatApi.getOrCreate, staleTime: Infinity })
-    } finally {
-      setChatLoading(false)
-      setNavLoading(null)
-      navigate('/chat')
-    }
+    await Promise.all([
+      import('@/pages/ChatPage'),
+      queryClient.getQueryData(['chat'])
+        ? Promise.resolve()
+        : queryClient.prefetchQuery({ queryKey: ['chat'], queryFn: chatApi.getOrCreate, staleTime: Infinity }),
+    ])
+    navigate('/chat')
   }
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--bg)' }}>
-      <TopProgressBar active={navLoading !== null || chatLoading} />
       {particlesEnabled && <ParticleCanvas />}
 
       <main
@@ -240,10 +222,7 @@ export default function Layout() {
                       transform: 'translateY(-6px)',
                     }}
                   >
-                    {chatLoading
-                      ? <div style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
-                      : <img src={logo} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4 }} />
-                    }
+                    <img src={logo} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4 }} />
                     <span
                       className="text-[9px] font-semibold leading-none select-none"
                       style={{ color: '#fff', whiteSpace: 'nowrap' }}
@@ -283,6 +262,7 @@ export default function Layout() {
             const handleClick = () => {
               if (to === '/') {
                 prefetchAndNavigate(to, () => Promise.all([
+                  import('@/pages/HomePage'),
                   queryClient.prefetchQuery({
                     queryKey: ['games', 'game'],
                     queryFn: () => catalogApi.getGames('game'),
@@ -295,29 +275,32 @@ export default function Layout() {
                   }),
                 ]).then(() => {}))
               } else if (to === '/catalog') {
-                prefetchAndNavigate(to, () =>
+                prefetchAndNavigate(to, () => Promise.all([
+                  import('@/pages/CatalogPage'),
                   queryClient.prefetchQuery({
                     queryKey: ['games', 'game'],
                     queryFn: () => catalogApi.getGames('game'),
                     staleTime: 30_000,
-                  })
-                )
+                  }),
+                ]).then(() => {}))
               } else if (to === '/cart') {
-                prefetchAndNavigate(to, () =>
+                prefetchAndNavigate(to, () => Promise.all([
+                  import('@/pages/CartPage'),
                   queryClient.prefetchQuery({
                     queryKey: ['cart'],
                     queryFn: cartApi.get,
                     staleTime: 10_000,
-                  })
-                )
+                  }),
+                ]).then(() => {}))
               } else if (to === '/profile') {
-                prefetchAndNavigate(to, () =>
+                prefetchAndNavigate(to, () => Promise.all([
+                  import('@/pages/ProfilePage'),
                   queryClient.prefetchQuery({
                     queryKey: ['profile'],
                     queryFn: profileApi.get,
                     staleTime: 30_000,
-                  })
-                )
+                  }),
+                ]).then(() => {}))
               } else {
                 prefetchAndNavigate(to)
               }
