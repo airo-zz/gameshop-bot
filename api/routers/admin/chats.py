@@ -179,27 +179,25 @@ async def notify_user(
 
     notification_text = body.text or "У вас новое сообщение от продавца. Откройте чат для ответа."
 
-    # Формируем кнопку открытия Mini App
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    from api.bot_instance import get_bot
+
     reply_markup = None
-    if settings.MINIAPP_URL or settings.BOT_USERNAME:
-        miniapp_url = (
-            settings.MINIAPP_URL.rstrip("/")
-            if settings.MINIAPP_URL
-            else f"https://t.me/{settings.BOT_USERNAME}/app"
-        )
-        reply_markup = {
-            "inline_keyboard": [[{
-                "text": "Открыть чат",
-                "url": f"https://t.me/{settings.BOT_USERNAME}?startapp=chat",
-            }]]
-        }
+    if settings.BOT_USERNAME:
+        reply_markup = InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(
+                text="Открыть чат",
+                url=f"https://t.me/{settings.BOT_USERNAME}?startapp=chat",
+            )
+        ]])
 
     try:
-        from worker.tasks.notification_tasks import send_notification
-        send_notification.delay(
-            chat.user_id,
-            f"<b>Сообщение от продавца</b>\n\n{notification_text}",
-            reply_markup,
+        bot = get_bot()
+        await bot.send_message(
+            chat_id=chat.user_id,
+            text=f"<b>Сообщение от продавца</b>\n\n{notification_text}",
+            parse_mode="HTML",
+            reply_markup=reply_markup,
         )
     except Exception as exc:
         log.error("admin.chat.notify.failed", chat_id=str(chat_id), error=str(exc))
