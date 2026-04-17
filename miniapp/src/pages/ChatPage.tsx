@@ -277,12 +277,14 @@ export default function ChatPage() {
     let touchBtn: HTMLElement | null = null
 
     const onStart = (e: TouchEvent) => {
-      // Debug: vibrate on ANY tap to confirm capture listener fires
-      ;(window as any).Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('light')
+      const tg = (window as any).Telegram?.WebApp
       const t = e.touches[0]
       startX = t.clientX
       startY = t.clientY
       touchBtn = (e.target as HTMLElement).closest('[data-img-url],[data-file-url]') as HTMLElement | null
+      // light = any tap, success-notification = button found
+      tg?.HapticFeedback?.impactOccurred?.('light')
+      if (touchBtn) tg?.HapticFeedback?.notificationOccurred?.('success')
     }
     const onEnd = (e: TouchEvent) => {
       const btn = touchBtn
@@ -290,12 +292,11 @@ export default function ChatPage() {
       if (!btn) return
       const t = e.changedTouches[0]
       if (Math.abs(t.clientX - startX) > 10 || Math.abs(t.clientY - startY) > 10) return
-      // Haptic confirms handler fired (diagnostic)
-      ;(window as any).Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('heavy')
+      const tg = (window as any).Telegram?.WebApp
+      tg?.HapticFeedback?.impactOccurred?.('heavy')
       if (btn.dataset.imgUrl) {
         setLightboxUrl(btn.dataset.imgUrl)
       } else if (btn.dataset.fileUrl) {
-        const tg = (window as any).Telegram?.WebApp
         if (tg?.openLink) tg.openLink(btn.dataset.fileUrl)
         else window.open(btn.dataset.fileUrl, '_blank')
       }
