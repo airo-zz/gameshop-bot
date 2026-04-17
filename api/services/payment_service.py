@@ -514,6 +514,6 @@ class PaymentService:
             try:
                 from api.services.chat_service import ChatService
                 chat_svc = ChatService(self.db)
-                await chat_svc.add_system_message(telegram_id, texts.chat_order_paid(order.order_number))
+                await chat_svc.add_system_message(telegram_id, texts.chat_order_paid(order.order_number, float(order.total_amount)))
             except Exception as exc:
                 logger.warning("Не удалось добавить системное сообщение в чат: %s", exc)

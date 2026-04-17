@@ -148,8 +148,9 @@ class BotTexts:
             f"Мы уведомим тебя о выполнении."
         )
 
-    def chat_order_paid(self, order_number: str) -> str:
-        return f"Покупатель оплатил Заказ #{order_number}"
+    def chat_order_paid(self, order_number: str, amount: float | None = None) -> str:
+        amount_str = f" · {int(amount):,} ₽".replace(",", "\u00a0") if amount else ""
+        return f"Заказ {order_number} оплачен{amount_str}"
 
     def order_completed(self, order_number: str, delivery_data: str = "") -> str:
         delivery_text = (

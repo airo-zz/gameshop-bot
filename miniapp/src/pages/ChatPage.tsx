@@ -66,21 +66,6 @@ function getDateKey(dateStr: string): string {
   return new Date(dateStr).toDateString()
 }
 
-// ── Long press hook ───────────────────────────────────────────────────────────
-
-function useLongPress(onLongPress: () => void, ms = 500) {
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const cancel = () => { if (timer.current) clearTimeout(timer.current) }
-  return {
-    onTouchStart: () => { timer.current = setTimeout(onLongPress, ms) },
-    onTouchEnd: cancel,
-    onTouchCancel: cancel,
-    onMouseDown: () => { timer.current = setTimeout(onLongPress, ms) },
-    onMouseUp: cancel,
-    onMouseLeave: cancel,
-  }
-}
-
 // ── Link-aware text renderer ──────────────────────────────────────────────────
 // Matches https://, www., or bare domain.tld — but NOT email addresses (user@domain)
 
@@ -123,7 +108,52 @@ function TextWithLinks({ text }: { text: string }): ReactNode {
 
 // ── System message ────────────────────────────────────────────────────────────
 
+// Matches: "Заказ #001000 оплачен · 1 500 ₽"
+const PAYMENT_RE = /^Заказ\s+(#\S+)\s+оплачен(?:\s+·\s+([\d\s\u00a0]+)\s*₽)?/
+
 function SystemMessage({ text }: { text: string }) {
+  const { haptic } = useTelegram()
+  const match = PAYMENT_RE.exec(text)
+
+  if (match) {
+    const orderNum = match[1]
+    const amount = match[2]?.trim()
+    const handleCopy = () => {
+      navigator.clipboard.writeText(orderNum).then(() => {
+        haptic.impact('light')
+        toast.success('Номер заказа скопирован', { duration: 1500 })
+      }).catch(() => {})
+    }
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', marginBottom: 8 }}>
+        <div style={{
+          display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+          padding: '10px 16px', borderRadius: 16,
+          background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)',
+          maxWidth: '85%',
+        }}>
+          <span style={{ fontSize: 12, color: '#34d399', fontWeight: 600 }}>Оплата подтверждена</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>
+              {orderNum}
+              {amount && <span style={{ color: 'rgba(255,255,255,0.45)', marginLeft: 6 }}>· {amount} ₽</span>}
+            </span>
+            <button
+              onClick={handleCopy}
+              style={{
+                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 6, padding: '2px 7px', cursor: 'pointer',
+                fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 500,
+              }}
+            >
+              копировать
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ textAlign: 'center', padding: '4px 0', marginBottom: 8 }}>
       <span style={{
@@ -158,20 +188,11 @@ function MessageBubble({
   msg: ChatMessage & { optimistic?: boolean }
   onImageClick: (url: string) => void
 }) {
-  const { haptic } = useTelegram()
   const isUser = msg.sender_type === 'user'
   const isAdmin = msg.sender_type === 'admin'
 
-  const lp = useLongPress(() => {
-    if (!msg.text) return
-    navigator.clipboard.writeText(msg.text).then(() => {
-      haptic.impact('light')
-      toast.success('Скопировано', { duration: 1500 })
-    }).catch(() => toast.error('Не удалось скопировать'))
-  })
-
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-1`} {...lp}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-1`}>
       <div style={{
         maxWidth: '80%',
         padding: '8px 12px',
@@ -303,7 +324,7 @@ export default function ChatPage() {
   }, [orderIdParam, chat, queryClient, setSearchParams])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    messagesEndRef.current?.scrollIntoView()
   }, [messages.length])
 
   const handleSend = useCallback(async (e?: FormEvent) => {
