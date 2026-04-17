@@ -3,7 +3,7 @@ import {
   useState, useEffect, useRef, useCallback,
   type FormEvent, type ReactNode,
 } from 'react'
-import { createPortal } from 'react-dom'
+import { flushSync } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Send, Paperclip, X, ZoomIn } from 'lucide-react'
@@ -277,14 +277,10 @@ export default function ChatPage() {
     let touchBtn: HTMLElement | null = null
 
     const onStart = (e: TouchEvent) => {
-      const tg = (window as any).Telegram?.WebApp
       const t = e.touches[0]
       startX = t.clientX
       startY = t.clientY
       touchBtn = (e.target as HTMLElement).closest('[data-img-url],[data-file-url]') as HTMLElement | null
-      // light = any tap, success-notification = button found
-      tg?.HapticFeedback?.impactOccurred?.('light')
-      if (touchBtn) tg?.HapticFeedback?.notificationOccurred?.('success')
     }
     const onEnd = (e: TouchEvent) => {
       const btn = touchBtn
@@ -293,9 +289,8 @@ export default function ChatPage() {
       const t = e.changedTouches[0]
       if (Math.abs(t.clientX - startX) > 10 || Math.abs(t.clientY - startY) > 10) return
       const tg = (window as any).Telegram?.WebApp
-      tg?.HapticFeedback?.impactOccurred?.('heavy')
       if (btn.dataset.imgUrl) {
-        setLightboxUrl(btn.dataset.imgUrl)
+        flushSync(() => setLightboxUrl(btn.dataset.imgUrl!))
       } else if (btn.dataset.fileUrl) {
         if (tg?.openLink) tg.openLink(btn.dataset.fileUrl)
         else window.open(btn.dataset.fileUrl, '_blank')
@@ -605,36 +600,25 @@ export default function ChatPage() {
       </div>
 
       {/* Lightbox */}
-      <AnimatePresence>
-        {lightboxUrl && createPortal(
-          <motion.div
-            key="lb"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setLightboxUrl(null)}
-            style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      {lightboxUrl && (
+        <div
+          onClick={() => setLightboxUrl(null)}
+          style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <button
+            onClick={e => { e.stopPropagation(); setLightboxUrl(null) }}
+            style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', right: 16, zIndex: 301, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 20, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
           >
-            <button
-              onClick={e => { e.stopPropagation(); setLightboxUrl(null) }}
-              style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', right: 16, zIndex: 301, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 20, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-            >
-              <X size={18} color="#fff" />
-            </button>
-            <motion.img
-              src={lightboxUrl}
-              alt=""
-              onClick={e => e.stopPropagation()}
-              initial={{ scale: 0.88, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.88, opacity: 0 }}
-              transition={{ duration: 0.22, ease: [0.34, 1.26, 0.64, 1] }}
-              style={{ maxWidth: '92vw', maxHeight: '82vh', borderRadius: 12, objectFit: 'contain' }}
-            />
-          </motion.div>,
-          document.body,
-        )}
-      </AnimatePresence>
+            <X size={18} color="#fff" />
+          </button>
+          <img
+            src={lightboxUrl}
+            alt=""
+            onClick={e => e.stopPropagation()}
+            style={{ maxWidth: '92vw', maxHeight: '82vh', borderRadius: 12, objectFit: 'contain' }}
+          />
+        </div>
+      )}
     </div>
   )
 }
