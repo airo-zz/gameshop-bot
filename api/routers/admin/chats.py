@@ -12,9 +12,11 @@ POST /chats/{chat_id}/notify    — отправить push-уведомлени
 """
 
 import uuid
+from pathlib import Path
 
+import aiofiles
 import structlog
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, status
 from sqlalchemy import select
 
 from api.deps import DbSession
@@ -34,6 +36,17 @@ from shared.models.user import User
 
 router = APIRouter()
 log = structlog.get_logger()
+
+CHAT_UPLOAD_DIR = Path("/static/uploads/chat")
+ALLOWED_TYPES = {
+    "image/jpeg": "jpg",
+    "image/jpg": "jpg",
+    "image/png": "png",
+    "image/webp": "webp",
+    "image/gif": "gif",
+    "application/pdf": "pdf",
+}
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
 def _build_user_info(user: User | None, chat: Chat) -> AdminChatUserInfo:
@@ -141,13 +154,52 @@ async def send_message(
     if chat is None:
         raise HTTPException(status_code=404, detail="Чат не найден")
 
-    text = body.text.strip()
-    if not text:
-        raise HTTPException(status_code=422, detail="Текст не может быть пустым")
+    text = body.text.strip() if body.text else None
+    if not text and not body.attachments:
+        raise HTTPException(status_code=422, detail="Текст или вложение обязательны")
 
-    msg = await svc.send_message(chat_id, "admin", text)
+    msg = await svc.send_message(chat_id, "admin", text, body.attachments)
     log.info("admin.chat.send", chat_id=str(chat_id), admin_id=str(admin.id))
     return ChatMessageOut.model_validate(msg)
+
+
+@router.post("/{chat_id}/upload")
+async def upload_attachment(
+    chat_id: uuid.UUID,
+    file: UploadFile,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> dict:
+    """Загрузка вложения для чата. Изображения и PDF, макс 10 МБ."""
+    svc = ChatService(db)
+    chat = await svc.get_chat_by_id(chat_id)
+    if chat is None:
+        raise HTTPException(status_code=404, detail="Чат не найден")
+
+    content_type = (file.content_type or "").lower()
+    ext = ALLOWED_TYPES.get(content_type)
+    if ext is None:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Неподдерживаемый тип: {content_type}",
+        )
+
+    contents = await file.read(MAX_UPLOAD_SIZE + 1)
+    if len(contents) > MAX_UPLOAD_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Файл слишком большой. Максимум 10 МБ.",
+        )
+
+    CHAT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    import uuid as _uuid
+    filename = f"{_uuid.uuid4()}.{ext}"
+    dest = CHAT_UPLOAD_DIR / filename
+
+    async with aiofiles.open(dest, "wb") as f:
+        await f.write(contents)
+
+    return {"url": f"/static/uploads/chat/{filename}"}
 
 
 @router.post("/{chat_id}/read", status_code=204)

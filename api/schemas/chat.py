@@ -65,7 +65,8 @@ class AdminChatDetail(BaseModel):
 
 
 class AdminSendMessageRequest(BaseModel):
-    text: str
+    text: str | None = None
+    attachments: list[str] = []
 
 
 class AdminNotifyRequest(BaseModel):

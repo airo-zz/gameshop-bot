@@ -581,8 +581,14 @@ export const adminApi = {
   getChatDetail: (chatId: string) =>
     apiClient.get<AdminChatDetail>(`/admin/chats/${chatId}`).then(r => r.data),
 
-  sendChatMessage: (chatId: string, text: string) =>
-    apiClient.post<AdminChatMessage>(`/admin/chats/${chatId}/send`, { text }).then(r => r.data),
+  sendChatMessage: (chatId: string, text: string | null, attachments: string[] = []) =>
+    apiClient.post<AdminChatMessage>(`/admin/chats/${chatId}/send`, { text, attachments }).then(r => r.data),
+
+  uploadChatFile: (chatId: string, file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return apiClient.post<{ url: string }>(`/admin/chats/${chatId}/upload`, fd).then(r => r.data)
+  },
 
   markChatRead: (chatId: string) =>
     apiClient.post(`/admin/chats/${chatId}/read`).then(r => r.data),

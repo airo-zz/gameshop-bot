@@ -153,10 +153,11 @@ export default function AdminLayout() {
         </header>
 
         {/* Page */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-4 md:p-6 max-w-6xl mx-auto pb-8">
-            <Outlet />
-          </div>
+        <main className={location.pathname.startsWith('/admin/chats') ? 'flex-1 overflow-hidden flex flex-col' : 'flex-1 overflow-y-auto'}>
+          {location.pathname.startsWith('/admin/chats')
+            ? <Outlet />
+            : <div className="p-4 md:p-6 max-w-6xl mx-auto pb-8"><Outlet /></div>
+          }
         </main>
       </div>
     </div>
