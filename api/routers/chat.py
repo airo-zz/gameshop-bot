@@ -52,9 +52,10 @@ async def send_message(
     user: CurrentUser,
 ) -> ChatMessageOut:
     """Отправляет сообщение от имени пользователя."""
-    if not body.text or not body.text.strip():
-        raise HTTPException(status_code=422, detail="Текст сообщения не может быть пустым")
+    text = body.text.strip() if body.text else None
+    if not text and not body.attachments:
+        raise HTTPException(status_code=422, detail="Нужен текст или вложение")
     svc = ChatService(db)
     chat = await svc.get_or_create_chat(user.telegram_id)
-    msg = await svc.send_message(chat.id, "user", body.text.strip())
+    msg = await svc.send_message(chat.id, "user", text, body.attachments)
     return ChatMessageOut.model_validate(msg)

@@ -1,8 +1,8 @@
 // src/components/layout/Layout.tsx
 import { Outlet, useLocation, Link } from 'react-router-dom'
-import { Headphones } from 'lucide-react'
 import { useCartStore, useUIStore } from '@/store'
 import ParticleCanvas from '@/components/ui/ParticleCanvas'
+import logo from '@/assets/logo.png'
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
 
@@ -85,8 +85,9 @@ export default function Layout() {
 
       {/* ── Floating bottom navigation ─────────────────────────────────── */}
       <nav
-        className="fixed bottom-4 left-3 right-3"
+        className="fixed left-3 right-3"
         style={{
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
           zIndex: 110,
           background: 'rgba(8,14,28,0.97)',
           backdropFilter: 'blur(20px)',
@@ -94,7 +95,6 @@ export default function Layout() {
           border: '1px solid rgba(255,255,255,0.08)',
           borderRadius: '28px',
           boxShadow: '0 8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(45,88,173,0.12)',
-          paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
         <div className="relative flex items-center justify-around px-2 py-2">
@@ -159,7 +159,7 @@ export default function Layout() {
                       transform: 'translateY(-6px)',
                     }}
                   >
-                    <Headphones size={18} strokeWidth={isActive ? 2.2 : 1.8} />
+                    <img src={logo} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4 }} />
                     <span
                       className="text-[9px] font-semibold leading-none select-none"
                       style={{ color: '#fff', whiteSpace: 'nowrap' }}

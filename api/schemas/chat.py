@@ -24,12 +24,14 @@ class ChatMessageOut(BaseModel):
     chat_id: uuid.UUID
     sender_type: str
     text: str | None
+    attachments: list[str] = []
     created_at: datetime
 
     model_config = {"from_attributes": True}
 
 
 class SendMessageRequest(BaseModel):
-    text: str
+    text: str | None = None
+    attachments: list[str] = []
 
 

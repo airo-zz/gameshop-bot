@@ -64,7 +64,8 @@ class ChatService:
         self,
         chat_id: uuid.UUID,
         sender_type: str,
-        text: str,
+        text: str | None,
+        attachments: list[str] | None = None,
     ) -> ChatMessage:
         """
         Добавляет сообщение в чат.
@@ -74,6 +75,7 @@ class ChatService:
             chat_id=chat_id,
             sender_type=sender_type,
             text=text,
+            attachments=attachments or [],
         )
         self.db.add(msg)
         await self.db.flush()

@@ -2,14 +2,16 @@
 // Чат покупателя с продавцом — один постоянный чат, как на Funpay.
 import {
   useState, useEffect, useRef, useCallback,
-  type FormEvent,
+  type ReactNode, type FormEvent,
 } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Send } from 'lucide-react'
+import { Send, Paperclip, X, ZoomIn } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { chatApi, type ChatMessage } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
+import logo from '@/assets/logo.png'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -24,7 +26,6 @@ function formatDateLabel(dateStr: string): string {
   const today = new Date()
   const yesterday = new Date()
   yesterday.setDate(today.getDate() - 1)
-
   if (d.toDateString() === today.toDateString()) return 'Сегодня'
   if (d.toDateString() === yesterday.toDateString()) return 'Вчера'
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -34,78 +35,59 @@ function getDateKey(dateStr: string): string {
   return new Date(dateStr).toDateString()
 }
 
+// ── Link-aware text renderer ──────────────────────────────────────────────────
+
+function TextWithLinks({ text }: { text: string }) {
+  const parts = text.split(/(https?:\/\/[^\s]+)/g)
+  return (
+    <>
+      {parts.map((part, i) =>
+        /^https?:\/\//.test(part) ? (
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#93c5fd', textDecoration: 'underline', wordBreak: 'break-all' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {part}
+          </a>
+        ) : (
+          part
+        )
+      )}
+    </>
+  )
+}
+
+// ── Overlay (fixed, bypasses stacking context) ────────────────────────────────
+
+function Overlay({ children }: { children: ReactNode }) {
+  return createPortal(
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      zIndex: 200, display: 'flex', flexDirection: 'column',
+      background: 'var(--bg, #060f1e)',
+    }}>
+      {children}
+    </div>,
+    document.body
+  )
+}
+
 // ── System message ────────────────────────────────────────────────────────────
 
 function SystemMessage({ text }: { text: string }) {
   return (
-    <div style={{
-      textAlign: 'center',
-      padding: '4px 0',
-      marginBottom: 8,
-    }}>
+    <div style={{ textAlign: 'center', padding: '4px 0', marginBottom: 8 }}>
       <span style={{
-        fontSize: 12,
-        color: 'rgba(255,255,255,0.35)',
-        fontStyle: 'italic',
-        display: 'inline-block',
-        padding: '4px 12px',
-        borderRadius: 20,
+        fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic',
+        display: 'inline-block', padding: '4px 12px', borderRadius: 20,
         background: 'rgba(255,255,255,0.04)',
       }}>
         {text}
       </span>
-    </div>
-  )
-}
-
-// ── Message bubble ────────────────────────────────────────────────────────────
-
-function MessageBubble({ msg }: { msg: ChatMessage & { optimistic?: boolean } }) {
-  const isUser = msg.sender_type === 'user'
-  const isAdmin = msg.sender_type === 'admin'
-
-  return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-1`}>
-      <div
-        style={{
-          maxWidth: '80%',
-          padding: '8px 12px',
-          borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-          background: isUser ? 'rgba(29,78,216,0.85)' : 'rgba(255,255,255,0.07)',
-          border: isUser
-            ? '1px solid rgba(96,165,250,0.2)'
-            : '1px solid rgba(255,255,255,0.06)',
-          opacity: msg.optimistic ? 0.65 : 1,
-          transition: 'opacity 0.2s',
-        }}
-      >
-        {isAdmin && (
-          <p style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', marginBottom: 3 }}>
-            Продавец
-          </p>
-        )}
-        {msg.text && (
-          <p style={{
-            fontSize: 14,
-            color: '#fff',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-            lineHeight: 1.45,
-            margin: 0,
-          }}>
-            {msg.text}
-          </p>
-        )}
-        <p style={{
-          fontSize: 10,
-          color: isUser ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.25)',
-          marginTop: 4,
-          marginBottom: 0,
-          textAlign: 'right',
-        }}>
-          {msg.optimistic ? '...' : formatTime(msg.created_at)}
-        </p>
-      </div>
     </div>
   )
 }
@@ -116,14 +98,84 @@ function DateSeparator({ label }: { label: string }) {
   return (
     <div style={{ textAlign: 'center', margin: '12px 0 8px' }}>
       <span style={{
-        fontSize: 11,
-        color: 'rgba(255,255,255,0.25)',
-        padding: '3px 10px',
-        borderRadius: 10,
-        background: 'rgba(255,255,255,0.05)',
+        fontSize: 11, color: 'rgba(255,255,255,0.25)',
+        padding: '3px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.05)',
       }}>
         {label}
       </span>
+    </div>
+  )
+}
+
+// ── Message bubble ────────────────────────────────────────────────────────────
+
+function MessageBubble({
+  msg,
+  onImageClick,
+}: {
+  msg: ChatMessage & { optimistic?: boolean }
+  onImageClick: (url: string) => void
+}) {
+  const isUser = msg.sender_type === 'user'
+  const isAdmin = msg.sender_type === 'admin'
+
+  return (
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-1`}>
+      <div style={{
+        maxWidth: '80%',
+        padding: '8px 12px',
+        borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+        background: isUser ? 'rgba(29,78,216,0.85)' : 'rgba(255,255,255,0.07)',
+        border: isUser ? '1px solid rgba(96,165,250,0.2)' : '1px solid rgba(255,255,255,0.06)',
+        opacity: msg.optimistic ? 0.65 : 1,
+        transition: 'opacity 0.2s',
+      }}>
+        {isAdmin && (
+          <p style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', marginBottom: 3 }}>
+            Продавец
+          </p>
+        )}
+        {msg.text && (
+          <p style={{
+            fontSize: 14, color: '#fff', whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word', lineHeight: 1.45, margin: 0,
+          }}>
+            <TextWithLinks text={msg.text} />
+          </p>
+        )}
+        {msg.attachments.length > 0 && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: msg.text ? 6 : 0 }}>
+            {msg.attachments.map((url, idx) => {
+              const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(url)
+              return isImage ? (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => onImageClick(url)}
+                  style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: 'none', padding: 0, cursor: 'pointer', position: 'relative' }}
+                >
+                  <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <ZoomIn size={16} color="#fff" />
+                  </div>
+                </button>
+              ) : (
+                <a key={idx} href={url} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', fontSize: 11, textDecoration: 'none' }}>
+                  <Paperclip size={11} /> Файл {idx + 1}
+                </a>
+              )
+            })}
+          </div>
+        )}
+        <p style={{
+          fontSize: 10,
+          color: isUser ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.25)',
+          marginTop: 4, marginBottom: 0, textAlign: 'right',
+        }}>
+          {msg.optimistic ? '...' : formatTime(msg.created_at)}
+        </p>
+      </div>
     </div>
   )
 }
@@ -135,17 +187,19 @@ export default function ChatPage() {
   const { haptic } = useTelegram()
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Получаем/создаём чат
   const { data: chat, isLoading: chatLoading } = useQuery({
     queryKey: ['chat'],
     queryFn: () => chatApi.getOrCreate(),
     staleTime: Infinity,
   })
 
-  // Сообщения с polling каждые 2 секунды
   const { data: messages = [] } = useQuery<(ChatMessage & { optimistic?: boolean })[]>({
     queryKey: ['chat-messages'],
     queryFn: () => chatApi.getMessages(),
@@ -154,7 +208,6 @@ export default function ChatPage() {
     staleTime: 0,
   })
 
-  // Автоскролл при новых сообщениях
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages.length])
@@ -162,9 +215,11 @@ export default function ChatPage() {
   const handleSend = useCallback(async (e?: FormEvent) => {
     e?.preventDefault()
     const trimmed = text.trim()
-    if (!trimmed || sending) return
+    if (!trimmed && attachedFiles.length === 0) return
+    if (sending) return
 
     haptic.impact('light')
+    const localText = trimmed
     setText('')
     setSending(true)
 
@@ -172,7 +227,8 @@ export default function ChatPage() {
       id: `opt-${Date.now()}`,
       chat_id: chat?.id ?? '',
       sender_type: 'user',
-      text: trimmed,
+      text: localText || null,
+      attachments: attachedFiles.map(f => URL.createObjectURL(f)),
       created_at: new Date().toISOString(),
       optimistic: true,
     }
@@ -182,22 +238,30 @@ export default function ChatPage() {
     )
 
     try {
-      await chatApi.sendMessage(trimmed)
+      let attachmentUrls: string[] = []
+      if (attachedFiles.length > 0) {
+        setUploading(true)
+        attachmentUrls = await Promise.all(attachedFiles.map(f => chatApi.upload(f).then(r => r.url)))
+        setAttachedFiles([])
+        setUploading(false)
+      }
+      await chatApi.sendMessage(localText || null, attachmentUrls)
       queryClient.invalidateQueries({ queryKey: ['chat-messages'] })
     } catch {
       haptic.error()
       toast.error('Ошибка отправки')
-      setText(trimmed)
+      setText(localText)
       queryClient.setQueryData<(ChatMessage & { optimistic?: boolean })[]>(
         ['chat-messages'],
         prev => prev?.filter(m => m.id !== optimisticMsg.id) ?? []
       )
     } finally {
       setSending(false)
+      setUploading(false)
     }
-  }, [text, sending, chat, haptic, queryClient])
+  }, [text, attachedFiles, sending, chat, haptic, queryClient])
 
-  // Группируем сообщения по датам
+  // Группировка по датам
   const grouped: { dateKey: string; label: string; msgs: typeof messages }[] = []
   for (const msg of messages) {
     const key = getDateKey(msg.created_at)
@@ -210,42 +274,28 @@ export default function ChatPage() {
   }
 
   return (
-    <div style={{
-      display: 'flex',
-      flexDirection: 'column',
-      height: '100%',
-      background: 'var(--bg)',
-    }}>
+    <Overlay>
+      {/* Safe area top */}
+      <div style={{ height: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))', flexShrink: 0 }} />
+
       {/* Header */}
       <div style={{
-        flexShrink: 0,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '0 16px',
-        height: 56,
+        flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10,
+        padding: '0 16px', height: 56,
         borderBottom: '1px solid rgba(255,255,255,0.06)',
         background: 'rgba(6,15,30,0.97)',
       }}>
         <div style={{
-          width: 36,
-          height: 36,
-          borderRadius: '50%',
-          flexShrink: 0,
+          width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
           background: 'linear-gradient(135deg, #1e3a8a, #1d4ed8)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          overflow: 'hidden',
         }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff"
-            strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-            <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
-          </svg>
+          <img src={logo} alt="" style={{ width: 24, height: 24, objectFit: 'contain' }} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>
-            Поддержка
+            Продавец
           </p>
           <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', margin: 0, lineHeight: 1 }}>
             Онлайн
@@ -253,22 +303,29 @@ export default function ChatPage() {
         </div>
       </div>
 
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={e => {
+          const files = Array.from(e.target.files ?? [])
+          if (attachedFiles.length + files.length > 5) { toast.error('Максимум 5 файлов'); return }
+          setAttachedFiles(prev => [...prev, ...files])
+          e.target.value = ''
+        }}
+      />
+
       {/* Messages */}
-      <div style={{
-        flex: 1,
-        overflowY: 'auto',
-        padding: '12px 14px',
-        overscrollBehavior: 'contain',
-      }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', overscrollBehavior: 'contain' }}>
         {chatLoading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 16 }}>
             {[1, 2, 3].map(i => (
               <div key={i} style={{
-                height: 44,
-                borderRadius: 18,
-                background: 'var(--bg2)',
-                border: '1px solid var(--border)',
-                animation: 'pulse 1.5s ease infinite',
+                height: 44, borderRadius: 18, background: 'var(--bg2)',
+                border: '1px solid var(--border)', animation: 'pulse 1.5s ease infinite',
                 width: i % 2 === 0 ? '60%' : '75%',
                 alignSelf: i % 2 === 0 ? 'flex-end' : 'flex-start',
               }} />
@@ -280,34 +337,18 @@ export default function ChatPage() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                paddingTop: 48,
-                gap: 12,
-                textAlign: 'center',
-              }}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 48, gap: 12, textAlign: 'center' }}
             >
               <div style={{
-                width: 64,
-                height: 64,
-                borderRadius: 22,
-                background: 'rgba(29,78,216,0.12)',
-                border: '1px solid rgba(29,78,216,0.2)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                width: 64, height: 64, borderRadius: 22,
+                background: 'rgba(29,78,216,0.12)', border: '1px solid rgba(29,78,216,0.2)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
               }}>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6"
-                  strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-                  <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
-                </svg>
+                <img src={logo} alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />
               </div>
               <div>
                 <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', margin: '0 0 6px' }}>
-                  Чат с поддержкой
+                  Чат с продавцом
                 </p>
                 <p style={{ fontSize: 13, color: 'var(--hint)', margin: 0, lineHeight: 1.5 }}>
                   Напишите нам — ответим быстро
@@ -323,7 +364,7 @@ export default function ChatPage() {
                 if (msg.sender_type === 'system') {
                   return <SystemMessage key={msg.id} text={msg.text ?? ''} />
                 }
-                return <MessageBubble key={msg.id} msg={msg} />
+                return <MessageBubble key={msg.id} msg={msg} onImageClick={setLightboxUrl} />
               })}
             </div>
           ))
@@ -331,85 +372,112 @@ export default function ChatPage() {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Attached files preview */}
+      {attachedFiles.length > 0 && (
+        <div style={{
+          flexShrink: 0, display: 'flex', gap: 8, flexWrap: 'wrap',
+          padding: '8px 14px', borderTop: '1px solid rgba(255,255,255,0.05)',
+        }}>
+          {attachedFiles.map((f, i) => (
+            <div key={i} style={{ position: 'relative' }}>
+              <img src={URL.createObjectURL(f)} alt=""
+                style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }} />
+              <button
+                onClick={() => setAttachedFiles(prev => prev.filter((_, j) => j !== i))}
+                style={{ position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              >
+                <X size={10} color="#fff" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Input bar */}
       <div style={{
-        flexShrink: 0,
-        padding: '8px 12px',
-        paddingBottom: 'max(env(safe-area-inset-bottom,16px),16px)',
-        background: '#060f1e',
-        borderTop: '1px solid rgba(255,255,255,0.05)',
+        flexShrink: 0, padding: '8px 12px',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 16px), 16px)',
+        background: '#060f1e', borderTop: '1px solid rgba(255,255,255,0.05)',
       }}>
         <form
           onSubmit={handleSend}
           style={{
-            display: 'flex',
-            alignItems: 'flex-end',
-            gap: 8,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 20,
-            padding: '6px 6px 6px 14px',
+            display: 'flex', alignItems: 'flex-end', gap: 8,
+            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 20, padding: '6px 6px 6px 14px',
           }}
         >
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 10, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}
+          >
+            <Paperclip size={18} />
+          </button>
           <textarea
             ref={textareaRef}
             value={text}
             onChange={e => setText(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                handleSend()
-              }
-            }}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
             placeholder="Написать сообщение..."
             rows={1}
             style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              outline: 'none',
-              resize: 'none',
-              fontSize: 14,
-              color: '#fff',
-              minHeight: 32,
-              maxHeight: 120,
-              lineHeight: 1.5,
-              padding: '4px 0',
+              flex: 1, background: 'transparent', border: 'none', outline: 'none',
+              resize: 'none', fontSize: 14, color: '#fff',
+              minHeight: 32, maxHeight: 120, lineHeight: 1.5, padding: '4px 0',
             }}
           />
           <button
             type="submit"
-            disabled={!text.trim() || sending}
+            disabled={(!text.trim() && attachedFiles.length === 0) || sending || uploading}
             style={{
-              flexShrink: 0,
-              width: 36,
-              height: 36,
-              borderRadius: 12,
-              border: 'none',
-              background: text.trim()
+              flexShrink: 0, width: 36, height: 36, borderRadius: 12, border: 'none',
+              background: (text.trim() || attachedFiles.length > 0)
                 ? 'linear-gradient(135deg, #1d4ed8, #2563eb)'
                 : 'rgba(255,255,255,0.08)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: text.trim() ? 'pointer' : 'default',
-              transition: 'background 0.2s',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', transition: 'background 0.2s',
             }}
           >
-            {sending
-              ? <div style={{
-                  width: 16,
-                  height: 16,
-                  border: '2px solid rgba(255,255,255,0.3)',
-                  borderTopColor: '#fff',
-                  borderRadius: '50%',
-                  animation: 'spin 0.7s linear infinite',
-                }} />
+            {sending || uploading
+              ? <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
               : <Send size={16} color="#fff" />
             }
           </button>
         </form>
       </div>
-    </div>
+
+      {/* Lightbox */}
+      <AnimatePresence>
+        {lightboxUrl && createPortal(
+          <motion.div
+            key="lb"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setLightboxUrl(null)}
+            style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <button
+              onClick={() => setLightboxUrl(null)}
+              style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 52px)', right: 16, zIndex: 301, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 20, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+            >
+              <X size={18} color="#fff" />
+            </button>
+            <motion.img
+              src={lightboxUrl}
+              alt=""
+              onClick={e => e.stopPropagation()}
+              initial={{ scale: 0.88, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.88, opacity: 0 }}
+              transition={{ duration: 0.22, ease: [0.34, 1.26, 0.64, 1] }}
+              style={{ maxWidth: '92vw', maxHeight: '78vh', borderRadius: 12, objectFit: 'contain' }}
+            />
+          </motion.div>,
+          document.body
+        )}
+      </AnimatePresence>
+    </Overlay>
   )
 }

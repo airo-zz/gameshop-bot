@@ -157,6 +157,7 @@ export interface ChatMessage {
   chat_id: string
   sender_type: 'user' | 'admin' | 'system'
   text: string | null
+  attachments: string[]
   created_at: string
 }
 
@@ -332,8 +333,14 @@ export const chatApi = {
       params: { limit, ...(afterId ? { after_id: afterId } : {}) },
     }).then(r => r.data),
 
-  sendMessage: (text: string) =>
-    apiClient.post<ChatMessage>('/chat/messages', { text }).then(r => r.data),
+  sendMessage: (text: string | null, attachments: string[] = []) =>
+    apiClient.post<ChatMessage>('/chat/messages', { text, attachments }).then(r => r.data),
+
+  upload: (file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return apiClient.post<{ url: string }>('/support/upload', fd).then(r => r.data)
+  },
 }
 
 // ── Support API ───────────────────────────────────────────────────────────────
