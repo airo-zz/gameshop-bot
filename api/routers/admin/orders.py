@@ -12,6 +12,7 @@ from sqlalchemy import exc as sa_exc
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
+from api.bot_instance import get_bot
 from api.deps import DbSession
 from api.deps_admin import CurrentAdmin, require_permission
 from api.schemas.admin import (
@@ -23,12 +24,15 @@ from api.schemas.admin import (
 )
 from api.services.order_service import OrderService
 from api.utils.admin_log import log_admin_action
+from bot.utils.texts import BotTexts
 from shared.models import (
     ALLOWED_STATUS_TRANSITIONS,
     Order,
     OrderStatus,
     User,
 )
+
+texts = BotTexts()
 
 router = APIRouter()
 
@@ -278,6 +282,49 @@ async def change_order_status(
     )
 
     return {"ok": True, "new_status": new_status.value}
+
+
+# ── POST /{order_id}/notify — отправить уведомление пользователю ─────────────
+
+
+@router.post("/{order_id}/notify",
+             dependencies=[require_permission("orders.update_status")])
+async def notify_user(
+    order_id: uuid.UUID,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> dict:
+    """Отправляет пользователю уведомление о текущем статусе заказа через бота."""
+    result = await db.execute(
+        select(Order).options(selectinload(Order.user)).where(Order.id == order_id)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заказ не найден")
+
+    bot = get_bot()
+    try:
+        await bot.send_message(
+            chat_id=order.user.telegram_id,
+            text=texts.order_status_changed(order.order_number, order.status.value),
+            parse_mode="HTML",
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Не удалось отправить уведомление: {exc}",
+        ) from exc
+
+    await log_admin_action(
+        db=db,
+        admin=admin,
+        action="order.notify_user",
+        entity_type="order",
+        entity_id=order.id,
+        description=f"Отправлено уведомление о статусе {order.status.value}",
+    )
+
+    return {"ok": True}
 
 
 # ── GET /trash — список мягко удалённых заказов ──────────────────────────────

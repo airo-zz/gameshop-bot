@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, AlertCircle, Save, Trash2 } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Save, Trash2, Bell } from 'lucide-react'
 import { adminApi } from '@/api/admin'
 import type { AdminOrderDetail } from '@/api/admin'
 import toast from 'react-hot-toast'
@@ -51,6 +51,7 @@ export default function OrderDetailPage() {
   const [reason, setReason] = useState('')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [notifying, setNotifying] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -77,6 +78,20 @@ export default function OrderDetailPage() {
       toast.error(e?.response?.data?.detail ?? 'Не удалось удалить заказ')
     } finally {
       setDeleting(false)
+    }
+  }
+
+  async function handleNotify() {
+    if (!order) return
+    if (!window.confirm(`Отправить уведомление о статусе "${STATUS_OPTIONS.find(s => s.value === order.status)?.label ?? order.status}" пользователю?`)) return
+    setNotifying(true)
+    try {
+      await adminApi.notifyUser(order.id)
+      toast.success('Уведомление отправлено')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? 'Не удалось отправить уведомление')
+    } finally {
+      setNotifying(false)
     }
   }
 
@@ -205,6 +220,19 @@ export default function OrderDetailPage() {
             <Save size={16} />
           )}
           Сохранить
+        </button>
+
+        <button
+          onClick={handleNotify}
+          disabled={notifying}
+          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/[0.2] disabled:opacity-60 text-sm font-semibold text-emerald-400 transition-all duration-200 active:scale-[0.98]"
+        >
+          {notifying ? (
+            <span className="w-4 h-4 border-2 border-emerald-400/30 border-t-emerald-400 rounded-full animate-spin" />
+          ) : (
+            <Bell size={16} />
+          )}
+          Уведомить пользователя
         </button>
 
         {['new', 'pending_payment', 'cancelled', 'refunded'].includes(order.status) && (

@@ -4,6 +4,7 @@ import {
   type FormEvent, type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Send, Paperclip, X, ZoomIn } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -179,15 +180,14 @@ function MessageBubble({
         border: isUser ? '1px solid rgba(96,165,250,0.2)' : '1px solid rgba(255,255,255,0.06)',
         opacity: msg.optimistic ? 0.65 : 1,
         transition: 'opacity 0.2s',
-        userSelect: 'none',
       }}>
         {isAdmin && (
-          <p style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', marginBottom: 3 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', marginBottom: 3, userSelect: 'none' }}>
             Продавец
           </p>
         )}
         {msg.text && (
-          <p style={{ fontSize: 14, color: '#fff', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.45, margin: 0 }}>
+          <p style={{ fontSize: 14, color: '#fff', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.45, margin: 0, userSelect: 'text', WebkitUserSelect: 'text' }}>
             <TextWithLinks text={msg.text} />
           </p>
         )}
@@ -200,8 +200,8 @@ function MessageBubble({
                   key={idx}
                   type="button"
                   onTouchStart={e => e.stopPropagation()}
-                  onTouchEnd={e => { e.stopPropagation(); onImageClick(url) }}
-                  onClick={() => onImageClick(url)}
+                  onTouchEnd={e => { e.stopPropagation(); e.preventDefault(); onImageClick(url) }}
+                  onClick={e => { e.stopPropagation(); onImageClick(url) }}
                   style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: 'none', padding: 0, cursor: 'pointer', position: 'relative', background: 'transparent' }}
                 >
                   <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -240,6 +240,9 @@ export default function ChatPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
+  const [searchParams, setSearchParams] = useSearchParams()
+  const orderIdParam = searchParams.get('order_id')
+
   const { data: chat, isLoading: chatLoading } = useQuery({
     queryKey: ['chat'],
     queryFn: () => chatApi.getOrCreate(),
@@ -253,6 +256,16 @@ export default function ChatPage() {
     refetchInterval: 2000,
     staleTime: 0,
   })
+
+  // When arriving from post-purchase redirect — force refetch after delay to catch system message
+  useEffect(() => {
+    if (!orderIdParam || !chat) return
+    const timer = setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ['chat-messages'] })
+      setSearchParams({}, { replace: true })
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [orderIdParam, chat, queryClient, setSearchParams])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -343,6 +356,19 @@ export default function ChatPage() {
           <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', margin: 0, lineHeight: 1 }}>Онлайн</p>
         </div>
       </div>
+
+      {/* Order banner — shown briefly after post-purchase redirect */}
+      {orderIdParam && (
+        <div style={{
+          flexShrink: 0, padding: '8px 16px',
+          background: 'rgba(16,185,129,0.12)', borderBottom: '1px solid rgba(16,185,129,0.2)',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span style={{ fontSize: 12, color: '#34d399' }}>
+            Заказ оформлен — ожидайте подтверждения
+          </span>
+        </div>
+      )}
 
       {/* Hidden file input */}
       <input

@@ -358,6 +358,9 @@ export const adminApi = {
   addOrderNotes: (id: string, text: string) =>
     apiClient.post(`/admin/orders/${id}/notes`, { text }).then(r => r.data),
 
+  notifyUser: (id: string) =>
+    apiClient.post(`/admin/orders/${id}/notify`).then(r => r.data),
+
   // Users
   getUsers: (params?: {
     page?: number
