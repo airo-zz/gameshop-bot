@@ -93,7 +93,7 @@ export default function SupportPage() {
     if (prefillOrderId) setView('drafting')
   }, [prefillOrderId])
 
-  const { data: tickets = [], isLoading: ticketsLoading, refetch: refetchTickets } = useQuery({
+  const { data: tickets = [], refetch: refetchTickets } = useQuery({
     queryKey: ['tickets'],
     queryFn: supportApi.list,
   })
@@ -637,17 +637,7 @@ export default function SupportPage() {
       {/* List view */}
       {view === 'list' && (
         <div className="space-y-2">
-          {ticketsLoading ? (
-            <>
-              {[1, 2, 3].map(i => (
-                <div
-                  key={i}
-                  className="h-[72px] rounded-2xl animate-pulse"
-                  style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
-                />
-              ))}
-            </>
-          ) : tickets.length === 0 ? (
+          {tickets.length === 0 ? (
             <div className="flex flex-col items-center py-16 gap-5">
               <div
                 className="w-24 h-24 rounded-3xl flex items-center justify-center"

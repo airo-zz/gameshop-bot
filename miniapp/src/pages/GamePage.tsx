@@ -8,7 +8,6 @@ import toast from 'react-hot-toast'
 import { catalogApi, cartApi, type Category, type Product, type Lot, type InputField } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
-import PageLoader from '@/components/ui/PageLoader'
 import clsx from 'clsx'
 
 // ── LotRow — строка лота с ценой и кнопкой +/- ──────────────────────────────
@@ -387,7 +386,7 @@ export default function GamePage() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const { data: categories = [], isLoading: catsLoading, isError: catsError, refetch: refetchCats } = useQuery({
+  const { data: categories = [], isError: catsError, refetch: refetchCats } = useQuery({
     queryKey: ['categories', slug],
     queryFn: () => catalogApi.getCategories(slug!),
     enabled: !!slug,
@@ -405,7 +404,7 @@ export default function GamePage() {
 
   const activeCatId = selectedCatId ?? categories[0]?.id ?? null
 
-  const { data: products = [], isLoading: productsLoading, isError: productsError, refetch: refetchProducts } = useQuery({
+  const { data: products = [], isError: productsError, refetch: refetchProducts } = useQuery({
     queryKey: ['products', activeCatId],
     queryFn: () => catalogApi.getProducts(activeCatId!),
     enabled: !!activeCatId,
@@ -562,9 +561,7 @@ export default function GamePage() {
 
       {/* Category tabs */}
       <div className="flex gap-2 px-4 pt-3 overflow-x-auto pb-2 no-scrollbar">
-        {catsLoading
-          ? <PageLoader />
-          : rootCats(categories).map(cat => (
+        {rootCats(categories).map(cat => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCatId(cat.id)}
@@ -615,8 +612,6 @@ export default function GamePage() {
               Повторить
             </button>
           </div>
-        ) : productsLoading ? (
-          <PageLoader />
         ) : products.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-5xl mb-3">...</p>

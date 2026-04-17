@@ -33,7 +33,7 @@ export default function CheckoutPage() {
   const [selectedCrypto, setSelectedCrypto] = useState('USDT')
   const [placing, setPlacing] = useState(false)
 
-  const { data: cart, isLoading: cartLoading }    = useQuery({ queryKey: ['cart'],    queryFn: cartApi.get })
+  const { data: cart } = useQuery({ queryKey: ['cart'], queryFn: cartApi.get })
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: profileApi.get })
 
   const insufficientBalance =
@@ -76,14 +76,7 @@ export default function CheckoutPage() {
     }
   }
 
-  if (cartLoading || !cart) return (
-    <div className="px-4 pt-5 pb-4 space-y-4">
-      <div className="h-7 w-44 rounded-xl animate-pulse" style={{ background: 'var(--bg2)' }} />
-      {[...Array(3)].map((_, i) => (
-        <div key={i} className="rounded-2xl animate-pulse" style={{ background: 'var(--bg2)', height: 64 }} />
-      ))}
-    </div>
-  )
+  if (!cart) return null
 
   const loyaltyHint = profile ? (() => {
     const spent = profile.total_spent

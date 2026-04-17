@@ -1,11 +1,12 @@
 // src/components/layout/Layout.tsx
-import { useState, useEffect } from 'react'
-import { Outlet, useLocation, Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useCallback } from 'react'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCartStore, useUIStore } from '@/store'
 import ParticleCanvas from '@/components/ui/ParticleCanvas'
+import TopProgressBar from '@/components/ui/TopProgressBar'
 import logo from '@/assets/logo.png'
-import { chatApi } from '@/api'
+import { catalogApi, cartApi, profileApi, chatApi } from '@/api'
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────
 
@@ -73,6 +74,7 @@ export default function Layout() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [chatLoading, setChatLoading] = useState(false)
+  const [navLoading, setNavLoading] = useState<string | null>(null)
   const [keyboardOpen, setKeyboardOpen] = useState(false)
 
   const isChatPageEarly = pathname.startsWith('/chat')
@@ -87,8 +89,6 @@ export default function Layout() {
   const chatUnreadCount = (chatInfo as any)?.unread_count ?? 0
 
   useEffect(() => {
-    // Отслеживаем максимальную высоту viewport — это высота без клавиатуры.
-    // Когда клавиатура открывается, высота уменьшается.
     let maxHeight = window.visualViewport?.height ?? window.innerHeight
 
     const check = () => {
@@ -107,6 +107,22 @@ export default function Layout() {
     }
   }, [])
 
+  const prefetchAndNavigate = useCallback(async (to: string, prefetchFn?: () => Promise<void>) => {
+    // Already on this page
+    if (pathname === to || (to !== '/' && pathname.startsWith(to))) return
+    // Already loading
+    if (navLoading) return
+    // No prefetch — navigate immediately
+    if (!prefetchFn) { navigate(to); return }
+    setNavLoading(to)
+    try {
+      await prefetchFn()
+    } finally {
+      setNavLoading(null)
+      navigate(to)
+    }
+  }, [pathname, navigate, navLoading, queryClient])
+
   const activeIndex = NAV.findIndex(({ to }) =>
     to === '/' ? pathname === '/' : pathname.startsWith(to)
   )
@@ -116,19 +132,23 @@ export default function Layout() {
   const handleChatClick = async (e: React.MouseEvent) => {
     e.preventDefault()
     if (isChatPage) return
+    if (navLoading) return
     // Already cached → navigate immediately
     if (queryClient.getQueryData(['chat'])) { navigate('/chat'); return }
     setChatLoading(true)
+    setNavLoading('/chat')
     try {
       await queryClient.prefetchQuery({ queryKey: ['chat'], queryFn: chatApi.getOrCreate, staleTime: Infinity })
     } finally {
       setChatLoading(false)
+      setNavLoading(null)
       navigate('/chat')
     }
   }
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--bg)' }}>
+      <TopProgressBar active={navLoading !== null || chatLoading} />
       {particlesEnabled && <ParticleCanvas />}
 
       <main
@@ -259,10 +279,55 @@ export default function Layout() {
               )
             }
 
+            // ── Regular nav button ────────────────────────────────────
+            const handleClick = () => {
+              if (to === '/') {
+                prefetchAndNavigate(to, () => Promise.all([
+                  queryClient.prefetchQuery({
+                    queryKey: ['games', 'game'],
+                    queryFn: () => catalogApi.getGames('game'),
+                    staleTime: 30_000,
+                  }),
+                  queryClient.prefetchQuery({
+                    queryKey: ['trending-categories'],
+                    queryFn: catalogApi.getTrendingCategories,
+                    staleTime: 30_000,
+                  }),
+                ]).then(() => {}))
+              } else if (to === '/catalog') {
+                prefetchAndNavigate(to, () =>
+                  queryClient.prefetchQuery({
+                    queryKey: ['games', 'game'],
+                    queryFn: () => catalogApi.getGames('game'),
+                    staleTime: 30_000,
+                  })
+                )
+              } else if (to === '/cart') {
+                prefetchAndNavigate(to, () =>
+                  queryClient.prefetchQuery({
+                    queryKey: ['cart'],
+                    queryFn: cartApi.get,
+                    staleTime: 10_000,
+                  })
+                )
+              } else if (to === '/profile') {
+                prefetchAndNavigate(to, () =>
+                  queryClient.prefetchQuery({
+                    queryKey: ['profile'],
+                    queryFn: profileApi.get,
+                    staleTime: 30_000,
+                  })
+                )
+              } else {
+                prefetchAndNavigate(to)
+              }
+            }
+
             return (
-              <Link
+              <button
                 key={to}
-                to={to}
+                type="button"
+                onClick={handleClick}
                 className="relative flex flex-col items-center justify-center active:scale-90"
                 style={{
                   flex: 1,
@@ -271,6 +336,9 @@ export default function Layout() {
                   padding: '8px 4px',
                   transition: 'transform 0.15s ease',
                   WebkitTapHighlightColor: 'transparent',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
                 }}
               >
                 <div className="relative flex items-center justify-center">
@@ -312,7 +380,7 @@ export default function Layout() {
                 >
                   {label}
                 </span>
-              </Link>
+              </button>
             )
           })}
         </div>

@@ -492,18 +492,7 @@ export default function ChatPage() {
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', overscrollBehavior: 'contain' }}>
-        {chatLoading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 16 }}>
-            {[1, 2, 3].map(i => (
-              <div key={i} style={{
-                height: 44, borderRadius: 18, background: 'var(--bg2)',
-                border: '1px solid var(--border)', animation: 'pulse 1.5s ease infinite',
-                width: i % 2 === 0 ? '60%' : '75%',
-                alignSelf: i % 2 === 0 ? 'flex-end' : 'flex-start',
-              }} />
-            ))}
-          </div>
-        ) : messages.length === 0 ? (
+        {messages.length === 0 ? (
           <AnimatePresence>
             <motion.div
               initial={{ opacity: 0, y: 12 }}

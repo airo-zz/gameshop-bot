@@ -8,7 +8,6 @@ import toast from 'react-hot-toast'
 import { profileApi, type LoyaltyLevelEntry } from '@/api'
 import { adminApi, type AdminMe } from '@/api/admin'
 import { useTelegram } from '@/hooks/useTelegram'
-import PageLoader from '@/components/ui/PageLoader'
 
 // ── Loyalty helpers ────────────────────────────────────────────────────────────
 
@@ -218,7 +217,7 @@ export default function ProfilePage() {
   const { user, haptic, tg } = useTelegram()
   const [avatarError, setAvatarError] = useState(false)
   const [showLevels, setShowLevels] = useState(false)
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: profileApi.get,
     staleTime: 5 * 60 * 1000,
@@ -255,8 +254,6 @@ export default function ProfilePage() {
   const loyaltyLevels = profile?.loyalty_levels ?? []
   const loyaltyColorHex = profile?.loyalty_color_hex ?? '#CD7F32'
   const loyaltyLevelName = profile?.loyalty_level_name ?? ''
-
-  if (isLoading) return <PageLoader />
 
   if (!profile) {
     return (

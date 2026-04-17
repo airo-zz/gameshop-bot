@@ -5,7 +5,6 @@ import { Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, Search, X } from 'lucide-react'
 import { catalogApi } from '@/api'
-import PageLoader from '@/components/ui/PageLoader'
 import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
 import { useDebounce } from '@/hooks/useDebounce'
 
@@ -22,7 +21,7 @@ export default function CatalogPage() {
   const debouncedQuery = useDebounce(query, 300)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const { data: games = [], isLoading, isError, refetch } = useQuery({
+  const { data: games = [], isError, refetch } = useQuery({
     queryKey: ['games', activeType],
     queryFn: () => catalogApi.getGames(activeType),
     staleTime: 5 * 60 * 1000,
@@ -176,49 +175,45 @@ export default function CatalogPage() {
 
       {/* ── Normal catalog ─────────────────────────────────────────────── */}
       {!isSearching && (
-        isLoading
-          ? <PageLoader />
-          : (
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeType}
-                className="grid grid-cols-3 gap-3 pt-1"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeType}
+            className="grid grid-cols-3 gap-3 pt-1"
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+          >
+            {games.map(game => (
+              <Link
+                key={game.id}
+                to={`/catalog/${game.slug}`}
+                className="flex flex-col rounded-2xl overflow-hidden active:scale-[0.96] transition-transform"
+                style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
               >
-                {games.map(game => (
-                  <Link
-                    key={game.id}
-                    to={`/catalog/${game.slug}`}
-                    className="flex flex-col rounded-2xl overflow-hidden active:scale-[0.96] transition-transform"
-                    style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
-                  >
-                    <ImageWithSkeleton
-                      src={game.image_url}
-                      alt={game.name}
-                      aspectRatio="1 / 1"
-                      objectFit="cover"
-                      loading="lazy"
-                      style={{ width: '100%' }}
-                      fallback={
-                        <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--bg3)' }} />
-                      }
-                    />
-                    <div className="px-2 py-1.5">
-                      <p className="text-xs font-semibold text-center truncate" style={{ color: 'var(--text)' }}>
-                        {game.name}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
-              </motion.div>
-            </AnimatePresence>
-          )
+                <ImageWithSkeleton
+                  src={game.image_url}
+                  alt={game.name}
+                  aspectRatio="1 / 1"
+                  objectFit="cover"
+                  loading="lazy"
+                  style={{ width: '100%' }}
+                  fallback={
+                    <div className="w-full h-full flex items-center justify-center" style={{ background: 'var(--bg3)' }} />
+                  }
+                />
+                <div className="px-2 py-1.5">
+                  <p className="text-xs font-semibold text-center truncate" style={{ color: 'var(--text)' }}>
+                    {game.name}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </motion.div>
+        </AnimatePresence>
       )}
 
-      {!isLoading && !isSearching && games.length === 0 && (
+      {!isSearching && games.length === 0 && (
         <div className="text-center py-20">
           <p style={{ color: 'var(--hint)' }}>
             {activeType === 'game' ? 'Игры скоро появятся' : 'Сервисы скоро появятся'}

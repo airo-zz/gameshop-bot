@@ -29,7 +29,7 @@ export default function OrderDetailPage() {
 
   const isPending = searchParams.get('pending') === '1'
 
-  const { data: order, isLoading } = useQuery({
+  const { data: order } = useQuery({
     queryKey: ['order', id],
     queryFn: () => ordersApi.get(id!),
     enabled: !!id,
@@ -49,15 +49,6 @@ export default function OrderDetailPage() {
     haptic.success()
     toast.success('Скопировано!')
   }
-
-  if (isLoading) return (
-    <div className="px-4 pt-5 pb-4 space-y-4">
-      <div className="h-7 w-40 rounded-xl animate-pulse" style={{ background: 'var(--bg2)' }} />
-      {[...Array(4)].map((_, i) => (
-        <div key={i} className="rounded-2xl animate-pulse" style={{ background: 'var(--bg2)', height: 64 }} />
-      ))}
-    </div>
-  )
 
   if (!order) return (
     <div className="flex flex-col items-center py-20 gap-4 px-4">

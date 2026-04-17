@@ -457,7 +457,7 @@ export default function HomePage() {
 
   const [homeType, setHomeType] = useState<'game' | 'service'>('game')
 
-  const { data: games = [], isLoading: gamesLoading } = useQuery({
+  const { data: games = [] } = useQuery({
     queryKey: ['games', homeType],
     queryFn: () => catalogApi.getGames(homeType),
     staleTime: 5 * 60 * 1000,
@@ -466,7 +466,7 @@ export default function HomePage() {
   const trendingScrollRef = useRef<HTMLDivElement>(null)
   const [trendingAtEnd, setTrendingAtEnd] = useState(false)
 
-  const { data: trendingCategories = [], isLoading: trendingLoading } = useQuery({
+  const { data: trendingCategories = [] } = useQuery({
     queryKey: ['trending-categories'],
     queryFn: catalogApi.getTrendingCategories,
     staleTime: 2 * 60 * 1000,
@@ -697,15 +697,7 @@ export default function HomePage() {
             }}
             style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16, scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
           >
-            {trendingLoading ? (
-              [...Array(4)].map((_, i) => (
-                <div
-                  key={i}
-                  className="animate-pulse"
-                  style={{ minWidth: 160, height: 100, borderRadius: 16, background: 'rgba(255,255,255,0.06)', flexShrink: 0 }}
-                />
-              ))
-            ) : trendingCategories.map((cat, i) => {
+            {trendingCategories.map((cat, i) => {
               const imgSrc = normalizeImageUrl(cat.game_image_url)
               return (
                 <Link
@@ -824,23 +816,6 @@ export default function HomePage() {
             })}
           </div>
 
-          {gamesLoading ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-              {[...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  className="animate-pulse"
-                  style={{
-                    borderRadius: 18,
-                    overflow: 'hidden',
-                    background: 'rgba(255,255,255,0.05)',
-                    border: '1px solid rgba(255,255,255,0.06)',
-                    aspectRatio: '1 / 1',
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
           <AnimatePresence mode="wait">
             <motion.div
               key={homeType}
@@ -855,66 +830,64 @@ export default function HomePage() {
               }}
             >
               {games.map(game => (
-                    <Link
-                      key={game.id}
-                      to={`/catalog/${game.slug}`}
-                      className="active:scale-95 transition-transform"
+                <Link
+                  key={game.id}
+                  to={`/catalog/${game.slug}`}
+                  className="active:scale-95 transition-transform"
+                  style={{
+                    borderRadius: 18,
+                    overflow: 'hidden',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    textDecoration: 'none',
+                    display: 'block',
+                    background: 'rgba(12,11,26,0.50)',
+                    backdropFilter: 'blur(10px)',
+                    WebkitBackdropFilter: 'blur(10px)',
+                  }}
+                >
+                  <ImageWithSkeleton
+                    src={game.image_url}
+                    alt={game.name}
+                    aspectRatio="1 / 1"
+                    objectFit="cover"
+                    loading="lazy"
+                    style={{ width: '100%' }}
+                    fallback={
+                      <div
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: 'linear-gradient(135deg, #060f1e, #0a1428)',
+                          color: 'rgba(107,157,232,0.5)',
+                        }}
+                      >
+                        <IconGamepadSmall />
+                      </div>
+                    }
+                  />
+                  <div style={{ padding: '6px 6px 9px', background: 'rgba(8,7,20,0.6)', borderTop: '1px solid rgba(45,88,173,0.15)' }}>
+                    <p
                       style={{
-                        borderRadius: 18,
+                        margin: 0,
+                        textAlign: 'center',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'rgba(255,255,255,0.75)',
                         overflow: 'hidden',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        textDecoration: 'none',
-                        display: 'block',
-                        background: 'rgba(12,11,26,0.50)',
-                        backdropFilter: 'blur(10px)',
-                        WebkitBackdropFilter: 'blur(10px)',
+                        whiteSpace: 'nowrap',
+                        textOverflow: 'ellipsis',
                       }}
                     >
-                      <ImageWithSkeleton
-                        src={game.image_url}
-                        alt={game.name}
-                        aspectRatio="1 / 1"
-                        objectFit="cover"
-                        loading="lazy"
-                        style={{ width: '100%' }}
-                        fallback={
-                          <div
-                            style={{
-                              width: '100%',
-                              height: '100%',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              background: 'linear-gradient(135deg, #060f1e, #0a1428)',
-                              color: 'rgba(107,157,232,0.5)',
-                            }}
-                          >
-                            <IconGamepadSmall />
-                          </div>
-                        }
-                      />
-                      <div style={{ padding: '6px 6px 9px', background: 'rgba(8,7,20,0.6)', borderTop: '1px solid rgba(45,88,173,0.15)' }}>
-                        <p
-                          style={{
-                            margin: 0,
-                            textAlign: 'center',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            color: 'rgba(255,255,255,0.75)',
-                            overflow: 'hidden',
-                            whiteSpace: 'nowrap',
-                            textOverflow: 'ellipsis',
-                          }}
-                        >
-                          {game.name}
-                        </p>
-                      </div>
-                    </Link>
-                  ))
-              }
+                      {game.name}
+                    </p>
+                  </div>
+                </Link>
+              ))}
             </motion.div>
           </AnimatePresence>
-          )}
         </section>
 
         {/* ── Open catalog CTA ─────────────────────────────────────────── */}

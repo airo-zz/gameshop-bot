@@ -42,13 +42,13 @@ export default function BalancePage() {
   const [currency, setCurrency] = useState<CryptoCurrency>('USDT')
   const [loading, setLoading] = useState(false)
 
-  const { data: profile, isLoading: profileLoading } = useQuery({
+  const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: profileApi.get,
     staleTime: 5 * 60 * 1000,
   })
 
-  const { data: history = [], isLoading: historyLoading } = useQuery<BalanceTransaction[]>({
+  const { data: history = [] } = useQuery<BalanceTransaction[]>({
     queryKey: ['balance-history'],
     queryFn: profileApi.getBalanceHistory,
     staleTime: 60_000,
@@ -122,13 +122,9 @@ export default function BalancePage() {
           </div>
           <span className="text-sm font-medium" style={{ color: 'var(--hint)' }}>Текущий баланс</span>
         </div>
-        {profileLoading ? (
-          <div className="h-10 w-40 rounded-xl animate-pulse" style={{ background: 'var(--bg3, rgba(255,255,255,0.05))' }} />
-        ) : (
-          <p className="text-3xl font-extrabold" style={{ color: '#6b9de8' }}>
-            {Number(profile?.balance ?? 0).toLocaleString('ru')} ₽
-          </p>
-        )}
+        <p className="text-3xl font-extrabold" style={{ color: '#6b9de8' }}>
+          {Number(profile?.balance ?? 0).toLocaleString('ru')} ₽
+        </p>
       </div>
 
       {/* Top-up form */}
@@ -249,9 +245,7 @@ export default function BalancePage() {
       <div>
         <p className="text-sm font-semibold mb-3" style={{ color: 'var(--text)' }}>История операций</p>
 
-        {historyLoading ? (
-          <p className="text-sm py-6 text-center" style={{ color: 'var(--hint)' }}>Загрузка...</p>
-        ) : history.length === 0 ? (
+        {history.length === 0 ? (
           <div
             className="flex flex-col items-center py-10 rounded-2xl gap-3"
             style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}

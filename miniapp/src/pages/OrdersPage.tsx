@@ -25,7 +25,7 @@ const STATUS_COLOR: Record<string, string> = {
 }
 
 export default function OrdersPage() {
-  const { data: rawOrders = [], isLoading, isError, refetch } = useQuery({
+  const { data: rawOrders = [], isError, refetch } = useQuery({
     queryKey: ['orders'],
     queryFn: () => ordersApi.list(),
     staleTime: 30_000,
@@ -45,15 +45,6 @@ export default function OrdersPage() {
       >
         Повторить
       </button>
-    </div>
-  )
-
-  if (isLoading) return (
-    <div className="px-4 pt-5 pb-4 space-y-3">
-      <div className="h-7 w-32 rounded-xl animate-pulse" style={{ background: 'var(--bg2)' }} />
-      {[...Array(4)].map((_, i) => (
-        <div key={i} className="rounded-2xl animate-pulse" style={{ background: 'var(--bg2)', height: 72 }} />
-      ))}
     </div>
   )
 
