@@ -47,6 +47,7 @@ def _product_to_list_out(product: Product) -> ProductListOut:
         lots=product.lots,
         game_name=game_name,
         game_slug=game_slug,
+        category_id=product.category_id,
     )
 
 

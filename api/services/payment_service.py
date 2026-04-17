@@ -487,16 +487,25 @@ class PaymentService:
         from sqlalchemy.orm import selectinload
         from bot.utils.texts import texts
 
-        # Загружаем связь с пользователем один раз
+        # Загружаем связь с пользователем и позициями заказа
         telegram_id: int | None = None
+        items_str: str = ""
         try:
+            from shared.models import OrderItem
             result = await self.db.execute(
                 select(Order)
-                .options(selectinload(Order.user))
+                .options(selectinload(Order.user), selectinload(Order.items))
                 .where(Order.id == order.id)
             )
             order_with_user = result.scalar_one()
             telegram_id = order_with_user.user.telegram_id
+            # Уникальные названия товаров через запятую
+            seen: list[str] = []
+            for item in order_with_user.items:
+                name = item.product_name
+                if name not in seen:
+                    seen.append(name)
+            items_str = ", ".join(seen)
         except Exception as exc:
             logger.warning("Не удалось загрузить пользователя заказа: %s", exc)
 
@@ -514,6 +523,14 @@ class PaymentService:
             try:
                 from api.services.chat_service import ChatService
                 chat_svc = ChatService(self.db)
-                await chat_svc.add_system_message(telegram_id, texts.chat_order_paid(order.order_number, float(order.total_amount)))
+                await chat_svc.add_system_message(
+                    telegram_id,
+                    texts.chat_order_paid(
+                        order.order_number,
+                        float(order.total_amount),
+                        items_str,
+                        str(order.id),
+                    ),
+                )
             except Exception as exc:
                 logger.warning("Не удалось добавить системное сообщение в чат: %s", exc)

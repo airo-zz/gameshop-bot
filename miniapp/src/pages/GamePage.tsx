@@ -310,18 +310,20 @@ function ProductSection({ product, cartQtyMap, isFavorite, onAdd, onRemove, onFa
           }
         </div>
       ) : (
-        /* Single product without lots — pill style */
-        <div className="px-3.5 py-2.5 flex justify-center">
+        /* Single product without lots — price + pill on same row */
+        <div className="px-3.5 py-2.5 flex items-center justify-between gap-2">
+          <span className="text-sm font-bold" style={{ color: '#6b9de8' }}>
+            {Number(product.price).toLocaleString('ru')} ₽
+          </span>
           {(() => {
             const key = product.id
             const qty = cartQtyMap.get(key) ?? 0
             return (
               <div
-                className="flex items-center justify-center rounded-full overflow-hidden transition-all duration-200"
+                className="flex-shrink-0 flex items-center justify-center rounded-full overflow-hidden transition-all duration-200"
                 style={{
-                  width: qty > 0 ? 110 : 'auto',
-                  minWidth: qty > 0 ? 110 : undefined,
-                  height: 38,
+                  width: qty > 0 ? 100 : 34,
+                  height: 34,
                   background: isOutOfStock ? 'rgba(239,68,68,0.08)' : 'rgba(45,88,173,0.14)',
                   border: isOutOfStock ? '1px solid rgba(239,68,68,0.18)' : '1px solid rgba(45,88,173,0.30)',
                 }}
@@ -337,32 +339,32 @@ function ProductSection({ product, cartQtyMap, isFavorite, onAdd, onRemove, onFa
                       className="flex items-center w-full"
                     >
                       <button type="button" onClick={() => onRemove(product)}
-                        className="flex items-center justify-center w-[36px] h-[38px] active:scale-90 transition-transform"
+                        className="flex items-center justify-center w-[32px] h-[34px] active:scale-90 transition-transform"
                         style={{ color: '#f87171' }}>
-                        <Minus size={14} />
+                        <Minus size={13} />
                       </button>
-                      <span className="flex-1 text-center text-sm font-bold" style={{ color: '#6b9de8' }}>
+                      <span className="flex-1 text-center text-xs font-bold" style={{ color: '#6b9de8' }}>
                         {qty}
                       </span>
                       <button type="button" disabled={isOutOfStock} onClick={() => onAdd(product, undefined, inputData)}
-                        className="flex items-center justify-center w-[36px] h-[38px] active:scale-90 transition-transform"
+                        className="flex items-center justify-center w-[32px] h-[34px] active:scale-90 transition-transform"
                         style={{ color: '#6b9de8' }}>
-                        <Plus size={14} />
+                        <Plus size={13} />
                       </button>
                     </motion.div>
                   ) : (
                     <motion.button
                       key="add"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }}
                       transition={{ duration: 0.15 }}
                       disabled={isOutOfStock}
                       onClick={() => onAdd(product, undefined, inputData)}
-                      className="flex items-center justify-center gap-2 px-5 h-full text-sm font-semibold active:scale-95 transition-transform"
+                      className="flex items-center justify-center w-full h-full active:scale-90 transition-transform"
                       style={{ color: isOutOfStock ? '#f87171' : '#6b9de8' }}
                     >
-                      {isOutOfStock ? 'Нет в наличии' : <Plus size={15} />}
+                      <Plus size={15} />
                     </motion.button>
                   )}
                 </AnimatePresence>

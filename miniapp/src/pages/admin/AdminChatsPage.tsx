@@ -13,7 +13,7 @@ import {
   type FormEvent,
   type ChangeEvent,
 } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   Send,
   Bell,
@@ -22,6 +22,117 @@ import {
   X,
   ChevronLeft,
 } from 'lucide-react'
+
+// ── Notify Modal ──────────────────────────────────────────────────────────────
+
+const NOTIFY_TEMPLATES = [
+  'Ваш заказ обрабатывается',
+  'Ответим в ближайшее время',
+  'Пожалуйста, уточните детали',
+  'Товар зарезервирован',
+]
+
+function NotifyModal({
+  onSend,
+  onClose,
+}: {
+  onSend: (text: string) => Promise<void>
+  onClose: () => void
+}) {
+  const [text, setText] = useState('')
+  const [sending, setSending] = useState(false)
+
+  const handleSend = async () => {
+    if (sending) return
+    setSending(true)
+    try {
+      await onSend(text.trim())
+      onClose()
+    } finally {
+      setSending(false)
+    }
+  }
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 400,
+        background: 'rgba(0,0,0,0.6)',
+        display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+      }}
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        style={{
+          width: '100%', maxWidth: 560,
+          background: '#0d1626',
+          border: '1px solid rgba(255,255,255,0.1)',
+          borderBottom: 'none',
+          borderRadius: '18px 18px 0 0',
+          padding: '20px 16px 24px',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Уведомить пользователя</span>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.4)', padding: 4 }}
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Templates */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+          {NOTIFY_TEMPLATES.map(t => (
+            <button
+              key={t}
+              onClick={() => setText(t)}
+              style={{
+                padding: '5px 10px', borderRadius: 20, fontSize: 12, cursor: 'pointer',
+                background: text === t ? 'rgba(37,99,235,0.3)' : 'rgba(255,255,255,0.07)',
+                border: text === t ? '1px solid rgba(96,165,250,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                color: text === t ? '#93c5fd' : 'rgba(255,255,255,0.6)',
+                transition: 'all 0.15s',
+              }}
+            >
+              {t}
+            </button>
+          ))}
+        </div>
+
+        {/* Text input */}
+        <textarea
+          value={text}
+          onChange={e => setText(e.target.value)}
+          placeholder="Или введите своё сообщение..."
+          rows={3}
+          style={{
+            width: '100%', background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12,
+            padding: '10px 12px', fontSize: 14, color: '#fff', outline: 'none',
+            resize: 'none', boxSizing: 'border-box', fontFamily: 'inherit',
+          }}
+        />
+
+        <button
+          onClick={handleSend}
+          disabled={sending}
+          style={{
+            marginTop: 12, width: '100%', padding: '12px',
+            borderRadius: 12, border: 'none', cursor: sending ? 'default' : 'pointer',
+            background: 'linear-gradient(135deg, #1d4ed8, #2563eb)',
+            color: '#fff', fontSize: 14, fontWeight: 600,
+            opacity: sending ? 0.7 : 1, transition: 'opacity 0.2s',
+          }}
+        >
+          {sending ? 'Отправка...' : 'Отправить уведомление'}
+        </button>
+      </div>
+    </div>
+  )
+}
 import { adminApi, type AdminChatListItem, type AdminChatDetail, type AdminChatMessage } from '@/api/admin'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -67,6 +178,60 @@ function isImageUrl(url: string): boolean {
   return /\.(jpg|jpeg|png|webp|gif)$/i.test(url)
 }
 
+// ── Payment system message parser ─────────────────────────────────────────────
+
+const ADMIN_PAYMENT_RE = /^(Заказ\s+#\S+\s+на\s+сумму\s+[\d\s\u00a0]+₽\s+успешно\s+оплачен\..*?)(?:\|oid=([a-f0-9-]+))?$/s
+
+function SystemMessageBubble({ text }: { text: string | null }) {
+  if (!text) return null
+  const match = ADMIN_PAYMENT_RE.exec(text)
+
+  if (match) {
+    const displayText = match[1].trim()
+    const orderId = match[2] ?? null
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0', marginBottom: 8 }}>
+        <div style={{
+          display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+          padding: '10px 16px', borderRadius: 14,
+          background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)',
+          maxWidth: '85%',
+        }}>
+          <span style={{ fontSize: 11, color: '#34d399', fontWeight: 700 }}>Оплата подтверждена</span>
+          <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.7)', textAlign: 'center', lineHeight: 1.5 }}>
+            {displayText}
+          </p>
+          {orderId && (
+            <Link
+              to={`/admin/orders/${orderId}`}
+              style={{
+                fontSize: 11, color: 'rgba(255,255,255,0.45)',
+                textDecoration: 'none', padding: '3px 10px',
+                borderRadius: 20, border: '1px solid rgba(255,255,255,0.12)',
+                background: 'rgba(255,255,255,0.05)',
+              }}
+            >
+              Открыть заказ
+            </Link>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ textAlign: 'center', padding: '4px 0', marginBottom: 8 }}>
+      <span style={{
+        fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic',
+        display: 'inline-block', padding: '4px 12px', borderRadius: 20,
+        background: 'rgba(255,255,255,0.04)',
+      }}>
+        {text}
+      </span>
+    </div>
+  )
+}
+
 // ── Message bubble ────────────────────────────────────────────────────────────
 
 function MessageBubble({
@@ -80,17 +245,7 @@ function MessageBubble({
   const isSystem = msg.sender_type === 'system'
 
   if (isSystem) {
-    return (
-      <div style={{ textAlign: 'center', padding: '4px 0', marginBottom: 8 }}>
-        <span style={{
-          fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic',
-          display: 'inline-block', padding: '4px 12px', borderRadius: 20,
-          background: 'rgba(255,255,255,0.04)',
-        }}>
-          {msg.text}
-        </span>
-      </div>
-    )
+    return <SystemMessageBubble text={msg.text} />
   }
 
   return (
@@ -299,16 +454,13 @@ function ChatDetailPanel({
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
-  const [notifying, setNotifying] = useState(false)
-  const [notifySuccess, setNotifySuccess] = useState(false)
+  const [notifyModalOpen, setNotifyModalOpen] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [pendingFiles, setPendingFiles] = useState<{ file: File; preview: string }[]>([])
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const readMarked = useRef(false)
 
   const fetchDetail = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
@@ -323,32 +475,22 @@ function ChatDetailPanel({
     }
   }, [chatId])
 
+  // Initial load + polling + mark-read — all in one effect to avoid races
   useEffect(() => {
     setLoading(true)
     setMessages([])
     setChat(null)
-    readMarked.current = false
+
     fetchDetail()
-  }, [chatId, fetchDetail])
-
-  // Mark read on open
-  useEffect(() => {
-    if (readMarked.current) return
-    readMarked.current = true
     adminApi.markChatRead(chatId).catch(() => {})
-  }, [chatId])
 
-  // Polling
-  useEffect(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current)
-    intervalRef.current = setInterval(() => {
+    const interval = setInterval(() => {
       fetchDetail(true)
       adminApi.markChatRead(chatId).catch(() => {})
     }, 3000)
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [fetchDetail, chatId])
+
+    return () => clearInterval(interval)
+  }, [chatId, fetchDetail])
 
   // Scroll to bottom on new messages
   useEffect(() => {
@@ -425,18 +567,8 @@ function ChatDetailPanel({
     }
   }, [text, pendingFiles, chatId, sending, uploading])
 
-  const handleNotify = async () => {
-    if (notifying) return
-    setNotifying(true)
-    try {
-      await adminApi.notifyUserChat(chatId)
-      setNotifySuccess(true)
-      setTimeout(() => setNotifySuccess(false), 3000)
-    } catch {
-      // ignore
-    } finally {
-      setNotifying(false)
-    }
+  const handleNotifySend = async (notifyText: string) => {
+    await adminApi.notifyUserChat(chatId, notifyText || undefined)
   }
 
   // Group messages by date
@@ -496,20 +628,19 @@ function ChatDetailPanel({
         </div>
 
         <button
-          onClick={handleNotify}
-          disabled={notifying}
+          onClick={() => setNotifyModalOpen(true)}
           title="Уведомить в Telegram"
           style={{
             display: 'flex', alignItems: 'center', gap: 5,
             padding: '5px 10px', borderRadius: 8,
-            background: notifySuccess ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.07)',
-            border: notifySuccess ? '1px solid rgba(16,185,129,0.3)' : '1px solid rgba(255,255,255,0.1)',
-            color: notifySuccess ? '#34d399' : 'rgba(255,255,255,0.6)',
-            cursor: 'pointer', fontSize: 11, fontWeight: 500, transition: 'all 0.2s', flexShrink: 0,
+            background: 'rgba(255,255,255,0.07)',
+            border: '1px solid rgba(255,255,255,0.1)',
+            color: 'rgba(255,255,255,0.6)',
+            cursor: 'pointer', fontSize: 11, fontWeight: 500, flexShrink: 0,
           }}
         >
           <Bell size={13} />
-          {notifySuccess ? 'Отправлено' : 'Уведомить'}
+          Уведомить
         </button>
       </div>
 
@@ -653,6 +784,14 @@ function ChatDetailPanel({
           </button>
         </form>
       </div>
+
+      {/* Notify modal */}
+      {notifyModalOpen && (
+        <NotifyModal
+          onSend={handleNotifySend}
+          onClose={() => setNotifyModalOpen(false)}
+        />
+      )}
 
       {/* Image lightbox */}
       {lightboxUrl && (

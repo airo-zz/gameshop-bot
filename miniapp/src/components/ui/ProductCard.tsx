@@ -32,7 +32,9 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
 
   return (
     <Link
-      to={product.game_slug ? `/catalog/${product.game_slug}` : `/product/${product.id}`}
+      to={product.game_slug
+        ? `/catalog/${product.game_slug}${product.category_id ? `?cat=${product.category_id}` : ''}`
+        : `/catalog`}
       className="relative flex flex-col overflow-hidden transition-all duration-200 active:scale-95 product-card-hover"
       style={{
         background: 'var(--bg2)',

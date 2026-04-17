@@ -57,6 +57,7 @@ export interface Product {
   name: string
   game_name?: string | null
   game_slug?: string | null
+  category_id?: string | null
   short_description: string | null
   description: string | null
   price: number

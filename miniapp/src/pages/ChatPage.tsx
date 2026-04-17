@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Send, Paperclip, X, ZoomIn } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { Link } from 'react-router-dom'
 import { chatApi, type ChatMessage } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import logo from '@/assets/logo.png'
@@ -108,47 +109,45 @@ function TextWithLinks({ text }: { text: string }): ReactNode {
 
 // ── System message ────────────────────────────────────────────────────────────
 
-// Matches: "Заказ #001000 оплачен · 1 500 ₽"
-const PAYMENT_RE = /^Заказ\s+(#\S+)\s+оплачен(?:\s+·\s+([\d\s\u00a0]+)\s*₽)?/
+// Matches: "Заказ #001000 на сумму 1 500 ₽ успешно оплачен. Товар: X. Ожидайте...|oid=uuid"
+const PAYMENT_RE = /^(Заказ\s+#\S+\s+на\s+сумму\s+[\d\s\u00a0]+₽\s+успешно\s+оплачен\..*?)(?:\|oid=([a-f0-9-]+))?$/s
 
 function SystemMessage({ text }: { text: string }) {
-  const { haptic } = useTelegram()
   const match = PAYMENT_RE.exec(text)
 
   if (match) {
-    const orderNum = match[1]
-    const amount = match[2]?.trim()
-    const handleCopy = () => {
-      navigator.clipboard.writeText(orderNum).then(() => {
-        haptic.impact('light')
-        toast.success('Номер заказа скопирован', { duration: 1500 })
-      }).catch(() => {})
-    }
+    const displayText = match[1].trim()
+    const orderId = match[2] ?? null
     return (
       <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', marginBottom: 8 }}>
         <div style={{
-          display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-          padding: '10px 16px', borderRadius: 16,
+          display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+          padding: '12px 16px', borderRadius: 16,
           background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)',
-          maxWidth: '85%',
+          maxWidth: '88%',
         }}>
-          <span style={{ fontSize: 12, color: '#34d399', fontWeight: 600 }}>Оплата подтверждена</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', fontWeight: 500 }}>
-              {orderNum}
-              {amount && <span style={{ color: 'rgba(255,255,255,0.45)', marginLeft: 6 }}>· {amount} ₽</span>}
-            </span>
-            <button
-              onClick={handleCopy}
+          <span style={{ fontSize: 12, color: '#34d399', fontWeight: 700, letterSpacing: 0.2 }}>
+            Оплата подтверждена
+          </span>
+          <p style={{
+            margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.75)',
+            textAlign: 'center', lineHeight: 1.5,
+          }}>
+            {displayText}
+          </p>
+          {orderId && (
+            <Link
+              to={`/orders/${orderId}`}
               style={{
-                background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)',
-                borderRadius: 6, padding: '2px 7px', cursor: 'pointer',
-                fontSize: 10, color: 'rgba(255,255,255,0.5)', fontWeight: 500,
+                fontSize: 11, color: 'rgba(255,255,255,0.45)',
+                textDecoration: 'none', padding: '3px 10px',
+                borderRadius: 20, border: '1px solid rgba(255,255,255,0.12)',
+                background: 'rgba(255,255,255,0.05)',
               }}
             >
-              копировать
-            </button>
-          </div>
+              Перейти в заказ
+            </Link>
+          )}
         </div>
       </div>
     )

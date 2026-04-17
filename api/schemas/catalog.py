@@ -67,6 +67,7 @@ class ProductListOut(BaseModel):
     lots: list[LotOut] = []
     game_name: str | None = None
     game_slug: str | None = None
+    category_id: uuid.UUID | None = None
 
 
 class InputFieldSchema(BaseModel):
