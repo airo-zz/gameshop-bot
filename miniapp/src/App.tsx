@@ -75,6 +75,8 @@ const AdminSupport     = lazy(() => import('@/pages/admin/SupportPage'))
 const AdminLogin       = lazy(() => import('@/pages/admin/LoginPage'))
 const AdminLoyalty     = lazy(() => import('@/pages/admin/LoyaltySettingsPage'))
 const AdminOrdersTrash = lazy(() => import('@/pages/admin/OrdersTrashPage'))
+const AdminChats       = lazy(() => import('@/pages/admin/ChatsPage'))
+const AdminChatDetail  = lazy(() => import('@/pages/admin/ChatDetailPage'))
 
 const BalancePage   = lazy(() => import('@/pages/BalancePage'))
 const ReferralsPage = lazy(() => import('@/pages/ReferralsPage'))
@@ -196,6 +198,8 @@ export default function App() {
             <Route path="discounts" element={<LazyPage><AdminDiscounts /></LazyPage>} />
             <Route path="support" element={<LazyPage><AdminSupport /></LazyPage>} />
             <Route path="settings/loyalty" element={<LazyPage><AdminLoyalty /></LazyPage>} />
+            <Route path="chats" element={<LazyPage><AdminChats /></LazyPage>} />
+            <Route path="chats/:id" element={<LazyPage><AdminChatDetail /></LazyPage>} />
           </Route>
         </Route>
       </Routes>

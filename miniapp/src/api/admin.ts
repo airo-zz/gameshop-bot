@@ -318,6 +318,39 @@ export interface ReferralSettings {
   bonus_amount: number
 }
 
+// ── Chats ────────────────────────────────────────────────────────────────────
+
+export interface AdminChatUserInfo {
+  telegram_id: number
+  username: string | null
+  first_name: string
+}
+
+export interface AdminChatMessage {
+  id: string
+  chat_id: string
+  sender_type: 'user' | 'admin' | 'system'
+  text: string | null
+  attachments: string[]
+  created_at: string
+}
+
+export interface AdminChatListItem {
+  id: string
+  user: AdminChatUserInfo
+  last_message_preview: string | null
+  last_message_at: string | null
+  admin_unread_count: number
+}
+
+export interface AdminChatDetail {
+  id: string
+  user: AdminChatUserInfo
+  created_at: string
+  last_message_at: string | null
+  messages: AdminChatMessage[]
+}
+
 // ── Admin API ────────────────────────────────────────────────────────────────
 
 export const adminApi = {
@@ -540,4 +573,20 @@ export const adminApi = {
 
   updateReferralSettings: (data: { bonus_amount: number }) =>
     apiClient.patch<ReferralSettings>('/admin/settings/referral', data).then(r => r.data),
+
+  // Chats
+  getChats: () =>
+    apiClient.get<AdminChatListItem[]>('/admin/chats').then(r => r.data),
+
+  getChatDetail: (chatId: string) =>
+    apiClient.get<AdminChatDetail>(`/admin/chats/${chatId}`).then(r => r.data),
+
+  sendChatMessage: (chatId: string, text: string) =>
+    apiClient.post<AdminChatMessage>(`/admin/chats/${chatId}/send`, { text }).then(r => r.data),
+
+  markChatRead: (chatId: string) =>
+    apiClient.post(`/admin/chats/${chatId}/read`).then(r => r.data),
+
+  notifyUserChat: (chatId: string, text?: string) =>
+    apiClient.post(`/admin/chats/${chatId}/notify`, { text }).then(r => r.data),
 }

@@ -323,6 +323,7 @@ export interface ChatInfo {
   id: string
   user_id: number
   created_at: string
+  unread_count?: number
 }
 
 export const chatApi = {
@@ -336,6 +337,12 @@ export const chatApi = {
 
   sendMessage: (text: string | null, attachments: string[] = []) =>
     apiClient.post<ChatMessage>('/chat/messages', { text, attachments }).then(r => r.data),
+
+  markRead: () =>
+    apiClient.post('/chat/read').then(r => r.data),
+
+  getUnreadCount: () =>
+    apiClient.get<ChatInfo>('/chat').then(r => (r.data as ChatInfo & { unread_count?: number }).unread_count ?? 0),
 
   upload: (file: File) => {
     const fd = new FormData()

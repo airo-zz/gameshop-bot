@@ -273,6 +273,25 @@ export default function ChatPage() {
     staleTime: 0,
   })
 
+  // Помечаем чат прочитанным при открытии
+  useEffect(() => {
+    if (!chat) return
+    chatApi.markRead().catch(() => {})
+    // Инвалидируем кэш chat чтобы unread_count обновился в Layout
+    queryClient.invalidateQueries({ queryKey: ['chat'] })
+  }, [chat, queryClient])
+
+  // Помечаем прочитанным при получении новых сообщений от admin/system
+  const prevAdminMsgCount = useRef(0)
+  useEffect(() => {
+    const adminMsgCount = messages.filter(m => m.sender_type === 'admin' || m.sender_type === 'system').length
+    if (adminMsgCount > prevAdminMsgCount.current && prevAdminMsgCount.current > 0) {
+      chatApi.markRead().catch(() => {})
+      queryClient.invalidateQueries({ queryKey: ['chat'] })
+    }
+    prevAdminMsgCount.current = adminMsgCount
+  }, [messages, queryClient])
+
   // When arriving from post-purchase redirect — force refetch after delay to catch system message
   useEffect(() => {
     if (!orderIdParam || !chat) return

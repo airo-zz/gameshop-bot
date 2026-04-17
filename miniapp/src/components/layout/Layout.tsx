@@ -1,7 +1,7 @@
 // src/components/layout/Layout.tsx
 import { useState, useEffect } from 'react'
 import { Outlet, useLocation, Link, useNavigate } from 'react-router-dom'
-import { useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCartStore, useUIStore } from '@/store'
 import ParticleCanvas from '@/components/ui/ParticleCanvas'
 import logo from '@/assets/logo.png'
@@ -74,6 +74,17 @@ export default function Layout() {
   const queryClient = useQueryClient()
   const [chatLoading, setChatLoading] = useState(false)
   const [keyboardOpen, setKeyboardOpen] = useState(false)
+
+  const isChatPageEarly = pathname.startsWith('/chat')
+
+  // Polling unread_count для бейджа на кнопке чата (не поллим когда открыт сам чат)
+  const { data: chatInfo } = useQuery({
+    queryKey: ['chat'],
+    queryFn: chatApi.getOrCreate,
+    staleTime: 30_000,
+    refetchInterval: isChatPageEarly ? false : 10_000,
+  })
+  const chatUnreadCount = (chatInfo as any)?.unread_count ?? 0
 
   useEffect(() => {
     const tgWA = (window as any).Telegram?.WebApp
@@ -216,6 +227,30 @@ export default function Layout() {
                       {label}
                     </span>
                   </div>
+                  {chatUnreadCount > 0 && (
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: 2,
+                        right: 6,
+                        minWidth: 16,
+                        height: 16,
+                        borderRadius: 8,
+                        background: 'linear-gradient(135deg, #2d58ad, #1e3f8a)',
+                        color: '#fff',
+                        fontSize: 10,
+                        fontWeight: 700,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '0 4px',
+                        boxShadow: '0 2px 8px rgba(45,88,173,0.55)',
+                        zIndex: 1,
+                      }}
+                    >
+                      {chatUnreadCount > 99 ? '99+' : chatUnreadCount}
+                    </span>
+                  )}
                 </a>
               )
             }

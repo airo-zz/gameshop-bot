@@ -33,6 +33,20 @@ class Chat(Base):
         nullable=False,
     )
 
+    # ── Read status fields (migration 012) ────────────────────────────────────
+    last_message_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    last_admin_read_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+    last_user_read_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
     messages: Mapped[list["ChatMessage"]] = relationship(
         "ChatMessage",
         back_populates="chat",

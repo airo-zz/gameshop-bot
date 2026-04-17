@@ -15,6 +15,7 @@ import {
   Users,
   Tag,
   MessageSquare,
+  MessagesSquare,
   Settings,
   Menu,
   X,
@@ -33,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/admin/users',     label: 'Пользователи',     icon: <Users size={20} /> },
   { to: '/admin/discounts', label: 'Скидки',           icon: <Tag size={20} /> },
   { to: '/admin/support',   label: 'Поддержка',        icon: <MessageSquare size={20} /> },
+  { to: '/admin/chats',    label: 'Чаты',             icon: <MessagesSquare size={20} /> },
   { to: '/admin/settings/loyalty', label: 'Настройки', icon: <Settings size={20} /> },
 ]
 

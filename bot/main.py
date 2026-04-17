@@ -37,6 +37,7 @@ from bot.handlers.admin import (
     admin_stats,
     admin_users,
     admin_discounts,
+    chat_reply,
 )
 
 # ── Логирование ───────────────────────────────────────────────────────────────
@@ -133,6 +134,7 @@ def create_dispatcher() -> Dispatcher:
         admin_stats.router,
         admin_users.router,
         admin_discounts.router,
+        chat_reply.router,
     ]
     for _r in _admin_routers:
         _r.message.middleware(AdminAuthMiddleware())

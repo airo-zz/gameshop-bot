@@ -472,6 +472,48 @@ class BotTexts:
     def error_blocked(self) -> str:
         return f"🚫 Твой аккаунт заблокирован. Обратись в поддержку: @{S.SHOP_SUPPORT_USERNAME}"
 
+    # ── Чат admin ↔ покупатель ────────────────────────────────────────────────
+
+    @property
+    def chat_reply_usage(self) -> str:
+        return (
+            "Использование: <code>/reply &lt;telegram_id&gt; &lt;текст&gt;</code>\n\n"
+            "Пример: <code>/reply 123456789 Ваш заказ выполнен!</code>"
+        )
+
+    @property
+    def chat_reply_invalid_id(self) -> str:
+        return "Неверный формат telegram_id. Должно быть число."
+
+    @property
+    def chat_reply_empty_text(self) -> str:
+        return "Текст сообщения не может быть пустым."
+
+    def chat_reply_sent(self, telegram_id: int) -> str:
+        return f"Сообщение отправлено пользователю <code>{telegram_id}</code>."
+
+    def chat_reply_sent_db_only(self, telegram_id: int) -> str:
+        return (
+            f"Сообщение сохранено в чате пользователя <code>{telegram_id}</code>, "
+            f"но Telegram-уведомление не доставлено (пользователь не запускал бот)."
+        )
+
+    def chat_new_admin_message(self, text: str) -> str:
+        preview = escape(text[:200])
+        return (
+            f"<b>Сообщение от продавца</b>\n\n"
+            f"{preview}"
+        )
+
+    def chat_notify_seller_new_message(
+        self, user_label: str, preview: str
+    ) -> str:
+        return (
+            f"<b>Новое сообщение от покупателя</b>\n"
+            f"Пользователь: {escape(user_label)}\n"
+            f"<i>{escape(preview)}</i>"
+        )
+
 
 # Синглтон — импортируй и используй
 texts = BotTexts()
