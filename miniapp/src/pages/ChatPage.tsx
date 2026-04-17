@@ -277,6 +277,8 @@ export default function ChatPage() {
     let touchBtn: HTMLElement | null = null
 
     const onStart = (e: TouchEvent) => {
+      // Debug: vibrate on ANY tap to confirm capture listener fires
+      ;(window as any).Telegram?.WebApp?.HapticFeedback?.impactOccurred?.('light')
       const t = e.touches[0]
       startX = t.clientX
       startY = t.clientY
