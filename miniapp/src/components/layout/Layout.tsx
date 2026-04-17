@@ -1,5 +1,6 @@
 // src/components/layout/Layout.tsx
 import { Outlet, useLocation, Link } from 'react-router-dom'
+import { Headphones } from 'lucide-react'
 import { useCartStore, useUIStore } from '@/store'
 import ParticleCanvas from '@/components/ui/ParticleCanvas'
 
@@ -49,25 +50,12 @@ function IconUser({ active }: { active: boolean }) {
   )
 }
 
-// Chat icon — slightly larger, used in the featured center button
-function IconChat({ active }: { active: boolean }) {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth={active ? 2.2 : 1.8} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-      <circle cx="9" cy="10" r="1" fill="currentColor" />
-      <circle cx="12" cy="10" r="1" fill="currentColor" />
-      <circle cx="15" cy="10" r="1" fill="currentColor" />
-    </svg>
-  )
-}
-
 // ── Nav config ───────────────────────────────────────────────────────────────
 
 const NAV = [
   { to: '/',        label: 'Главная', IconComp: IconHome, badge: false, featured: false },
   { to: '/catalog', label: 'Каталог', IconComp: IconGrid, badge: false, featured: false },
-  { to: '/chat',    label: 'Чат',     IconComp: IconChat, badge: false, featured: true  },
+  { to: '/chat',    label: 'Чат',     IconComp: null,     badge: false, featured: true  },
   { to: '/cart',    label: 'Корзина', IconComp: IconCart, badge: true,  featured: false },
   { to: '/profile', label: 'Профиль', IconComp: IconUser, badge: false, featured: false },
 ]
@@ -141,24 +129,25 @@ export default function Layout() {
                 <Link
                   key={to}
                   to={to}
-                  className="relative flex flex-col items-center justify-center active:scale-90"
+                  className="relative flex items-center justify-center active:scale-90"
                   style={{
                     flex: 1,
                     minHeight: 52,
-                    gap: 0,
-                    padding: '4px 4px 6px',
+                    padding: '4px',
                     WebkitTapHighlightColor: 'transparent',
                     transition: 'transform 0.15s ease',
                   }}
                 >
                   <div
                     style={{
-                      width: 46,
-                      height: 46,
-                      borderRadius: 16,
                       display: 'flex',
+                      flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
+                      gap: 3,
+                      width: 56,
+                      height: 46,
+                      borderRadius: 16,
                       background: isActive
                         ? 'linear-gradient(135deg, #1d4ed8, #2563eb)'
                         : 'linear-gradient(135deg, #1e3a8a, #1d4ed8)',
@@ -170,19 +159,14 @@ export default function Layout() {
                       transform: 'translateY(-6px)',
                     }}
                   >
-                    <IconChat active={isActive} />
+                    <Headphones size={18} strokeWidth={isActive ? 2.2 : 1.8} />
+                    <span
+                      className="text-[9px] font-semibold leading-none select-none"
+                      style={{ color: '#fff', whiteSpace: 'nowrap' }}
+                    >
+                      {label}
+                    </span>
                   </div>
-                  <span
-                    className="text-[10px] font-semibold leading-none select-none"
-                    style={{
-                      color: isActive ? '#60a5fa' : 'rgba(255,255,255,0.5)',
-                      marginTop: 1,
-                      transition: 'color 0.2s',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {label}
-                  </span>
                 </Link>
               )
             }
@@ -211,7 +195,7 @@ export default function Layout() {
                       transition: 'color 0.2s, filter 0.2s, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                     }}
                   >
-                    <IconComp active={isActive} />
+                    {IconComp && <IconComp active={isActive} />}
                   </span>
 
                   {badge && itemsCount > 0 && (

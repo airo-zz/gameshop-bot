@@ -152,6 +152,14 @@ export interface TicketMessage {
   created_at: string
 }
 
+export interface ChatMessage {
+  id: string
+  chat_id: string
+  sender_type: 'user' | 'admin' | 'system'
+  text: string | null
+  created_at: string
+}
+
 export interface LoyaltyLevelEntry {
   name: string
   min_spent: number
@@ -305,6 +313,27 @@ export const paymentsApi = {
       '/payments/balance/topup',
       { amount, method, currency: currency ?? 'USDT' }
     ).then(r => r.data),
+}
+
+// ── Chat API ──────────────────────────────────────────────────────────────────
+
+export interface ChatInfo {
+  id: string
+  user_id: number
+  created_at: string
+}
+
+export const chatApi = {
+  getOrCreate: () =>
+    apiClient.get<ChatInfo>('/chat').then(r => r.data),
+
+  getMessages: (afterId?: string, limit = 50) =>
+    apiClient.get<ChatMessage[]>('/chat/messages', {
+      params: { limit, ...(afterId ? { after_id: afterId } : {}) },
+    }).then(r => r.data),
+
+  sendMessage: (text: string) =>
+    apiClient.post<ChatMessage>('/chat/messages', { text }).then(r => r.data),
 }
 
 // ── Support API ───────────────────────────────────────────────────────────────

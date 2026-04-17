@@ -65,6 +65,11 @@ from .support import (
     AdminActionLog,
 )
 
+from .chat import (
+    Chat,
+    ChatMessage,
+)
+
 __all__ = [
     # Base
     "Base", "TimestampMixin", "UUIDMixin",
@@ -84,4 +89,6 @@ __all__ = [
     # Support & Admin
     "TicketStatus", "SupportTicket", "TicketMessage", "SupportTemplate",
     "AdminRole", "DEFAULT_PERMISSIONS", "AdminUser", "AdminActionLog",
+    # Chat
+    "Chat", "ChatMessage",
 ]

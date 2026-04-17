@@ -482,12 +482,13 @@ class PaymentService:
         logger.info("Balance topup: user %s +%s RUB via %s (%s)", user_id, amount, provider, external_id)
 
     async def _notify_user_payment_success(self, order: Order) -> None:
-        """Отправляет уведомление пользователю через aiogram Bot."""
-        try:
-            from sqlalchemy.orm import selectinload
-            from bot.utils.texts import texts
-            from api.bot_instance import get_bot
+        """Отправляет уведомление пользователю через aiogram Bot и добавляет системное сообщение в чат."""
+        from sqlalchemy.orm import selectinload
+        from bot.utils.texts import texts
 
+        # Загружаем связь с пользователем один раз
+        telegram_id: int | None = None
+        try:
             result = await self.db.execute(
                 select(Order)
                 .options(selectinload(Order.user))
@@ -495,10 +496,23 @@ class PaymentService:
             )
             order_with_user = result.scalar_one()
             telegram_id = order_with_user.user.telegram_id
-            text = texts.order_paid(order.order_number)
-
-            bot = get_bot()
-            await bot.send_message(telegram_id, text, parse_mode="HTML")
         except Exception as exc:
-            logger.warning("Не удалось отправить уведомление об оплате: %s", exc)
-            # Уведомление не критично — не прерываем основной flow
+            logger.warning("Не удалось загрузить пользователя заказа: %s", exc)
+
+        # Telegram уведомление
+        if telegram_id is not None:
+            try:
+                from api.bot_instance import get_bot
+                bot = get_bot()
+                await bot.send_message(telegram_id, texts.order_paid(order.order_number), parse_mode="HTML")
+            except Exception as exc:
+                logger.warning("Не удалось отправить уведомление об оплате: %s", exc)
+
+        # Системное сообщение в чат
+        if telegram_id is not None:
+            try:
+                from api.services.chat_service import ChatService
+                chat_svc = ChatService(self.db)
+                await chat_svc.add_system_message(telegram_id, texts.chat_order_paid(order.order_number))
+            except Exception as exc:
+                logger.warning("Не удалось добавить системное сообщение в чат: %s", exc)

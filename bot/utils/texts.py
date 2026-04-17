@@ -148,6 +148,9 @@ class BotTexts:
             f"Мы уведомим тебя о выполнении."
         )
 
+    def chat_order_paid(self, order_number: str) -> str:
+        return f"Покупатель оплатил Заказ #{order_number}"
+
     def order_completed(self, order_number: str, delivery_data: str = "") -> str:
         delivery_text = (
             f"\n\n📦 <b>Данные для получения:</b>\n{delivery_data}"

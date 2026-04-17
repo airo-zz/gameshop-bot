@@ -16,7 +16,7 @@ from fastapi.responses import JSONResponse
 from shared.config import settings
 from shared.database.session import engine
 
-from api.routers import catalog, cart, orders, payments, profile, support, webhooks, uploads
+from api.routers import catalog, cart, chat, orders, payments, profile, support, webhooks, uploads
 from api.routers.admin import router as admin_router
 
 log = structlog.get_logger()
@@ -76,6 +76,7 @@ def create_app() -> FastAPI:
     app.include_router(payments.router, prefix=f"{prefix}/payments", tags=["Payments"])
     app.include_router(profile.router, prefix=f"{prefix}/profile", tags=["Profile"])
     app.include_router(support.router, prefix=f"{prefix}/support", tags=["Support"])
+    app.include_router(chat.router, prefix=f"{prefix}/chat", tags=["Chat"])
     app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
     app.include_router(uploads.router, prefix=f"{prefix}/admin", tags=["Admin Uploads"])
     app.include_router(admin_router, prefix=f"{prefix}/admin", tags=["Admin"])
