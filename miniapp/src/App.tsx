@@ -1,5 +1,5 @@
 // src/App.tsx
-import { lazy, Suspense, useEffect, useRef, Component, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, Component, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -83,9 +83,10 @@ export default function App() {
   const { initData } = useTelegram()
   const { isReady, isError, setReady, setError } = useAuthStore()
   const { setItemsCount } = useCartStore()
-  // Гарантируем что init() выполнится ровно один раз,
-  // независимо от нестабильности ссылок в deps
   const initialized = useRef(false)
+  // Плавный fade-out сплэша: exiting=true запускает анимацию, затем убираем сплэш
+  const [splashExiting, setSplashExiting] = useState(false)
+  const [splashGone, setSplashGone] = useState(false)
 
   useEffect(() => {
     if (initialized.current) return
@@ -93,7 +94,6 @@ export default function App() {
 
     async function init() {
       try {
-        // Авторизуемся через Telegram initData
         if (initData) {
           try {
             await authenticateWithTelegram(initData)
@@ -102,7 +102,6 @@ export default function App() {
           }
         }
 
-        // Загружаем корзину (не критично если упадёт)
         try {
           const cart = await cartApi.get()
           setItemsCount(cart.items_count)
@@ -120,8 +119,16 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Когда приложение готово — запускаем fade-out сплэша
+  useEffect(() => {
+    if (!isReady) return
+    setSplashExiting(true)
+    const t = setTimeout(() => setSplashGone(true), 380)
+    return () => clearTimeout(t)
+  }, [isReady])
+
   if (isError) return <ErrorScreen />
-  if (!isReady) return <LoadingScreen />
+  if (!splashGone) return <LoadingScreen exiting={splashExiting} />
 
   return (
     <BrowserRouter basename="/app">
