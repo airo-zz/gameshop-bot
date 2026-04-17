@@ -337,12 +337,11 @@ export default function ChatPage() {
     staleTime: 0,
   })
 
-  // Помечаем чат прочитанным при открытии
+  // Помечаем чат прочитанным при открытии — сразу обнуляем бейдж локально
   useEffect(() => {
     if (!chat) return
     chatApi.markRead().catch(() => {})
-    // Инвалидируем кэш chat чтобы unread_count обновился в Layout
-    queryClient.invalidateQueries({ queryKey: ['chat'] })
+    queryClient.setQueryData(['chat'], (prev: any) => prev ? { ...prev, unread_count: 0 } : prev)
   }, [chat, queryClient])
 
   // Помечаем прочитанным при получении новых сообщений от admin/system
@@ -351,7 +350,7 @@ export default function ChatPage() {
     const adminMsgCount = messages.filter(m => m.sender_type === 'admin' || m.sender_type === 'system').length
     if (adminMsgCount > prevAdminMsgCount.current && prevAdminMsgCount.current > 0) {
       chatApi.markRead().catch(() => {})
-      queryClient.invalidateQueries({ queryKey: ['chat'] })
+      queryClient.setQueryData(['chat'], (prev: any) => prev ? { ...prev, unread_count: 0 } : prev)
     }
     prevAdminMsgCount.current = adminMsgCount
   }, [messages, queryClient])

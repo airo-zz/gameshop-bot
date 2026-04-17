@@ -986,6 +986,8 @@ export default function AdminChatsPage() {
   const handleSelect = useCallback((id: string) => {
     setSelectedId(id)
     navigate(`/admin/chats/${id}`, { replace: true })
+    // Мгновенно сбрасываем бейдж в списке без ожидания следующего poll
+    setChats(prev => prev.map(c => c.id === id ? { ...c, admin_unread_count: 0 } : c))
   }, [navigate])
 
   const handleBack = useCallback(() => {
