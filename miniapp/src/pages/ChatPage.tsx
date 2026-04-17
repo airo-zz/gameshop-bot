@@ -191,7 +191,7 @@ function MessageBubble({
   const isAdmin = msg.sender_type === 'admin'
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-1`}>
+    <div style={{ display: 'flex', justifyContent: isUser ? 'flex-end' : 'flex-start', marginBottom: 4 }}>
       <div style={{
         maxWidth: '80%',
         padding: '8px 12px',
@@ -216,21 +216,15 @@ function MessageBubble({
             {msg.attachments.map((url, idx) => {
               const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(url)
               const absUrl = url.startsWith('http') ? url : `https://redonate.su${url}`
-              const openFile = () => {
-                const tg = (window as any).Telegram?.WebApp
-                if (tg?.openLink) tg.openLink(absUrl)
-                else window.open(absUrl, '_blank')
-              }
               return isImage ? (
                 <button
                   key={idx}
                   type="button"
-                  onTouchStart={e => e.stopPropagation()}
-                  onTouchEnd={e => { e.preventDefault(); e.stopPropagation(); onImageClick(absUrl) }}
-                  onClick={e => { e.stopPropagation(); onImageClick(absUrl) }}
+                  data-img-url={absUrl}
+                  onClick={() => onImageClick(absUrl)}
                   style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: 'none', padding: 0, cursor: 'pointer', position: 'relative', background: 'transparent', touchAction: 'none', WebkitTapHighlightColor: 'transparent' }}
                 >
-                  <img src={absUrl} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none', userSelect: 'none', WebkitUserSelect: 'none' }} />
+                  <img src={absUrl} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }} />
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
                     <ZoomIn size={16} color="rgba(255,255,255,0.8)" />
                   </div>
@@ -239,9 +233,8 @@ function MessageBubble({
                 <button
                   key={idx}
                   type="button"
-                  onTouchStart={e => e.stopPropagation()}
-                  onTouchEnd={e => { e.preventDefault(); e.stopPropagation(); openFile() }}
-                  onClick={openFile}
+                  data-file-url={absUrl}
+                  onClick={() => { const tg = (window as any).Telegram?.WebApp; if (tg?.openLink) tg.openLink(absUrl); else window.open(absUrl, '_blank') }}
                   style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 12, cursor: 'pointer', touchAction: 'none', WebkitTapHighlightColor: 'transparent' }}
                 >
                   <Paperclip size={12} /> Файл {idx + 1}
@@ -275,6 +268,33 @@ export default function ChatPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const orderIdParam = searchParams.get('order_id')
   const [keyboardOpen, setKeyboardOpen] = useState(false)
+
+  // Native document-level capture listeners for image/file taps.
+  // Must be at capture phase to fire before iOS WKWebView scroll handling.
+  useEffect(() => {
+    const onStart = (e: TouchEvent) => {
+      const el = (e.target as HTMLElement).closest('[data-img-url],[data-file-url]')
+      if (el) e.preventDefault() // prevent scroll gesture from claiming this touch
+    }
+    const onEnd = (e: TouchEvent) => {
+      const imgEl = (e.target as HTMLElement).closest('[data-img-url]') as HTMLElement | null
+      const fileEl = (e.target as HTMLElement).closest('[data-file-url]') as HTMLElement | null
+      if (imgEl?.dataset.imgUrl) {
+        setLightboxUrl(imgEl.dataset.imgUrl)
+      } else if (fileEl?.dataset.fileUrl) {
+        const url = fileEl.dataset.fileUrl
+        const tg = (window as any).Telegram?.WebApp
+        if (tg?.openLink) tg.openLink(url)
+        else window.open(url, '_blank')
+      }
+    }
+    document.addEventListener('touchstart', onStart, { capture: true, passive: false })
+    document.addEventListener('touchend', onEnd, { capture: true })
+    return () => {
+      document.removeEventListener('touchstart', onStart, { capture: true })
+      document.removeEventListener('touchend', onEnd, { capture: true })
+    }
+  }, []) // setLightboxUrl is a stable React state setter
 
   useEffect(() => {
     let maxHeight = window.visualViewport?.height ?? window.innerHeight
@@ -451,7 +471,7 @@ export default function ChatPage() {
         type="file"
         accept="image/*"
         multiple
-        className="hidden"
+        style={{ display: 'none' }}
         onChange={e => {
           const files = Array.from(e.target.files ?? [])
           if (attachedFiles.length + files.length > 5) { toast.error('Максимум 5 файлов'); return }
