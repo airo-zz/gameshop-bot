@@ -1,8 +1,7 @@
 // src/pages/ChatPage.tsx
-// Чат покупателя с продавцом — один постоянный чат, как на Funpay.
 import {
   useState, useEffect, useRef, useCallback,
-  type ReactNode, type FormEvent,
+  type FormEvent, type ReactNode,
 } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -13,19 +12,50 @@ import { chatApi, type ChatMessage } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import logo from '@/assets/logo.png'
 
+// ── Image compression ─────────────────────────────────────────────────────────
+
+async function compressImage(file: File, maxDim = 1280, quality = 0.82): Promise<File> {
+  if (!file.type.startsWith('image/')) return file
+  return new Promise(resolve => {
+    const img = new Image()
+    const blobUrl = URL.createObjectURL(file)
+    img.onload = () => {
+      URL.revokeObjectURL(blobUrl)
+      let { width, height } = img
+      if (width <= maxDim && height <= maxDim && file.size < 800_000) {
+        resolve(file)
+        return
+      }
+      if (width > height) { height = Math.round(height * maxDim / width); width = maxDim }
+      else { width = Math.round(width * maxDim / height); height = maxDim }
+      const canvas = document.createElement('canvas')
+      canvas.width = width
+      canvas.height = height
+      canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+      canvas.toBlob(
+        blob => {
+          if (!blob) { resolve(file); return }
+          resolve(new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' }))
+        },
+        'image/jpeg',
+        quality,
+      )
+    }
+    img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(file) }
+    img.src = blobUrl
+  })
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatTime(dateStr: string): string {
-  return new Date(dateStr).toLocaleTimeString('ru-RU', {
-    hour: '2-digit', minute: '2-digit',
-  })
+  return new Date(dateStr).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
 }
 
 function formatDateLabel(dateStr: string): string {
   const d = new Date(dateStr)
   const today = new Date()
-  const yesterday = new Date()
-  yesterday.setDate(today.getDate() - 1)
+  const yesterday = new Date(); yesterday.setDate(today.getDate() - 1)
   if (d.toDateString() === today.toDateString()) return 'Сегодня'
   if (d.toDateString() === yesterday.toDateString()) return 'Вчера'
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -35,45 +65,59 @@ function getDateKey(dateStr: string): string {
   return new Date(dateStr).toDateString()
 }
 
-// ── Link-aware text renderer ──────────────────────────────────────────────────
+// ── Long press hook ───────────────────────────────────────────────────────────
 
-function TextWithLinks({ text }: { text: string }) {
-  const parts = text.split(/(https?:\/\/[^\s]+)/g)
-  return (
-    <>
-      {parts.map((part, i) =>
-        /^https?:\/\//.test(part) ? (
-          <a
-            key={i}
-            href={part}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{ color: '#93c5fd', textDecoration: 'underline', wordBreak: 'break-all' }}
-            onClick={e => e.stopPropagation()}
-          >
-            {part}
-          </a>
-        ) : (
-          part
-        )
-      )}
-    </>
-  )
+function useLongPress(onLongPress: () => void, ms = 500) {
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const cancel = () => { if (timer.current) clearTimeout(timer.current) }
+  return {
+    onTouchStart: () => { timer.current = setTimeout(onLongPress, ms) },
+    onTouchEnd: cancel,
+    onTouchCancel: cancel,
+    onMouseDown: () => { timer.current = setTimeout(onLongPress, ms) },
+    onMouseUp: cancel,
+    onMouseLeave: cancel,
+  }
 }
 
-// ── Overlay (fixed, bypasses stacking context) ────────────────────────────────
+// ── Link-aware text renderer ──────────────────────────────────────────────────
+// Matches https://, www., or bare domain.tld — but NOT email addresses (user@domain)
 
-function Overlay({ children }: { children: ReactNode }) {
-  return createPortal(
-    <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-      zIndex: 200, display: 'flex', flexDirection: 'column',
-      background: 'var(--bg, #060f1e)',
-    }}>
-      {children}
-    </div>,
-    document.body
-  )
+const URL_RE = /(?:https?:\/\/\S+|www\.\S+|[a-zA-Z0-9][a-zA-Z0-9-]*\.[a-zA-Z]{2,6}(?:\/\S*)?)/g
+
+function TextWithLinks({ text }: { text: string }): ReactNode {
+  const parts: ReactNode[] = []
+  let lastIndex = 0
+  URL_RE.lastIndex = 0
+  let match: RegExpExecArray | null
+
+  while ((match = URL_RE.exec(text)) !== null) {
+    const raw = match[0]
+    const idx = match.index
+    // Skip if preceded by '@' (email address)
+    if (idx > 0 && text[idx - 1] === '@') continue
+    // Strip trailing punctuation
+    const clean = raw.replace(/[.,!?;:'")\]]+$/, '')
+    if (!clean) continue
+
+    if (idx > lastIndex) parts.push(text.slice(lastIndex, idx))
+    const href = /^https?:\/\//i.test(clean) ? clean : `https://${clean}`
+    parts.push(
+      <a
+        key={idx}
+        href={href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={e => e.stopPropagation()}
+        style={{ color: '#93c5fd', textDecoration: 'underline', wordBreak: 'break-all' }}
+      >
+        {clean}
+      </a>
+    )
+    lastIndex = idx + raw.length
+  }
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex))
+  return <>{parts}</>
 }
 
 // ── System message ────────────────────────────────────────────────────────────
@@ -97,10 +141,7 @@ function SystemMessage({ text }: { text: string }) {
 function DateSeparator({ label }: { label: string }) {
   return (
     <div style={{ textAlign: 'center', margin: '12px 0 8px' }}>
-      <span style={{
-        fontSize: 11, color: 'rgba(255,255,255,0.25)',
-        padding: '3px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.05)',
-      }}>
+      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', padding: '3px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.05)' }}>
         {label}
       </span>
     </div>
@@ -116,11 +157,20 @@ function MessageBubble({
   msg: ChatMessage & { optimistic?: boolean }
   onImageClick: (url: string) => void
 }) {
+  const { haptic } = useTelegram()
   const isUser = msg.sender_type === 'user'
   const isAdmin = msg.sender_type === 'admin'
 
+  const lp = useLongPress(() => {
+    if (!msg.text) return
+    navigator.clipboard.writeText(msg.text).then(() => {
+      haptic.impact('light')
+      toast.success('Скопировано', { duration: 1500 })
+    }).catch(() => toast.error('Не удалось скопировать'))
+  })
+
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-1`}>
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-1`} {...lp}>
       <div style={{
         maxWidth: '80%',
         padding: '8px 12px',
@@ -129,6 +179,7 @@ function MessageBubble({
         border: isUser ? '1px solid rgba(96,165,250,0.2)' : '1px solid rgba(255,255,255,0.06)',
         opacity: msg.optimistic ? 0.65 : 1,
         transition: 'opacity 0.2s',
+        userSelect: 'none',
       }}>
         {isAdmin && (
           <p style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', marginBottom: 3 }}>
@@ -136,10 +187,7 @@ function MessageBubble({
           </p>
         )}
         {msg.text && (
-          <p style={{
-            fontSize: 14, color: '#fff', whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word', lineHeight: 1.45, margin: 0,
-          }}>
+          <p style={{ fontSize: 14, color: '#fff', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.45, margin: 0 }}>
             <TextWithLinks text={msg.text} />
           </p>
         )}
@@ -151,12 +199,14 @@ function MessageBubble({
                 <button
                   key={idx}
                   type="button"
+                  onTouchStart={e => e.stopPropagation()}
+                  onTouchEnd={e => { e.stopPropagation(); onImageClick(url) }}
                   onClick={() => onImageClick(url)}
-                  style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: 'none', padding: 0, cursor: 'pointer', position: 'relative' }}
+                  style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: 'none', padding: 0, cursor: 'pointer', position: 'relative', background: 'transparent' }}
                 >
-                  <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <ZoomIn size={16} color="#fff" />
+                  <img src={url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+                    <ZoomIn size={16} color="rgba(255,255,255,0.8)" />
                   </div>
                 </button>
               ) : (
@@ -168,11 +218,7 @@ function MessageBubble({
             })}
           </div>
         )}
-        <p style={{
-          fontSize: 10,
-          color: isUser ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.25)',
-          marginTop: 4, marginBottom: 0, textAlign: 'right',
-        }}>
+        <p style={{ fontSize: 10, color: isUser ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.25)', marginTop: 4, marginBottom: 0, textAlign: 'right' }}>
           {msg.optimistic ? '...' : formatTime(msg.created_at)}
         </p>
       </div>
@@ -234,14 +280,15 @@ export default function ChatPage() {
     }
     queryClient.setQueryData<(ChatMessage & { optimistic?: boolean })[]>(
       ['chat-messages'],
-      prev => [...(prev ?? []), optimisticMsg]
+      prev => [...(prev ?? []), optimisticMsg],
     )
 
     try {
       let attachmentUrls: string[] = []
       if (attachedFiles.length > 0) {
         setUploading(true)
-        attachmentUrls = await Promise.all(attachedFiles.map(f => chatApi.upload(f).then(r => r.url)))
+        const compressed = await Promise.all(attachedFiles.map(f => compressImage(f)))
+        attachmentUrls = await Promise.all(compressed.map(f => chatApi.upload(f).then(r => r.url)))
         setAttachedFiles([])
         setUploading(false)
       }
@@ -253,7 +300,7 @@ export default function ChatPage() {
       setText(localText)
       queryClient.setQueryData<(ChatMessage & { optimistic?: boolean })[]>(
         ['chat-messages'],
-        prev => prev?.filter(m => m.id !== optimisticMsg.id) ?? []
+        prev => prev?.filter(m => m.id !== optimisticMsg.id) ?? [],
       )
     } finally {
       setSending(false)
@@ -274,9 +321,8 @@ export default function ChatPage() {
   }
 
   return (
-    <Overlay>
-      {/* Safe area top */}
-      <div style={{ height: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))', flexShrink: 0 }} />
+    // height: 100% works because Layout sets main to overflow:hidden + flex col when on /chat
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
 
       {/* Header */}
       <div style={{
@@ -288,18 +334,13 @@ export default function ChatPage() {
         <div style={{
           width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
           background: 'linear-gradient(135deg, #1e3a8a, #1d4ed8)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          overflow: 'hidden',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
         }}>
           <img src={logo} alt="" style={{ width: 24, height: 24, objectFit: 'contain' }} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>
-            Продавец
-          </p>
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', margin: 0, lineHeight: 1 }}>
-            Онлайн
-          </p>
+          <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>Продавец</p>
+          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', margin: 0, lineHeight: 1 }}>Онлайн</p>
         </div>
       </div>
 
@@ -347,12 +388,8 @@ export default function ChatPage() {
                 <img src={logo} alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />
               </div>
               <div>
-                <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', margin: '0 0 6px' }}>
-                  Чат с продавцом
-                </p>
-                <p style={{ fontSize: 13, color: 'var(--hint)', margin: 0, lineHeight: 1.5 }}>
-                  Напишите нам — ответим быстро
-                </p>
+                <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', margin: '0 0 6px' }}>Чат с продавцом</p>
+                <p style={{ fontSize: 13, color: 'var(--hint)', margin: 0, lineHeight: 1.5 }}>Напишите нам — ответим быстро</p>
               </div>
             </motion.div>
           </AnimatePresence>
@@ -374,10 +411,7 @@ export default function ChatPage() {
 
       {/* Attached files preview */}
       {attachedFiles.length > 0 && (
-        <div style={{
-          flexShrink: 0, display: 'flex', gap: 8, flexWrap: 'wrap',
-          padding: '8px 14px', borderTop: '1px solid rgba(255,255,255,0.05)',
-        }}>
+        <div style={{ flexShrink: 0, display: 'flex', gap: 8, flexWrap: 'wrap', padding: '8px 14px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
           {attachedFiles.map((f, i) => (
             <div key={i} style={{ position: 'relative' }}>
               <img src={URL.createObjectURL(f)} alt=""
@@ -396,16 +430,12 @@ export default function ChatPage() {
       {/* Input bar */}
       <div style={{
         flexShrink: 0, padding: '8px 12px',
-        paddingBottom: 'max(env(safe-area-inset-bottom, 16px), 16px)',
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
         background: '#060f1e', borderTop: '1px solid rgba(255,255,255,0.05)',
       }}>
         <form
           onSubmit={handleSend}
-          style={{
-            display: 'flex', alignItems: 'flex-end', gap: 8,
-            background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-            borderRadius: 20, padding: '6px 6px 6px 14px',
-          }}
+          style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '6px 6px 6px 14px' }}
         >
           <button
             type="button"
@@ -421,22 +451,15 @@ export default function ChatPage() {
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
             placeholder="Написать сообщение..."
             rows={1}
-            style={{
-              flex: 1, background: 'transparent', border: 'none', outline: 'none',
-              resize: 'none', fontSize: 14, color: '#fff',
-              minHeight: 32, maxHeight: 120, lineHeight: 1.5, padding: '4px 0',
-            }}
+            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', resize: 'none', fontSize: 14, color: '#fff', minHeight: 32, maxHeight: 120, lineHeight: 1.5, padding: '4px 0' }}
           />
           <button
             type="submit"
             disabled={(!text.trim() && attachedFiles.length === 0) || sending || uploading}
             style={{
               flexShrink: 0, width: 36, height: 36, borderRadius: 12, border: 'none',
-              background: (text.trim() || attachedFiles.length > 0)
-                ? 'linear-gradient(135deg, #1d4ed8, #2563eb)'
-                : 'rgba(255,255,255,0.08)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', transition: 'background 0.2s',
+              background: (text.trim() || attachedFiles.length > 0) ? 'linear-gradient(135deg, #1d4ed8, #2563eb)' : 'rgba(255,255,255,0.08)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s',
             }}
           >
             {sending || uploading
@@ -459,8 +482,8 @@ export default function ChatPage() {
             style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             <button
-              onClick={() => setLightboxUrl(null)}
-              style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top,0px) + 52px)', right: 16, zIndex: 301, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 20, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+              onClick={e => { e.stopPropagation(); setLightboxUrl(null) }}
+              style={{ position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 16px)', right: 16, zIndex: 301, background: 'rgba(255,255,255,0.15)', border: 'none', borderRadius: 20, width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
             >
               <X size={18} color="#fff" />
             </button>
@@ -472,12 +495,12 @@ export default function ChatPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.88, opacity: 0 }}
               transition={{ duration: 0.22, ease: [0.34, 1.26, 0.64, 1] }}
-              style={{ maxWidth: '92vw', maxHeight: '78vh', borderRadius: 12, objectFit: 'contain' }}
+              style={{ maxWidth: '92vw', maxHeight: '82vh', borderRadius: 12, objectFit: 'contain' }}
             />
           </motion.div>,
-          document.body
+          document.body,
         )}
       </AnimatePresence>
-    </Overlay>
+    </div>
   )
 }

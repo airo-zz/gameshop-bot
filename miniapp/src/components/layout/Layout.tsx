@@ -71,14 +71,19 @@ export default function Layout() {
     to === '/' ? pathname === '/' : pathname.startsWith(to)
   )
   const safeActiveIndex = activeIndex === -1 ? 0 : activeIndex
+  const isChatPage = pathname.startsWith('/chat')
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--bg)' }}>
       {particlesEnabled && <ParticleCanvas />}
 
       <main
-        className="flex-1 overflow-y-auto"
-        style={{ position: 'relative', paddingBottom: '96px', paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))' }}
+        className={`flex-1 ${isChatPage ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}
+        style={{
+          position: 'relative',
+          paddingBottom: isChatPage ? 0 : 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
+          paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))',
+        }}
       >
         <Outlet />
       </main>
