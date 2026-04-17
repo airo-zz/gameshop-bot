@@ -231,26 +231,32 @@ async def notify_user(
 
     notification_text = body.text or "У вас новое сообщение от продавца. Откройте чат для ответа."
 
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    from api.bot_instance import get_bot
-
-    reply_markup = None
+    payload: dict = {
+        "chat_id": chat.user_id,
+        "text": f"<b>Сообщение от продавца</b>\n\n{notification_text}",
+        "parse_mode": "HTML",
+    }
     if settings.BOT_USERNAME:
-        reply_markup = InlineKeyboardMarkup(inline_keyboard=[[
-            InlineKeyboardButton(
-                text="Открыть чат",
-                url=f"https://t.me/{settings.BOT_USERNAME}?startapp=chat",
-            )
-        ]])
+        payload["reply_markup"] = {
+            "inline_keyboard": [[
+                {"text": "Открыть чат", "url": f"https://t.me/{settings.BOT_USERNAME}?startapp=chat"}
+            ]]
+        }
 
+    import httpx
     try:
-        bot = get_bot()
-        await bot.send_message(
-            chat_id=chat.user_id,
-            text=f"<b>Сообщение от продавца</b>\n\n{notification_text}",
-            parse_mode="HTML",
-            reply_markup=reply_markup,
-        )
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
+                json=payload,
+            )
+        data = resp.json()
+        if not data.get("ok"):
+            err = data.get("description", "Telegram error")
+            log.error("admin.chat.notify.failed", chat_id=str(chat_id), error=err)
+            raise HTTPException(status_code=500, detail=f"Не удалось отправить: {err}")
+    except HTTPException:
+        raise
     except Exception as exc:
         log.error("admin.chat.notify.failed", chat_id=str(chat_id), error=str(exc))
         raise HTTPException(status_code=500, detail="Не удалось отправить уведомление")
