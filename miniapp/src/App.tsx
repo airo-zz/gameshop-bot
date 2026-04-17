@@ -47,7 +47,6 @@ function LazyPage({ children }: { children: ReactNode }) {
 const HomePage       = lazy(() => import('@/pages/HomePage'))
 const CatalogPage    = lazy(() => import('@/pages/CatalogPage'))
 const GamePage       = lazy(() => import('@/pages/GamePage'))
-const ProductPage    = lazy(() => import('@/pages/ProductPage'))
 const CartPage       = lazy(() => import('@/pages/CartPage'))
 const CheckoutPage   = lazy(() => import('@/pages/CheckoutPage'))
 const OrdersPage     = lazy(() => import('@/pages/OrdersPage'))
@@ -150,7 +149,6 @@ export default function App() {
           <Route index element={<LazyPage><HomePage /></LazyPage>} />
           <Route path="catalog"      element={<LazyPage><CatalogPage /></LazyPage>} />
           <Route path="catalog/:slug" element={<LazyPage><GamePage /></LazyPage>} />
-          <Route path="product/:id"  element={<LazyPage><ProductPage /></LazyPage>} />
           <Route path="cart"         element={<LazyPage><CartPage /></LazyPage>} />
           <Route path="checkout"     element={<LazyPage><CheckoutPage /></LazyPage>} />
           <Route path="orders"       element={<LazyPage><OrdersPage /></LazyPage>} />
