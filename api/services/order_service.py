@@ -184,6 +184,10 @@ class OrderService:
             # независимо от того, дойдёт ли заказ до completed (автовыдача,
             # оплата балансом и т.д.)
             await self._update_user_stats(order)
+            # Привязываем/создаём чат и отправляем системное сообщение
+            await self._link_chat_and_notify(order)
+            # Уведомляем всех активных администраторов о новом заказе
+            await self._notify_admins_new_order(order)
             # Запускаем выдачу для авто-товаров
             await self._auto_deliver(order)
 
@@ -476,6 +480,102 @@ class OrderService:
             description=f"Кэшбек {user.loyalty_level.cashback_percent}% за заказ {order.order_number}",
             reference_id=order.id,
         ))
+
+    async def _link_chat_and_notify(self, order: Order) -> None:
+        """
+        При переходе в paid:
+        1. Находит или создаёт чат пользователя по telegram_id
+        2. Устанавливает chat.order_id = order.id
+        3. Добавляет системное сообщение в чат
+        """
+        try:
+            from shared.models.chat import Chat, ChatMessage
+            from shared.models.user import User
+
+            # Загружаем telegram_id пользователя
+            user_result = await self.db.execute(
+                select(User).where(User.id == order.user_id)
+            )
+            user = user_result.scalar_one_or_none()
+            if not user:
+                return
+
+            # Находим или создаём чат по telegram_id
+            chat_result = await self.db.execute(
+                select(Chat).where(Chat.user_id == user.telegram_id)
+            )
+            chat = chat_result.scalar_one_or_none()
+            if chat is None:
+                chat = Chat(user_id=user.telegram_id)
+                self.db.add(chat)
+                await self.db.flush()
+
+            # Привязываем заказ к чату (если ещё не привязан другой заказ)
+            if chat.order_id is None:
+                chat.order_id = order.id
+
+            # Системное сообщение в чат
+            from datetime import timezone
+            now = datetime.now(timezone.utc)
+            system_msg = ChatMessage(
+                chat_id=chat.id,
+                sender_type="system",
+                text=f"Заказ {order.order_number} оплачен. Ожидайте — скоро оператор возьмёт его в работу.",
+            )
+            self.db.add(system_msg)
+            chat.last_message_at = now
+            await self.db.flush()
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("_link_chat_and_notify error: %s", exc)
+
+    async def _notify_admins_new_order(self, order: Order) -> None:
+        """
+        Уведомляет всех активных администраторов о новом оплаченном заказе
+        через Telegram Bot API (httpx).
+        """
+        try:
+            import httpx
+            from shared.models.support import AdminUser
+            from shared.config import settings
+
+            admins_result = await self.db.execute(
+                select(AdminUser).where(AdminUser.is_active == True)
+            )
+            admins = admins_result.scalars().all()
+            if not admins:
+                return
+
+            amount_str = f"{int(order.total_amount):,}".replace(",", "\u00a0")
+            text = (
+                f"🛒 Новый заказ #{order.order_number} — {amount_str} ₽.\n"
+                f"Нажми чтобы открыть."
+            )
+            miniapp_url = (
+                f"https://t.me/{settings.BOT_USERNAME}"
+                f"?startapp=admin_order_{order.id}"
+            )
+            url = f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage"
+
+            async with httpx.AsyncClient(timeout=10) as client:
+                for admin in admins:
+                    payload: dict = {
+                        "chat_id": admin.telegram_id,
+                        "text": text,
+                        "parse_mode": "HTML",
+                        "reply_markup": {
+                            "inline_keyboard": [[
+                                {"text": "Открыть заказ", "url": miniapp_url}
+                            ]]
+                        },
+                    }
+                    try:
+                        await client.post(url, json=payload)
+                    except Exception:
+                        pass  # Не блокируем если один из Admin недоступен
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("_notify_admins_new_order error: %s", exc)
 
     async def _notify_user(self, order: Order, text: str) -> None:
         """Отправляет уведомление пользователю через Telegram Bot API. Не критично — не прерывает flow."""

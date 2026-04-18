@@ -16,6 +16,7 @@ from sqlalchemy.orm import selectinload
 from api.deps import DbSession
 from api.deps_admin import CurrentAdmin, require_permission
 from api.schemas.admin import (
+    AssignedAdminOut,
     OrderDetailOut,
     OrderListItem,
     OrderNotesRequest,
@@ -27,14 +28,27 @@ from api.utils.admin_log import log_admin_action
 from bot.utils.texts import BotTexts
 from shared.models import (
     ALLOWED_STATUS_TRANSITIONS,
+    AdminUser,
     Order,
     OrderStatus,
     User,
 )
+from shared.models.order import ADMIN_COLORS
 
 texts = BotTexts()
 
 router = APIRouter()
+
+
+def _build_assigned_admin(admin: "AdminUser | None") -> "AssignedAdminOut | None":
+    if admin is None:
+        return None
+    return AssignedAdminOut(
+        id=admin.id,
+        username=admin.username,
+        first_name=admin.first_name,
+        color_index=admin.telegram_id % len(ADMIN_COLORS),
+    )
 
 
 # ── GET / — список заказов ────────────────────────────────────────────────────
@@ -47,6 +61,7 @@ async def list_orders(
     admin: CurrentAdmin,
     status_filter: str | None = Query(None, alias="status"),
     search: str | None = Query(None),
+    assigned_to_me: bool = Query(False),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> PaginatedResponse[OrderListItem]:
@@ -55,6 +70,7 @@ async def list_orders(
 
     - status: фильтр по статусу (new, pending_payment, paid, processing, ...)
     - search: поиск по order_number или username пользователя
+    - assigned_to_me: показать только мои заказы
     - Сортировка: по created_at DESC
     """
     query = select(Order).join(Order.user).where(Order.deleted_at.is_(None))
@@ -68,6 +84,9 @@ async def list_orders(
                 detail=f"Неверный статус: {status_filter}",
             )
         query = query.where(Order.status == order_status)
+
+    if assigned_to_me:
+        query = query.where(Order.assigned_admin_id == admin.id)
 
     if search:
         search_term = f"%{search.strip()}%"
@@ -89,6 +108,7 @@ async def list_orders(
         query.options(
             selectinload(Order.user),
             selectinload(Order.items),
+            selectinload(Order.assigned_admin),
         )
         .order_by(Order.created_at.desc())
         .offset(offset)
@@ -113,6 +133,8 @@ async def list_orders(
             completed_at=o.completed_at,
             items_count=len(o.items),
             deleted_at=o.deleted_at,
+            assigned_admin=_build_assigned_admin(o.assigned_admin),
+            assigned_at=o.assigned_at,
         )
         for o in orders
     ]
@@ -154,6 +176,7 @@ async def list_trash_orders(
         query.options(
             selectinload(Order.user),
             selectinload(Order.items),
+            selectinload(Order.assigned_admin),
         )
         .order_by(Order.deleted_at.desc())
         .offset(offset)
@@ -178,6 +201,8 @@ async def list_trash_orders(
             completed_at=o.completed_at,
             items_count=len(o.items),
             deleted_at=o.deleted_at,
+            assigned_admin=_build_assigned_admin(o.assigned_admin),
+            assigned_at=o.assigned_at,
         )
         for o in orders
     ]
@@ -209,6 +234,7 @@ async def get_order(
             selectinload(Order.items),
             selectinload(Order.status_history),
             selectinload(Order.payments),
+            selectinload(Order.assigned_admin),
         )
         .where(Order.id == order_id)
     )
@@ -231,6 +257,8 @@ async def get_order(
         processing_started_at=order.processing_started_at,
         completed_at=order.completed_at,
         cancelled_at=order.cancelled_at,
+        assigned_admin=_build_assigned_admin(order.assigned_admin),
+        assigned_at=order.assigned_at,
         user={
             "id": str(order.user.id),
             "telegram_id": order.user.telegram_id,
@@ -347,6 +375,126 @@ async def change_order_status(
     )
 
     return {"ok": True, "new_status": new_status.value}
+
+
+# ── POST /{order_id}/claim — взять заказ в работу ────────────────────────────
+
+
+@router.post("/{order_id}/claim",
+             dependencies=[require_permission("orders.update_status")])
+async def claim_order(
+    order_id: uuid.UUID,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> dict:
+    """
+    Взять заказ в работу.
+    Устанавливает assigned_admin_id = текущий admin, assigned_at = now(),
+    статус → processing (если был paid).
+    Любой admin может перехватить уже назначенный заказ.
+    """
+    from datetime import datetime, timezone
+    result = await db.execute(
+        select(Order).options(selectinload(Order.assigned_admin)).where(Order.id == order_id)
+    )
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заказ не найден")
+
+    if order.status not in (OrderStatus.paid, OrderStatus.processing):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Нельзя взять заказ в статусе {order.status.value}",
+        )
+
+    now = datetime.now(timezone.utc)
+    order.assigned_admin_id = admin.id
+    order.assigned_at = now
+
+    # Если заказ ещё paid — переводим в processing
+    if order.status == OrderStatus.paid:
+        svc = OrderService(db)
+        await svc.change_status(
+            order=order,
+            new_status=OrderStatus.processing,
+            changed_by_id=admin.id,
+            changed_by_type="admin",
+            reason=f"Взят в работу администратором",
+        )
+
+    await log_admin_action(
+        db=db,
+        admin=admin,
+        action="order.claim",
+        entity_type="order",
+        entity_id=order.id,
+        description=f"Заказ взят в работу",
+    )
+
+    return {
+        "ok": True,
+        "assigned_admin": {
+            "id": str(admin.id),
+            "username": admin.username,
+            "first_name": admin.first_name,
+            "color_index": admin.telegram_id % len(ADMIN_COLORS),
+        },
+        "assigned_at": now.isoformat(),
+    }
+
+
+# ── POST /{order_id}/unclaim — отпустить заказ ───────────────────────────────
+
+
+@router.post("/{order_id}/unclaim",
+             dependencies=[require_permission("orders.update_status")])
+async def unclaim_order(
+    order_id: uuid.UUID,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> dict:
+    """
+    Отпустить заказ — снять назначение.
+    assigned_admin_id → None, assigned_at → None, статус → paid (если был processing).
+    """
+    result = await db.execute(select(Order).where(Order.id == order_id))
+    order = result.scalar_one_or_none()
+    if not order:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заказ не найден")
+
+    if order.status not in (OrderStatus.processing, OrderStatus.paid):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Нельзя отпустить заказ в статусе {order.status.value}",
+        )
+
+    order.assigned_admin_id = None
+    order.assigned_at = None
+
+    # Возвращаем статус в paid если был processing (без автовыдачи)
+    if order.status == OrderStatus.processing:
+        from shared.models.order import OrderStatusHistory
+        order.status = OrderStatus.paid
+        order.processing_started_at = None
+        db.add(OrderStatusHistory(
+            order_id=order.id,
+            from_status=OrderStatus.processing,
+            to_status=OrderStatus.paid,
+            changed_by_id=admin.id,
+            changed_by_type="admin",
+            reason="Заказ отпущен в очередь",
+        ))
+
+    await log_admin_action(
+        db=db,
+        admin=admin,
+        action="order.unclaim",
+        entity_type="order",
+        entity_id=order.id,
+        description="Заказ отпущен в очередь",
+    )
+
+    return {"ok": True}
 
 
 # ── POST /{order_id}/notify — отправить уведомление пользователю ─────────────

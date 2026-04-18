@@ -52,6 +52,18 @@ class ChatService:
         )
         return list(result.scalars().all())
 
+    async def get_all_chats_with_orders(self) -> list[Chat]:
+        """
+        Возвращает все чаты с загруженным связанным заказом (order).
+        """
+        from sqlalchemy.orm import selectinload
+        result = await self.db.execute(
+            select(Chat)
+            .options(selectinload(Chat.order))
+            .order_by(Chat.last_message_at.desc().nullslast())
+        )
+        return list(result.scalars().all())
+
     async def get_messages(
         self,
         chat_id: uuid.UUID,

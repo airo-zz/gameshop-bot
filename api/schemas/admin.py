@@ -63,6 +63,16 @@ class DashboardOut(BaseModel):
 # ── Orders ────────────────────────────────────────────────────────────────────
 
 
+class AssignedAdminOut(BaseModel):
+    """Назначенный администратор заказа."""
+
+    id: uuid.UUID
+    username: str | None = None
+    first_name: str
+    color_index: int
+    """Индекс цвета из палитры ADMIN_COLORS (telegram_id % 8)."""
+
+
 class OrderListItem(BaseModel):
     """Краткая карточка заказа для списка заказов в admin-панели."""
 
@@ -79,6 +89,8 @@ class OrderListItem(BaseModel):
     completed_at: datetime | None = None
     items_count: int
     deleted_at: datetime | None = None
+    assigned_admin: AssignedAdminOut | None = None
+    assigned_at: datetime | None = None
 
 
 class OrderDetailOut(BaseModel):
@@ -98,6 +110,8 @@ class OrderDetailOut(BaseModel):
     processing_started_at: datetime | None
     completed_at: datetime | None
     cancelled_at: datetime | None
+    assigned_admin: AssignedAdminOut | None = None
+    assigned_at: datetime | None = None
     user: dict[str, Any]
     """Поля: id, telegram_id, username, first_name, last_name, balance, orders_count, total_spent, is_blocked."""
     items: list[dict[str, Any]]

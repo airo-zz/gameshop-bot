@@ -418,6 +418,16 @@ class BotTexts:
     def orders_list_header(self, count: int) -> str:
         return f"📋 <b>Мои заказы</b> — последние {count}:"
 
+    # ── Admin — уведомления ───────────────────────────────────────────────────
+
+    def admin_new_order_notify(self, order_number: str, amount: float) -> str:
+        """Уведомление всем adminам о новом оплаченном заказе."""
+        amount_str = f"{int(amount):,}".replace(",", "\u00a0")
+        return (
+            f"🛒 Новый заказ <b>#{order_number}</b> — {amount_str} ₽.\n"
+            f"Нажми чтобы открыть."
+        )
+
     # ── Admin ─────────────────────────────────────────────────────────────────
     def admin_panel_header(
         self, first_name: str, role_emoji: str, role_name: str

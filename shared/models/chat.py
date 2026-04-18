@@ -15,6 +15,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
 
+# Тип Order используется только в relationship — импорт строкой (forward ref)
+
 
 class Chat(Base):
     __tablename__ = "chats"
@@ -45,6 +47,18 @@ class Chat(Base):
     last_user_read_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
+    )
+
+    # ── Linked order (migration 016) ──────────────────────────────────────────
+    order_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("orders.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    order: Mapped["Order | None"] = relationship(
+        "Order",
+        foreign_keys=[order_id],
+        lazy="select",
     )
 
     messages: Mapped[list["ChatMessage"]] = relationship(

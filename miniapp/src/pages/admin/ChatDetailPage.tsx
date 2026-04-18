@@ -9,7 +9,7 @@ import {
   type FormEvent,
 } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Send, Bell, ArrowLeft } from 'lucide-react'
+import { Send, Bell, ArrowLeft, UserCheck, UserMinus, CheckCircle, HelpCircle, XCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi, type AdminChatDetail, type AdminChatMessage } from '@/api/admin'
 
@@ -151,6 +151,7 @@ export default function ChatDetailPage() {
   const [sending, setSending] = useState(false)
   const [notifying, setNotifying] = useState(false)
   const [notifySuccess, setNotifySuccess] = useState(false)
+  const [orderAction, setOrderAction] = useState<string | null>(null)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -244,6 +245,37 @@ export default function ChatDetailPage() {
     }
   }
 
+  // Управление заказом из чата
+  const handleOrderAction = useCallback(async (action: 'claim' | 'unclaim' | 'complete' | 'clarification' | 'cancel') => {
+    if (!chat?.order || orderAction) return
+    const orderId = chat.order.id
+    setOrderAction(action)
+    try {
+      if (action === 'claim') {
+        const res = await adminApi.claimOrder(orderId)
+        setChat(prev => prev ? { ...prev, order: prev.order ? { ...prev.order, status: 'processing', assigned_admin_id: res.assigned_admin.id } : null } : null)
+        toast.success('Заказ взят в работу')
+      } else if (action === 'unclaim') {
+        await adminApi.unclaimOrder(orderId)
+        setChat(prev => prev ? { ...prev, order: prev.order ? { ...prev.order, status: 'paid', assigned_admin_id: null } : null } : null)
+        toast.success('Заказ возвращён в очередь')
+      } else {
+        const statusMap: Record<string, string> = {
+          complete: 'completed',
+          clarification: 'clarification',
+          cancel: 'cancelled',
+        }
+        await adminApi.updateOrderStatus(orderId, statusMap[action])
+        setChat(prev => prev ? { ...prev, order: prev.order ? { ...prev.order, status: statusMap[action] } : null } : null)
+        toast.success('Статус обновлён')
+      }
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? 'Ошибка')
+    } finally {
+      setOrderAction(null)
+    }
+  }, [chat, orderAction])
+
   // Группировка по датам
   const grouped: { dateKey: string; label: string; msgs: typeof messages }[] = []
   for (const msg of messages) {
@@ -325,6 +357,101 @@ export default function ChatDetailPage() {
           {notifySuccess ? 'Отправлено' : 'Уведомить'}
         </button>
       </div>
+
+      {/* Order control panel */}
+      {chat.order && ['paid', 'processing', 'clarification'].includes(chat.order.status) && (
+        <div style={{
+          flexShrink: 0,
+          padding: '10px 14px',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          background: 'rgba(30,58,138,0.12)',
+          display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto',
+        }}>
+          <span style={{ fontSize: 11, color: 'rgba(147,197,253,0.8)', fontWeight: 600, flexShrink: 0 }}>
+            #{chat.order.order_number}
+          </span>
+          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>
+            {chat.order.status === 'paid' ? 'Оплачен' : chat.order.status === 'processing' ? 'В работе' : 'Уточнение'}
+          </span>
+
+          {/* Claim / Unclaim */}
+          {(chat.order.status === 'paid' || (chat.order.status === 'processing' && !chat.order.assigned_admin_id)) && (
+            <button
+              onClick={() => handleOrderAction('claim')}
+              disabled={!!orderAction}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: 'rgba(59,130,246,0.2)', color: '#93c5fd',
+                fontSize: 11, fontWeight: 600, flexShrink: 0,
+              }}
+            >
+              <UserCheck size={12} />
+              Взять
+            </button>
+          )}
+          {chat.order.assigned_admin_id && chat.order.status === 'processing' && (
+            <button
+              onClick={() => handleOrderAction('unclaim')}
+              disabled={!!orderAction}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)',
+                fontSize: 11, fontWeight: 600, flexShrink: 0,
+              }}
+            >
+              <UserMinus size={12} />
+              Отпустить
+            </button>
+          )}
+
+          {/* Status actions */}
+          {chat.order.status === 'processing' && (
+            <button
+              onClick={() => handleOrderAction('complete')}
+              disabled={!!orderAction}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: 'rgba(16,185,129,0.15)', color: '#6ee7b7',
+                fontSize: 11, fontWeight: 600, flexShrink: 0,
+              }}
+            >
+              <CheckCircle size={12} />
+              Выполнен
+            </button>
+          )}
+          {['processing', 'clarification'].includes(chat.order.status) && (
+            <button
+              onClick={() => handleOrderAction('clarification')}
+              disabled={!!orderAction}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 4,
+                padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: 'rgba(251,191,36,0.12)', color: '#fcd34d',
+                fontSize: 11, fontWeight: 600, flexShrink: 0,
+              }}
+            >
+              <HelpCircle size={12} />
+              Уточнение
+            </button>
+          )}
+          <button
+            onClick={() => handleOrderAction('cancel')}
+            disabled={!!orderAction}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 4,
+              padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
+              background: 'rgba(239,68,68,0.12)', color: '#fca5a5',
+              fontSize: 11, fontWeight: 600, flexShrink: 0,
+            }}
+          >
+            <XCircle size={12} />
+            Отмена
+          </button>
+        </div>
+      )}
 
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', overscrollBehavior: 'contain' }}>

@@ -56,6 +56,13 @@ export type AdminOrderStatus =
   | 'completed'
   | 'cancelled'
 
+export interface AssignedAdmin {
+  id: string
+  username: string | null
+  first_name: string
+  color_index: number
+}
+
 export interface AdminOrderListItem {
   id: string
   order_number: string
@@ -69,6 +76,8 @@ export interface AdminOrderListItem {
   created_at: string
   paid_at: string | null
   completed_at: string | null
+  assigned_admin: AssignedAdmin | null
+  assigned_at: string | null
 }
 
 export interface AdminOrderDetailUser {
@@ -111,6 +120,8 @@ export interface AdminOrderDetail {
   processing_started_at: string | null
   completed_at: string | null
   cancelled_at: string | null
+  assigned_admin: AssignedAdmin | null
+  assigned_at: string | null
   user: AdminOrderDetailUser
   items: AdminOrderDetailItem[]
   status_history: Array<{
@@ -335,12 +346,21 @@ export interface AdminChatMessage {
   created_at: string
 }
 
+export interface LinkedOrder {
+  id: string
+  order_number: string
+  status: string
+  total_amount: number
+  assigned_admin_id: string | null
+}
+
 export interface AdminChatListItem {
   id: string
   user: AdminChatUserInfo
   last_message_preview: string | null
   last_message_at: string | null
   admin_unread_count: number
+  order: LinkedOrder | null
 }
 
 export interface AdminChatDetail {
@@ -349,6 +369,7 @@ export interface AdminChatDetail {
   created_at: string
   last_message_at: string | null
   messages: AdminChatMessage[]
+  order: LinkedOrder | null
 }
 
 // ── Admin API ────────────────────────────────────────────────────────────────
@@ -367,6 +388,7 @@ export const adminApi = {
     page?: number
     status?: string
     search?: string
+    assigned_to_me?: boolean
   }) =>
     apiClient.get<PaginatedResponse<AdminOrderListItem>>('/admin/orders', { params }).then(r => r.data),
 
@@ -393,6 +415,14 @@ export const adminApi = {
 
   notifyUser: (id: string) =>
     apiClient.post(`/admin/orders/${id}/notify`).then(r => r.data),
+
+  claimOrder: (id: string) =>
+    apiClient.post<{ ok: boolean; assigned_admin: AssignedAdmin; assigned_at: string }>(
+      `/admin/orders/${id}/claim`
+    ).then(r => r.data),
+
+  unclaimOrder: (id: string) =>
+    apiClient.post<{ ok: boolean }>(`/admin/orders/${id}/unclaim`).then(r => r.data),
 
   // Users
   getUsers: (params?: {
@@ -575,8 +605,10 @@ export const adminApi = {
     apiClient.patch<ReferralSettings>('/admin/settings/referral', data).then(r => r.data),
 
   // Chats
-  getChats: () =>
-    apiClient.get<AdminChatListItem[]>('/admin/chats').then(r => r.data),
+  getChats: (filterMode?: 'all' | 'mine' | 'free') =>
+    apiClient.get<AdminChatListItem[]>('/admin/chats', {
+      params: filterMode && filterMode !== 'all' ? { filter_mode: filterMode } : undefined,
+    }).then(r => r.data),
 
   getChatDetail: (chatId: string) =>
     apiClient.get<AdminChatDetail>(`/admin/chats/${chatId}`).then(r => r.data),

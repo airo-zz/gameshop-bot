@@ -28,10 +28,12 @@ from api.schemas.chat import (
     AdminNotifyRequest,
     AdminSendMessageRequest,
     ChatMessageOut,
+    LinkedOrderOut,
 )
 from api.services.chat_service import ChatService
 from shared.config import settings
 from shared.models.chat import Chat
+from shared.models.order import Order
 from shared.models.user import User
 
 router = APIRouter()
@@ -59,17 +61,36 @@ def _build_user_info(user: User | None, chat: Chat) -> AdminChatUserInfo:
     )
 
 
+def _build_linked_order(order: "Order | None") -> "LinkedOrderOut | None":
+    if order is None:
+        return None
+    return LinkedOrderOut(
+        id=order.id,
+        order_number=order.order_number,
+        status=order.status.value,
+        total_amount=float(order.total_amount),
+        assigned_admin_id=order.assigned_admin_id,
+    )
+
+
 @router.get("", response_model=list[AdminChatListItem])
 async def list_chats(
     db: DbSession,
     admin: CurrentAdmin,
+    filter_mode: str | None = None,
+    # filter_mode: None/"all" | "mine" | "free"
+    # mine = linked to order + assigned_admin_id == current admin
+    # free = linked to order + assigned_admin_id IS NULL
 ) -> list[AdminChatListItem]:
     """
     Список всех чатов.
     Сортировка: сначала с непрочитанными (у admin), затем по last_message_at DESC.
+    filter_mode: all (default) | mine | free
     """
+    from sqlalchemy.orm import selectinload as _sil
+
     svc = ChatService(db)
-    chats = await svc.get_all_chats()
+    chats = await svc.get_all_chats_with_orders()
 
     # Загружаем user-info одним запросом
     user_ids = [c.user_id for c in chats]
@@ -77,6 +98,14 @@ async def list_chats(
         select(User).where(User.telegram_id.in_(user_ids))
     )
     users_by_tid: dict[int, User] = {u.telegram_id: u for u in users_result.scalars().all()}
+
+    # Применяем фильтр по режиму
+    if filter_mode == "mine":
+        chats = [c for c in chats if c.order_id is not None and
+                 c.order is not None and c.order.assigned_admin_id == admin.id]
+    elif filter_mode == "free":
+        chats = [c for c in chats if c.order_id is not None and
+                 c.order is not None and c.order.assigned_admin_id is None]
 
     # Последнее сообщение для preview
     items: list[AdminChatListItem] = []
@@ -100,6 +129,7 @@ async def list_chats(
             last_message_preview=preview,
             last_message_at=chat.last_message_at,
             admin_unread_count=unread,
+            order=_build_linked_order(chat.order),
         ))
 
     # Сортируем: сначала непрочитанные, затем по last_message_at DESC
@@ -132,12 +162,19 @@ async def get_chat_detail(
 
     messages = await svc.get_messages(chat_id, limit=200)
 
+    # Загружаем заказ если есть
+    linked_order: "Order | None" = None
+    if chat.order_id is not None:
+        order_result = await db.execute(select(Order).where(Order.id == chat.order_id))
+        linked_order = order_result.scalar_one_or_none()
+
     return AdminChatDetail(
         id=chat.id,
         user=_build_user_info(user, chat),
         created_at=chat.created_at,
         last_message_at=chat.last_message_at,
         messages=[ChatMessageOut.model_validate(m) for m in messages],
+        order=_build_linked_order(linked_order),
     )
 
 

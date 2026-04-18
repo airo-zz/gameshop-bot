@@ -24,6 +24,18 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base, TimestampMixin, UUIDMixin
 
+# Палитра цветов для идентификации администраторов в UI (8 цветов)
+ADMIN_COLORS = [
+    "#3b82f6",  # 0 blue
+    "#8b5cf6",  # 1 violet
+    "#10b981",  # 2 emerald
+    "#f59e0b",  # 3 amber
+    "#ef4444",  # 4 red
+    "#06b6d4",  # 5 cyan
+    "#f97316",  # 6 orange
+    "#ec4899",  # 7 pink
+]
+
 
 class OrderStatus(str, enum.Enum):
     new = "new"
@@ -119,8 +131,22 @@ class Order(Base, UUIDMixin, TimestampMixin):
     meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     # idempotency_key, внешние ID и т.д.
 
+    # Назначение заказа (миграция 016)
+    assigned_admin_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("admin_users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    assigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="orders")
+    assigned_admin: Mapped["AdminUser | None"] = relationship(
+        "AdminUser",
+        foreign_keys=[assigned_admin_id],
+        lazy="select",
+    )
     items: Mapped[list["OrderItem"]] = relationship(
         "OrderItem", back_populates="order", cascade="all, delete-orphan"
     )

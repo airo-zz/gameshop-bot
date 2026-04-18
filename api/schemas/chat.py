@@ -44,12 +44,22 @@ class AdminChatUserInfo(BaseModel):
     first_name: str = ""
 
 
+class LinkedOrderOut(BaseModel):
+    """Краткая информация о заказе, привязанном к чату."""
+    id: uuid.UUID
+    order_number: str
+    status: str
+    total_amount: float
+    assigned_admin_id: uuid.UUID | None = None
+
+
 class AdminChatListItem(BaseModel):
     id: uuid.UUID
     user: AdminChatUserInfo
     last_message_preview: str | None = None
     last_message_at: datetime | None = None
     admin_unread_count: int = 0
+    order: LinkedOrderOut | None = None
 
     model_config = {"from_attributes": True}
 
@@ -60,6 +70,7 @@ class AdminChatDetail(BaseModel):
     created_at: datetime
     last_message_at: datetime | None = None
     messages: list[ChatMessageOut] = []
+    order: LinkedOrderOut | None = None
 
     model_config = {"from_attributes": True}
 

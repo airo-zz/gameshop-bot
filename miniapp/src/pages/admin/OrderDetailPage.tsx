@@ -1,15 +1,17 @@
 /**
  * src/pages/admin/OrderDetailPage.tsx
  * Детальный вид заказа с возможностью смены статуса.
+ * Включает секцию "Ответственный" с кнопками Взять/Отпустить.
  */
 
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, AlertCircle, Save, Trash2, Bell } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Save, Trash2, Bell, UserCheck, UserMinus } from 'lucide-react'
 import { adminApi } from '@/api/admin'
 import type { AdminOrderDetail } from '@/api/admin'
 import toast from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
+import { ADMIN_COLORS } from './OrdersPage'
 
 const STATUS_LABELS: Record<string, string> = {
   new:             'Новый',
@@ -65,6 +67,7 @@ export default function OrderDetailPage() {
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [notifying, setNotifying] = useState(false)
+  const [claiming, setClaiming] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -114,11 +117,51 @@ export default function OrderDetailPage() {
     try {
       const result = await adminApi.updateOrderStatus(order.id, newStatus, reason || undefined) as { ok: boolean; new_status: string }
       setOrder({ ...order, status: result.new_status })
+      setNewStatus(ALLOWED_TRANSITIONS[result.new_status]?.[0] ?? '')
       toast.success('Статус обновлён')
     } catch {
       toast.error('Не удалось обновить статус')
     } finally {
       setSaving(false)
+    }
+  }
+
+  async function handleClaim() {
+    if (!order) return
+    setClaiming(true)
+    try {
+      const res = await adminApi.claimOrder(order.id)
+      setOrder({
+        ...order,
+        status: 'processing',
+        assigned_admin: res.assigned_admin,
+        assigned_at: res.assigned_at,
+      })
+      toast.success('Заказ взят в работу')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? 'Не удалось взять заказ')
+    } finally {
+      setClaiming(false)
+    }
+  }
+
+  async function handleUnclaim() {
+    if (!order) return
+    if (!await showConfirm('Отпустить заказ обратно в очередь?')) return
+    setClaiming(true)
+    try {
+      await adminApi.unclaimOrder(order.id)
+      setOrder({
+        ...order,
+        status: 'paid',
+        assigned_admin: null,
+        assigned_at: null,
+      })
+      toast.success('Заказ возвращён в очередь')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? 'Не удалось отпустить заказ')
+    } finally {
+      setClaiming(false)
     }
   }
 
@@ -138,6 +181,13 @@ export default function OrderDetailPage() {
     )
   }
 
+  const adminColor = order.assigned_admin
+    ? ADMIN_COLORS[order.assigned_admin.color_index % ADMIN_COLORS.length]
+    : null
+
+  const canClaim = order.status === 'paid' || order.status === 'processing'
+  const canUnclaim = (order.status === 'paid' || order.status === 'processing') && !!order.assigned_admin
+
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -155,6 +205,61 @@ export default function OrderDetailPage() {
         <span className={`ml-auto text-xs px-3 py-1 rounded-full font-medium ${STATUS_COLORS[order.status] ?? 'bg-white/10 text-white/50'}`}>
           {STATUS_LABELS[order.status] ?? order.status}
         </span>
+      </div>
+
+      {/* Assigned admin section */}
+      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
+        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Ответственный</h2>
+
+        {order.assigned_admin ? (
+          <div className="flex items-center gap-3">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+              style={{ background: adminColor ?? '#3b82f6' }}
+            >
+              {(order.assigned_admin.username || order.assigned_admin.first_name).slice(0, 1).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-white">
+                {order.assigned_admin.username ? `@${order.assigned_admin.username}` : order.assigned_admin.first_name}
+              </div>
+              {order.assigned_at && (
+                <div className="text-xs text-white/30">
+                  Взят {formatDate(order.assigned_at)}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="text-sm text-white/30">Заказ не назначен</div>
+        )}
+
+        <div className="flex gap-2">
+          {canClaim && (
+            <button
+              onClick={handleClaim}
+              disabled={claiming}
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/[0.2] disabled:opacity-60 text-sm font-semibold text-blue-400 transition-all duration-200 active:scale-[0.98]"
+            >
+              {claiming ? (
+                <span className="w-4 h-4 border-2 border-blue-400/30 border-t-blue-400 rounded-full animate-spin" />
+              ) : (
+                <UserCheck size={15} />
+              )}
+              Взять в работу
+            </button>
+          )}
+          {canUnclaim && (
+            <button
+              onClick={handleUnclaim}
+              disabled={claiming}
+              className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.08] border border-white/[0.08] disabled:opacity-60 text-sm font-semibold text-white/50 transition-all duration-200 active:scale-[0.98]"
+              title="Отпустить заказ"
+            >
+              <UserMinus size={15} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* User info */}
