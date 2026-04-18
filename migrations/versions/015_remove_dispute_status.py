@@ -35,11 +35,14 @@ def upgrade() -> None:
         "'clarification', 'completed', 'cancelled'"
         ")"
     )
+    # Сбрасываем DEFAULT перед ALTER TYPE (иначе PostgreSQL не может привести дефолт)
+    op.execute("ALTER TABLE orders ALTER COLUMN status DROP DEFAULT")
     op.execute(
         "ALTER TABLE orders"
         " ALTER COLUMN status TYPE order_status_enum"
         " USING status::text::order_status_enum"
     )
+    op.execute("ALTER TABLE orders ALTER COLUMN status SET DEFAULT 'new'::order_status_enum")
     op.execute(
         "ALTER TABLE order_status_history"
         " ALTER COLUMN from_status TYPE order_status_enum"
@@ -61,11 +64,13 @@ def downgrade() -> None:
         "'clarification', 'completed', 'cancelled', 'dispute'"
         ")"
     )
+    op.execute("ALTER TABLE orders ALTER COLUMN status DROP DEFAULT")
     op.execute(
         "ALTER TABLE orders"
         " ALTER COLUMN status TYPE order_status_enum"
         " USING status::text::order_status_enum"
     )
+    op.execute("ALTER TABLE orders ALTER COLUMN status SET DEFAULT 'new'::order_status_enum")
     op.execute(
         "ALTER TABLE order_status_history"
         " ALTER COLUMN from_status TYPE order_status_enum"
