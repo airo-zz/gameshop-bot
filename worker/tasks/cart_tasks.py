@@ -161,11 +161,11 @@ async def _recalculate_all_async():
     from shared.models import LoyaltyLevel, User
 
     async with get_db_session() as db:
-        # Получаем все уровни отсортированные по убыванию приоритета
+        # Получаем все уровни отсортированные по убыванию min_spent
         levels_result = await db.execute(
             select(LoyaltyLevel)
             .where(LoyaltyLevel.is_active == True)
-            .order_by(LoyaltyLevel.priority.desc())
+            .order_by(LoyaltyLevel.min_spent.desc())
         )
         levels = levels_result.scalars().all()
 

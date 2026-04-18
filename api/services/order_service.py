@@ -447,7 +447,7 @@ class OrderService:
                 LoyaltyLevel.min_spent <= user.total_spent,
                 LoyaltyLevel.min_orders <= user.orders_count,
             )
-            .order_by(LoyaltyLevel.priority.desc())
+            .order_by(LoyaltyLevel.min_spent.desc())
             .limit(1)
         )
         new_level = result.scalar_one_or_none()

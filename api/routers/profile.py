@@ -31,7 +31,7 @@ async def get_profile(db: DbSession, user: CurrentUser):
             LoyaltyLevel.min_spent <= user_full.total_spent,
             LoyaltyLevel.min_orders <= user_full.orders_count,
         )
-        .order_by(LoyaltyLevel.priority.desc())
+        .order_by(LoyaltyLevel.min_spent.desc())
         .limit(1)
     )
     loyalty = level_result.scalar_one_or_none() or user_full.loyalty_level
