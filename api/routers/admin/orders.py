@@ -7,12 +7,12 @@ api/routers/admin/orders.py
 
 import uuid
 
+import httpx
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import exc as sa_exc
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
-from api.bot_instance import get_bot
 from api.deps import DbSession
 from api.deps_admin import CurrentAdmin, require_permission
 from api.schemas.admin import (
@@ -367,13 +367,17 @@ async def notify_user(
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заказ не найден")
 
-    bot = get_bot()
+    from shared.config import settings
+    tg_url = f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage"
     try:
-        await bot.send_message(
-            chat_id=order.user.telegram_id,
-            text=texts.order_status_changed(order.order_number, order.status.value),
-            parse_mode="HTML",
-        )
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(tg_url, json={
+                "chat_id": order.user.telegram_id,
+                "text": texts.order_status_changed(order.order_number, order.status.value),
+                "parse_mode": "HTML",
+            })
+        if not resp.json().get("ok"):
+            raise RuntimeError(resp.json().get("description", "Telegram error"))
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
