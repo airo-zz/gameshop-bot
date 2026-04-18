@@ -486,13 +486,12 @@ class OrderService:
         При переходе в paid:
         1. Находит или создаёт чат пользователя по telegram_id
         2. Устанавливает chat.order_id = order.id
-        3. Добавляет системное сообщение в чат
+        Системное сообщение добавляет payment_service._notify_user_payment_success — не дублируем.
         """
         try:
-            from shared.models.chat import Chat, ChatMessage
+            from shared.models.chat import Chat
             from shared.models.user import User
 
-            # Загружаем telegram_id пользователя
             user_result = await self.db.execute(
                 select(User).where(User.id == order.user_id)
             )
@@ -500,7 +499,6 @@ class OrderService:
             if not user:
                 return
 
-            # Находим или создаём чат по telegram_id
             chat_result = await self.db.execute(
                 select(Chat).where(Chat.user_id == user.telegram_id)
             )
@@ -510,20 +508,9 @@ class OrderService:
                 self.db.add(chat)
                 await self.db.flush()
 
-            # Привязываем заказ к чату (если ещё не привязан другой заказ)
             if chat.order_id is None:
                 chat.order_id = order.id
 
-            # Системное сообщение в чат
-            from datetime import timezone
-            now = datetime.now(timezone.utc)
-            system_msg = ChatMessage(
-                chat_id=chat.id,
-                sender_type="system",
-                text=f"Заказ {order.order_number} оплачен. Ожидайте — скоро оператор возьмёт его в работу.",
-            )
-            self.db.add(system_msg)
-            chat.last_message_at = now
             await self.db.flush()
         except Exception as exc:
             import logging
@@ -548,7 +535,7 @@ class OrderService:
 
             amount_str = f"{int(order.total_amount):,}".replace(",", "\u00a0")
             text = (
-                f"🛒 Новый заказ #{order.order_number} — {amount_str} ₽.\n"
+                f"🛒 Новый заказ {order.order_number} — {amount_str} ₽.\n"
                 f"Нажми чтобы открыть."
             )
             miniapp_url = (

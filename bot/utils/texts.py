@@ -424,7 +424,7 @@ class BotTexts:
         """Уведомление всем adminам о новом оплаченном заказе."""
         amount_str = f"{int(amount):,}".replace(",", "\u00a0")
         return (
-            f"🛒 Новый заказ <b>#{order_number}</b> — {amount_str} ₽.\n"
+            f"🛒 Новый заказ <b>{order_number}</b> — {amount_str} ₽.\n"
             f"Нажми чтобы открыть."
         )
 
