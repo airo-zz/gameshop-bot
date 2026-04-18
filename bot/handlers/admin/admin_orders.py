@@ -53,7 +53,6 @@ STATUS_NAMES = {
     OrderStatus.clarification: "❓ Уточнение",
     OrderStatus.completed: "✅ Выполнен",
     OrderStatus.cancelled: "❌ Отменён",
-    OrderStatus.dispute: "⚠️ Спор",
 }
 
 
@@ -118,10 +117,6 @@ async def _show_orders_by_status(
             InlineKeyboardButton(
                 text="❓ Уточнение",
                 callback_data="admin:orders:filter:clarification",
-            ),
-            InlineKeyboardButton(
-                text="⚠️ Споры",
-                callback_data="admin:orders:filter:dispute",
             ),
         ],
     ]

@@ -560,7 +560,7 @@ async def admin_user_orders(call: CallbackQuery, db: AsyncSession, admin: AdminU
     STATUS_EMOJI = {
         "completed": "✅", "cancelled": "❌", "processing": "⚙️",
         "paid": "💚", "pending_payment": "⏳", "new": "🆕",
-        "clarification": "❓", "dispute": "⚠️",
+        "clarification": "❓",
     }
 
     lines = [f"📋 <b>Заказы пользователя</b> (последние 10)\n"]

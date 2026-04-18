@@ -3,7 +3,7 @@ import React from 'react'
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ordersApi } from '@/api'
-import { CheckCircle, Clock, Copy, MessageCircle, XCircle, AlertTriangle, HelpCircle, RefreshCw, BadgeCheck, Circle } from 'lucide-react'
+import { CheckCircle, Clock, Copy, MessageCircle, XCircle, HelpCircle, RefreshCw, BadgeCheck, Circle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
 
@@ -15,10 +15,9 @@ const STATUS_LABEL: Record<string, { label: string; color: string; bg: string; I
   clarification:   { label: 'Нужно уточнение', color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',  Icon: HelpCircle },
   completed:       { label: 'Выполнен',         color: '#34d399', bg: 'rgba(16,185,129,0.1)',  Icon: CheckCircle },
   cancelled:       { label: 'Отменён',          color: '#f87171', bg: 'rgba(239,68,68,0.1)',   Icon: XCircle },
-  dispute:         { label: 'Спор',             color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',  Icon: AlertTriangle },
 }
 
-const SUPPORT_STATUSES = new Set(['dispute', 'clarification', 'paid'])
+const SUPPORT_STATUSES = new Set(['clarification', 'paid'])
 
 export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()

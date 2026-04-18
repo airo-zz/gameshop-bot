@@ -51,7 +51,6 @@ class OrdersStats:
     clarification: int
     completed: int
     cancelled: int
-    dispute: int
     completion_rate: float  # completed / (completed + cancelled)
 
 
@@ -193,7 +192,6 @@ class AnalyticsService:
             clarification=counts.get("clarification", 0),
             completed=completed,
             cancelled=cancelled,
-            dispute=counts.get("dispute", 0),
             completion_rate=round(completion_rate, 1),
         )
 

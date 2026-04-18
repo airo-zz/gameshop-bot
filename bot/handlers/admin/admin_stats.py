@@ -93,7 +93,6 @@ async def admin_stats_main(call: CallbackQuery, db: AsyncSession, admin: AdminUs
         f"  ⚙️ В работе:    {o.processing + o.paid}\n"
         f"  ⏳ Ожид. оплаты: {o.pending_payment}\n"
         f"  ❓ Уточнение:   {o.clarification}\n"
-        f"  ⚠️ Споры:       {o.dispute}\n"
         f"  ❌ Отменено:    {o.cancelled}\n"
         f"  📈 Выполнение:  {fmt_pct(o.completion_rate)}\n\n"
 

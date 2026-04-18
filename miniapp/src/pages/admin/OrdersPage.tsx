@@ -17,9 +17,9 @@ const STATUS_LABELS: Record<string, string> = {
   pending_payment: 'Ожидает оплаты',
   paid:            'Оплачен',
   processing:      'В работе',
+  clarification:   'Уточнение',
   completed:       'Выполнен',
   cancelled:       'Отменён',
-  refunded:        'Возврат',
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -27,9 +27,9 @@ const STATUS_COLORS: Record<string, string> = {
   pending_payment: 'bg-yellow-500/15 text-yellow-400',
   paid:            'bg-blue-500/15 text-blue-400',
   processing:      'bg-violet-500/15 text-violet-400',
+  clarification:   'bg-amber-500/15 text-amber-400',
   completed:       'bg-emerald-500/15 text-emerald-400',
   cancelled:       'bg-red-500/15 text-red-400',
-  refunded:        'bg-orange-500/15 text-orange-400',
 }
 
 function formatMoney(v: number) {

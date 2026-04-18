@@ -9,25 +9,37 @@ import { ArrowLeft, AlertCircle, Save, Trash2, Bell } from 'lucide-react'
 import { adminApi } from '@/api/admin'
 import type { AdminOrderDetail } from '@/api/admin'
 import toast from 'react-hot-toast'
+import { useTelegram } from '@/hooks/useTelegram'
 
-const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: 'new',             label: 'Новый' },
-  { value: 'pending_payment', label: 'Ожидает оплаты' },
-  { value: 'paid',            label: 'Оплачен' },
-  { value: 'processing',      label: 'В обработке' },
-  { value: 'completed',       label: 'Выполнен' },
-  { value: 'cancelled',       label: 'Отменён' },
-  { value: 'refunded',        label: 'Возврат' },
-]
+const STATUS_LABELS: Record<string, string> = {
+  new:             'Новый',
+  pending_payment: 'Ожидает оплаты',
+  paid:            'Оплачен',
+  processing:      'В обработке',
+  clarification:   'Уточнение',
+  completed:       'Выполнен',
+  cancelled:       'Отменён',
+}
+
+// Зеркало ALLOWED_STATUS_TRANSITIONS из shared/models/order.py
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  new:             ['pending_payment', 'cancelled'],
+  pending_payment: ['paid', 'cancelled'],
+  paid:            ['processing', 'cancelled'],
+  processing:      ['completed', 'clarification'],
+  clarification:   ['processing', 'cancelled'],
+  completed:       [],
+  cancelled:       [],
+}
 
 const STATUS_COLORS: Record<string, string> = {
   new:             'bg-slate-500/15 text-slate-400',
   pending_payment: 'bg-yellow-500/15 text-yellow-400',
   paid:            'bg-blue-500/15 text-blue-400',
   processing:      'bg-violet-500/15 text-violet-400',
+  clarification:   'bg-amber-500/15 text-amber-400',
   completed:       'bg-emerald-500/15 text-emerald-400',
   cancelled:       'bg-red-500/15 text-red-400',
-  refunded:        'bg-orange-500/15 text-orange-400',
 }
 
 const inputCls = 'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 transition-all duration-200'
@@ -44,6 +56,7 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
+  const { showConfirm } = useTelegram()
   const [order, setOrder] = useState<AdminOrderDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(false)
@@ -59,7 +72,7 @@ export default function OrderDetailPage() {
     adminApi.getOrder(id)
       .then((data) => {
         setOrder(data)
-        setNewStatus(data.status)
+        setNewStatus(ALLOWED_TRANSITIONS[data.status]?.[0] ?? '')
         setReason(data.notes ?? '')
       })
       .catch(() => setError(true))
@@ -68,7 +81,7 @@ export default function OrderDetailPage() {
 
   async function handleDelete() {
     if (!order) return
-    if (!window.confirm('Удалить заказ? Это действие нельзя отменить.')) return
+    if (!await showConfirm('Удалить заказ? Это действие нельзя отменить.')) return
     setDeleting(true)
     try {
       await adminApi.deleteOrder(order.id)
@@ -83,7 +96,7 @@ export default function OrderDetailPage() {
 
   async function handleNotify() {
     if (!order) return
-    if (!window.confirm(`Отправить уведомление о статусе "${STATUS_OPTIONS.find(s => s.value === order.status)?.label ?? order.status}" пользователю?`)) return
+    if (!await showConfirm(`Отправить уведомление о статусе "${STATUS_LABELS[order.status] ?? order.status}" пользователю?`)) return
     setNotifying(true)
     try {
       await adminApi.notifyUser(order.id)
@@ -140,7 +153,7 @@ export default function OrderDetailPage() {
           <p className="text-xs text-white/40">{formatDate(order.created_at)}</p>
         </div>
         <span className={`ml-auto text-xs px-3 py-1 rounded-full font-medium ${STATUS_COLORS[order.status] ?? 'bg-white/10 text-white/50'}`}>
-          {STATUS_OPTIONS.find(s => s.value === order.status)?.label ?? order.status}
+          {STATUS_LABELS[order.status] ?? order.status}
         </span>
       </div>
 
@@ -185,17 +198,23 @@ export default function OrderDetailPage() {
 
         <div>
           <label className="text-xs text-white/50 mb-1.5 block">Статус</label>
-          <select
-            value={newStatus}
-            onChange={(e) => setNewStatus(e.target.value)}
-            className={inputCls}
-          >
-            {STATUS_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value} className="bg-[#060f1e]">
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          {(ALLOWED_TRANSITIONS[order.status]?.length ?? 0) === 0 ? (
+            <div className="text-xs text-white/30 px-3 py-2.5 bg-white/[0.03] border border-white/[0.06] rounded-xl">
+              Статус финальный — смена недоступна
+            </div>
+          ) : (
+            <select
+              value={newStatus}
+              onChange={(e) => setNewStatus(e.target.value)}
+              className={inputCls}
+            >
+              {ALLOWED_TRANSITIONS[order.status].map((s) => (
+                <option key={s} value={s} className="bg-[#060f1e]">
+                  {STATUS_LABELS[s] ?? s}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         <div>
@@ -209,18 +228,20 @@ export default function OrderDetailPage() {
           />
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
-        >
-          {saving ? (
-            <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : (
-            <Save size={16} />
-          )}
-          Сохранить
-        </button>
+        {(ALLOWED_TRANSITIONS[order.status]?.length ?? 0) > 0 && (
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
+          >
+            {saving ? (
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Save size={16} />
+            )}
+            Сохранить
+          </button>
+        )}
 
         <button
           onClick={handleNotify}
@@ -235,7 +256,7 @@ export default function OrderDetailPage() {
           Уведомить пользователя
         </button>
 
-        {['new', 'pending_payment', 'cancelled', 'refunded'].includes(order.status) && (
+        {['new', 'pending_payment', 'cancelled'].includes(order.status) && (
           <button
             onClick={handleDelete}
             disabled={deleting}

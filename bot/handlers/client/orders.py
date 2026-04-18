@@ -34,7 +34,6 @@ STATUS_EMOJI = {
     OrderStatus.clarification: "💚",
     OrderStatus.completed: "✅",
     OrderStatus.cancelled: "↩️",
-    OrderStatus.dispute: "↩️",
 }
 
 STATUS_LABEL = {
@@ -45,7 +44,6 @@ STATUS_LABEL = {
     OrderStatus.clarification: "Оплачен",
     OrderStatus.completed: "Завершён",
     OrderStatus.cancelled: "Возврат",
-    OrderStatus.dispute: "Возврат",
 }
 
 PAGE_SIZE = 10

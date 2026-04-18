@@ -52,9 +52,9 @@ export type AdminOrderStatus =
   | 'pending_payment'
   | 'paid'
   | 'processing'
+  | 'clarification'
   | 'completed'
   | 'cancelled'
-  | 'refunded'
 
 export interface AdminOrderListItem {
   id: string

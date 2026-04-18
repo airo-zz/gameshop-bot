@@ -7,7 +7,6 @@ shared/models/order.py
   new → pending_payment → paid → processing → completed
                        ↘ cancelled
                                           ↘ clarification → processing
-                                          ↘ dispute
 ─────────────────────────────────────────────────────────────────────────────
 """
 
@@ -34,7 +33,6 @@ class OrderStatus(str, enum.Enum):
     clarification = "clarification"   # Требуется уточнение данных
     completed = "completed"
     cancelled = "cancelled"
-    dispute = "dispute"
 
 
 class PaymentMethod(str, enum.Enum):
@@ -60,12 +58,11 @@ ALLOWED_STATUS_TRANSITIONS: dict[OrderStatus, set[OrderStatus]] = {
     OrderStatus.pending_payment: {OrderStatus.paid, OrderStatus.cancelled},
     OrderStatus.paid: {OrderStatus.processing, OrderStatus.cancelled},
     OrderStatus.processing: {
-        OrderStatus.completed, OrderStatus.clarification, OrderStatus.dispute
+        OrderStatus.completed, OrderStatus.clarification
     },
     OrderStatus.clarification: {OrderStatus.processing, OrderStatus.cancelled},
-    OrderStatus.completed: {OrderStatus.dispute},
+    OrderStatus.completed: set(),   # Терминальный статус
     OrderStatus.cancelled: set(),   # Терминальный статус
-    OrderStatus.dispute: {OrderStatus.completed, OrderStatus.cancelled},
 }
 
 

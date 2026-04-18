@@ -13,15 +13,14 @@ const STATUS_LABEL: Record<string, string> = {
   clarification:   'Уточнение',
   completed:       'Выполнен',
   cancelled:       'Отменён',
-  dispute:         'Спор',
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  completed:  '#34d399',
-  cancelled:  '#f87171',
-  dispute:    '#fbbf24',
-  paid:       '#60a5fa',
-  processing: '#6b9de8',
+  completed:     '#34d399',
+  cancelled:     '#f87171',
+  clarification: '#fbbf24',
+  paid:          '#60a5fa',
+  processing:    '#6b9de8',
 }
 
 export default function OrdersPage() {
