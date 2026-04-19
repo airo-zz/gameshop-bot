@@ -153,7 +153,9 @@ export default function Layout() {
         style={{
           bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
           zIndex: 110,
-          display: keyboardOpen && isChatPage ? 'none' : undefined,
+          opacity: keyboardOpen && isChatPage ? 0 : 1,
+          pointerEvents: keyboardOpen && isChatPage ? 'none' : undefined,
+          transition: 'opacity 0.2s ease',
           background: 'rgba(8,14,28,0.97)',
           backdropFilter: 'blur(20px)',
           WebkitBackdropFilter: 'blur(20px)',

@@ -327,6 +327,7 @@ export default function ChatPage() {
     queryKey: ['chat'],
     queryFn: () => chatApi.getOrCreate(),
     staleTime: Infinity,
+    initialData: () => queryClient.getQueryData<any>(['chat']),
   })
 
   const { data: messages = [] } = useQuery<(ChatMessage & { optimistic?: boolean })[]>({
@@ -335,6 +336,7 @@ export default function ChatPage() {
     enabled: !!chat,
     refetchInterval: 2000,
     staleTime: 0,
+    initialData: () => queryClient.getQueryData<(ChatMessage & { optimistic?: boolean })[]>(['chat-messages']),
   })
 
   // Помечаем чат прочитанным при открытии — сразу обнуляем бейдж локально
