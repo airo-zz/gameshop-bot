@@ -165,70 +165,35 @@ function ProductSection({ product, cartQtyMap, isFavorite, isFirst, onAdd, onRem
   return (
     <div>
       {/* Separator between products */}
-      {!isFirst && <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />}
+      {!isFirst && <div style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />}
 
-      {/* Product header */}
-      <div style={{ padding: '12px 14px 10px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>
-              {product.name}
-            </span>
-            {isAuto && !isOutOfStock && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                fontSize: 10, fontWeight: 600, padding: '2px 8px', borderRadius: 20,
-                background: 'rgba(16,185,129,0.15)', color: '#34d399',
-                border: '1px solid rgba(16,185,129,0.3)',
-              }}>
-                <Zap size={9} fill="#34d399" stroke="none" />
-                Авто
-              </span>
-            )}
-            {!isAuto && !isOutOfStock && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                fontSize: 10, padding: '2px 8px', borderRadius: 20,
-                background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)',
-                border: '1px solid rgba(255,255,255,0.1)',
-              }}>
-                <Clock size={9} />
-                Вручную
-              </span>
-            )}
-            {isOutOfStock && (
-              <span style={{
-                fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20,
-                background: 'rgba(239,68,68,0.15)', color: '#f87171',
-                border: '1px solid rgba(239,68,68,0.3)',
-              }}>
-                Нет в наличии
-              </span>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={handleFavorite}
-            disabled={favPending}
-            style={{
-              flexShrink: 0, width: 28, height: 28, borderRadius: '50%',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'none', border: 'none', cursor: 'pointer',
-              color: isFavorite ? '#f87171' : 'rgba(255,255,255,0.3)',
-            }}
-          >
-            <Heart size={15} fill={isFavorite ? '#f87171' : 'none'} />
-          </button>
-        </div>
-        {product.short_description && (
-          <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {product.short_description}
-          </p>
+      {/* Header: one compact row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {product.name}
+        </span>
+        {isOutOfStock ? (
+          <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 20, background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}>
+            Нет в наличии
+          </span>
+        ) : isAuto ? (
+          <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 20, background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }}>
+            <Zap size={8} fill="#34d399" stroke="none" />Авто
+          </span>
+        ) : (
+          <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, padding: '2px 7px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.08)' }}>
+            <Clock size={8} />Вручную
+          </span>
         )}
+        <button
+          type="button"
+          onClick={handleFavorite}
+          disabled={favPending}
+          style={{ marginLeft: 'auto', flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
+        >
+          <Heart size={15} fill={isFavorite ? '#f87171' : 'none'} stroke={isFavorite ? '#f87171' : 'rgba(255,255,255,0.3)'} strokeWidth={2} />
+        </button>
       </div>
-
-      {/* Divider */}
-      <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
 
       {/* Input fields */}
       {hasInputs && (
