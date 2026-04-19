@@ -91,6 +91,14 @@ export default function App() {
   const [splashGone, setSplashGone] = useState(false)
 
   useEffect(() => {
+    // Lock portrait orientation via Telegram WebApp API (SDK 7.x+)
+    try {
+      const twa = (window as any).Telegram?.WebApp
+      if (twa?.lockOrientation) twa.lockOrientation()
+    } catch { /* ignore if not supported */ }
+  }, [])
+
+  useEffect(() => {
     if (initialized.current) return
     initialized.current = true
 
