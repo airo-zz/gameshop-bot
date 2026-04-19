@@ -130,12 +130,13 @@ interface ProductSectionProps {
   product: Product
   cartQtyMap: Map<string, number>
   isFavorite: boolean
+  isFirst: boolean
   onAdd: (product: Product, lot?: Lot, inputData?: Record<string, string>) => void
   onRemove: (product: Product, lot?: Lot) => void
   onFavoriteToggle: (productId: string, added: boolean) => void
 }
 
-function ProductSection({ product, cartQtyMap, isFavorite, onAdd, onRemove, onFavoriteToggle }: ProductSectionProps) {
+function ProductSection({ product, cartQtyMap, isFavorite, isFirst, onAdd, onRemove, onFavoriteToggle }: ProductSectionProps) {
   const lots = product.lots ?? []
   const inputFields = product.input_fields ?? []
   const isOutOfStock = product.stock !== null && product.stock === 0
@@ -162,10 +163,10 @@ function ProductSection({ product, cartQtyMap, isFavorite, onAdd, onRemove, onFa
   }
 
   return (
-    <div style={{
-      borderRadius: 18, overflow: 'hidden',
-      background: 'var(--bg2)', border: '1px solid rgba(255,255,255,0.07)',
-    }}>
+    <div>
+      {/* Separator between products */}
+      {!isFirst && <div style={{ height: 1, background: 'rgba(255,255,255,0.1)' }} />}
+
       {/* Product header */}
       <div style={{ padding: '12px 14px 10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -619,23 +620,23 @@ export default function GamePage() {
             <p style={{ color: 'var(--hint)' }}>Товары скоро появятся</p>
           </div>
         ) : (
-          products.map((product, i) => (
-            <motion.div
-              key={product.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04, duration: 0.2 }}
-            >
+          <div style={{
+            borderRadius: 18, overflow: 'hidden',
+            background: 'var(--bg2)', border: '1px solid rgba(255,255,255,0.07)',
+          }}>
+            {products.map((product, i) => (
               <ProductSection
+                key={product.id}
                 product={product}
                 cartQtyMap={cartQtyMap}
                 isFavorite={favoriteIds.has(product.id)}
+                isFirst={i === 0}
                 onAdd={(p, l, data) => handleAdd(p, l, data)}
                 onRemove={handleRemove}
                 onFavoriteToggle={handleFavoriteToggle}
               />
-            </motion.div>
-          ))
+            ))}
+          </div>
         )}
       </div>
     </motion.div>

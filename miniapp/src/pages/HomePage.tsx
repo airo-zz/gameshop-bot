@@ -717,7 +717,8 @@ export default function HomePage() {
               const maxScroll = el.scrollWidth - el.clientWidth
               setTrendingAtEnd(el.scrollLeft >= maxScroll - 4)
             }}
-            style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16, scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
+            className="no-scrollbar"
+            style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16 } as React.CSSProperties}
           >
             {trendingCategories.map((cat, i) => {
               const imgSrc = normalizeImageUrl(cat.game_image_url)
