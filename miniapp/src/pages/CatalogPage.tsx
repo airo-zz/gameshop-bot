@@ -28,11 +28,15 @@ export default function CatalogPage() {
     if (navigating.current) return
     navigating.current = true
     try {
-      await Promise.all([
+      const [, cats] = await Promise.all([
         import('@/pages/GamePage'),
-        queryClient.prefetchQuery({ queryKey: ['categories', slug], queryFn: () => catalogApi.getCategories(slug), staleTime: 5 * 60_000 }),
+        queryClient.fetchQuery({ queryKey: ['categories', slug], queryFn: () => catalogApi.getCategories(slug), staleTime: 5 * 60_000 }),
         queryClient.prefetchQuery({ queryKey: ['games'], queryFn: () => catalogApi.getGames(), staleTime: 5 * 60_000 }),
       ])
+      const firstCatId = (cats as any[])[0]?.id
+      if (firstCatId) {
+        await queryClient.prefetchQuery({ queryKey: ['products', firstCatId], queryFn: () => catalogApi.getProducts(firstCatId), staleTime: 2 * 60_000 })
+      }
       navigate(`/catalog/${slug}`)
     } finally {
       navigating.current = false

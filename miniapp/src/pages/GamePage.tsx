@@ -409,6 +409,7 @@ export default function GamePage() {
     queryFn: () => catalogApi.getProducts(activeCatId!),
     enabled: !!activeCatId,
     staleTime: 2 * 60 * 1000,
+    initialData: () => activeCatId ? qc.getQueryData<Product[]>(['products', activeCatId]) : undefined,
   })
 
   // Cart data for qty display
