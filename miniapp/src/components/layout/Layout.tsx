@@ -125,6 +125,9 @@ export default function Layout() {
       queryClient.getQueryData(['chat'])
         ? Promise.resolve()
         : queryClient.prefetchQuery({ queryKey: ['chat'], queryFn: chatApi.getOrCreate, staleTime: Infinity }),
+      queryClient.getQueryData(['chat-messages'])
+        ? Promise.resolve()
+        : queryClient.prefetchQuery({ queryKey: ['chat-messages'], queryFn: () => chatApi.getMessages() }),
     ])
     navigate('/chat')
   }

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Shield, Star, Crown, Gem } from 'lucide-react'
 import { catalogApi, profileApi } from '@/api'
 import { useShopStore, useUIStore } from '@/store'
@@ -817,13 +817,7 @@ export default function HomePage() {
             })}
           </div>
 
-          <AnimatePresence mode="wait">
-            {games.length > 0 && <motion.div
-              key={homeType}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
+          {games.length > 0 && <div
               style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
@@ -887,8 +881,7 @@ export default function HomePage() {
                   </div>
                 </Link>
               ))}
-            </motion.div>}
-          </AnimatePresence>
+            </div>}
         </section>
 
         {/* ── Open catalog CTA ─────────────────────────────────────────── */}

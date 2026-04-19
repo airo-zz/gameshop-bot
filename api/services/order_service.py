@@ -445,7 +445,6 @@ class OrderService:
             .where(
                 LoyaltyLevel.is_active == True,
                 LoyaltyLevel.min_spent <= user.total_spent,
-                LoyaltyLevel.min_orders <= user.orders_count,
             )
             .order_by(LoyaltyLevel.min_spent.desc())
             .limit(1)

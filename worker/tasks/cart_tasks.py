@@ -181,10 +181,7 @@ async def _recalculate_all_async():
 
             for user in users:
                 for level in levels:
-                    if (
-                        user.total_spent >= level.min_spent
-                        and user.orders_count >= level.min_orders
-                    ):
+                    if user.total_spent >= level.min_spent:
                         if user.loyalty_level_id != level.id:
                             user.loyalty_level_id = level.id
                         break

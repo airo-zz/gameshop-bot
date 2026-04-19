@@ -57,9 +57,9 @@ const SearchPage     = lazy(() => import('@/pages/SearchPage'))
 const SupportPage    = lazy(() => import('@/pages/SupportPage'))
 const ChatPage       = lazy(() => import('@/pages/ChatPage'))
 
-// Admin
-const AdminLayout      = lazy(() => import('@/components/admin/AdminLayout'))
-const AdminGuard       = lazy(() => import('@/components/admin/AdminGuard'))
+// Admin — structural components eagerly imported to avoid cascading Suspense flashes
+import AdminLayout from '@/components/admin/AdminLayout'
+import AdminGuard  from '@/components/admin/AdminGuard'
 const AdminDashboard   = lazy(() => import('@/pages/admin/DashboardPage'))
 const AdminOrders      = lazy(() => import('@/pages/admin/OrdersPage'))
 const AdminOrderDetail = lazy(() => import('@/pages/admin/OrderDetailPage'))
@@ -180,28 +180,22 @@ export default function App() {
             </LazyPage>
           }
         >
-          <Route
-            element={
-              <LazyPage>
-                <AdminLayout />
-              </LazyPage>
-            }
-          >
-            <Route index element={<LazyPage><AdminDashboard /></LazyPage>} />
-            <Route path="orders" element={<LazyPage><AdminOrders /></LazyPage>} />
-            <Route path="orders/trash" element={<LazyPage><AdminOrdersTrash /></LazyPage>} />
-            <Route path="orders/:id" element={<LazyPage><AdminOrderDetail /></LazyPage>} />
-            <Route path="catalog" element={<LazyPage><AdminCatalog /></LazyPage>} />
-            <Route path="catalog/products/:id" element={<LazyPage><AdminProductEdit /></LazyPage>} />
-            <Route path="catalog/games" element={<LazyPage><AdminGamesList /></LazyPage>} />
-            <Route path="catalog/games/:id" element={<LazyPage><AdminGameEdit /></LazyPage>} />
-            <Route path="users" element={<LazyPage><AdminUsers /></LazyPage>} />
-            <Route path="users/:id" element={<LazyPage><AdminUserDetail /></LazyPage>} />
-            <Route path="discounts" element={<LazyPage><AdminDiscounts /></LazyPage>} />
-            <Route path="support" element={<LazyPage><AdminSupport /></LazyPage>} />
-            <Route path="settings/loyalty" element={<LazyPage><AdminLoyalty /></LazyPage>} />
-            <Route path="chats" element={<LazyPage><AdminChatsPage /></LazyPage>} />
-            <Route path="chats/:id" element={<LazyPage><AdminChatsPage /></LazyPage>} />
+          <Route element={<AdminLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="orders/trash" element={<AdminOrdersTrash />} />
+            <Route path="orders/:id" element={<AdminOrderDetail />} />
+            <Route path="catalog" element={<AdminCatalog />} />
+            <Route path="catalog/products/:id" element={<AdminProductEdit />} />
+            <Route path="catalog/games" element={<AdminGamesList />} />
+            <Route path="catalog/games/:id" element={<AdminGameEdit />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="users/:id" element={<AdminUserDetail />} />
+            <Route path="discounts" element={<AdminDiscounts />} />
+            <Route path="support" element={<AdminSupport />} />
+            <Route path="settings/loyalty" element={<AdminLoyalty />} />
+            <Route path="chats" element={<AdminChatsPage />} />
+            <Route path="chats/:id" element={<AdminChatsPage />} />
           </Route>
         </Route>
       </Routes>
