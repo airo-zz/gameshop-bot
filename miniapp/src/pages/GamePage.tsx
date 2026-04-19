@@ -31,35 +31,29 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
       className="flex items-center gap-2 py-2.5 px-3.5"
       style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
     >
-      {/* Name + badges */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
-            {lot.name}
-          </span>
+      {/* Name */}
+      <div className="flex-1 min-w-0" style={{ overflow: 'hidden' }}>
+        <span className="text-sm font-medium"
+          style={{ color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+          {lot.name}
           {lot.badge && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-              style={{ background: 'linear-gradient(135deg,#f59e0b,#ef4444)', color: '#fff' }}>
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full ml-1.5"
+              style={{ background: 'linear-gradient(135deg,#f59e0b,#ef4444)', color: '#fff', verticalAlign: 'middle' }}>
               {lot.badge}
             </span>
           )}
-          {hasDiscount && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-              style={{ background: 'rgba(16,185,129,0.18)', color: '#34d399' }}>
-              -{discountPct}%
-            </span>
-          )}
-        </div>
+        </span>
       </div>
 
       {/* Price */}
-      <div className="flex items-baseline gap-1.5 flex-shrink-0">
+      <div className="flex items-center gap-1.5 flex-shrink-0">
         <span className="text-sm font-bold" style={{ color: '#6b9de8' }}>
           {Number(lot.price).toLocaleString('ru')} ₽
         </span>
         {hasDiscount && (
-          <span className="text-[11px] line-through" style={{ color: 'var(--hint)' }}>
-            {Number(lot.original_price).toLocaleString('ru')} ₽
+          <span className="text-[9px] font-bold px-1 py-0.5 rounded-full"
+            style={{ background: 'rgba(16,185,129,0.18)', color: '#34d399' }}>
+            -{discountPct}%
           </span>
         )}
       </div>

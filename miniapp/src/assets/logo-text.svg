@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3838.8 730">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="990 130 2855 475">
   <defs>
-    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="textGrad" gradientUnits="userSpaceOnUse" x1="990" y1="130" x2="3845" y2="605">
       <stop offset="0%"   stop-color="#ffffff"/>
       <stop offset="60%"  stop-color="#93b8f0"/>
       <stop offset="100%" stop-color="#6b9de8"/>
