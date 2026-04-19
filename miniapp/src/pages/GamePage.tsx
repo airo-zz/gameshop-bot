@@ -27,99 +27,87 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
     : 0
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 8,
-      padding: '11px 14px',
-      borderBottom: '1px solid rgba(255,255,255,0.05)',
-    }}>
-      {/* Name */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.88)', fontWeight: 400 }}>
-          {lot.name}
-        </span>
-        {lot.badge && (
-          <span style={{
-            marginLeft: 6, fontSize: 9, fontWeight: 700, padding: '2px 6px',
-            borderRadius: 20, background: 'linear-gradient(135deg,#f59e0b,#ef4444)', color: '#fff',
-          }}>
-            {lot.badge}
+    <div
+      className="flex items-center gap-2 py-2.5 px-3.5"
+      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+    >
+      {/* Name + badges */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-sm font-medium" style={{ color: 'var(--text)' }}>
+            {lot.name}
           </span>
-        )}
+          {lot.badge && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+              style={{ background: 'linear-gradient(135deg,#f59e0b,#ef4444)', color: '#fff' }}>
+              {lot.badge}
+            </span>
+          )}
+          {hasDiscount && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+              style={{ background: 'rgba(16,185,129,0.18)', color: '#34d399' }}>
+              -{discountPct}%
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Price */}
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, flexShrink: 0 }}>
-        <span style={{ fontSize: 14, fontWeight: 600, color: '#6b9de8' }}>
+      <div className="flex items-baseline gap-1.5 flex-shrink-0">
+        <span className="text-sm font-bold" style={{ color: '#6b9de8' }}>
           {Number(lot.price).toLocaleString('ru')} ₽
         </span>
         {hasDiscount && (
-          <span style={{ fontSize: 11, textDecoration: 'line-through', color: 'rgba(255,255,255,0.3)' }}>
+          <span className="text-[11px] line-through" style={{ color: 'var(--hint)' }}>
             {Number(lot.original_price).toLocaleString('ru')} ₽
-          </span>
-        )}
-        {hasDiscount && (
-          <span style={{
-            fontSize: 9, fontWeight: 700, padding: '2px 5px', borderRadius: 20,
-            background: 'rgba(16,185,129,0.18)', color: '#34d399',
-          }}>
-            -{discountPct}%
           </span>
         )}
       </div>
 
-      {/* Add / qty control */}
-      {cartQty > 0 ? (
-        <div style={{
-          display: 'flex', alignItems: 'center', flexShrink: 0,
-          borderRadius: 34, overflow: 'hidden',
-          background: 'rgba(255,255,255,0.07)',
-          border: '1px solid rgba(255,255,255,0.12)',
-        }}>
-          <button
-            type="button"
-            onClick={onRemove}
-            style={{
-              width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'none', border: 'none', cursor: 'pointer', color: '#f87171',
-            }}
-          >
-            <Minus size={12} />
-          </button>
-          <span style={{
-            minWidth: 18, textAlign: 'center', fontSize: 12, fontWeight: 700, color: '#fff',
-          }}>
-            {cartQty}
-          </span>
-          <button
-            type="button"
-            disabled={disabled}
-            onClick={onAdd}
-            style={{
-              width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center',
-              background: 'none', border: 'none', cursor: disabled ? 'default' : 'pointer',
-              color: disabled ? 'rgba(255,255,255,0.2)' : '#6b9de8',
-            }}
-          >
-            <Plus size={12} />
-          </button>
-        </div>
-      ) : (
-        <button
-          type="button"
-          disabled={disabled}
-          onClick={onAdd}
-          style={{
-            flexShrink: 0, width: 32, height: 32, borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: disabled ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.08)',
-            border: `1px solid ${disabled ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.14)'}`,
-            cursor: disabled ? 'default' : 'pointer',
-            color: disabled ? '#f87171' : 'rgba(255,255,255,0.7)',
-          }}
-        >
-          <Plus size={14} />
-        </button>
-      )}
+      {/* Animated pill: [+] → [− qty +] */}
+      <div
+        className="flex-shrink-0 flex items-center justify-center rounded-full overflow-hidden transition-all duration-200"
+        style={{
+          width: cartQty > 0 ? 84 : 34,
+          height: 34,
+          background: disabled ? 'rgba(239,68,68,0.08)' : 'rgba(45,88,173,0.14)',
+          border: disabled ? '1px solid rgba(239,68,68,0.18)' : '1px solid rgba(45,88,173,0.30)',
+        }}
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          {cartQty > 0 ? (
+            <motion.div key="qty"
+              initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.15 }}
+              className="flex items-center w-full"
+            >
+              <button type="button" onClick={onRemove}
+                className="flex items-center justify-center w-[28px] h-[34px] active:scale-90 transition-transform"
+                style={{ color: '#f87171' }}>
+                <Minus size={13} />
+              </button>
+              <span className="flex-1 text-center text-xs font-bold select-none" style={{ color: '#6b9de8' }}>
+                {cartQty}
+              </span>
+              <button type="button" disabled={disabled} onClick={onAdd}
+                className="flex items-center justify-center w-[28px] h-[34px] active:scale-90 transition-transform"
+                style={{ color: disabled ? 'rgba(255,255,255,0.2)' : '#6b9de8' }}>
+                <Plus size={13} />
+              </button>
+            </motion.div>
+          ) : (
+            <motion.button key="add" type="button"
+              initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.15 }}
+              disabled={disabled} onClick={onAdd}
+              className="flex items-center justify-center w-full h-full active:scale-90 transition-transform"
+              style={{ color: disabled ? '#f87171' : '#6b9de8' }}
+            >
+              <Plus size={15} />
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }
@@ -278,50 +266,51 @@ function ProductSection({ product, cartQtyMap, isFavorite, isFirst, onAdd, onRem
           const qty = cartQtyMap.get(key) ?? 0
           return (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '11px 14px' }}>
-              <span style={{ fontSize: 15, fontWeight: 600, color: '#6b9de8' }}>
+              <span className="text-[15px] font-bold" style={{ color: '#6b9de8' }}>
                 {Number(product.price).toLocaleString('ru')} ₽
               </span>
-              {qty > 0 ? (
-                <div style={{
-                  display: 'flex', alignItems: 'center', flexShrink: 0,
-                  borderRadius: 34, overflow: 'hidden',
-                  background: 'rgba(255,255,255,0.07)',
-                  border: '1px solid rgba(255,255,255,0.12)',
-                }}>
-                  <button type="button" onClick={() => onRemove(product)} style={{
-                    width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'none', border: 'none', cursor: 'pointer', color: '#f87171',
-                  }}>
-                    <Minus size={13} />
-                  </button>
-                  <span style={{ minWidth: 20, textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#fff' }}>
-                    {qty}
-                  </span>
-                  <button type="button" disabled={isOutOfStock} onClick={() => onAdd(product, undefined, inputData)} style={{
-                    width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: 'none', border: 'none', cursor: isOutOfStock ? 'default' : 'pointer',
-                    color: isOutOfStock ? 'rgba(255,255,255,0.2)' : '#6b9de8',
-                  }}>
-                    <Plus size={13} />
-                  </button>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  disabled={isOutOfStock}
-                  onClick={() => onAdd(product, undefined, inputData)}
-                  style={{
-                    flexShrink: 0, width: 32, height: 32, borderRadius: '50%',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    background: isOutOfStock ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.08)',
-                    border: `1px solid ${isOutOfStock ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.14)'}`,
-                    cursor: isOutOfStock ? 'default' : 'pointer',
-                    color: isOutOfStock ? '#f87171' : 'rgba(255,255,255,0.7)',
-                  }}
-                >
-                  <Plus size={14} />
-                </button>
-              )}
+              <div
+                className="flex-shrink-0 flex items-center justify-center rounded-full overflow-hidden transition-all duration-200"
+                style={{
+                  width: qty > 0 ? 84 : 34, height: 34,
+                  background: isOutOfStock ? 'rgba(239,68,68,0.08)' : 'rgba(45,88,173,0.14)',
+                  border: isOutOfStock ? '1px solid rgba(239,68,68,0.18)' : '1px solid rgba(45,88,173,0.30)',
+                }}
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {qty > 0 ? (
+                    <motion.div key="qty"
+                      initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.15 }}
+                      className="flex items-center w-full"
+                    >
+                      <button type="button" onClick={() => onRemove(product)}
+                        className="flex items-center justify-center w-[28px] h-[34px] active:scale-90 transition-transform"
+                        style={{ color: '#f87171' }}>
+                        <Minus size={13} />
+                      </button>
+                      <span className="flex-1 text-center text-xs font-bold select-none" style={{ color: '#6b9de8' }}>
+                        {qty}
+                      </span>
+                      <button type="button" disabled={isOutOfStock} onClick={() => onAdd(product, undefined, inputData)}
+                        className="flex items-center justify-center w-[28px] h-[34px] active:scale-90 transition-transform"
+                        style={{ color: isOutOfStock ? 'rgba(255,255,255,0.2)' : '#6b9de8' }}>
+                        <Plus size={13} />
+                      </button>
+                    </motion.div>
+                  ) : (
+                    <motion.button key="add" type="button"
+                      initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.15 }}
+                      disabled={isOutOfStock} onClick={() => onAdd(product, undefined, inputData)}
+                      className="flex items-center justify-center w-full h-full active:scale-90 transition-transform"
+                      style={{ color: isOutOfStock ? '#f87171' : '#6b9de8' }}
+                    >
+                      <Plus size={15} />
+                    </motion.button>
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
           )
         })()
