@@ -6,11 +6,8 @@ import {
 import { flushSync } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Send, Paperclip, X, ZoomIn } from 'lucide-react'
+import { Send, Paperclip, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import Yarl from 'yet-another-react-lightbox'
-import YarlZoom from 'yet-another-react-lightbox/plugins/zoom'
-import 'yet-another-react-lightbox/styles.css'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
 import { chatApi, type ChatMessage } from '@/api'
@@ -228,9 +225,6 @@ function MessageBubble({
                   style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: 'none', padding: 0, cursor: 'pointer', position: 'relative', background: 'transparent', touchAction: 'none', WebkitTapHighlightColor: 'transparent' }}
                 >
                   <img src={absUrl} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }} />
-                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-                    <ZoomIn size={16} color="rgba(255,255,255,0.8)" />
-                  </div>
                 </button>
               ) : (
                 <button
@@ -593,18 +587,51 @@ export default function ChatPage() {
       </div>
 
       {/* Lightbox */}
-      {/* Lightbox */}
-      <Yarl
-        open={!!lightboxUrl}
-        close={() => setLightboxUrl(null)}
-        slides={lightboxUrl ? [{ src: lightboxUrl }] : []}
-        plugins={[YarlZoom]}
-        controller={{ closeOnBackdropClick: true }}
-        zoom={{ maxZoomPixelRatio: 5, scrollToZoom: false }}
-        styles={{ root: { '--yarl__color_backdrop': 'rgba(0,0,0,0.93)' } }}
-        carousel={{ finite: true }}
-        render={{ buttonPrev: () => null, buttonNext: () => null }}
-      />
+      <AnimatePresence>
+        {lightboxUrl && (
+          <motion.div
+            key="lightbox-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setLightboxUrl(null)}
+            style={{
+              position: 'fixed', inset: 0,
+              background: 'rgba(0,0,0,0.93)',
+              zIndex: 9999,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              touchAction: 'none',
+            }}
+          >
+            <motion.img
+              key={lightboxUrl}
+              src={lightboxUrl}
+              alt=""
+              draggable={false}
+              drag="y"
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={{ top: 0.25, bottom: 0.5 }}
+              onDragEnd={(_, info) => {
+                if (Math.abs(info.offset.y) > 100 || Math.abs(info.velocity.y) > 400) {
+                  setLightboxUrl(null)
+                }
+              }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                maxWidth: '100vw',
+                maxHeight: '88vh',
+                objectFit: 'contain',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                pointerEvents: 'auto',
+                cursor: 'grab',
+                borderRadius: 4,
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

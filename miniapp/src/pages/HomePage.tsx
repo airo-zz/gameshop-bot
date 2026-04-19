@@ -689,26 +689,7 @@ export default function HomePage() {
             Популярное
           </h2>
 
-          <div style={{ position: 'relative' }}>
-          {/* Right fade — extends 16px past container to reach screen edge */}
-          <div style={{ position: 'absolute', right: -16, top: 0, bottom: 4, width: 110, zIndex: 2, pointerEvents: 'none', background: 'linear-gradient(to right, transparent 0%, #010509 60%)', opacity: trendingAtEnd ? 0 : 1, transition: 'opacity 0.3s ease' }} />
-          {/* Clickable arrow */}
-          <button
-            type="button"
-            onClick={() => {
-              const el = trendingScrollRef.current
-              if (!el) return
-              const maxScroll = el.scrollWidth - el.clientWidth
-              if (el.scrollLeft >= maxScroll - 4) {
-                el.scrollTo({ left: 0, behavior: 'smooth' })
-              } else {
-                el.scrollTo({ left: maxScroll, behavior: 'smooth' })
-              }
-            }}
-            style={{ position: 'absolute', right: -4, top: '50%', transform: 'translateY(-50%)', zIndex: 3, width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', opacity: trendingAtEnd ? 0 : 1, transition: 'opacity 0.3s ease', pointerEvents: trendingAtEnd ? 'none' : 'auto' } as React.CSSProperties}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-          </button>
+          <div>
           <div
             ref={trendingScrollRef}
             onScroll={() => {
@@ -717,8 +698,19 @@ export default function HomePage() {
               const maxScroll = el.scrollWidth - el.clientWidth
               setTrendingAtEnd(el.scrollLeft >= maxScroll - 4)
             }}
-            className="no-scrollbar"
-            style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4, marginLeft: -16, marginRight: -16, paddingLeft: 16, paddingRight: 16 } as React.CSSProperties}
+            style={{
+              display: 'flex', gap: 12, overflowX: 'auto',
+              paddingBottom: 6,
+              marginLeft: -16, marginRight: -16,
+              paddingLeft: 16, paddingRight: 16,
+              scrollbarWidth: 'none', msOverflowStyle: 'none',
+              WebkitMaskImage: trendingAtEnd
+                ? 'none'
+                : 'linear-gradient(to right, black 0%, black 72%, transparent 100%)',
+              maskImage: trendingAtEnd
+                ? 'none'
+                : 'linear-gradient(to right, black 0%, black 72%, transparent 100%)',
+            } as React.CSSProperties}
           >
             {trendingCategories.map((cat, i) => {
               const imgSrc = normalizeImageUrl(cat.game_image_url)
@@ -776,7 +768,6 @@ export default function HomePage() {
                 </div>
               )
             })}
-          </div>
           </div>
         </section>
 
