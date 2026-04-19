@@ -10,11 +10,11 @@ import { useTelegram } from '@/hooks/useTelegram'
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
   new:             { label: 'Новый',           color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', Icon: Circle },
   pending_payment: { label: 'Ожидает оплаты',  color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',  Icon: Clock },
-  paid:            { label: 'Оплачен',          color: '#6b9de8', bg: 'rgba(45,88,173,0.12)',  Icon: BadgeCheck },
-  processing:      { label: 'В обработке',      color: '#6b9de8', bg: 'rgba(139,92,246,0.1)',  Icon: RefreshCw },
-  clarification:   { label: 'Нужно уточнение', color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',  Icon: HelpCircle },
-  completed:       { label: 'Выполнен',         color: '#34d399', bg: 'rgba(16,185,129,0.1)',  Icon: CheckCircle },
-  cancelled:       { label: 'Отменён',          color: '#f87171', bg: 'rgba(239,68,68,0.1)',   Icon: XCircle },
+  paid:            { label: 'Оплачен',                  color: '#6b9de8', bg: 'rgba(45,88,173,0.12)',  Icon: BadgeCheck },
+  processing:      { label: 'В процессе выполнения',   color: '#6b9de8', bg: 'rgba(139,92,246,0.1)',  Icon: RefreshCw },
+  clarification:   { label: 'Ожидает вашего ответа',  color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',  Icon: HelpCircle },
+  completed:       { label: 'Выполнен',                color: '#34d399', bg: 'rgba(16,185,129,0.1)',  Icon: CheckCircle },
+  cancelled:       { label: 'Возврат',                 color: '#f87171', bg: 'rgba(239,68,68,0.1)',   Icon: XCircle },
 }
 
 const SUPPORT_STATUSES = new Set(['clarification', 'paid'])

@@ -10,10 +10,10 @@ const STATUS_LABEL: Record<string, string> = {
   new:             'Новый',
   pending_payment: 'Ожидает оплаты',
   paid:            'Оплачен',
-  processing:      'В обработке',
-  clarification:   'Уточнение',
+  processing:      'В процессе выполнения',
+  clarification:   'Ожидает вашего ответа',
   completed:       'Выполнен',
-  cancelled:       'Отменён',
+  cancelled:       'Возврат',
 }
 
 const STATUS_COLOR: Record<string, string> = {
