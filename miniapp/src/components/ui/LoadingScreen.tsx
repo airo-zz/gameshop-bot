@@ -1,6 +1,7 @@
 // src/components/ui/LoadingScreen.tsx
 import { motion } from 'framer-motion'
 import logoSrc from '@/assets/logo.svg'
+import logoTextSrc from '@/assets/logo-text.svg'
 
 interface LoadingScreenProps {
   exiting?: boolean
@@ -42,23 +43,14 @@ export default function LoadingScreen({ exiting = false }: LoadingScreenProps) {
       </motion.div>
 
       {/* Brand name */}
-      <motion.p
+      <motion.img
+        src={logoTextSrc}
+        alt="reDonate"
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25, duration: 0.35, ease: 'easeOut' }}
-        style={{
-          margin: 0,
-          fontWeight: 800,
-          fontSize: '1.9rem',
-          letterSpacing: '-0.03em',
-          background: 'linear-gradient(135deg, #ffffff 0%, #93b8f0 60%, #6b9de8 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-        }}
-      >
-        reDonate
-      </motion.p>
+        style={{ height: 36, width: 'auto', display: 'block', background: 'transparent' }}
+      />
 
       {/* Subtle glow line */}
       <motion.div
