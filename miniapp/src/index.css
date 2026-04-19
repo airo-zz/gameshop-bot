@@ -35,6 +35,12 @@ html, body, #root {
 
 button { user-select: none; }
 
+/* ── react-photo-view: respect Telegram safe areas ───────────────────────── */
+.PhotoView-Portal {
+  padding-top: env(safe-area-inset-top, 0px) !important;
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar       { width: 2px; height: 2px; }
 ::-webkit-scrollbar-track { background: transparent; }
