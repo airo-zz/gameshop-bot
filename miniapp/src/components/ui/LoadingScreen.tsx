@@ -31,15 +31,13 @@ export default function LoadingScreen({ exiting = false }: LoadingScreenProps) {
         style={{
           width: 88,
           height: 88,
-          borderRadius: 22,
-          overflow: 'hidden',
-          boxShadow: '0 0 40px rgba(45,88,173,0.5), 0 0 80px rgba(45,88,173,0.2)',
+          filter: 'drop-shadow(0 0 20px rgba(45,88,173,0.7)) drop-shadow(0 0 40px rgba(45,88,173,0.35))',
         }}
       >
         <img
           src={logoSrc}
           alt="reDonate"
-          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+          style={{ width: '100%', height: '100%', display: 'block' }}
         />
       </motion.div>
 

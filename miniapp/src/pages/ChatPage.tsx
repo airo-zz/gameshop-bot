@@ -8,6 +8,7 @@ import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Send, Paperclip, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
 import { chatApi, type ChatMessage } from '@/api'
@@ -604,31 +605,51 @@ export default function ChatPage() {
               touchAction: 'none',
             }}
           >
-            <motion.img
-              key={lightboxUrl}
-              src={lightboxUrl}
-              alt=""
-              draggable={false}
-              drag="y"
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={{ top: 0.25, bottom: 0.5 }}
-              onDragEnd={(_, info) => {
-                if (Math.abs(info.offset.y) > 100 || Math.abs(info.velocity.y) > 400) {
-                  setLightboxUrl(null)
-                }
+            <TransformWrapper
+              initialScale={1}
+              minScale={1}
+              maxScale={5}
+              centerOnInit
+              onZoomStop={({ state }) => {
+                // close only when not zoomed in
+                if (state.scale <= 1.05) return
               }}
-              onClick={e => e.stopPropagation()}
-              style={{
-                maxWidth: '100vw',
-                maxHeight: '88vh',
-                objectFit: 'contain',
-                userSelect: 'none',
-                WebkitUserSelect: 'none',
-                pointerEvents: 'auto',
-                cursor: 'grab',
-                borderRadius: 4,
-              }}
-            />
+            >
+              {({ state }) => (
+                <motion.div
+                  drag={state.scale <= 1.05 ? 'y' : false}
+                  dragConstraints={{ top: 0, bottom: 0 }}
+                  dragElastic={{ top: 0.25, bottom: 0.5 }}
+                  onDragEnd={(_, info) => {
+                    if (state.scale > 1.05) return
+                    if (Math.abs(info.offset.y) > 100 || Math.abs(info.velocity.y) > 400) {
+                      setLightboxUrl(null)
+                    }
+                  }}
+                  onClick={e => e.stopPropagation()}
+                  style={{ cursor: state.scale > 1.05 ? 'move' : 'grab' }}
+                >
+                  <TransformComponent
+                    wrapperStyle={{ maxWidth: '100vw', maxHeight: '88vh' }}
+                  >
+                    <img
+                      src={lightboxUrl!}
+                      alt=""
+                      draggable={false}
+                      style={{
+                        maxWidth: '100vw',
+                        maxHeight: '88vh',
+                        objectFit: 'contain',
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none',
+                        borderRadius: 4,
+                        display: 'block',
+                      }}
+                    />
+                  </TransformComponent>
+                </motion.div>
+              )}
+            </TransformWrapper>
           </motion.div>
         )}
       </AnimatePresence>
