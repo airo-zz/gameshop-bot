@@ -460,7 +460,7 @@ export default function HomePage() {
   const queryClient = useQueryClient()
   const navigating = useRef(false)
 
-  async function handleGameClick(slug: string) {
+  async function handleGameClick(slug: string, specificCatId?: string) {
     if (navigating.current) return
     navigating.current = true
     try {
@@ -469,11 +469,11 @@ export default function HomePage() {
         queryClient.fetchQuery({ queryKey: ['categories', slug], queryFn: () => catalogApi.getCategories(slug), staleTime: 5 * 60_000 }),
         queryClient.prefetchQuery({ queryKey: ['games'], queryFn: () => catalogApi.getGames(), staleTime: 5 * 60_000 }),
       ])
-      const firstCatId = (cats as any[])[0]?.id
-      if (firstCatId) {
-        await queryClient.prefetchQuery({ queryKey: ['products', firstCatId], queryFn: () => catalogApi.getProducts(firstCatId), staleTime: 2 * 60_000 })
+      const targetCatId = specificCatId ?? (cats as any[])[0]?.id
+      if (targetCatId) {
+        await queryClient.prefetchQuery({ queryKey: ['products', targetCatId], queryFn: () => catalogApi.getProducts(targetCatId), staleTime: 2 * 60_000 })
       }
-      navigate(`/catalog/${slug}`)
+      navigate(specificCatId ? `/catalog/${slug}?cat=${specificCatId}` : `/catalog/${slug}`)
     } finally {
       navigating.current = false
     }
@@ -723,9 +723,13 @@ export default function HomePage() {
             {trendingCategories.map((cat, i) => {
               const imgSrc = normalizeImageUrl(cat.game_image_url)
               return (
-                <Link
+                <div
                   key={cat.id}
-                  to={`/catalog/${cat.game_slug}?cat=${cat.id}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleGameClick(cat.game_slug, cat.id)}
+                  onTouchStart={e => { (e.currentTarget as HTMLElement).style.opacity = '0.85' }}
+                  onTouchEnd={e => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
                   style={{
                     minWidth: 160,
                     height: 100,
@@ -741,9 +745,8 @@ export default function HomePage() {
                     position: 'relative',
                     overflow: 'hidden',
                     WebkitTapHighlightColor: 'transparent',
+                  cursor: 'pointer',
                   }}
-                  onTouchStart={e => { (e.currentTarget as HTMLElement).style.opacity = '0.85' }}
-                  onTouchEnd={e => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
                 >
                   {/* Game image — смещена вправо */}
                   {imgSrc && (
@@ -770,7 +773,7 @@ export default function HomePage() {
                   <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.6)', position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                     {cat.game_name}
                   </p>
-                </Link>
+                </div>
               )
             })}
           </div>

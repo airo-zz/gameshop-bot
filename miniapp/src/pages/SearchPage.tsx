@@ -1,6 +1,6 @@
 // src/pages/SearchPage.tsx
-import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useState, useRef } from 'react'
+import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { catalogApi, type Game } from '@/api'
@@ -9,10 +9,32 @@ import { useDebounce } from '@/hooks/useDebounce'
 
 function GameCard({ game }: { game: Game }) {
   const navigate = useNavigate()
+  const qc = useQueryClient()
+  const navigating = useRef(false)
+
+  async function handleClick() {
+    if (navigating.current) return
+    navigating.current = true
+    try {
+      const [, cats] = await Promise.all([
+        import('@/pages/GamePage'),
+        qc.fetchQuery({ queryKey: ['categories', game.slug], queryFn: () => catalogApi.getCategories(game.slug), staleTime: 5 * 60_000 }),
+        qc.prefetchQuery({ queryKey: ['games'], queryFn: () => catalogApi.getGames(), staleTime: 5 * 60_000 }),
+      ])
+      const firstCatId = (cats as any[])[0]?.id
+      if (firstCatId) {
+        await qc.prefetchQuery({ queryKey: ['products', firstCatId], queryFn: () => catalogApi.getProducts(firstCatId), staleTime: 2 * 60_000 })
+      }
+      navigate(`/catalog/${game.slug}`)
+    } finally {
+      navigating.current = false
+    }
+  }
+
   return (
     <button
       type="button"
-      onClick={() => navigate(`/catalog/${game.slug}`)}
+      onClick={handleClick}
       className="flex-shrink-0 flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
       style={{ width: 100, minWidth: 100, flexShrink: 0 }}
     >
@@ -54,16 +76,18 @@ export default function SearchPage() {
   const debouncedQ = useDebounce(query, 350)
   const isSearching = debouncedQ.length >= 2
 
-  const { data: products = [], isFetching: productsFetching } = useQuery({
+  const { data: products = [] } = useQuery({
     queryKey: ['search', debouncedQ],
     queryFn: () => catalogApi.search(debouncedQ),
     enabled: isSearching,
+    placeholderData: keepPreviousData,
   })
 
-  const { data: games = [], isFetching: gamesFetching } = useQuery({
+  const { data: games = [] } = useQuery({
     queryKey: ['search-games', debouncedQ],
     queryFn: () => catalogApi.searchGames(debouncedQ),
     enabled: isSearching,
+    placeholderData: keepPreviousData,
   })
 
   const { data: recent = [] } = useQuery({
@@ -73,9 +97,8 @@ export default function SearchPage() {
     staleTime: 60_000,
   })
 
-  const isFetching = productsFetching || gamesFetching
   const hasResults = games.length > 0 || products.length > 0
-  const showEmpty = isSearching && !isFetching && !hasResults
+  const showEmpty = isSearching && !hasResults
 
   return (
     <div className="px-4 pt-5 space-y-5">
@@ -121,51 +144,19 @@ export default function SearchPage() {
       {/* Search results */}
       {isSearching && (
         <>
-          {isFetching ? (
+          {hasResults && (
             <div className="space-y-5">
-              {/* Game skeletons */}
-              <div className="flex gap-3 overflow-hidden">
-                {[...Array(3)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex-shrink-0 rounded-2xl animate-pulse"
-                    style={{ width: 120, height: 72, background: 'var(--bg2)' }}
-                  />
-                ))}
-              </div>
-              {/* Product skeletons */}
-              <div className="grid grid-cols-2 gap-3">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="rounded-2xl animate-pulse" style={{ background: 'var(--bg2)', height: 180 }} />
-                ))}
-              </div>
-            </div>
-          ) : showEmpty ? (
-            <div className="text-center py-16">
-              <div
-                className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-                style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
-              >
-                <Search size={24} style={{ color: 'var(--hint)' }} />
-              </div>
-              <p className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Ничего не найдено</p>
-              <p className="text-sm" style={{ color: 'var(--hint)' }}>Попробуй другой запрос</p>
-            </div>
-          ) : (
-            <div className="space-y-5">
-              {/* Games section */}
               {games.length > 0 && (
                 <section>
                   <p className="text-xs font-semibold mb-3 uppercase tracking-wider" style={{ color: 'var(--hint)' }}>
                     Игры
                   </p>
-                  <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-none">
+                  <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 no-scrollbar">
                     {games.map(g => <GameCard key={g.id} game={g} />)}
                   </div>
                 </section>
               )}
 
-              {/* Products section */}
               {products.length > 0 && (
                 <section>
                   <p className="text-xs font-semibold mb-3 uppercase tracking-wider" style={{ color: 'var(--hint)' }}>
@@ -176,6 +167,19 @@ export default function SearchPage() {
                   </div>
                 </section>
               )}
+            </div>
+          )}
+
+          {showEmpty && (
+            <div className="text-center py-16">
+              <div
+                className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"
+                style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+              >
+                <Search size={24} style={{ color: 'var(--hint)' }} />
+              </div>
+              <p className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Ничего не найдено</p>
+              <p className="text-sm" style={{ color: 'var(--hint)' }}>Попробуй другой запрос</p>
             </div>
           )}
         </>

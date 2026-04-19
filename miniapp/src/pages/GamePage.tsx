@@ -372,6 +372,7 @@ export default function GamePage() {
   const [searchParams] = useSearchParams()
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null)
   const catFromUrlApplied = useRef(false)
+  const switchingCat = useRef(false)
   const { haptic } = useTelegram()
   const { increment, decrement } = useCartStore()
   const qc = useQueryClient()
@@ -404,6 +405,18 @@ export default function GamePage() {
   }, [categories.length, searchParams])
 
   const activeCatId = selectedCatId ?? categories[0]?.id ?? null
+
+  async function handleCatClick(catId: string) {
+    if (switchingCat.current || catId === activeCatId) return
+    if (qc.getQueryData(['products', catId])) { setSelectedCatId(catId); return }
+    switchingCat.current = true
+    try {
+      await qc.prefetchQuery({ queryKey: ['products', catId], queryFn: () => catalogApi.getProducts(catId), staleTime: 2 * 60_000 })
+      setSelectedCatId(catId)
+    } finally {
+      switchingCat.current = false
+    }
+  }
 
   const { data: products = [], isError: productsError, refetch: refetchProducts } = useQuery({
     queryKey: ['products', activeCatId],
@@ -564,15 +577,14 @@ export default function GamePage() {
       {/* Category tabs */}
       <div className="flex gap-2 px-4 pt-3 overflow-x-auto pb-2 no-scrollbar">
         {rootCats(categories).map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCatId(cat.id)}
-                className={clsx('pill', activeCatId === cat.id && 'pill-active')}
-              >
-                {cat.name}
-              </button>
-            ))
-        }
+          <button
+            key={cat.id}
+            onClick={() => handleCatClick(cat.id)}
+            className={clsx('pill', activeCatId === cat.id && 'pill-active')}
+          >
+            {cat.name}
+          </button>
+        ))}
       </div>
 
       {/* Subcategories */}
@@ -584,7 +596,7 @@ export default function GamePage() {
             {parent.children.map(sub => (
               <button
                 key={sub.id}
-                onClick={() => setSelectedCatId(sub.id)}
+                onClick={() => handleCatClick(sub.id)}
                 style={{
                   flexShrink: 0, fontSize: '12px', padding: '4px 12px', borderRadius: 999,
                   border: selectedCatId === sub.id ? '1px solid rgba(45,88,173,0.55)' : '1px solid var(--border)',
