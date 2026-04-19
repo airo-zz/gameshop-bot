@@ -126,7 +126,6 @@ function ProductSection({ product, cartQtyMap, isFavorite, isFirst, onAdd, onRem
   const lots = product.lots ?? []
   const inputFields = product.input_fields ?? []
   const isOutOfStock = product.stock !== null && product.stock === 0
-  const hasLots = lots.length > 0
   const isAuto = product.delivery_type === 'auto'
 
   const [inputData, setInputData] = useState<Record<string, string>>({})
@@ -148,103 +147,13 @@ function ProductSection({ product, cartQtyMap, isFavorite, isFirst, onAdd, onRem
     }
   }
 
-  // Pill button shared by no-lot products
-  const noLotQty = hasLots ? 0 : (cartQtyMap.get(product.id) ?? 0)
-
   return (
     <div>
       {/* Separator between products */}
       {!isFirst && <div style={{ height: 1, background: 'rgba(255,255,255,0.08)' }} />}
 
-      {/* ── No lots: single combined row ───────────────────────────────────── */}
-      {!hasLots && (
-        <div style={{
-          display: 'flex', alignItems: 'center', flexWrap: 'nowrap',
-          gap: 8, padding: '10px 14px', minWidth: 0,
-        }}>
-          {/* Name */}
-          <span style={{
-            flex: 1, minWidth: 0, fontSize: 14, fontWeight: 700, color: '#fff',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
-            {product.name}
-          </span>
-
-          {/* Delivery badge */}
-          {isOutOfStock ? (
-            <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 20, background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)' }}>
-              Нет в наличии
-            </span>
-          ) : isAuto ? (
-            <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 20, background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)' }}>
-              <Zap size={8} fill="#34d399" stroke="none" />Авто
-            </span>
-          ) : (
-            <span style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 10, padding: '2px 7px', borderRadius: 20, background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <Clock size={8} />Вручную
-            </span>
-          )}
-
-          {/* Price */}
-          <span style={{ flexShrink: 0, fontSize: 14, fontWeight: 700, color: '#6b9de8' }}>
-            {Number(product.price).toLocaleString('ru')} ₽
-          </span>
-
-          {/* Pill button */}
-          <div style={{
-            flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 9999, overflow: 'hidden', transition: 'width 0.2s',
-            width: noLotQty > 0 ? 84 : 34, height: 34,
-            background: isOutOfStock ? 'rgba(239,68,68,0.08)' : 'rgba(45,88,173,0.14)',
-            border: isOutOfStock ? '1px solid rgba(239,68,68,0.18)' : '1px solid rgba(45,88,173,0.30)',
-          }}>
-            <AnimatePresence mode="wait" initial={false}>
-              {noLotQty > 0 ? (
-                <motion.div key="qty"
-                  initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.15 }}
-                  style={{ display: 'flex', alignItems: 'center', width: '100%' }}
-                >
-                  <button type="button" onClick={() => onRemove(product)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 34, background: 'none', border: 'none', cursor: 'pointer', color: '#f87171' }}>
-                    <Minus size={13} />
-                  </button>
-                  <span style={{ flex: 1, textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#6b9de8', userSelect: 'none' }}>
-                    {noLotQty}
-                  </span>
-                  <button type="button" disabled={isOutOfStock} onClick={() => onAdd(product, undefined, inputData)}
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 34, background: 'none', border: 'none', cursor: 'pointer', color: isOutOfStock ? 'rgba(255,255,255,0.2)' : '#6b9de8' }}>
-                    <Plus size={13} />
-                  </button>
-                </motion.div>
-              ) : (
-                <motion.button key="add" type="button"
-                  initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.15 }}
-                  disabled={isOutOfStock} onClick={() => onAdd(product, undefined, inputData)}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: 'none', border: 'none', cursor: 'pointer', color: isOutOfStock ? '#f87171' : '#6b9de8' }}
-                >
-                  <Plus size={15} />
-                </motion.button>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Favorite */}
-          <button
-            type="button"
-            onClick={handleFavorite}
-            disabled={favPending}
-            style={{ flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
-          >
-            <Heart size={15} fill={isFavorite ? '#f87171' : 'none'} stroke={isFavorite ? '#f87171' : 'rgba(255,255,255,0.3)'} strokeWidth={2} />
-          </button>
-        </div>
-      )}
-
-      {/* ── Has lots: header + lot rows ────────────────────────────────────── */}
-      {hasLots && (
-        <>
+      {/* Header + lot rows */}
+      <>
           {/* Header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', flexShrink: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -335,8 +244,7 @@ function ProductSection({ product, cartQtyMap, isFavorite, isFirst, onAdd, onRem
               })
             }
           </div>
-        </>
-      )}
+      </>
     </div>
   )
 }
