@@ -49,7 +49,7 @@ export default function LoadingScreen({ exiting = false }: LoadingScreenProps) {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.25, duration: 0.35, ease: 'easeOut' }}
-        style={{ height: 36, width: 'auto', display: 'block', background: 'transparent' }}
+        style={{ height: 36, width: 'auto', display: 'block', mixBlendMode: 'screen' }}
       />
 
       {/* Subtle glow line */}
