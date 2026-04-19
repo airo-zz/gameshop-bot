@@ -228,7 +228,7 @@ export default function Layout() {
                       transform: 'translateY(-6px)',
                     }}
                   >
-                    <img src={logo} alt="" style={{ width: 22, height: 22, objectFit: 'contain', borderRadius: 4 }} />
+                    <img src={logo} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
                     <span
                       className="text-[9px] font-semibold leading-none select-none"
                       style={{ color: '#fff', whiteSpace: 'nowrap' }}

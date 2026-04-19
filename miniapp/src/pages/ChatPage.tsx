@@ -449,9 +449,9 @@ export default function ChatPage() {
         <div style={{
           width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
           background: 'linear-gradient(135deg, #1e3a8a, #1d4ed8)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <img src={logo} alt="" style={{ width: 24, height: 24, objectFit: 'contain' }} />
+          <img src={logo} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>Продавец</p>
@@ -500,9 +500,9 @@ export default function ChatPage() {
               <div style={{
                 width: 64, height: 64, borderRadius: 22,
                 background: 'rgba(29,78,216,0.12)', border: '1px solid rgba(29,78,216,0.2)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <img src={logo} alt="" style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                <img src={logo} alt="" style={{ width: 48, height: 48, objectFit: 'contain' }} />
               </div>
               <div>
                 <p style={{ fontWeight: 700, fontSize: 16, color: 'var(--text)', margin: '0 0 6px' }}>Чат с продавцом</p>

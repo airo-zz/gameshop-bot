@@ -547,7 +547,7 @@ export default function HomePage() {
             <img
               src={logoSrc}
               alt="logo"
-              style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'block' }}
+              style={{ width: 36, height: 36, flexShrink: 0, display: 'block' }}
             />
             <span
               style={{
