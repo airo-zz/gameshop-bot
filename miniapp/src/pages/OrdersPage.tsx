@@ -1,6 +1,7 @@
 // src/pages/OrdersPage.tsx
-import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link, useNavigate } from 'react-router-dom'
+import { useRef } from 'react'
 import { motion } from 'framer-motion'
 import { Package, ChevronRight } from 'lucide-react'
 import { ordersApi } from '@/api'
@@ -24,6 +25,24 @@ const STATUS_COLOR: Record<string, string> = {
 }
 
 export default function OrdersPage() {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const navigating = useRef(false)
+
+  async function handleOrderClick(id: string) {
+    if (navigating.current) return
+    navigating.current = true
+    try {
+      await Promise.all([
+        import('@/pages/OrderDetailPage'),
+        queryClient.prefetchQuery({ queryKey: ['order', id], queryFn: () => ordersApi.get(id), staleTime: 5_000 }),
+      ])
+      navigate(`/orders/${id}`)
+    } finally {
+      navigating.current = false
+    }
+  }
+
   const { data: rawOrders = [], isError, refetch } = useQuery({
     queryKey: ['orders'],
     queryFn: () => ordersApi.list(),
@@ -73,11 +92,11 @@ export default function OrdersPage() {
       ) : (
         <div className="space-y-2">
           {orders.map(order => (
-            <Link
+            <div
               key={order.id}
-              to={`/orders/${order.id}`}
+              onClick={() => handleOrderClick(order.id)}
               className="flex items-center gap-3 p-4 rounded-2xl active:scale-[0.98] transition-transform"
-              style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+              style={{ background: 'var(--bg2)', border: '1px solid var(--border)', cursor: 'pointer' }}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
@@ -104,7 +123,7 @@ export default function OrdersPage() {
                 </p>
               </div>
               <ChevronRight size={16} style={{ color: 'var(--hint)' }} />
-            </Link>
+            </div>
           ))}
         </div>
       )}

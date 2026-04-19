@@ -1,11 +1,11 @@
 // src/pages/ProfilePage.tsx
 import { useState, useEffect, useRef } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Heart, Package, Share2, MessageCircle, Wallet, ShoppingBag, Users, Gift, Info, Settings, Shield, Star, Crown, Gem } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { profileApi, type LoyaltyLevelEntry } from '@/api'
+import { profileApi, ordersApi, catalogApi, supportApi, type LoyaltyLevelEntry } from '@/api'
 import { adminApi, type AdminMe } from '@/api/admin'
 import { useTelegram } from '@/hooks/useTelegram'
 
@@ -178,17 +178,47 @@ function AvatarBlock({ showAvatar, avatarSrc, avatarInitial, onError }: AvatarBl
 }
 
 function MenuBlock() {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const navigating = useRef(false)
+
+  async function handleMenuClick(to: string) {
+    if (navigating.current) return
+    navigating.current = true
+    try {
+      if (to === '/orders') {
+        await Promise.all([
+          import('@/pages/OrdersPage'),
+          queryClient.prefetchQuery({ queryKey: ['orders'], queryFn: () => ordersApi.list(), staleTime: 30_000 }),
+        ])
+      } else if (to === '/favorites') {
+        await Promise.all([
+          import('@/pages/FavoritesPage'),
+          queryClient.prefetchQuery({ queryKey: ['favorites'], queryFn: catalogApi.getFavorites, staleTime: 60_000 }),
+        ])
+      } else if (to === '/support') {
+        await Promise.all([
+          import('@/pages/SupportPage'),
+          queryClient.prefetchQuery({ queryKey: ['tickets'], queryFn: supportApi.list, staleTime: 30_000 }),
+        ])
+      }
+      navigate(to)
+    } finally {
+      navigating.current = false
+    }
+  }
+
   return (
     <div className="grid grid-cols-3 gap-2">
       {MENU_ITEMS.map(({ to, icon, label }) => (
-        <Link
+        <div
           key={to}
-          to={to}
+          onClick={() => handleMenuClick(to)}
           className="flex flex-col items-center gap-2 py-4 px-2 rounded-2xl active:scale-[0.96] transition-transform"
           style={{
             background: 'var(--bg2)',
             border: '1px solid var(--border)',
-            textDecoration: 'none',
+            cursor: 'pointer',
           }}
         >
           <div
@@ -207,7 +237,7 @@ function MenuBlock() {
           >
             {label}
           </span>
-        </Link>
+        </div>
       ))}
     </div>
   )
@@ -215,8 +245,37 @@ function MenuBlock() {
 
 export default function ProfilePage() {
   const { user, haptic, tg } = useTelegram()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const navigating = useRef(false)
   const [avatarError, setAvatarError] = useState(false)
   const [showLevels, setShowLevels] = useState(false)
+
+  async function handleStatClick(to: string) {
+    if (navigating.current) return
+    navigating.current = true
+    try {
+      if (to === '/balance') {
+        await Promise.all([
+          import('@/pages/BalancePage'),
+          queryClient.prefetchQuery({ queryKey: ['balance-history'], queryFn: profileApi.getBalanceHistory, staleTime: 60_000 }),
+        ])
+      } else if (to === '/orders') {
+        await Promise.all([
+          import('@/pages/OrdersPage'),
+          queryClient.prefetchQuery({ queryKey: ['orders'], queryFn: () => ordersApi.list(), staleTime: 30_000 }),
+        ])
+      } else if (to === '/referrals') {
+        await Promise.all([
+          import('@/pages/ReferralsPage'),
+          queryClient.prefetchQuery({ queryKey: ['referral-stats'], queryFn: profileApi.getReferralStats, staleTime: 60_000 }),
+        ])
+      }
+      navigate(to)
+    } finally {
+      navigating.current = false
+    }
+  }
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: profileApi.get,
@@ -384,16 +443,16 @@ export default function ProfilePage() {
           { label: 'Заказов',   value: String(profile.orders_count),   color: 'var(--text)', icon: <ShoppingBag size={14} />, to: '/orders' },
           { label: 'Рефералов', value: String(profile.referrals_count), color: '#34d399',    icon: <Users size={14} />, to: '/referrals' },
         ].map(({ label, value, color, icon, to }) => (
-          <Link
+          <div
             key={label}
-            to={to}
-            style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '12px 10px', textAlign: 'center', textDecoration: 'none', display: 'block' }}
+            onClick={() => handleStatClick(to)}
+            style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '12px 10px', textAlign: 'center', display: 'block', cursor: 'pointer' }}
             className="active:scale-95 transition-transform"
           >
             <div style={{ color, opacity: 0.6, display: 'flex', justifyContent: 'center', marginBottom: 4 }}>{icon}</div>
             <p className="text-base font-bold truncate" style={{ color }}>{value}</p>
             <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>{label}</p>
-          </Link>
+          </div>
         ))}
       </div>
 

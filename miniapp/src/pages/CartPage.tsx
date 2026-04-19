@@ -1,10 +1,10 @@
 // src/pages/CartPage.tsx
 import { useState, useCallback, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Trash2, Plus, Minus, Tag, ShoppingBag } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { cartApi, type CartItem } from '@/api'
+import { cartApi, profileApi, type CartItem } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
 import { disintegrateAll } from '@/hooks/useDisintegrate'
@@ -12,8 +12,17 @@ import { fmtPrice } from '@/utils/format'
 
 export default function CartPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { haptic, showConfirm } = useTelegram()
   const { setItemsCount } = useCartStore()
+
+  async function handleCheckout() {
+    await Promise.all([
+      import('@/pages/CheckoutPage'),
+      queryClient.prefetchQuery({ queryKey: ['profile'], queryFn: profileApi.get, staleTime: 60_000 }),
+    ])
+    navigate('/checkout')
+  }
 
   const [promoInput, setPromoInput] = useState('')
   const [promoApplying, setPromoApplying] = useState(false)
@@ -286,7 +295,7 @@ export default function CartPage() {
           </div>
         </div>
 
-        <button type="button" className="btn-primary" onClick={() => navigate('/checkout')}>
+        <button type="button" className="btn-primary" onClick={handleCheckout}>
           Оформить заказ
         </button>
 

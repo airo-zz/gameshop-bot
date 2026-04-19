@@ -1,8 +1,8 @@
 // src/pages/OrderDetailPage.tsx
 import React from 'react'
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { ordersApi } from '@/api'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { ordersApi, chatApi } from '@/api'
 import { CheckCircle, Clock, Copy, MessageCircle, XCircle, HelpCircle, RefreshCw, BadgeCheck, Circle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -23,8 +23,22 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const isSuccess = searchParams.get('success') === '1'
   const { haptic } = useTelegram()
+
+  async function handleChatClick() {
+    await Promise.all([
+      import('@/pages/ChatPage'),
+      queryClient.getQueryData(['chat'])
+        ? Promise.resolve()
+        : queryClient.prefetchQuery({ queryKey: ['chat'], queryFn: chatApi.getOrCreate, staleTime: Infinity }),
+      queryClient.getQueryData(['chat-messages'])
+        ? Promise.resolve()
+        : queryClient.prefetchQuery({ queryKey: ['chat-messages'], queryFn: () => chatApi.getMessages() }),
+    ])
+    navigate('/chat')
+  }
 
   const isPending = searchParams.get('pending') === '1'
 
@@ -220,7 +234,7 @@ export default function OrderDetailPage() {
       {SUPPORT_STATUSES.has(order.status) && (
         <button
           type="button"
-          onClick={() => navigate('/chat')}
+          onClick={handleChatClick}
           className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm transition-all active:scale-95"
           style={{
             background: 'rgba(45,88,173,0.14)',
