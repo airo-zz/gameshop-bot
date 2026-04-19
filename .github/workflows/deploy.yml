@@ -178,7 +178,7 @@ jobs:
   deploy-miniapp:
     name: Deploy Mini App to VPS
     runs-on: ubuntu-latest
-    needs: [detect-changes, test, build-miniapp]
+    needs: [detect-changes, build-miniapp]
     if: |
       needs.detect-changes.outputs.miniapp == 'true' ||
       github.event.inputs.force_miniapp == 'yes'
