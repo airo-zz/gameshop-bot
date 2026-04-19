@@ -86,6 +86,7 @@ export default function App() {
   const { setItemsCount } = useCartStore()
   const queryClient = useQueryClient()
   const initialized = useRef(false)
+  const initStartedAt = useRef(Date.now())
   const [splashExiting, setSplashExiting] = useState(false)
   const [splashGone, setSplashGone] = useState(false)
 
@@ -141,9 +142,12 @@ export default function App() {
 
   useEffect(() => {
     if (!isReady) return
-    setSplashExiting(true)
-    const t = setTimeout(() => setSplashGone(true), 400)
-    return () => clearTimeout(t)
+    const MIN_SPLASH_MS = 1400
+    const elapsed = Date.now() - initStartedAt.current
+    const delay = Math.max(0, MIN_SPLASH_MS - elapsed)
+    const t1 = setTimeout(() => setSplashExiting(true), delay)
+    const t2 = setTimeout(() => setSplashGone(true), delay + 400)
+    return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [isReady])
 
   if (isError) return <ErrorScreen />

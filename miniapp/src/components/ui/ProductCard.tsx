@@ -8,9 +8,10 @@ interface Props {
   product: Product
   isFavorite?: boolean
   onFavoriteToggle?: (id: string, added: boolean) => void
+  hidePrice?: boolean
 }
 
-export default function ProductCard({ product, isFavorite = false, onFavoriteToggle }: Props) {
+export default function ProductCard({ product, isFavorite = false, onFavoriteToggle, hidePrice = false }: Props) {
   const { haptic } = useTelegram()
   const minPrice = product.lots.length
     ? Math.min(...product.lots.map(l => l.price))
@@ -184,12 +185,14 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
           {product.name}
         </p>
 
-        <p
-          className="text-base font-bold mt-auto"
-          style={{ color: 'rgba(255,255,255,0.9)' }}
-        >
-          от {minPrice.toLocaleString('ru')} ₽
-        </p>
+        {!hidePrice && (
+          <p
+            className="text-base font-bold mt-auto"
+            style={{ color: 'rgba(255,255,255,0.9)' }}
+          >
+            от {minPrice.toLocaleString('ru')} ₽
+          </p>
+        )}
       </div>
 
       {/* Favorite button — shown in corner when no image */}

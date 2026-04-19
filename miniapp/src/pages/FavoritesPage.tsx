@@ -61,7 +61,7 @@ export default function FavoritesPage() {
       ) : (
         <div className="grid grid-cols-2 gap-3">
           {favorites.map(p => (
-            <ProductCard key={p.id} product={p} isFavorite onFavoriteToggle={handleToggle} />
+            <ProductCard key={p.id} product={p} isFavorite hidePrice onFavoriteToggle={handleToggle} />
           ))}
         </div>
       )}
