@@ -504,7 +504,32 @@ export default function ChatPage() {
             </motion.div>
           </AnimatePresence>
         ) : (
-          <PhotoProvider>
+          <PhotoProvider
+            bannerVisible={false}
+            overlayRender={({ onClose }) => (
+              <button
+                onClick={onClose}
+                style={{
+                  position: 'fixed',
+                  top: 'calc(env(safe-area-inset-top, 0px) + 60px)',
+                  right: 16,
+                  zIndex: 2001,
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: 'rgba(0,0,0,0.5)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                }}
+              >
+                <X size={20} />
+              </button>
+            )}
+          >
             {grouped.map(group => (
               <div key={group.dateKey}>
                 <DateSeparator label={group.label} />
