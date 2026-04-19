@@ -1,6 +1,6 @@
 // src/pages/ChatPage.tsx
 import {
-  useState, useEffect, useRef, useCallback,
+  useState, useEffect, useLayoutEffect, useRef, useCallback,
   type FormEvent, type ReactNode,
 } from 'react'
 import { flushSync } from 'react-dom'
@@ -367,7 +367,7 @@ export default function ChatPage() {
     return () => clearTimeout(timer)
   }, [orderIdParam, chat, queryClient, setSearchParams])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     messagesEndRef.current?.scrollIntoView()
   }, [messages.length])
 
