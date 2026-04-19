@@ -2,10 +2,11 @@
 import { lazy, Suspense, useEffect, useRef, useState, Component, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import { useQueryClient } from '@tanstack/react-query'
 import { useTelegram } from '@/hooks/useTelegram'
 import { authenticateWithTelegram } from '@/api/client'
 import { useAuthStore, useCartStore } from '@/store'
-import { cartApi } from '@/api'
+import { cartApi, catalogApi, profileApi } from '@/api'
 
 import Layout from '@/components/layout/Layout'
 import TelegramBackButton from '@/components/TelegramBackButton'
@@ -83,6 +84,7 @@ export default function App() {
   const { initData } = useTelegram()
   const { isReady, isError, setReady, setError } = useAuthStore()
   const { setItemsCount } = useCartStore()
+  const queryClient = useQueryClient()
   const initialized = useRef(false)
   const [splashExiting, setSplashExiting] = useState(false)
   const [splashGone, setSplashGone] = useState(false)
@@ -93,19 +95,38 @@ export default function App() {
 
     async function init() {
       try {
+        // 1. Аутентификация — блокирующая, все последующие запросы требуют токен
         if (initData) {
           try {
             await authenticateWithTelegram(initData)
           } catch {
-            // Auth API может быть недоступен — продолжаем без токена
+            // Auth API недоступен — продолжаем без токена
           }
         }
 
-        try {
-          const cart = await cartApi.get()
-          setItemsCount(cart.items_count)
-        } catch {
-          // OK — пользователь не авторизован или API недоступен
+        // 2. Параллельно грузим всё нужное для главной страницы
+        //    Promise.allSettled — не падаем если один запрос не удался
+        const [cartResult] = await Promise.allSettled([
+          cartApi.get(),
+          queryClient.prefetchQuery({
+            queryKey: ['games', 'game'],
+            queryFn: () => catalogApi.getGames('game'),
+            staleTime: 5 * 60_000,
+          }),
+          queryClient.prefetchQuery({
+            queryKey: ['trending-categories'],
+            queryFn: catalogApi.getTrendingCategories,
+            staleTime: 2 * 60_000,
+          }),
+          queryClient.prefetchQuery({
+            queryKey: ['profile'],
+            queryFn: profileApi.get,
+            staleTime: 5 * 60_000,
+          }),
+        ])
+
+        if (cartResult.status === 'fulfilled') {
+          setItemsCount(cartResult.value.items_count)
         }
 
         setReady()

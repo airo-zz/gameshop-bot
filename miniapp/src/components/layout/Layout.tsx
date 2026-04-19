@@ -276,6 +276,11 @@ export default function Layout() {
                     queryFn: catalogApi.getTrendingCategories,
                     staleTime: 30_000,
                   }),
+                  queryClient.prefetchQuery({
+                    queryKey: ['profile'],
+                    queryFn: profileApi.get,
+                    staleTime: 30_000,
+                  }),
                 ]).then(() => {}))
               } else if (to === '/catalog') {
                 prefetchAndNavigate(to, () => Promise.all([

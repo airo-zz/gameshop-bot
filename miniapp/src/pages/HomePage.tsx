@@ -1,7 +1,7 @@
 // src/pages/HomePage.tsx
 
 import { useState, useRef, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Shield, Star, Crown, Gem } from 'lucide-react'
@@ -456,6 +456,24 @@ export default function HomePage() {
   }
 
   const [homeType, setHomeType] = useState<'game' | 'service'>('game')
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const navigating = useRef(false)
+
+  async function handleGameClick(slug: string) {
+    if (navigating.current) return
+    navigating.current = true
+    try {
+      await Promise.all([
+        import('@/pages/GamePage'),
+        queryClient.prefetchQuery({ queryKey: ['categories', slug], queryFn: () => catalogApi.getCategories(slug), staleTime: 5 * 60_000 }),
+        queryClient.prefetchQuery({ queryKey: ['games'], queryFn: () => catalogApi.getGames(), staleTime: 5 * 60_000 }),
+      ])
+      navigate(`/catalog/${slug}`)
+    } finally {
+      navigating.current = false
+    }
+  }
 
   const { data: games = [] } = useQuery({
     queryKey: ['games', homeType],
@@ -825,19 +843,19 @@ export default function HomePage() {
               }}
             >
               {games.map(game => (
-                <Link
+                <div
                   key={game.id}
-                  to={`/catalog/${game.slug}`}
+                  onClick={() => handleGameClick(game.slug)}
                   className="active:scale-95 transition-transform"
                   style={{
                     borderRadius: 18,
                     overflow: 'hidden',
                     border: '1px solid rgba(255,255,255,0.08)',
-                    textDecoration: 'none',
                     display: 'block',
                     background: 'rgba(12,11,26,0.50)',
                     backdropFilter: 'blur(10px)',
                     WebkitBackdropFilter: 'blur(10px)',
+                    cursor: 'pointer',
                   }}
                 >
                   <ImageWithSkeleton
@@ -879,7 +897,7 @@ export default function HomePage() {
                       {game.name}
                     </p>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>}
         </section>

@@ -1,7 +1,7 @@
 // src/pages/CatalogPage.tsx
 import { useState, useEffect, useRef } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Link } from 'react-router-dom'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, Search, X } from 'lucide-react'
 import { catalogApi } from '@/api'
@@ -20,6 +20,24 @@ export default function CatalogPage() {
   const [activeType, setActiveType] = useState<CatalogType>('game')
   const debouncedQuery = useDebounce(query, 300)
   const inputRef = useRef<HTMLInputElement>(null)
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const navigating = useRef(false)
+
+  async function handleGameClick(slug: string) {
+    if (navigating.current) return
+    navigating.current = true
+    try {
+      await Promise.all([
+        import('@/pages/GamePage'),
+        queryClient.prefetchQuery({ queryKey: ['categories', slug], queryFn: () => catalogApi.getCategories(slug), staleTime: 5 * 60_000 }),
+        queryClient.prefetchQuery({ queryKey: ['games'], queryFn: () => catalogApi.getGames(), staleTime: 5 * 60_000 }),
+      ])
+      navigate(`/catalog/${slug}`)
+    } finally {
+      navigating.current = false
+    }
+  }
 
   const { data: games = [], isError, refetch } = useQuery({
     queryKey: ['games', activeType],
@@ -142,11 +160,11 @@ export default function CatalogPage() {
         <div className="space-y-2 pt-1">
           {filteredGames.length > 0 ? (
             filteredGames.map(game => (
-              <Link
+              <div
                 key={game.id}
-                to={`/catalog/${game.slug}`}
+                onClick={() => handleGameClick(game.slug)}
                 className="flex items-center gap-3 p-3 rounded-2xl active:scale-[0.98] transition-transform"
-                style={{ background: 'var(--bg2)', border: '1px solid var(--border)', textDecoration: 'none' }}
+                style={{ background: 'var(--bg2)', border: '1px solid var(--border)', cursor: 'pointer' }}
               >
                 <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
                   <ImageWithSkeleton
@@ -162,7 +180,7 @@ export default function CatalogPage() {
                   <p className="font-semibold truncate" style={{ color: 'var(--text)' }}>{game.name}</p>
                 </div>
                 <ChevronRight size={16} style={{ color: 'var(--hint)' }} />
-              </Link>
+              </div>
             ))
           ) : (
             <div className="text-center py-12">
@@ -185,11 +203,11 @@ export default function CatalogPage() {
             transition={{ duration: 0.18, ease: 'easeOut' }}
           >
             {games.map(game => (
-              <Link
+              <div
                 key={game.id}
-                to={`/catalog/${game.slug}`}
+                onClick={() => handleGameClick(game.slug)}
                 className="flex flex-col rounded-2xl overflow-hidden active:scale-[0.96] transition-transform"
-                style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+                style={{ background: 'var(--bg2)', border: '1px solid var(--border)', cursor: 'pointer' }}
               >
                 <ImageWithSkeleton
                   src={game.image_url}
@@ -207,7 +225,7 @@ export default function CatalogPage() {
                     {game.name}
                   </p>
                 </div>
-              </Link>
+              </div>
             ))}
           </motion.div>
         </AnimatePresence>
