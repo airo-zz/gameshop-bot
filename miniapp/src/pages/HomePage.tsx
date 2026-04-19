@@ -6,9 +6,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Shield, Star, Crown, Gem } from 'lucide-react'
 import { catalogApi, profileApi } from '@/api'
-import { useShopStore, useUIStore } from '@/store'
+import { useUIStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
-import logoSrc from '@/assets/logo.svg'
+import logoFullSrc from '@/assets/logo-full.svg'
 import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 
@@ -443,7 +443,7 @@ const CARD_GRADIENTS = [
 
 export default function HomePage() {
   const [menuOpen, setMenuOpen] = useState(false)
-  const shopName = useShopStore(s => s.name)
+
   const { user } = useTelegram()
   const displayName = user?.first_name || user?.username || null
 
@@ -542,27 +542,12 @@ export default function HomePage() {
             height: 56,
           }}
         >
-          {/* Logo + name */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <img
-              src={logoSrc}
-              alt="logo"
-              style={{ width: 36, height: 36, flexShrink: 0, display: 'block' }}
-            />
-            <span
-              style={{
-                fontWeight: 800,
-                fontSize: '1.5rem',
-                letterSpacing: '-0.01em',
-                background: 'linear-gradient(135deg, #ffffff, #93b8f0)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              {shopName}
-            </span>
-          </div>
+          {/* Logo full */}
+          <img
+            src={logoFullSrc}
+            alt="reDonate"
+            style={{ height: 32, width: 'auto', display: 'block', flexShrink: 0 }}
+          />
 
           {/* Right actions — поиск + меню */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
