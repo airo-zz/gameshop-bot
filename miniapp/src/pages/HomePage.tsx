@@ -689,7 +689,6 @@ export default function HomePage() {
             Популярное
           </h2>
 
-          <div>
           <div
             ref={trendingScrollRef}
             onScroll={() => {
