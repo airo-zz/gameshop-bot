@@ -27,10 +27,11 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
     : 0
 
   return (
-    <div
-      className="flex items-center gap-2 py-2.5 px-3.5"
-      style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-    >
+    <div style={{
+      display: 'flex', alignItems: 'center', flexWrap: 'nowrap',
+      gap: 8, padding: '10px 14px', minWidth: 0,
+      borderBottom: '1px solid rgba(255,255,255,0.04)',
+    }}>
       {/* Name */}
       <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{
@@ -52,46 +53,44 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
       </div>
 
       {/* Price */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
-        <span className="text-sm font-bold" style={{ color: '#6b9de8' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+        <span style={{ fontSize: '0.875rem', fontWeight: 700, color: '#6b9de8' }}>
           {Number(lot.price).toLocaleString('ru')} ₽
         </span>
         {hasDiscount && (
-          <span className="text-[9px] font-bold px-1 py-0.5 rounded-full"
-            style={{ background: 'rgba(16,185,129,0.18)', color: '#34d399' }}>
+          <span style={{
+            fontSize: 9, fontWeight: 700, padding: '2px 4px', borderRadius: 999,
+            background: 'rgba(16,185,129,0.18)', color: '#34d399',
+          }}>
             -{discountPct}%
           </span>
         )}
       </div>
 
       {/* Animated pill: [+] → [− qty +] */}
-      <div
-        className="flex-shrink-0 flex items-center justify-center rounded-full overflow-hidden transition-all duration-200"
-        style={{
-          width: cartQty > 0 ? 84 : 34,
-          height: 34,
-          background: disabled ? 'rgba(239,68,68,0.08)' : 'rgba(45,88,173,0.14)',
-          border: disabled ? '1px solid rgba(239,68,68,0.18)' : '1px solid rgba(45,88,173,0.30)',
-        }}
-      >
+      <div style={{
+        flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        borderRadius: 9999, overflow: 'hidden', transition: 'width 0.2s',
+        width: cartQty > 0 ? 84 : 34, height: 34,
+        background: disabled ? 'rgba(239,68,68,0.08)' : 'rgba(45,88,173,0.14)',
+        border: disabled ? '1px solid rgba(239,68,68,0.18)' : '1px solid rgba(45,88,173,0.30)',
+      }}>
         <AnimatePresence mode="wait" initial={false}>
           {cartQty > 0 ? (
             <motion.div key="qty"
               initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.15 }}
-              className="flex items-center w-full"
+              style={{ display: 'flex', alignItems: 'center', width: '100%' }}
             >
               <button type="button" onClick={onRemove}
-                className="flex items-center justify-center w-[28px] h-[34px] active:scale-90 transition-transform"
-                style={{ color: '#f87171' }}>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 34, background: 'none', border: 'none', cursor: 'pointer', color: '#f87171' }}>
                 <Minus size={13} />
               </button>
-              <span className="flex-1 text-center text-xs font-bold select-none" style={{ color: '#6b9de8' }}>
+              <span style={{ flex: 1, textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#6b9de8', userSelect: 'none' }}>
                 {cartQty}
               </span>
               <button type="button" disabled={disabled} onClick={onAdd}
-                className="flex items-center justify-center w-[28px] h-[34px] active:scale-90 transition-transform"
-                style={{ color: disabled ? 'rgba(255,255,255,0.2)' : '#6b9de8' }}>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 34, background: 'none', border: 'none', cursor: 'pointer', color: disabled ? 'rgba(255,255,255,0.2)' : '#6b9de8' }}>
                 <Plus size={13} />
               </button>
             </motion.div>
@@ -100,8 +99,7 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
               initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.15 }}
               disabled={disabled} onClick={onAdd}
-              className="flex items-center justify-center w-full h-full active:scale-90 transition-transform"
-              style={{ color: disabled ? '#f87171' : '#6b9de8' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: 'none', border: 'none', cursor: 'pointer', color: disabled ? '#f87171' : '#6b9de8' }}
             >
               <Plus size={15} />
             </motion.button>
