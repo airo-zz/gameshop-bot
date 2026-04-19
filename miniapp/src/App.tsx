@@ -91,11 +91,11 @@ export default function App() {
   const [splashGone, setSplashGone] = useState(false)
 
   useEffect(() => {
-    // Lock portrait orientation via Telegram WebApp API (SDK 7.x+)
-    try {
-      const twa = (window as any).Telegram?.WebApp
-      if (twa?.lockOrientation) twa.lockOrientation()
-    } catch { /* ignore if not supported */ }
+    const twa = (window as any).Telegram?.WebApp
+    try { if (twa?.lockOrientation) twa.lockOrientation() } catch { /* ignore */ }
+    // Set CSS var for content safe area (includes Telegram buttons offset)
+    const top = twa?.contentSafeAreaInset?.top ?? twa?.safeAreaInset?.top ?? 0
+    document.documentElement.style.setProperty('--tg-content-safe-top', `${top}px`)
   }, [])
 
   useEffect(() => {

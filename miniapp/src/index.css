@@ -35,9 +35,9 @@ html, body, #root {
 
 button { user-select: none; }
 
-/* ── react-photo-view: toolbar below Telegram safe area ─────────────────── */
+/* ── react-photo-view: toolbar below Telegram content safe area ──────────── */
 .PhotoView-Slider__BannerWrap {
-  top: env(safe-area-inset-top, 0px) !important;
+  top: var(--tg-content-safe-top, env(safe-area-inset-top, 0px)) !important;
 }
 
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
