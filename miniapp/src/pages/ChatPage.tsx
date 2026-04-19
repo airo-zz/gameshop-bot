@@ -3,12 +3,12 @@ import {
   useState, useEffect, useLayoutEffect, useRef, useCallback,
   type FormEvent, type ReactNode,
 } from 'react'
-import { flushSync } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Send, Paperclip, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
+import { PhotoProvider, PhotoView } from 'react-photo-view'
+import 'react-photo-view/dist/react-photo-view.css'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
 import { chatApi, type ChatMessage } from '@/api'
@@ -183,10 +183,8 @@ function DateSeparator({ label }: { label: string }) {
 
 function MessageBubble({
   msg,
-  onImageClick,
 }: {
   msg: ChatMessage & { optimistic?: boolean }
-  onImageClick: (url: string) => void
 }) {
   const isUser = msg.sender_type === 'user'
   const isAdmin = msg.sender_type === 'admin'
@@ -218,15 +216,13 @@ function MessageBubble({
               const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(url)
               const absUrl = url.startsWith('http') ? url : `https://redonate.su${url}`
               return isImage ? (
-                <button
-                  key={idx}
-                  type="button"
-                  data-img-url={absUrl}
-                  onClick={() => onImageClick(absUrl)}
-                  style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', flexShrink: 0, border: 'none', padding: 0, cursor: 'pointer', position: 'relative', background: 'transparent', touchAction: 'none', WebkitTapHighlightColor: 'transparent' }}
-                >
-                  <img src={absUrl} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }} />
-                </button>
+                <PhotoView key={idx} src={absUrl}>
+                  <div
+                    style={{ width: 80, height: 80, borderRadius: 10, overflow: 'hidden', flexShrink: 0, cursor: 'pointer' }}
+                  >
+                    <img src={absUrl} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }} />
+                  </div>
+                </PhotoView>
               ) : (
                 <button
                   key={idx}
@@ -258,7 +254,6 @@ export default function ChatPage() {
   const [sending, setSending] = useState(false)
   const [attachedFiles, setAttachedFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -278,7 +273,7 @@ export default function ChatPage() {
       const t = e.touches[0]
       startX = t.clientX
       startY = t.clientY
-      touchBtn = (e.target as HTMLElement).closest('[data-img-url],[data-file-url]') as HTMLElement | null
+      touchBtn = (e.target as HTMLElement).closest('[data-file-url]') as HTMLElement | null
     }
     const onEnd = (e: TouchEvent) => {
       const btn = touchBtn
@@ -287,9 +282,7 @@ export default function ChatPage() {
       const t = e.changedTouches[0]
       if (Math.abs(t.clientX - startX) > 10 || Math.abs(t.clientY - startY) > 10) return
       const tg = (window as any).Telegram?.WebApp
-      if (btn.dataset.imgUrl) {
-        flushSync(() => setLightboxUrl(btn.dataset.imgUrl!))
-      } else if (btn.dataset.fileUrl) {
+      if (btn.dataset.fileUrl) {
         if (tg?.openLink) tg.openLink(btn.dataset.fileUrl)
         else window.open(btn.dataset.fileUrl, '_blank')
       }
@@ -511,17 +504,19 @@ export default function ChatPage() {
             </motion.div>
           </AnimatePresence>
         ) : (
-          grouped.map(group => (
-            <div key={group.dateKey}>
-              <DateSeparator label={group.label} />
-              {group.msgs.map(msg => {
-                if (msg.sender_type === 'system') {
-                  return <SystemMessage key={msg.id} text={msg.text ?? ''} />
-                }
-                return <MessageBubble key={msg.id} msg={msg} onImageClick={setLightboxUrl} />
-              })}
-            </div>
-          ))
+          <PhotoProvider>
+            {grouped.map(group => (
+              <div key={group.dateKey}>
+                <DateSeparator label={group.label} />
+                {group.msgs.map(msg => {
+                  if (msg.sender_type === 'system') {
+                    return <SystemMessage key={msg.id} text={msg.text ?? ''} />
+                  }
+                  return <MessageBubble key={msg.id} msg={msg} />
+                })}
+              </div>
+            ))}
+          </PhotoProvider>
         )}
         <div ref={messagesEndRef} />
       </div>
@@ -587,72 +582,6 @@ export default function ChatPage() {
         </form>
       </div>
 
-      {/* Lightbox */}
-      <AnimatePresence>
-        {lightboxUrl && (
-          <motion.div
-            key="lightbox-backdrop"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            onClick={() => setLightboxUrl(null)}
-            style={{
-              position: 'fixed', inset: 0,
-              background: 'rgba(0,0,0,0.93)',
-              zIndex: 9999,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              touchAction: 'none',
-            }}
-          >
-            <TransformWrapper
-              initialScale={1}
-              minScale={1}
-              maxScale={5}
-              centerOnInit
-              onZoomStop={({ state }) => {
-                // close only when not zoomed in
-                if (state.scale <= 1.05) return
-              }}
-            >
-              {({ state }) => (
-                <motion.div
-                  drag={state.scale <= 1.05 ? 'y' : false}
-                  dragConstraints={{ top: 0, bottom: 0 }}
-                  dragElastic={{ top: 0.25, bottom: 0.5 }}
-                  onDragEnd={(_, info) => {
-                    if (state.scale > 1.05) return
-                    if (Math.abs(info.offset.y) > 100 || Math.abs(info.velocity.y) > 400) {
-                      setLightboxUrl(null)
-                    }
-                  }}
-                  onClick={e => e.stopPropagation()}
-                  style={{ cursor: state.scale > 1.05 ? 'move' : 'grab' }}
-                >
-                  <TransformComponent
-                    wrapperStyle={{ maxWidth: '100vw', maxHeight: '88vh' }}
-                  >
-                    <img
-                      src={lightboxUrl!}
-                      alt=""
-                      draggable={false}
-                      style={{
-                        maxWidth: '100vw',
-                        maxHeight: '88vh',
-                        objectFit: 'contain',
-                        userSelect: 'none',
-                        WebkitUserSelect: 'none',
-                        borderRadius: 4,
-                        display: 'block',
-                      }}
-                    />
-                  </TransformComponent>
-                </motion.div>
-              )}
-            </TransformWrapper>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   )
 }
