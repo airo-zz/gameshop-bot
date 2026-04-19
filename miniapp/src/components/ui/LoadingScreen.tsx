@@ -44,9 +44,9 @@ export default function LoadingScreen({ exiting = false }: LoadingScreenProps) {
       {/* Brand name — inline SVG, no img tag, no background artifact */}
       <motion.svg
         viewBox="990 130 2855 475"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25, duration: 0.35, ease: 'easeOut' }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.25, duration: 0.45, ease: 'easeOut' }}
         style={{ height: 36, width: 'auto', display: 'block', overflow: 'visible' }}
         aria-label="reDonate"
       >

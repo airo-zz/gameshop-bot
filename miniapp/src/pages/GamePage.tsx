@@ -32,17 +32,23 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
       style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
     >
       {/* Name */}
-      <div className="flex-1 min-w-0" style={{ overflow: 'hidden' }}>
-        <span className="text-sm font-medium"
-          style={{ color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', display: 'block' }}>
+      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{
+          fontSize: '0.875rem', fontWeight: 500, color: 'var(--text)',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          flex: 1, minWidth: 0,
+        }}>
           {lot.name}
-          {lot.badge && (
-            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full ml-1.5"
-              style={{ background: 'linear-gradient(135deg,#f59e0b,#ef4444)', color: '#fff', verticalAlign: 'middle' }}>
-              {lot.badge}
-            </span>
-          )}
         </span>
+        {lot.badge && (
+          <span style={{
+            flexShrink: 0,
+            background: 'linear-gradient(135deg,#f59e0b,#ef4444)', color: '#fff',
+            fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 999,
+          }}>
+            {lot.badge}
+          </span>
+        )}
       </div>
 
       {/* Price */}
