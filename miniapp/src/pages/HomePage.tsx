@@ -8,7 +8,7 @@ import { Shield, Star, Crown, Gem } from 'lucide-react'
 import { catalogApi, profileApi } from '@/api'
 import { useShopStore, useUIStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
-import logoSrc from '@/assets/logo.png'
+import logoSrc from '@/assets/logo.svg'
 import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 

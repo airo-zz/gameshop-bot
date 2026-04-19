@@ -12,7 +12,7 @@ import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
 import { chatApi, type ChatMessage } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
-import logo from '@/assets/logo.png'
+import logo from '@/assets/logo.svg'
 
 // ── Image compression ─────────────────────────────────────────────────────────
 

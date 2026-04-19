@@ -4,7 +4,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useCartStore, useUIStore } from '@/store'
 import ParticleCanvas from '@/components/ui/ParticleCanvas'
-import logo from '@/assets/logo.png'
+import logo from '@/assets/logo.svg'
 import { catalogApi, cartApi, profileApi, chatApi } from '@/api'
 
 // ── SVG Icons ────────────────────────────────────────────────────────────────

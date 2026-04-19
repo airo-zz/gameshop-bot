@@ -1,6 +1,6 @@
 // src/components/ui/LoadingScreen.tsx
 import { motion } from 'framer-motion'
-import logoSrc from '@/assets/logo.png'
+import logoSrc from '@/assets/logo.svg'
 
 interface LoadingScreenProps {
   exiting?: boolean
