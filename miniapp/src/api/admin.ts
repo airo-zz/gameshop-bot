@@ -435,7 +435,7 @@ export const adminApi = {
   getUser: (userId: string) =>
     apiClient.get<AdminUserDetail>(`/admin/users/${userId}`).then(r => r.data),
 
-  updateUser: (userId: string, data: { is_blocked?: boolean; blocked_reason?: string; loyalty_level_id?: string }) =>
+  updateUser: (userId: string, data: { is_blocked?: boolean; blocked_reason?: string; loyalty_level_id?: string; total_spent?: number }) =>
     apiClient.patch(`/admin/users/${userId}`, data).then(r => r.data),
 
   adjustBalance: (userId: string, amount: number, type: 'manual_credit' | 'manual_debit', description?: string) =>

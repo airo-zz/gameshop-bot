@@ -342,6 +342,7 @@ class UserUpdateIn(BaseModel):
     is_blocked: bool | None = None
     blocked_reason: str | None = Field(None, max_length=512)
     loyalty_level_id: str | None = None
+    total_spent: float | None = Field(None, ge=0)
 
 
 class BalanceAdjustIn(BaseModel):

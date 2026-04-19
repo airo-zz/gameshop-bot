@@ -8,10 +8,10 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import {
   ArrowLeft, AlertCircle, ShieldAlert,
-  ShieldOff, PlusCircle, MinusCircle, ExternalLink,
+  ShieldOff, PlusCircle, MinusCircle, ExternalLink, Save,
 } from 'lucide-react'
 import { adminApi } from '@/api/admin'
-import type { AdminUserDetail } from '@/api/admin'
+import type { AdminUserDetail, LoyaltyLevel } from '@/api/admin'
 import toast from 'react-hot-toast'
 
 function formatMoney(v: number) {
@@ -43,12 +43,20 @@ export default function UserDetailPage() {
   const [actionLoading, setActionLoading] = useState(false)
   const [balanceDelta, setBalanceDelta] = useState('')
   const [balanceReason, setBalanceReason] = useState('')
+  const [loyaltyLevels, setLoyaltyLevels] = useState<LoyaltyLevel[]>([])
+  const [editTotalSpent, setEditTotalSpent] = useState('')
+  const [editLoyaltyId, setEditLoyaltyId] = useState('')
 
   useEffect(() => {
     if (!id) return
     setLoading(true)
-    adminApi.getUser(id)
-      .then(setUser)
+    Promise.all([adminApi.getUser(id), adminApi.getLoyaltyLevels()])
+      .then(([u, levels]) => {
+        setUser(u)
+        setLoyaltyLevels(levels)
+        setEditTotalSpent(String(u.total_spent))
+        setEditLoyaltyId(u.loyalty_level?.id ?? '')
+      })
       .catch(() => setError(true))
       .finally(() => setLoading(false))
   }, [id])
@@ -80,6 +88,31 @@ export default function UserDetailPage() {
       toast.success(`Баланс обновлён: ${formatMoney(res.balance_after)}`)
     } catch {
       toast.error('Ошибка изменения баланса')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  async function handleSaveLoyalty() {
+    if (!user || !id) return
+    const spent = parseFloat(editTotalSpent)
+    if (isNaN(spent) || spent < 0) { toast.error('Некорректная сумма'); return }
+    setActionLoading(true)
+    try {
+      const payload: { total_spent?: number; loyalty_level_id?: string } = {}
+      if (spent !== user.total_spent) payload.total_spent = spent
+      if (editLoyaltyId && editLoyaltyId !== (user.loyalty_level?.id ?? '')) payload.loyalty_level_id = editLoyaltyId
+      if (!Object.keys(payload).length) { toast('Нет изменений'); return }
+      const updated = await adminApi.updateUser(id, payload)
+      const newLevel = loyaltyLevels.find(l => l.id === updated.loyalty_level_id) ?? null
+      setUser({
+        ...user,
+        total_spent: updated.total_spent ?? spent,
+        loyalty_level: newLevel ? { id: newLevel.id, name: newLevel.name, discount_percent: newLevel.discount_percent, cashback_percent: newLevel.cashback_percent, color_hex: newLevel.color_hex ?? null, icon_emoji: newLevel.icon_emoji ?? null } : user.loyalty_level,
+      })
+      toast.success('Сохранено')
+    } catch {
+      toast.error('Ошибка сохранения')
     } finally {
       setActionLoading(false)
     }
@@ -211,6 +244,42 @@ export default function UserDetailPage() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Loyalty & total_spent edit */}
+      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
+        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Лояльность</h2>
+        <div>
+          <label className="text-xs text-white/50 mb-1.5 block">Сумма трат, ₽</label>
+          <input
+            type="number"
+            min="0"
+            step="0.01"
+            value={editTotalSpent}
+            onChange={e => setEditTotalSpent(e.target.value)}
+            className={inputCls}
+          />
+        </div>
+        <div>
+          <label className="text-xs text-white/50 mb-1.5 block">Уровень лояльности</label>
+          <select
+            value={editLoyaltyId}
+            onChange={e => setEditLoyaltyId(e.target.value)}
+            className={inputCls}
+          >
+            <option value="">— не задан —</option>
+            {loyaltyLevels.map(l => (
+              <option key={l.id} value={l.id}>{l.name} (от {l.min_spent.toLocaleString('ru-RU')} ₽)</option>
+            ))}
+          </select>
+        </div>
+        <button
+          onClick={handleSaveLoyalty}
+          disabled={actionLoading}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 disabled:opacity-30 active:scale-[0.98] transition-all duration-200"
+        >
+          <Save size={15} /> Сохранить
+        </button>
       </div>
 
       {/* Orders */}

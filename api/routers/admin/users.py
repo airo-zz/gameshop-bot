@@ -226,6 +226,7 @@ async def update_user(
         "is_blocked": user.is_blocked,
         "blocked_reason": user.blocked_reason,
         "loyalty_level_id": str(user.loyalty_level_id) if user.loyalty_level_id else None,
+        "total_spent": float(user.total_spent),
     }
 
     if body.is_blocked is not None:
@@ -253,10 +254,27 @@ async def update_user(
             )
         user.loyalty_level_id = loyalty_uuid
 
+    if body.total_spent is not None:
+        user.total_spent = Decimal(str(body.total_spent))
+        # Пересчитываем уровень лояльности под новую сумму
+        new_level_result = await db.execute(
+            select(LoyaltyLevel)
+            .where(
+                LoyaltyLevel.is_active == True,
+                LoyaltyLevel.min_spent <= user.total_spent,
+            )
+            .order_by(LoyaltyLevel.min_spent.desc())
+            .limit(1)
+        )
+        new_level = new_level_result.scalar_one_or_none()
+        if new_level:
+            user.loyalty_level_id = new_level.id
+
     after_data: dict[str, Any] = {
         "is_blocked": user.is_blocked,
         "blocked_reason": user.blocked_reason,
         "loyalty_level_id": str(user.loyalty_level_id) if user.loyalty_level_id else None,
+        "total_spent": float(user.total_spent),
     }
 
     await log_admin_action(
@@ -277,6 +295,7 @@ async def update_user(
         "blocked_reason": user.blocked_reason,
         "blocked_at": user.blocked_at,
         "loyalty_level_id": user.loyalty_level_id,
+        "total_spent": float(user.total_spent),
     }
 
 
