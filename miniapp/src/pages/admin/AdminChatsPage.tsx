@@ -506,7 +506,7 @@ function PendingOrdersSection({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                   <span style={{ fontSize: 12, fontWeight: 700, color: '#fff', flexShrink: 0 }}>
-                    #{order.order_number}
+                    {order.order_number}
                   </span>
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {order.total_amount.toLocaleString('ru-RU')} ₽

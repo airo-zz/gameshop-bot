@@ -113,10 +113,13 @@ export default function App() {
           }
         }
 
-        // 2. Параллельно грузим всё нужное для главной страницы
-        //    Promise.allSettled — не падаем если один запрос не удался
+        // 2. Параллельно грузим всё нужное для главной страницы +
+        //    preload самого чанка HomePage. Без preload React.lazy
+        //    выкидывает Suspense fallback после скрытия сплэша — и
+        //    пользователь видит сплэш дважды.
         const [cartResult] = await Promise.allSettled([
           cartApi.get(),
+          import('@/pages/HomePage'),
           queryClient.prefetchQuery({
             queryKey: ['games', 'game'],
             queryFn: () => catalogApi.getGames('game'),
