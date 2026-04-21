@@ -320,16 +320,12 @@ class OrderService:
             else:
                 all_delivered = False  # Ключей не хватает — нужна ручная выдача
 
-        # Если все позиции доставлены — завершаем заказ
+        # Если все позиции доставлены — завершаем заказ.
+        # Иначе оставляем статус paid — администратор берёт заказ через /claim.
         if all_delivered:
             await self.change_status(
                 order, OrderStatus.completed, changed_by_type="system",
                 reason="Автоматическая выдача"
-            )
-        else:
-            await self.change_status(
-                order, OrderStatus.processing, changed_by_type="system",
-                reason="Частичная/ручная выдача"
             )
 
     async def _count_available_keys(

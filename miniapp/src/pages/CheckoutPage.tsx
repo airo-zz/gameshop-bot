@@ -56,6 +56,23 @@ export default function CheckoutPage() {
         navigate(`/chat?order_id=${order.id}`, { replace: true })
         return
       }
+      if (payment.mini_app_invoice_url && (window as any).Telegram?.WebApp?.openInvoice) {
+        setItemsCount(0)
+        ;(window as any).Telegram.WebApp.openInvoice(
+          payment.mini_app_invoice_url,
+          (invoiceStatus: string) => {
+            if (invoiceStatus === 'paid') {
+              haptic.success()
+              navigate(`/orders/${order.id}?success=1`, { replace: true })
+            } else if (invoiceStatus === 'cancelled') {
+              toast('Оплата отменена')
+            }
+            // pending / failed — остаёмся, webhook уточнит статус
+          },
+        )
+        navigate(`/chat?order_id=${order.id}`, { replace: true })
+        return
+      }
       if (payment.redirect_url) {
         // t.me links (CryptoBot) open natively in Telegram, others in browser
         if (payment.redirect_url.includes('t.me/')) {

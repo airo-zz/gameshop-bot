@@ -379,9 +379,11 @@ export const adminApi = {
   // Orders
   getOrders: (params?: {
     page?: number
+    page_size?: number
     status?: string
     search?: string
     assigned_to_me?: boolean
+    unassigned?: boolean
   }) =>
     apiClient.get<PaginatedResponse<AdminOrderListItem>>('/admin/orders', { params }).then(r => r.data),
 

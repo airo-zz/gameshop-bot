@@ -62,6 +62,7 @@ async def list_orders(
     status_filter: str | None = Query(None, alias="status"),
     search: str | None = Query(None),
     assigned_to_me: bool = Query(False),
+    unassigned: bool = Query(False),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
 ) -> PaginatedResponse[OrderListItem]:
@@ -71,6 +72,7 @@ async def list_orders(
     - status: фильтр по статусу (new, pending_payment, paid, processing, ...)
     - search: поиск по order_number или username пользователя
     - assigned_to_me: показать только мои заказы
+    - unassigned: показать только заказы без назначенного администратора
     - Сортировка: по created_at DESC
     """
     query = select(Order).join(Order.user).where(Order.deleted_at.is_(None))
@@ -87,6 +89,9 @@ async def list_orders(
 
     if assigned_to_me:
         query = query.where(Order.assigned_admin_id == admin.id)
+
+    if unassigned:
+        query = query.where(Order.assigned_admin_id.is_(None))
 
     if search:
         search_term = f"%{search.strip()}%"

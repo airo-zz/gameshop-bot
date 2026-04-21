@@ -246,10 +246,14 @@ class PaymentService:
             reason=f"{currency} инвойс создан",
         )
 
+        pay_url = invoice.get("pay_url")
+        mini_app_invoice_url = invoice.get("mini_app_invoice_url") or pay_url
+
         return {
             "success": False,
             "payment_id": str(payment.id),
-            "redirect_url": invoice.get("pay_url"),
+            "redirect_url": pay_url,
+            "mini_app_invoice_url": mini_app_invoice_url,
             "crypto_amount": str(crypto_amount),
             "crypto_currency": currency,
         }

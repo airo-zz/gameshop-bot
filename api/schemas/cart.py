@@ -132,6 +132,8 @@ class PaymentInitResponse(BaseModel):
     status: str
     # Для карты — URL страницы оплаты
     redirect_url: str | None = None
+    # Для крипты — ссылка для Telegram.WebApp.openInvoice (CryptoBot mini_app_invoice_url)
+    mini_app_invoice_url: str | None = None
     # Для крипты — адрес и сумма
     crypto_address: str | None = None
     crypto_amount: str | None = None

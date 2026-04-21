@@ -261,6 +261,7 @@ export const ordersApi = {
       method: string
       status: string
       redirect_url?: string
+      mini_app_invoice_url?: string
       success?: boolean
     }>(`/payments/orders/${orderId}/pay`).then(r => r.data),
 }
