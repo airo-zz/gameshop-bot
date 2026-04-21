@@ -2,11 +2,12 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from api.deps import CurrentUser, DbSession
+from api.rate_limit import limiter
 from api.schemas.cart import CreateOrderRequest, OrderOut, OrderListItem
 from api.services.cart_service import CartService
 from api.services.order_service import OrderService
@@ -16,7 +17,8 @@ router = APIRouter()
 
 
 @router.post("", response_model=OrderOut)
-async def create_order(body: CreateOrderRequest, db: DbSession, user: CurrentUser):
+@limiter.limit("10/minute")
+async def create_order(request: Request, body: CreateOrderRequest, db: DbSession, user: CurrentUser):
     cart_svc = CartService(db)
     order_svc = OrderService(db)
 

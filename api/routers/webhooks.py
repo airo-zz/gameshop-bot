@@ -39,12 +39,13 @@ async def yukassa_webhook(request: Request, db: DbSession):
     Webhook от ЮKassa.
     Верификация: проверяем IP отправителя по whitelist ЮKassa.
     X-Real-IP передаётся nginx-ом.
+    В dev-окружении проверка пропускается.
     """
-    real_ip = request.headers.get("x-real-ip") or (request.client.host if request.client else "")
-    if not _is_yukassa_ip(real_ip):
-        raise HTTPException(403, "Forbidden: IP not in ЮKassa whitelist")
+    if settings.ENVIRONMENT != "development":
+        real_ip = request.headers.get("x-real-ip") or (request.client.host if request.client else "")
+        if not _is_yukassa_ip(real_ip):
+            raise HTTPException(403, "Forbidden: IP not in ЮKassa whitelist")
 
-    body = await request.body()
     payload = await request.json()
 
     svc = PaymentService(db)

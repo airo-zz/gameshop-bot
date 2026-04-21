@@ -3,11 +3,12 @@
 from decimal import Decimal
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from api.deps import CurrentUser, DbSession
+from api.rate_limit import limiter
 from api.schemas.cart import PaymentInitResponse, TokenResponse, RefreshTokenRequest
 from api.services.payment_service import PaymentService
 from api.deps import create_access_token, create_refresh_token, decode_token
@@ -17,7 +18,9 @@ router = APIRouter()
 
 
 @router.post("/auth/telegram", response_model=TokenResponse)
+@limiter.limit("5/minute")
 async def auth_telegram(
+    request: Request,
     db: DbSession,
     user: CurrentUser,
 ):
@@ -28,7 +31,8 @@ async def auth_telegram(
 
 
 @router.post("/auth/refresh", response_model=TokenResponse)
-async def refresh_token(body: RefreshTokenRequest, db: DbSession):
+@limiter.limit("10/minute")
+async def refresh_token(request: Request, body: RefreshTokenRequest, db: DbSession):
     payload = decode_token(body.refresh_token)
     if payload.get("type") != "refresh":
         raise HTTPException(401, "Неверный тип токена")
@@ -44,7 +48,8 @@ async def refresh_token(body: RefreshTokenRequest, db: DbSession):
 
 
 @router.post("/orders/{order_id}/pay", response_model=PaymentInitResponse)
-async def initiate_payment(order_id: UUID, db: DbSession, user: CurrentUser):
+@limiter.limit("10/minute")
+async def initiate_payment(request: Request, order_id: UUID, db: DbSession, user: CurrentUser):
     # Блокируем заказ FOR UPDATE чтобы предотвратить параллельную оплату
     result = await db.execute(
         select(Order)
@@ -97,7 +102,8 @@ class BalanceTopupRequest(BaseModel):
 
 
 @router.post("/balance/topup")
-async def topup_balance(body: BalanceTopupRequest, db: DbSession, user: CurrentUser):
+@limiter.limit("10/minute")
+async def topup_balance(request: Request, body: BalanceTopupRequest, db: DbSession, user: CurrentUser):
     svc = PaymentService(db)
     try:
         if body.method == "card_yukassa":

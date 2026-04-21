@@ -1,7 +1,8 @@
 """api/routers/cart.py"""
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from api.deps import CurrentUser, DbSession
+from api.rate_limit import limiter
 from api.schemas.cart import (
     AddToCartRequest,
     CartItemOut,
@@ -10,6 +11,7 @@ from api.schemas.cart import (
     CartOut,
 )
 from api.services.cart_service import CartService
+from shared.config import settings
 
 router = APIRouter()
 
@@ -54,7 +56,8 @@ async def get_cart(db: DbSession, user: CurrentUser):
 
 
 @router.post("/items", status_code=status.HTTP_200_OK)
-async def add_to_cart(body: AddToCartRequest, db: DbSession, user: CurrentUser):
+@limiter.limit(f"{settings.RATE_LIMIT_CLIENT}/minute")
+async def add_to_cart(request: Request, body: AddToCartRequest, db: DbSession, user: CurrentUser):
     svc = CartService(db)
     cart = await svc.get_or_create_cart(user)
     try:
@@ -71,8 +74,9 @@ async def add_to_cart(body: AddToCartRequest, db: DbSession, user: CurrentUser):
 
 
 @router.put("/items/{item_id}")
+@limiter.limit(f"{settings.RATE_LIMIT_CLIENT}/minute")
 async def update_cart_item(
-    item_id: str, body: UpdateCartItemRequest, db: DbSession, user: CurrentUser
+    request: Request, item_id: str, body: UpdateCartItemRequest, db: DbSession, user: CurrentUser
 ):
     import uuid
 

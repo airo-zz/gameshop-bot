@@ -11,3 +11,4 @@ yookassa==3.10.0
 aiofiles==24.1.0
 pillow==11.1.0
 boto3==1.35.86
+slowapi==0.1.9

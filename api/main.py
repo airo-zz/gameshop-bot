@@ -12,10 +12,13 @@ import structlog
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 from shared.config import settings
 from shared.database.session import engine
 
+from api.rate_limit import limiter
 from api.routers import catalog, cart, chat, orders, payments, profile, support, webhooks, uploads
 from api.routers.admin import router as admin_router
 
@@ -43,6 +46,19 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if settings.DEBUG else None,
         lifespan=lifespan,
     )
+
+    # ── Rate Limiting ─────────────────────────────────────────────────────────
+    app.state.limiter = limiter
+
+    async def _json_rate_limit_handler(request: Request, exc: RateLimitExceeded):
+        return JSONResponse(
+            status_code=429,
+            content={"detail": "Слишком много запросов. Попробуйте позже."},
+            headers={"Retry-After": "60"},
+        )
+
+    app.add_exception_handler(RateLimitExceeded, _json_rate_limit_handler)
+    app.add_middleware(SlowAPIMiddleware)
 
     # ── CORS (только Telegram домены в prod) ─────────────────────────────────
     miniapp_origin = (

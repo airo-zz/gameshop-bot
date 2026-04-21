@@ -10,12 +10,13 @@ import hashlib
 import hmac
 import time
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 
 from api.deps import DbSession, create_access_token, create_refresh_token
 from api.deps_admin import CurrentAdmin
+from api.rate_limit import limiter
 from api.schemas.admin import AdminMeOut
 from shared.config import settings
 from shared.models import AdminUser, DEFAULT_PERMISSIONS, User
@@ -71,7 +72,8 @@ class LoginResponse(BaseModel):
 
 
 @router.post("/auth/telegram-login", response_model=LoginResponse)
-async def telegram_login(data: TelegramLoginData, db: DbSession):
+@limiter.limit("5/minute")
+async def telegram_login(request: Request, data: TelegramLoginData, db: DbSession):
     """
     Авторизация администратора через Telegram Login Widget.
     Проверяет подпись, ищет юзера в admin_users, выдаёт JWT.
