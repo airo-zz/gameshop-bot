@@ -140,7 +140,7 @@ class PaymentService:
             },
             "confirmation": {
                 "type": "redirect",
-                "return_url": f"{settings.MINIAPP_URL}?order={order.order_number}&status=success",
+                "return_url": f"{settings.MINIAPP_URL.rstrip('/')}/orders/{order.id}?success=1",
             },
             "description": f"Заказ {order.order_number} в {settings.SHOP_NAME}",
             "metadata": {
@@ -499,6 +499,7 @@ class PaymentService:
         # Загружаем связь с пользователем и позициями заказа
         telegram_id: int | None = None
         items_str: str = ""
+        order_with_user = None
         try:
             result = await self.db.execute(
                 select(Order)
@@ -517,7 +518,20 @@ class PaymentService:
             logger.warning("Не удалось загрузить пользователя заказа: %s", exc)
 
         if telegram_id is not None:
-            await send_tg_message(telegram_id, texts.order_paid(order.order_number))
+            order_url = f"{settings.MINIAPP_URL.rstrip('/')}/orders/{order.id}?success=1"
+            reply_markup = {
+                "inline_keyboard": [[
+                    {
+                        "text": "Открыть заказ",
+                        "web_app": {"url": order_url},
+                    }
+                ]]
+            }
+            await send_tg_message(
+                telegram_id,
+                texts.order_paid(order.order_number),
+                reply_markup=reply_markup,
+            )
 
         # Системное сообщение в чат
         if telegram_id is not None:
@@ -533,5 +547,15 @@ class PaymentService:
                         str(order.id),
                     ),
                 )
+                # Инструкции по каждому товару (если есть)
+                seen_instructions: set[str] = set()
+                for item in (order_with_user.items if order_with_user else []):
+                    instruction = getattr(item, "instruction", None)
+                    if instruction and instruction not in seen_instructions:
+                        seen_instructions.add(instruction)
+                        await chat_svc.add_system_message(
+                            telegram_id,
+                            texts.chat_order_instruction(item.product_name, instruction),
+                        )
             except Exception as exc:
                 logger.warning("Не удалось добавить системное сообщение в чат: %s", exc)

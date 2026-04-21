@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-from sqlalchemy import func, select
+from sqlalchemy import case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -90,6 +90,51 @@ class CatalogService:
             .order_by(Category.sort_order, Category.name)
         )
         return result.scalars().all()
+
+    async def get_delivery_types_for_game(self, game_id: uuid.UUID) -> dict[uuid.UUID, str]:
+        """Агрегирует delivery_type по каждой категории игры.
+
+        Возвращает dict{category_id: 'auto'|'manual'|'mixed'|'empty'}.
+        Покрывает все категории игры (и корневые, и дочерние).
+        """
+        # Все категории данной игры
+        cats_result = await self.db.execute(
+            select(Category.id).where(
+                Category.game_id == game_id,
+                Category.is_active == True,
+            )
+        )
+        cat_ids = [row[0] for row in cats_result.all()]
+        if not cat_ids:
+            return {}
+
+        # Считаем auto/manual по каждой категории одним запросом
+        agg = await self.db.execute(
+            select(
+                Product.category_id,
+                func.count(case((Product.delivery_type == "auto", 1))).label("auto_cnt"),
+                func.count(case((Product.delivery_type == "manual", 1))).label("manual_cnt"),
+                func.count(Product.id).label("total"),
+            )
+            .where(
+                Product.category_id.in_(cat_ids),
+                Product.is_active == True,
+            )
+            .group_by(Product.category_id)
+        )
+
+        result: dict[uuid.UUID, str] = {}
+        for row in agg.all():
+            cid = row.category_id
+            if row.total == 0:
+                result[cid] = "empty"
+            elif row.auto_cnt == row.total:
+                result[cid] = "auto"
+            elif row.manual_cnt == row.total:
+                result[cid] = "manual"
+            else:
+                result[cid] = "mixed"
+        return result
 
     # ── Products ──────────────────────────────────────────────────────────────
 

@@ -89,6 +89,7 @@ class OrderItemOut(BaseModel):
     input_data: dict
     delivery_data: dict
     delivered_at: datetime | None
+    instruction: str | None = None
 
 
 class OrderOut(BaseModel):

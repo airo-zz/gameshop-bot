@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, Clock, Plus, Minus } from 'lucide-react'
+import { Zap, Clock, Plus, Minus, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { catalogApi, cartApi, type Category, type Product, type InputField } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -25,7 +25,6 @@ function ProductRow({ product, cartQty, onAdd, onRemove }: ProductRowProps) {
     ? Math.round((1 - Number(product.price) / Number(product.original_price!)) * 100)
     : 0
 
-  const isAuto = product.delivery_type === 'auto'
   const isOutOfStock = product.is_out_of_stock || (product.stock !== null && product.stock === 0)
   const inputFields = product.input_fields ?? []
   const hasInputs = inputFields.length > 0
@@ -57,28 +56,12 @@ function ProductRow({ product, cartQty, onAdd, onRemove }: ProductRowProps) {
               {product.badge}
             </span>
           )}
-          {isOutOfStock ? (
+          {isOutOfStock && (
             <span style={{
               flexShrink: 0, fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 20,
               background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)',
             }}>
               Нет в наличии
-            </span>
-          ) : isAuto ? (
-            <span style={{
-              flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3,
-              fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 20,
-              background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.3)',
-            }}>
-              <Zap size={8} fill="#34d399" stroke="none" />Авто
-            </span>
-          ) : (
-            <span style={{
-              flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 3,
-              fontSize: 9, padding: '2px 6px', borderRadius: 20,
-              background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.35)', border: '1px solid rgba(255,255,255,0.08)',
-            }}>
-              <Clock size={8} />Вручную
             </span>
           )}
         </div>
@@ -411,6 +394,36 @@ export default function GamePage() {
                 {sub.name}
               </button>
             ))}
+          </div>
+        )
+      })()}
+
+      {/* Delivery type badge for active category */}
+      {activeCatId && (() => {
+        const activeCat = categories.find(c => c.id === activeCatId)
+          ?? categories.flatMap(c => c.children ?? []).find(c => c.id === activeCatId)
+        const dt = activeCat?.delivery_type
+        if (!dt || dt === 'mixed') return null
+        const isAuto = dt === 'auto'
+        return (
+          <div className="px-4 pb-1" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {isAuto ? (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
+                background: 'rgba(16,185,129,0.12)', color: '#34d399', border: '1px solid rgba(16,185,129,0.25)',
+              }}>
+                <Zap size={10} fill="#34d399" stroke="none" />Автовыдача
+              </span>
+            ) : (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 20,
+                background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)',
+              }}>
+                <Clock size={10} />Вручную
+              </span>
+            )}
           </div>
         )
       })()}

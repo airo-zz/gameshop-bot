@@ -37,6 +37,7 @@ class CategoryOut(BaseModel):
     sort_order: int
     parent_id: uuid.UUID | None
     children: list["CategoryOut"] = []
+    delivery_type: str | None = None  # 'auto' | 'manual' | 'mixed' | None
 
 
 class ProductListOut(BaseModel):

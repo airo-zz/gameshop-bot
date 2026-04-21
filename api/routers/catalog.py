@@ -33,6 +33,39 @@ async def search_games(
     return await svc.search_games(q)
 
 
+def _category_to_out(
+    cat,
+    delivery_map: dict,
+) -> CategoryOut:
+    """Конвертирует ORM Category в CategoryOut с агрегированным delivery_type."""
+    # Для дочерних категорий берём их собственный тип из delivery_map
+    children = [_category_to_out(child, delivery_map) for child in (cat.children or [])]
+    # Если у корневой категории есть дочерние — агрегируем их типы
+    if children:
+        child_types = {c.delivery_type for c in children if c.delivery_type and c.delivery_type != "empty"}
+        if not child_types:
+            delivery_type = None
+        elif len(child_types) == 1:
+            delivery_type = child_types.pop()
+        else:
+            delivery_type = "mixed"
+    else:
+        raw = delivery_map.get(cat.id)
+        delivery_type = raw if raw not in (None, "empty") else None
+
+    return CategoryOut(
+        id=cat.id,
+        name=cat.name,
+        slug=cat.slug,
+        image_url=cat.image_url,
+        description=cat.description,
+        sort_order=cat.sort_order,
+        parent_id=cat.parent_id,
+        children=children,
+        delivery_type=delivery_type,
+    )
+
+
 @router.get("/games/{slug}/categories", response_model=list[CategoryOut])
 async def list_categories(slug: str, db: DbSession):
     svc = CatalogService(db)
@@ -41,7 +74,9 @@ async def list_categories(slug: str, db: DbSession):
         from fastapi import HTTPException
 
         raise HTTPException(404, "Игра не найдена")
-    return await svc.get_categories_by_game(game.id)
+    categories = await svc.get_categories_by_game(game.id)
+    delivery_map = await svc.get_delivery_types_for_game(game.id)
+    return [_category_to_out(cat, delivery_map) for cat in categories]
 
 
 @router.get("/categories/trending", response_model=list[TrendingCategoryOut])

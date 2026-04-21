@@ -3,7 +3,7 @@ import React from 'react'
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ordersApi, chatApi } from '@/api'
-import { CheckCircle, Clock, Copy, MessageCircle, XCircle, HelpCircle, RefreshCw, BadgeCheck, Circle } from 'lucide-react'
+import { CheckCircle, Clock, Copy, MessageCircle, XCircle, HelpCircle, RefreshCw, BadgeCheck, Circle, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
 
@@ -191,6 +191,30 @@ export default function OrderDetailPage() {
             )}
           </div>
         ))}
+
+        {/* Инструкции по получению */}
+        {order.items.some(item => item.instruction) && (
+          <>
+            <div className="divider" />
+            {order.items.filter(item => item.instruction).map(item => (
+              <div
+                key={`instr-${item.id}`}
+                className="rounded-xl p-3 mt-2"
+                style={{ background: 'rgba(107,157,232,0.07)', border: '1px solid rgba(107,157,232,0.18)' }}
+              >
+                <div className="flex items-center gap-2 mb-1.5">
+                  <Info size={13} style={{ color: '#6b9de8', flexShrink: 0 }} />
+                  <p className="text-xs font-semibold" style={{ color: '#6b9de8' }}>
+                    Инструкция по получению
+                  </p>
+                </div>
+                <p className="text-xs" style={{ color: 'var(--text)', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+                  {item.instruction}
+                </p>
+              </div>
+            ))}
+          </>
+        )}
 
         <div className="divider" />
         {order.discount_amount > 0 && (

@@ -181,6 +181,12 @@ class BotTexts:
             text += f"|oid={order_id}"
         return text
 
+    def chat_order_instruction(self, product_name: str, instruction: str) -> str:
+        return (
+            f"Инструкция по получению ({escape(product_name)}):\n"
+            f"{escape(instruction)}"
+        )
+
     def order_completed(self, order_number: str, delivery_data: str = "") -> str:
         delivery_text = (
             f"\n\n📦 <b>Данные для получения:</b>\n{delivery_data}"

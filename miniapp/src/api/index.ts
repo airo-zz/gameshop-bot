@@ -31,6 +31,7 @@ export interface Category {
   sort_order: number
   parent_id: string | null
   children: Category[]
+  delivery_type: 'auto' | 'manual' | 'mixed' | null
 }
 
 export interface TrendingCategory {
@@ -124,6 +125,7 @@ export interface OrderItem {
   input_data: Record<string, string>
   delivery_data: Record<string, unknown>
   delivered_at: string | null
+  instruction: string | null
 }
 
 export interface Ticket {

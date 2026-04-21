@@ -113,6 +113,7 @@ class OrderService:
                 unit_price=item.price_snapshot,
                 total_price=item.price_snapshot * item.quantity,
                 input_data=item.input_data,
+                instruction=getattr(product, "instruction", None),
             )
             self.db.add(order_item)
 

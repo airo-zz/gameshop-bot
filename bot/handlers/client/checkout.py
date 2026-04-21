@@ -363,11 +363,12 @@ async def cb_checkout_check(
 
     if order.status in (OrderStatus.paid, OrderStatus.processing, OrderStatus.completed):
         await state.clear()
-        await safe_edit(
-            call.message,
-            texts.order_paid(order.order_number),
-            reply_markup=_order_success_keyboard(),
-        )
+        # Финальное уведомление приходит от webhook через _notify_user_payment_success.
+        # Здесь только удаляем платёжное сообщение, чтобы не было дубля.
+        try:
+            await call.message.delete()
+        except Exception:
+            pass
         await call.answer("✅ Оплата подтверждена!")
     else:
         status_text = status_labels.get(order.status, order.status.value)

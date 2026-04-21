@@ -190,6 +190,9 @@ class OrderItem(Base, UUIDMixin):
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     total_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
 
+    # Снимок инструкции по получению на момент покупки
+    instruction: Mapped[str | None] = mapped_column(Text, nullable=True)
+
     # Данные от клиента (логин, сервер, ID)
     input_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
 
