@@ -96,7 +96,6 @@ export interface AdminOrderDetailItem {
   id: string
   product_id: string
   product_name: string
-  lot_name: string | null
   quantity: number
   unit_price: number
   total_price: number
@@ -229,7 +228,10 @@ export interface AdminProductListItem {
   category_id: string
   name: string
   price: number
+  original_price: number | null
+  badge: string | null
   stock: number | null
+  is_out_of_stock: boolean
   delivery_type: string
   is_active: boolean
   sort_order: number
@@ -243,27 +245,18 @@ export interface AdminProductDetail {
   description: string | null
   short_description: string | null
   price: number
+  original_price: number | null
+  quantity: number
+  badge: string | null
   stock: number | null
+  is_out_of_stock: boolean
   delivery_type: string
   input_fields: unknown[]
   instruction: string | null
   images: string[]
   is_active: boolean
   sort_order: number
-  lots: AdminLot[]
   created_at: string
-}
-
-export interface AdminLot {
-  id: string
-  product_id: string
-  name: string
-  price: number
-  original_price: number | null
-  quantity: number
-  badge: string | null
-  is_active: boolean
-  sort_order: number
 }
 
 export interface AdminCategory {
@@ -512,19 +505,8 @@ export const adminApi = {
     game_id?: string
     category_id?: string
     product_ids?: string[]
-    include_lots?: boolean
   }) =>
     apiClient.post<{ updated_count: number }>('/admin/catalog/products/bulk-price-update', data).then(r => r.data),
-
-  // Catalog — Lots
-  createLot: (productId: string, data: { name: string; price: number; original_price?: number; quantity?: number; badge?: string; is_active?: boolean; sort_order?: number }) =>
-    apiClient.post<AdminLot>(`/admin/catalog/products/${productId}/lots`, data).then(r => r.data),
-
-  updateLot: (lotId: string, data: Partial<{ name: string; price: number; original_price: number; quantity: number; badge: string; is_active: boolean; sort_order: number }>) =>
-    apiClient.patch<AdminLot>(`/admin/catalog/lots/${lotId}`, data).then(r => r.data),
-
-  deleteLot: (lotId: string) =>
-    apiClient.delete(`/admin/catalog/lots/${lotId}`).then(r => r.data),
 
   // Upload
   uploadImage: (file: File) => {

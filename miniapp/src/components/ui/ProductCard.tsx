@@ -13,9 +13,7 @@ interface Props {
 
 export default function ProductCard({ product, isFavorite = false, onFavoriteToggle, hidePrice = false }: Props) {
   const { haptic } = useTelegram()
-  const minPrice = product.lots.length
-    ? Math.min(...product.lots.map(l => l.price))
-    : product.price
+  const minPrice = product.price
 
   const handleFavorite = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -26,7 +24,7 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
     } catch {}
   }
 
-  const isOutOfStock = product.stock !== null && product.stock === 0
+  const isOutOfStock = product.is_out_of_stock || (product.stock !== null && product.stock === 0)
   const isAuto = product.delivery_type === 'auto'
 
   const hasImage = !!product.images[0]
@@ -190,7 +188,7 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
             className="text-base font-bold mt-auto"
             style={{ color: 'rgba(255,255,255,0.9)' }}
           >
-            от {minPrice.toLocaleString('ru')} ₽
+            {minPrice.toLocaleString('ru')} ₽
           </p>
         )}
       </div>

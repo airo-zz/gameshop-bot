@@ -66,7 +66,6 @@ interface BulkPriceModalProps {
 function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps) {
   const [mode, setMode] = useState<'percent' | 'fixed'>('percent')
   const [value, setValue] = useState('')
-  const [includeLots, setIncludeLots] = useState(true)
   const [loading, setLoading] = useState(false)
 
   const handleApply = async () => {
@@ -82,7 +81,6 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
         value: numVal,
         scope: 'category',
         category_id: categoryId,
-        include_lots: includeLots,
       })
       toast.success(`Обновлено товаров: ${res.updated_count}`)
       onApplied()
@@ -143,25 +141,6 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
             </p>
           )}
         </div>
-
-        {/* Включая лоты */}
-        <label className="flex items-center gap-3 cursor-pointer">
-          <div
-            onClick={() => setIncludeLots((v) => !v)}
-            className={[
-              'w-10 h-6 rounded-full transition-colors flex items-center px-0.5',
-              includeLots ? 'bg-indigo-600' : 'bg-white/10',
-            ].join(' ')}
-          >
-            <div
-              className={[
-                'w-5 h-5 rounded-full bg-white shadow transition-transform',
-                includeLots ? 'translate-x-4' : 'translate-x-0',
-              ].join(' ')}
-            />
-          </div>
-          <span className="text-sm text-white/70">Включая лоты</span>
-        </label>
 
         <button
           onClick={handleApply}

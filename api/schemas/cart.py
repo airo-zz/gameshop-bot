@@ -18,7 +18,6 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 class AddToCartRequest(BaseModel):
     product_id: uuid.UUID
-    lot_id: uuid.UUID | None = None
     quantity: int = Field(1, ge=1, le=99)
     input_data: dict = Field(default_factory=dict)
     # {"game_id": "123", "server": "EU"} — все поля необязательны
@@ -43,7 +42,6 @@ class CartItemOut(BaseModel):
 
     id: uuid.UUID
     product_id: uuid.UUID
-    lot_id: uuid.UUID | None
     quantity: int
     price_snapshot: Decimal
     subtotal: Decimal
@@ -52,7 +50,6 @@ class CartItemOut(BaseModel):
     # Вложенные данные о товаре (join в сервисе)
     product_name: str = ""
     product_image: str | None = None
-    lot_name: str | None = None
 
 
 class CartOut(BaseModel):
@@ -86,7 +83,6 @@ class OrderItemOut(BaseModel):
     product_id: uuid.UUID
     product_name: str
     game_name: str | None = None
-    lot_name: str | None
     quantity: int
     unit_price: Decimal
     total_price: Decimal

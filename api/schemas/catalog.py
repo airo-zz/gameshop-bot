@@ -1,7 +1,7 @@
 """
 api/schemas/catalog.py
 ─────────────────────────────────────────────────────────────────────────────
-Pydantic схемы для каталога — игры, категории, товары, лоты.
+Pydantic схемы для каталога — игры, категории, товары.
 ─────────────────────────────────────────────────────────────────────────────
 """
 
@@ -39,18 +39,6 @@ class CategoryOut(BaseModel):
     children: list["CategoryOut"] = []
 
 
-class LotOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: uuid.UUID
-    name: str
-    price: Decimal
-    original_price: Decimal | None
-    quantity: int
-    badge: str | None
-    sort_order: int
-
-
 class ProductListOut(BaseModel):
     """Краткая карточка для списка товаров."""
     model_config = ConfigDict(from_attributes=True)
@@ -59,12 +47,15 @@ class ProductListOut(BaseModel):
     name: str
     short_description: str | None
     price: Decimal
+    original_price: Decimal | None = None
     currency: str
+    quantity: int
+    badge: str | None = None
     images: list[str]
     is_featured: bool
+    is_out_of_stock: bool
     delivery_type: str
     stock: int | None
-    lots: list[LotOut] = []
     game_name: str | None = None
     game_slug: str | None = None
     category_id: uuid.UUID | None = None
@@ -89,13 +80,16 @@ class ProductDetailOut(BaseModel):
     description: str | None
     short_description: str | None
     price: Decimal
+    original_price: Decimal | None = None
     currency: str
+    quantity: int
+    badge: str | None = None
     images: list[str]
     delivery_type: str
     stock: int | None
+    is_out_of_stock: bool
     input_fields: list[dict]
     instruction: str | None
-    lots: list[LotOut]
     tags: list[str]
     is_featured: bool
     game_name: str | None = None

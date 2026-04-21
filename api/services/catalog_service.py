@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from shared.models import (
-    Category, Game, Product, ProductLot, Review,
+    Category, Game, Product, Review,
     UserFavorite, UserViewedProduct,
     Order, OrderItem,
 )
@@ -39,12 +39,15 @@ def _product_to_list_out(product: Product) -> ProductListOut:
         name=product.name,
         short_description=product.short_description,
         price=product.price,
+        original_price=product.original_price,
         currency=product.currency,
+        quantity=product.quantity,
+        badge=product.badge,
         images=product.images,
         is_featured=product.is_featured,
+        is_out_of_stock=product.is_out_of_stock,
         delivery_type=product.delivery_type,
         stock=product.stock,
-        lots=product.lots,
         game_name=game_name,
         game_slug=game_slug,
         category_id=product.category_id,
@@ -100,7 +103,6 @@ class CatalogService:
         base_query = (
             select(Product)
             .options(
-                selectinload(Product.lots),
                 selectinload(Product.category).selectinload(Category.game),
             )
             .where(Product.is_active == True)
@@ -125,7 +127,6 @@ class CatalogService:
         result = await self.db.execute(
             select(Product)
             .options(
-                selectinload(Product.lots),
                 selectinload(Product.reviews),
                 selectinload(Product.category).selectinload(Category.game),
             )
@@ -176,7 +177,6 @@ class CatalogService:
         q = (
             select(Product)
             .options(
-                selectinload(Product.lots),
                 selectinload(Product.category).selectinload(Category.game),
             )
             .where(Product.is_active == True)
@@ -217,7 +217,6 @@ class CatalogService:
             select(Product)
             .join(UserFavorite, UserFavorite.product_id == Product.id)
             .options(
-                selectinload(Product.lots),
                 selectinload(Product.category).selectinload(Category.game),
             )
             .where(UserFavorite.user_id == user_id, Product.is_active == True)
@@ -287,7 +286,6 @@ class CatalogService:
             select(Product)
             .join(UserViewedProduct, UserViewedProduct.product_id == Product.id)
             .options(
-                selectinload(Product.lots),
                 selectinload(Product.category).selectinload(Category.game),
             )
             .where(UserViewedProduct.user_id == user_id, Product.is_active == True)
@@ -359,7 +357,6 @@ class CatalogService:
             select(Product)
             .join(trending_subq, trending_subq.c.product_id == Product.id)
             .options(
-                selectinload(Product.lots),
                 selectinload(Product.category).selectinload(Category.game),
             )
             .where(Product.is_active == True)

@@ -186,9 +186,6 @@ export default function CartPage() {
               <p className="font-semibold text-sm truncate" style={{ color: 'var(--text)' }}>
                 {item.product_name}
               </p>
-              {item.lot_name && (
-                <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>{item.lot_name}</p>
-              )}
               {Object.keys(item.input_data).length > 0 && (
                 <div className="mt-1">
                   {Object.entries(item.input_data).map(([k, v]) => (

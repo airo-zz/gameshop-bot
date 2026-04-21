@@ -22,6 +22,10 @@ interface FormState {
   short_description: string
   description: string
   price: string
+  original_price: string
+  quantity: string
+  badge: string
+  is_out_of_stock: boolean
   stock: string
   delivery_type: 'manual' | 'auto' | 'mixed'
   is_active: boolean
@@ -35,6 +39,10 @@ const EMPTY_FORM: FormState = {
   short_description: '',
   description: '',
   price: '',
+  original_price: '',
+  quantity: '1',
+  badge: '',
+  is_out_of_stock: false,
   stock: '',
   delivery_type: 'manual',
   is_active: true,
@@ -53,6 +61,7 @@ interface FormErrors {
   category_id?: string
   name?: string
   price?: string
+  quantity?: string
 }
 
 function validate(form: FormState): FormErrors {
@@ -64,6 +73,9 @@ function validate(form: FormState): FormErrors {
     errors.price = 'Введите цену'
   } else if (Number(form.price) < 0) {
     errors.price = 'Цена не может быть отрицательной'
+  }
+  if (form.quantity === '' || Number(form.quantity) < 1) {
+    errors.quantity = 'Количество должно быть не менее 1'
   }
   return errors
 }
@@ -105,7 +117,6 @@ export default function ProductEditPage() {
       loadGames
         .then(async (g) => {
           setGames(g)
-          // Auto-fill game & category from URL param
           if (presetCategoryId) {
             for (const game of g) {
               const cats = await adminApi.getCategories(game.id).catch(() => [] as AdminCategory[])
@@ -123,7 +134,6 @@ export default function ProductEditPage() {
       Promise.all([loadGames, adminApi.getProduct(id!)])
         .then(async ([gamesData, product]) => {
           setGames(gamesData)
-          // Перебираем игры, ищем ту чья категория совпадает с product.category_id
           let foundGameId = ''
           let foundCats: AdminCategory[] = []
           for (const game of gamesData) {
@@ -167,7 +177,13 @@ export default function ProductEditPage() {
       short_description: product.short_description ?? '',
       description: product.description ?? '',
       price: String(product.price),
-      stock: product.stock !== null ? String(product.stock) : '',
+      original_price: product.original_price !== null && product.original_price !== undefined
+        ? String(product.original_price)
+        : '',
+      quantity: String(product.quantity ?? 1),
+      badge: product.badge ?? '',
+      is_out_of_stock: product.is_out_of_stock ?? false,
+      stock: product.stock !== null && product.stock !== undefined ? String(product.stock) : '',
       delivery_type: (product.delivery_type as FormState['delivery_type']) ?? 'manual',
       is_active: product.is_active,
       instruction: product.instruction ?? '',
@@ -241,6 +257,10 @@ export default function ProductEditPage() {
       description: form.description.trim() || null,
       short_description: form.short_description.trim() || null,
       price: Number(form.price),
+      original_price: form.original_price !== '' ? Number(form.original_price) : null,
+      quantity: Number(form.quantity) || 1,
+      badge: form.badge.trim() || null,
+      is_out_of_stock: form.is_out_of_stock,
       stock: form.stock !== '' ? Number(form.stock) : null,
       delivery_type: form.delivery_type,
       instruction: form.instruction.trim() || null,
@@ -250,13 +270,14 @@ export default function ProductEditPage() {
     setSaving(true)
     try {
       if (isNew) {
-        await adminApi.createProduct(payload)
+        const created = await adminApi.createProduct(payload)
         toast.success('Товар создан')
+        navigate(`/admin/catalog/products/${created.id}`, { replace: true })
       } else {
         await adminApi.updateProduct(id!, payload)
         toast.success('Товар сохранён')
+        navigate('/admin/catalog')
       }
-      navigate('/admin/catalog')
     } catch {
       toast.error(isNew ? 'Не удалось создать товар' : 'Не удалось сохранить товар')
     } finally {
@@ -281,6 +302,9 @@ export default function ProductEditPage() {
       </div>
     )
   }
+
+  const inputCls =
+    'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all duration-200'
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -330,7 +354,7 @@ export default function ProductEditPage() {
         )}
       </div>
 
-      {/* Section: Категория — скрыт если предзаполнен из URL */}
+      {/* Section: Категория */}
       {presetCategoryId && form.category_id ? (
         <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4">
           <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Категория</h2>
@@ -341,58 +365,55 @@ export default function ProductEditPage() {
           </p>
         </div>
       ) : (
-      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
-        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Категория</h2>
+        <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
+          <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Категория</h2>
 
-        {/* Game select */}
-        <div>
-          <label className="text-xs text-white/50 mb-1.5 block">Игра</label>
-          <select
-            value={form.game_id}
-            onChange={(e) => handleGameChange(e.target.value)}
-            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 appearance-none transition-all duration-200"
-          >
-            <option value="" className="bg-[#060f1e]">— Выберите игру —</option>
-            {games.map((game) => (
-              <option key={game.id} value={game.id} className="bg-[#060f1e]">
-                {game.name}
-              </option>
-            ))}
-          </select>
-        </div>
+          <div>
+            <label className="text-xs text-white/50 mb-1.5 block">Игра</label>
+            <select
+              value={form.game_id}
+              onChange={(e) => handleGameChange(e.target.value)}
+              className={inputCls + ' appearance-none'}
+            >
+              <option value="" className="bg-[#060f1e]">— Выберите игру —</option>
+              {games.map((game) => (
+                <option key={game.id} value={game.id} className="bg-[#060f1e]">
+                  {game.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* Category select */}
-        <div>
-          <label className="text-xs text-white/50 mb-1.5 block">
-            Категория <span className="text-red-400">*</span>
-          </label>
-          <select
-            value={form.category_id}
-            onChange={(e) => setField('category_id', e.target.value)}
-            disabled={!form.game_id || loadingCats}
-            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 disabled:opacity-40 appearance-none transition-all duration-200"
-          >
-            <option value="" className="bg-[#060f1e]">
-              {loadingCats ? 'Загрузка...' : '— Выберите категорию —'}
-            </option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id} className="bg-[#060f1e]">
-                {cat.name}
+          <div>
+            <label className="text-xs text-white/50 mb-1.5 block">
+              Категория <span className="text-red-400">*</span>
+            </label>
+            <select
+              value={form.category_id}
+              onChange={(e) => setField('category_id', e.target.value)}
+              disabled={!form.game_id || loadingCats}
+              className={inputCls + ' appearance-none disabled:opacity-40'}
+            >
+              <option value="" className="bg-[#060f1e]">
+                {loadingCats ? 'Загрузка...' : '— Выберите категорию —'}
               </option>
-            ))}
-          </select>
-          {errors.category_id && (
-            <p className="text-xs text-red-400 mt-1">{errors.category_id}</p>
-          )}
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.id} className="bg-[#060f1e]">
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+            {errors.category_id && (
+              <p className="text-xs text-red-400 mt-1">{errors.category_id}</p>
+            )}
+          </div>
         </div>
-      </div>
       )}
 
       {/* Section: Основное */}
       <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
         <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Основное</h2>
 
-        {/* Name */}
         <div>
           <label className="text-xs text-white/50 mb-1.5 block">
             Название <span className="text-red-400">*</span>
@@ -401,14 +422,13 @@ export default function ProductEditPage() {
             type="text"
             value={form.name}
             onChange={(e) => setField('name', e.target.value)}
-            placeholder="Например: Кристаллы 1000 шт."
+            placeholder="Например: 80 гемов"
             maxLength={256}
-            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all duration-200"
+            className={inputCls}
           />
           {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name}</p>}
         </div>
 
-        {/* Short description */}
         <div>
           <label className="text-xs text-white/50 mb-1.5 block">Краткое описание</label>
           <input
@@ -417,11 +437,10 @@ export default function ProductEditPage() {
             onChange={(e) => setField('short_description', e.target.value)}
             placeholder="Отображается в карточке товара"
             maxLength={512}
-            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all duration-200"
+            className={inputCls}
           />
         </div>
 
-        {/* Description */}
         <div>
           <label className="text-xs text-white/50 mb-1.5 block">Описание</label>
           <textarea
@@ -429,17 +448,16 @@ export default function ProductEditPage() {
             onChange={(e) => setField('description', e.target.value)}
             rows={4}
             placeholder="Подробное описание товара..."
-            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 resize-none transition-all duration-200"
+            className={inputCls + ' resize-none'}
           />
         </div>
       </div>
 
-      {/* Section: Цена и склад */}
+      {/* Section: Цена и наличие */}
       <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
         <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Цена и наличие</h2>
 
         <div className="grid grid-cols-2 gap-3">
-          {/* Price */}
           <div>
             <label className="text-xs text-white/50 mb-1.5 block">
               Цена, ₽ <span className="text-red-400">*</span>
@@ -451,12 +469,42 @@ export default function ProductEditPage() {
               placeholder="0"
               min={0}
               step="0.01"
-              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all duration-200"
+              className={inputCls}
             />
             {errors.price && <p className="text-xs text-red-400 mt-1">{errors.price}</p>}
           </div>
 
-          {/* Stock */}
+          <div>
+            <label className="text-xs text-white/50 mb-1.5 block">Старая цена, ₽</label>
+            <input
+              type="number"
+              value={form.original_price}
+              onChange={(e) => setField('original_price', e.target.value)}
+              placeholder="Необязательно"
+              min={0}
+              step="0.01"
+              className={inputCls}
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-white/50 mb-1.5 block">
+              Количество в пакете <span className="text-red-400">*</span>
+            </label>
+            <input
+              type="number"
+              value={form.quantity}
+              onChange={(e) => setField('quantity', e.target.value)}
+              placeholder="1"
+              min={1}
+              step={1}
+              className={inputCls}
+            />
+            {errors.quantity && <p className="text-xs text-red-400 mt-1">{errors.quantity}</p>}
+          </div>
+
           <div>
             <label className="text-xs text-white/50 mb-1.5 block">Остаток</label>
             <input
@@ -466,18 +514,54 @@ export default function ProductEditPage() {
               placeholder="Не ограничен"
               min={0}
               step={1}
-              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all duration-200"
+              className={inputCls}
             />
           </div>
         </div>
 
-        {/* Delivery type */}
+        <div>
+          <label className="text-xs text-white/50 mb-1.5 block">Бейдж</label>
+          <input
+            type="text"
+            value={form.badge}
+            onChange={(e) => setField('badge', e.target.value)}
+            placeholder="Напр.: ХИТ, ВЫГОДНО, НОВИНКА"
+            maxLength={32}
+            className={inputCls}
+          />
+        </div>
+
+        {/* Нет в наличии toggle */}
+        <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+          <div>
+            <p className="text-sm text-white">Нет в наличии</p>
+            <p className="text-xs text-white/40 mt-0.5">Товар виден, но недоступен для покупки</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={form.is_out_of_stock}
+            onClick={() => setField('is_out_of_stock', !form.is_out_of_stock)}
+            className={[
+              'relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none',
+              form.is_out_of_stock ? 'bg-red-600' : 'bg-white/15',
+            ].join(' ')}
+          >
+            <span
+              className={[
+                'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition duration-200',
+                form.is_out_of_stock ? 'translate-x-5' : 'translate-x-0',
+              ].join(' ')}
+            />
+          </button>
+        </div>
+
         <div>
           <label className="text-xs text-white/50 mb-1.5 block">Тип доставки</label>
           <select
             value={form.delivery_type}
             onChange={(e) => setField('delivery_type', e.target.value as FormState['delivery_type'])}
-            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 appearance-none transition-all duration-200"
+            className={inputCls + ' appearance-none'}
           >
             {DELIVERY_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value} className="bg-[#060f1e]">
@@ -511,7 +595,7 @@ export default function ProductEditPage() {
               onChange={e => setKeysInput(e.target.value)}
               rows={6}
               placeholder={"key-abc-123\nkey-def-456\nkey-ghi-789"}
-              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/20 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 resize-none font-mono transition-all duration-200"
+              className={inputCls + ' resize-none font-mono'}
             />
             <div className="flex items-center justify-between mt-1">
               <span className="text-xs text-white/30">
@@ -551,7 +635,7 @@ export default function ProductEditPage() {
           onChange={(e) => setField('instruction', e.target.value)}
           rows={4}
           placeholder="Что покупатель должен сделать для получения товара..."
-          className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 resize-none transition-all duration-200"
+          className={inputCls + ' resize-none'}
         />
       </div>
 

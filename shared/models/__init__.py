@@ -21,7 +21,6 @@ from .catalog import (
     Game,
     Category,
     Product,
-    ProductLot,
     ProductKey,
     UserFavorite,
     UserViewedProduct,
@@ -77,7 +76,7 @@ __all__ = [
     "LoyaltyLevel", "User", "BalanceTransaction", "ReferralReward", "ShopSettings",
     # Catalog
     "DeliveryType", "Game", "Category", "Product",
-    "ProductLot", "ProductKey", "UserFavorite", "UserViewedProduct", "Review",
+    "ProductKey", "UserFavorite", "UserViewedProduct", "Review",
     # Discount
     "DiscountType", "DiscountValueType", "DiscountRule", "PromoCode", "PromoCodeUsage",
     # Cart

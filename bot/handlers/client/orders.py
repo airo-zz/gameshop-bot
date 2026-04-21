@@ -140,7 +140,6 @@ async def cb_order_detail(
     label = STATUS_LABEL.get(order.status, order.status.value)
     items_text = "\n".join(
         f"  • {item.product_name}"
-        + (f" ({item.lot_name})" if item.lot_name else "")
         + f" × {item.quantity} — {float(item.total_price):.0f} ₽"
         for item in order.items
     )

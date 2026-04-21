@@ -1,17 +1,17 @@
 """
 api/routers/admin/catalog.py
 ─────────────────────────────────────────────────────────────────────────────
-Admin API: управление каталогом (игры, категории, товары, лоты).
+Admin API: управление каталогом (игры, категории, товары).
 ─────────────────────────────────────────────────────────────────────────────
 """
 
 import re
 import uuid
+from decimal import Decimal
 from math import ceil
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
@@ -25,9 +25,6 @@ from api.schemas.admin import (
     GameCreateIn,
     GameOut,
     GameUpdateIn,
-    LotCreateIn,
-    LotOut,
-    LotUpdateIn,
     PaginatedResponse,
     ProductCreateIn,
     ProductListItem,
@@ -36,7 +33,7 @@ from api.schemas.admin import (
     ReorderIn,
 )
 from api.utils.admin_log import log_admin_action
-from shared.models.catalog import Category, Game, Product, ProductKey, ProductLot
+from shared.models.catalog import Category, Game, Product, ProductKey
 
 router = APIRouter()
 
@@ -388,7 +385,6 @@ async def get_product(
 ) -> ProductOut:
     result = await db.execute(
         select(Product)
-        .options(selectinload(Product.lots))
         .where(Product.id == product_id)
     )
     product = result.scalar_one_or_none()
@@ -405,10 +401,9 @@ async def copy_product(
     db: DbSession,
     admin: CurrentAdmin,
 ) -> ProductOut:
-    """Дублирует товар со всеми лотами. Имя нового: '{имя} (копия)'."""
+    """Дублирует товар. Имя нового: '{имя} (копия)'."""
     result = await db.execute(
         select(Product)
-        .options(selectinload(Product.lots))
         .where(Product.id == product_id)
     )
     original = result.scalar_one_or_none()
@@ -422,7 +417,11 @@ async def copy_product(
         description=original.description,
         short_description=original.short_description,
         price=original.price,
+        original_price=original.original_price,
+        quantity=original.quantity,
+        badge=original.badge,
         stock=original.stock,
+        is_out_of_stock=False,
         delivery_type=original.delivery_type,
         input_fields=original.input_fields,
         instruction=original.instruction,
@@ -431,22 +430,6 @@ async def copy_product(
         sort_order=original.sort_order + 1,
     )
     db.add(new_product)
-    await db.flush()
-
-    for lot in original.lots:
-        new_lot = ProductLot(
-            id=uuid.uuid4(),
-            product_id=new_product.id,
-            name=lot.name,
-            price=lot.price,
-            original_price=lot.original_price,
-            quantity=lot.quantity,
-            badge=lot.badge,
-            is_active=lot.is_active,
-            sort_order=lot.sort_order,
-        )
-        db.add(new_lot)
-
     await db.flush()
 
     await log_admin_action(
@@ -462,7 +445,6 @@ async def copy_product(
         },
     )
 
-    await db.refresh(new_product, ["lots"])
     return new_product
 
 
@@ -477,7 +459,6 @@ async def create_product(
     if not cat.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Категория не найдена")
 
-    from decimal import Decimal
     from shared.models.catalog import DeliveryType
 
     try:
@@ -494,7 +475,11 @@ async def create_product(
         description=body.description,
         short_description=body.short_description,
         price=Decimal(str(body.price)),
+        original_price=Decimal(str(body.original_price)) if body.original_price is not None else None,
+        quantity=body.quantity,
+        badge=body.badge,
         stock=body.stock,
+        is_out_of_stock=body.is_out_of_stock,
         delivery_type=delivery_type,
         input_fields=body.input_fields,
         instruction=body.instruction,
@@ -514,8 +499,6 @@ async def create_product(
         after_data={"name": product.name, "category_id": str(body.category_id)},
     )
 
-    # Подгружаем lots для ответа
-    await db.refresh(product, ["lots"])
     return product
 
 
@@ -529,7 +512,6 @@ async def update_product(
 ) -> ProductOut:
     result = await db.execute(
         select(Product)
-        .options(selectinload(Product.lots))
         .where(Product.id == product_id)
     )
     product = result.scalar_one_or_none()
@@ -558,9 +540,9 @@ async def update_product(
                 detail=f"Недопустимый delivery_type: {update_data['delivery_type']}",
             )
 
-    if "price" in update_data:
-        from decimal import Decimal
-        update_data["price"] = Decimal(str(update_data["price"]))
+    for key in ("price", "original_price"):
+        if key in update_data and update_data[key] is not None:
+            update_data[key] = Decimal(str(update_data[key]))
 
     for field, value in update_data.items():
         setattr(product, field, value)
@@ -577,88 +559,6 @@ async def update_product(
     )
 
     return product
-
-
-# ── Lots ──────────────────────────────────────────────────────────────────────
-
-
-@router.post("/products/{product_id}/lots", response_model=LotOut,
-             status_code=status.HTTP_201_CREATED,
-             dependencies=[require_permission("catalog.edit")])
-async def create_lot(
-    product_id: uuid.UUID,
-    body: LotCreateIn,
-    db: DbSession,
-    admin: CurrentAdmin,
-) -> LotOut:
-    result = await db.execute(select(Product).where(Product.id == product_id))
-    if not result.scalar_one_or_none():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Товар не найден")
-
-    from decimal import Decimal
-
-    lot = ProductLot(
-        product_id=product_id,
-        name=body.name,
-        price=Decimal(str(body.price)),
-        original_price=Decimal(str(body.original_price)) if body.original_price is not None else None,
-        quantity=body.quantity,
-        badge=body.badge,
-        is_active=body.is_active,
-        sort_order=body.sort_order,
-    )
-    db.add(lot)
-    await db.flush()
-
-    await log_admin_action(
-        db=db,
-        admin=admin,
-        action="lot.create",
-        entity_type="lot",
-        entity_id=lot.id,
-        after_data={"name": lot.name, "price": str(lot.price), "product_id": str(product_id)},
-    )
-
-    return lot
-
-
-@router.patch("/lots/{lot_id}", response_model=LotOut,
-              dependencies=[require_permission("catalog.edit")])
-async def update_lot(
-    lot_id: uuid.UUID,
-    body: LotUpdateIn,
-    db: DbSession,
-    admin: CurrentAdmin,
-) -> LotOut:
-    result = await db.execute(select(ProductLot).where(ProductLot.id == lot_id))
-    lot = result.scalar_one_or_none()
-    if not lot:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Лот не найден")
-
-    before = {"name": lot.name, "price": str(lot.price), "is_active": lot.is_active}
-    update_data = body.model_dump(exclude_none=True)
-
-    from decimal import Decimal
-
-    for key in ("price", "original_price"):
-        if key in update_data and update_data[key] is not None:
-            update_data[key] = Decimal(str(update_data[key]))
-
-    for field, value in update_data.items():
-        setattr(lot, field, value)
-
-    await log_admin_action(
-        db=db,
-        admin=admin,
-        action="lot.update",
-        entity_type="lot",
-        entity_id=lot.id,
-        before_data=before,
-        after_data={k: str(v) if not isinstance(v, (str, bool, int, list, dict, type(None))) else v
-                    for k, v in update_data.items()},
-    )
-
-    return lot
 
 
 @router.delete("/products/{product_id}", status_code=status.HTTP_204_NO_CONTENT,
@@ -694,7 +594,6 @@ async def bulk_price_update(
 ) -> dict:
     from decimal import Decimal, ROUND_HALF_UP
 
-    # Определяем целевые товары
     q = select(Product)
     if body.scope == "game" and body.game_id:
         category_ids_q = select(Category.id).where(Category.game_id == body.game_id)
@@ -706,9 +605,6 @@ async def bulk_price_update(
     else:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
                             detail="Некорректные параметры scope/id")
-
-    if body.include_lots:
-        q = q.options(selectinload(Product.lots))
 
     result = await db.execute(q)
     products = result.scalars().all()
@@ -727,15 +623,6 @@ async def bulk_price_update(
         product.price = new_price
         updated_count += 1
 
-        if body.include_lots:
-            for lot in product.lots:
-                if body.mode == "percent":
-                    lot.price = (lot.price * (1 + value / 100)).quantize(
-                        Decimal("0.01"), rounding=ROUND_HALF_UP
-                    )
-                else:
-                    lot.price = new_price
-
     await log_admin_action(
         db=db,
         admin=admin,
@@ -747,41 +634,15 @@ async def bulk_price_update(
             "value": str(body.value),
             "scope": body.scope,
             "updated_count": updated_count,
-            "include_lots": body.include_lots,
         },
     )
 
     return {"updated_count": updated_count}
 
 
-@router.delete("/lots/{lot_id}", status_code=status.HTTP_204_NO_CONTENT,
-               dependencies=[require_permission("catalog.edit")])
-async def delete_lot(
-    lot_id: uuid.UUID,
-    db: DbSession,
-    admin: CurrentAdmin,
-) -> None:
-    result = await db.execute(select(ProductLot).where(ProductLot.id == lot_id))
-    lot = result.scalar_one_or_none()
-    if not lot:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Лот не найден")
-
-    await log_admin_action(
-        db=db,
-        admin=admin,
-        action="lot.delete",
-        entity_type="lot",
-        entity_id=lot.id,
-        before_data={"name": lot.name, "product_id": str(lot.product_id)},
-    )
-
-    await db.delete(lot)
-
-
 # ── Product Keys ──────────────────────────────────────────────────────────────
 
 
-# GET /products/{product_id}/keys — stats (available, used, total)
 @router.get("/products/{product_id}/keys",
             dependencies=[require_permission("catalog.edit")])
 async def get_product_keys_stats(product_id: uuid.UUID, db: DbSession, admin: CurrentAdmin):
@@ -799,7 +660,9 @@ async def get_product_keys_stats(product_id: uuid.UUID, db: DbSession, admin: Cu
     return {"total": total, "used": used, "available": total - used}
 
 
-# POST /products/{product_id}/keys — bulk add (one key per line)
+from pydantic import BaseModel
+
+
 class AddKeysRequest(BaseModel):
     keys: list[str]  # plaintext keys, will be encrypted on insert
 
@@ -824,7 +687,6 @@ async def add_product_keys(product_id: uuid.UUID, body: AddKeysRequest, db: DbSe
     return {"added": len(keys_to_add)}
 
 
-# DELETE /products/{product_id}/keys/unused — delete all unused keys
 @router.delete("/products/{product_id}/keys/unused",
                dependencies=[require_permission("catalog.edit")])
 async def delete_unused_product_keys(product_id: uuid.UUID, db: DbSession, admin: CurrentAdmin):

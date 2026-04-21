@@ -1,7 +1,11 @@
 """
 shared/models/catalog.py
 ─────────────────────────────────────────────────────────────────────────────
-Модели каталога: игры → категории → товары → лоты → ключи.
+Модели каталога: игры → категории → товары → ключи.
+
+После реархитектуры 017 уровень «секция» (бывший Product) и уровень «лот»
+(бывший ProductLot) слиты в единую сущность Product. Каждый Product —
+самостоятельный покупаемый вариант с ценой, бейджем и ключами.
 ─────────────────────────────────────────────────────────────────────────────
 """
 
@@ -31,9 +35,9 @@ import enum
 
 
 class DeliveryType(str, enum.Enum):
-    auto = "auto"  # Ключ/код из БД — мгновенно
+    auto = "auto"    # Ключ/код из БД — мгновенно
     manual = "manual"  # Оператор выдаёт вручную
-    mixed = "mixed"  # Зависит от конкретного лота
+    mixed = "mixed"  # Авто при наличии ключей, иначе вручную
 
 
 class Game(Base, UUIDMixin, TimestampMixin):
@@ -54,12 +58,10 @@ class Game(Base, UUIDMixin, TimestampMixin):
     type: Mapped[str] = mapped_column(String(16), nullable=False, default="game", index=True)
     # "game" | "service"
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
-    # Неактивна при создании — активирует админ после проверки
     is_featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
-    # Расширяемые атрибуты (платформа, жанр и т.д.)
 
     # Relationships
     categories: Mapped[list["Category"]] = relationship(
@@ -73,7 +75,6 @@ class Game(Base, UUIDMixin, TimestampMixin):
 class Category(Base, UUIDMixin, TimestampMixin):
     """
     Категория товаров внутри игры.
-    Поддерживает вложенность (parent_id → дерево категорий).
     Пример: Brawl Stars → Гемы / Скины / Батл-пасс.
     """
 
@@ -120,16 +121,18 @@ class Category(Base, UUIDMixin, TimestampMixin):
 
 class Product(Base, UUIDMixin, TimestampMixin):
     """
-    Товар — основная единица продажи.
-    Содержит базовую информацию, поля для ввода от клиента,
-    и ссылки на лоты (пакеты/количества).
+    Товар — единственная единица продажи (бывший ProductLot).
 
-    input_fields — JSON-схема полей:
+    Каждый товар — самодостаточный покупаемый вариант:
+      - 80 гемов   → 99 ₽
+      - 170 гемов  → 199 ₽  [ХИТ]
+      - 360 гемов  → 399 ₽  [ВЫГОДНО]
+    Все три — отдельные Product в категории «Гемы».
+
+    input_fields — JSON-схема полей ввода от клиента:
     [
       {"key": "game_id", "label": "ID игрока", "type": "text",
-       "placeholder": "123456789", "required": true},
-      {"key": "server", "label": "Сервер", "type": "select",
-       "options": ["EU", "RU", "Asia"], "required": true}
+       "placeholder": "123456789", "required": true}
     ]
     """
 
@@ -149,11 +152,23 @@ class Product(Base, UUIDMixin, TimestampMixin):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     short_description: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
+    # Цена и скидка
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    original_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
+    # original_price → перечёркнутая цена в UI (показывает экономию)
     currency: Mapped[str] = mapped_column(String(8), nullable=False, default="RUB")
 
+    # Количество в единице товара (например, 80 гемов)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+    # Бейдж (ХИТ, ВЫГОДНО, NEW и т.д.)
+    badge: Mapped[str | None] = mapped_column(String(32), nullable=True)
+
+    # Остаток на складе: NULL = безлимитный
     stock: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    # NULL = безлимитный запас; используется для услуг и ручной выдачи
+
+    # Флаг «нет в наличии» — товар виден, но заблокирован для покупки
+    is_out_of_stock: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     delivery_type: Mapped[DeliveryType] = mapped_column(
         Enum(DeliveryType, name="delivery_type_enum"),
@@ -165,7 +180,6 @@ class Product(Base, UUIDMixin, TimestampMixin):
     input_fields: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
 
     instruction: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # Текст инструкции, который отправляется клиенту после выполнения заказа
 
     images: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
@@ -178,14 +192,8 @@ class Product(Base, UUIDMixin, TimestampMixin):
 
     # Relationships
     category: Mapped[Category] = relationship("Category", back_populates="products")
-    lots: Mapped[list["ProductLot"]] = relationship(
-        "ProductLot",
-        back_populates="product",
-        cascade="all, delete-orphan",
-        order_by="ProductLot.sort_order",
-    )
     keys: Mapped[list["ProductKey"]] = relationship(
-        "ProductKey", back_populates="product"
+        "ProductKey", back_populates="product", cascade="all, delete-orphan"
     )
     reviews: Mapped[list["Review"]] = relationship("Review", back_populates="product")
     favorites: Mapped[list["UserFavorite"]] = relationship(
@@ -201,43 +209,6 @@ class Product(Base, UUIDMixin, TimestampMixin):
         return f"<Product {self.name} {self.price}>"
 
 
-class ProductLot(Base, UUIDMixin):
-    """
-    Лот (пакет) товара — конкретное количество по конкретной цене.
-    Пример для "Гемы Brawl Stars":
-      - 80 гемов   → 99 ₽
-      - 170 гемов  → 199 ₽  [ХИТ]
-      - 360 гемов  → 399 ₽  [ВЫГОДНО]
-    """
-
-    __tablename__ = "product_lots"
-
-    product_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("products.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-    name: Mapped[str] = mapped_column(String(128), nullable=False)
-    price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    original_price: Mapped[Decimal | None] = mapped_column(
-        Numeric(12, 2), nullable=True
-    )
-    # original_price → перечёркнутая цена в UI (показывает экономию)
-    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    badge: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    # Примеры: "ХИТ", "ВЫГОДНО", "🔥 -30%", "NEW"
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
-    sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-
-    # Relationships
-    product: Mapped[Product] = relationship("Product", back_populates="lots")
-    keys: Mapped[list["ProductKey"]] = relationship("ProductKey", back_populates="lot")
-
-    def __repr__(self) -> str:
-        return f"<Lot {self.name} {self.price}>"
-
-
 class ProductKey(Base, UUIDMixin):
     """
     Ключ/код для автоматической выдачи товара.
@@ -251,11 +222,6 @@ class ProductKey(Base, UUIDMixin):
         UUID(as_uuid=True),
         ForeignKey("products.id", ondelete="CASCADE"),
         nullable=False,
-    )
-    lot_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("product_lots.id", ondelete="SET NULL"),
-        nullable=True,
     )
     key_value: Mapped[str] = mapped_column(Text, nullable=False)
     # Хранится в зашифрованном виде! Расшифровывается только при выдаче.
@@ -276,7 +242,6 @@ class ProductKey(Base, UUIDMixin):
 
     # Relationships
     product: Mapped[Product] = relationship("Product", back_populates="keys")
-    lot: Mapped[ProductLot | None] = relationship("ProductLot", back_populates="keys")
 
 
 class UserFavorite(Base):

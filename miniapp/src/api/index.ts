@@ -42,16 +42,6 @@ export interface TrendingCategory {
   game_image_url: string | null
 }
 
-export interface Lot {
-  id: string
-  name: string
-  price: number
-  original_price: number | null
-  quantity: number
-  badge: string | null
-  sort_order: number
-}
-
 export interface Product {
   id: string
   name: string
@@ -61,12 +51,15 @@ export interface Product {
   short_description: string | null
   description: string | null
   price: number
+  original_price: number | null
   currency: string
+  quantity: number
+  badge: string | null
   images: string[]
   is_featured: boolean
+  is_out_of_stock: boolean
   delivery_type: 'auto' | 'manual' | 'mixed'
   stock: number | null
-  lots: Lot[]
   input_fields: InputField[]
   instruction: string | null
   avg_rating: number | null
@@ -85,14 +78,12 @@ export interface InputField {
 export interface CartItem {
   id: string
   product_id: string
-  lot_id: string | null
   quantity: number
   price_snapshot: number
   subtotal: number
   input_data: Record<string, string>
   product_name: string
   product_image: string | null
-  lot_name: string | null
 }
 
 export interface Cart {
@@ -127,7 +118,6 @@ export interface OrderItem {
   product_id: string
   product_name: string
   game_name: string | null
-  lot_name: string | null
   quantity: number
   unit_price: number
   total_price: number
@@ -238,7 +228,7 @@ export const cartApi = {
   get: () =>
     apiClient.get<Cart>('/cart').then(r => r.data),
 
-  addItem: (data: { product_id: string; lot_id?: string; quantity: number; input_data: Record<string, string> }) =>
+  addItem: (data: { product_id: string; quantity: number; input_data: Record<string, string> }) =>
     apiClient.post<{ ok: boolean; item_id: string; item_quantity: number }>('/cart/items', data).then(r => r.data),
 
   updateItem: (itemId: string, quantity: number) =>

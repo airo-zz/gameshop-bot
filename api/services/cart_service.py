@@ -30,27 +30,17 @@ class CartService:
             )
             self.db.add(cart)
             await self.db.flush()
-            # После flush загружаем объект через тот же запрос с selectinload,
-            # чтобы cart.items была eagerly-loaded коллекцией, а не lazy-атрибутом.
-            # Без этого любое обращение к cart.items в async-контексте
-            # вызывает MissingGreenlet.
             cart = await self._load_cart(user.id)
 
         return cart
 
     async def _load_cart(self, user_id: uuid.UUID) -> Cart | None:
-        """Загружает корзину со всеми нужными relationship через selectinload.
-
-        populate_existing=True нужен потому что session_factory использует
-        expire_on_commit=False — без этого SQLAlchemy возвращает стale-объект
-        из identity map после commit вместо свежих данных из БД.
-        """
+        """Загружает корзину со всеми нужными relationship через selectinload."""
         result = await self.db.execute(
             select(Cart)
             .options(
                 selectinload(Cart.items)
                 .selectinload(CartItem.product)
-                .selectinload(Product.lots)
             )
             .where(Cart.user_id == user_id)
             .execution_options(populate_existing=True)
@@ -61,59 +51,48 @@ class CartService:
         self,
         cart: Cart,
         product_id: uuid.UUID,
-        lot_id: uuid.UUID | None,
         quantity: int,
         input_data: dict,
     ) -> CartItem:
         """Добавляет товар в корзину (или увеличивает количество)."""
-        # Проверяем товар
         result = await self.db.execute(
             select(Product)
-            .options(selectinload(Product.lots))
             .where(Product.id == product_id, Product.is_active == True)
         )
         product = result.scalar_one_or_none()
         if not product:
             raise ValueError("Товар не найден или недоступен")
 
-        # Определяем цену
-        price = product.price
-        if lot_id:
-            lot = next((l for l in product.lots if l.id == lot_id), None)
-            if not lot:
-                raise ValueError("Лот не найден")
-            price = lot.price
+        if product.is_out_of_stock:
+            raise ValueError("Товар недоступен (нет в наличии)")
 
         # Проверяем наличие
         if product.stock is not None and product.stock < quantity:
             raise ValueError("Недостаточно товара в наличии")
 
+        price = product.price
+
         # Ищем существующую позицию
         existing = next(
-            (
-                item
-                for item in cart.items
-                if item.product_id == product_id and item.lot_id == lot_id
-            ),
+            (item for item in cart.items if item.product_id == product_id),
             None,
         )
 
         if existing:
             existing.quantity += quantity
-            existing.input_data = input_data  # Обновляем данные
+            existing.input_data = input_data
             self._extend_cart_expiry(cart)
             return existing
 
         item = CartItem(
             cart_id=cart.id,
             product_id=product_id,
-            lot_id=lot_id,
             quantity=quantity,
             price_snapshot=price,
             input_data=input_data,
         )
         self.db.add(item)
-        await self.db.flush()  # Получаем item.id сразу, не ждём commit
+        await self.db.flush()
         self._extend_cart_expiry(cart)
         return item
 
@@ -155,7 +134,6 @@ class CartService:
         if not result["valid"]:
             return result
 
-        # Ищем промокод
         from shared.models import PromoCode
 
         promo_result = await self.db.execute(
@@ -186,7 +164,6 @@ class CartService:
             user, cart, promo_code_str
         )
 
-        # Вычисляем сумму скидки именно от промокода
         promo_discount = Decimal("0")
         if discount_result.promo_code:
             rule_id = discount_result.promo_code.discount_rule_id

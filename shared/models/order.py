@@ -181,15 +181,10 @@ class OrderItem(Base, UUIDMixin):
         UUID(as_uuid=True), ForeignKey("products.id", ondelete="SET NULL"),
         nullable=True,
     )
-    lot_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("product_lots.id", ondelete="SET NULL"),
-        nullable=True,
-    )
 
     # Снимки данных на момент покупки (не изменятся если товар будет переименован)
     product_name: Mapped[str] = mapped_column(String(256), nullable=False)
     game_name: Mapped[str | None] = mapped_column(String(256), nullable=True)
-    lot_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     unit_price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
@@ -205,7 +200,6 @@ class OrderItem(Base, UUIDMixin):
     # Relationships
     order: Mapped[Order] = relationship("Order", back_populates="items")
     product: Mapped["Product"] = relationship("Product")
-    lot: Mapped["ProductLot | None"] = relationship("ProductLot")
 
 
 class OrderStatusHistory(Base, UUIDMixin):

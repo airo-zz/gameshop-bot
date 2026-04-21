@@ -24,6 +24,7 @@ from shared.models import (
     OrderItem, OrderStatus, OrderStatusHistory, PaymentMethod,
     Product, ProductKey, User,
 )
+# ProductLot removed — flat catalog model since migration 017
 from shared.models.order import ALLOWED_STATUS_TRANSITIONS
 from api.services.discount_service import DiscountService, DiscountResult
 
@@ -53,15 +54,17 @@ class OrderService:
         if cart.is_empty:
             raise ValueError("Корзина пуста")
 
-        # Загружаем товары с лотами
+        # Загружаем товары
         items_with_products = await self._load_cart_items(cart)
 
         # Проверяем наличие и ключи ДО создания заказа
         for item, product in items_with_products:
+            if product.is_out_of_stock:
+                raise ValueError(f"Товар '{product.name}' недоступен (нет в наличии)")
             if product.stock is not None and product.stock < item.quantity:
                 raise ValueError(f"Товар '{product.name}' недоступен в нужном количестве")
             if product.delivery_type.value in ("auto", "mixed"):
-                available = await self._count_available_keys(product.id, item.lot_id)
+                available = await self._count_available_keys(product.id)
                 if available < item.quantity:
                     raise ValueError(
                         f"Товар '{product.name}' временно недоступен — "
@@ -95,11 +98,6 @@ class OrderService:
 
         # Создаём позиции заказа
         for item, product in items_with_products:
-            lot_name = None
-            if item.lot_id:
-                lot = next((l for l in product.lots if l.id == item.lot_id), None)
-                lot_name = lot.name if lot else None
-
             game_name: str | None = None
             try:
                 game_name = product.category.game.name
@@ -109,10 +107,8 @@ class OrderService:
             order_item = OrderItem(
                 order_id=order.id,
                 product_id=product.id,
-                lot_id=item.lot_id,
                 product_name=product.name,
                 game_name=game_name,
-                lot_name=lot_name,
                 quantity=item.quantity,
                 unit_price=item.price_snapshot,
                 total_price=item.price_snapshot * item.quantity,
@@ -122,8 +118,8 @@ class OrderService:
 
             # Резервируем ключи для auto-выдачи
             if product.delivery_type.value in ("auto", "mixed"):
-                await self._reserve_keys(product.id, item.lot_id, item.quantity)
-                remaining = await self._count_available_keys(product.id, item.lot_id)
+                await self._reserve_keys(product.id, item.quantity)
+                remaining = await self._count_available_keys(product.id)
                 if remaining == 0 and product.delivery_type.value == "auto":
                     from shared.models.catalog import DeliveryType
                     product.delivery_type = DeliveryType.manual
@@ -286,16 +282,15 @@ class OrderService:
             if item.product.delivery_type.value in ("auto", "mixed")
         ]
 
-        # Для каждого auto-item ищем зарезервированные ключи по product_id/lot_id.
+        # Для каждого auto-item ищем зарезервированные ключи по product_id.
         # Ключи резервируются в _reserve_keys без order_item_id (он неизвестен до flush),
-        # поэтому фильтруем по product_id + lot_id + is_used=True + order_item_id IS NULL.
+        # поэтому фильтруем по product_id + is_used=True + order_item_id IS NULL.
         keys_by_item: dict[uuid.UUID, list[ProductKey]] = defaultdict(list)
         for item in auto_items:
             keys_result = await self.db.execute(
                 select(ProductKey)
                 .where(
                     ProductKey.product_id == item.product_id,
-                    ProductKey.lot_id == item.lot_id,
                     ProductKey.is_used == True,
                     ProductKey.order_item_id.is_(None),
                 )
@@ -339,7 +334,6 @@ class OrderService:
     async def _count_available_keys(
         self,
         product_id: uuid.UUID,
-        lot_id: uuid.UUID | None,
     ) -> int:
         from sqlalchemy import func as sqlfunc
         result = await self.db.execute(
@@ -347,7 +341,6 @@ class OrderService:
             .select_from(ProductKey)
             .where(
                 ProductKey.product_id == product_id,
-                ProductKey.lot_id == lot_id,
                 ProductKey.is_used == False,
             )
         )
@@ -356,7 +349,6 @@ class OrderService:
     async def _reserve_keys(
         self,
         product_id: uuid.UUID,
-        lot_id: uuid.UUID | None,
         quantity: int,
     ) -> None:
         """Резервирует ключи (помечает как used без order_item_id пока нет order_item).
@@ -367,7 +359,6 @@ class OrderService:
             select(ProductKey)
             .where(
                 ProductKey.product_id == product_id,
-                ProductKey.lot_id == lot_id,
                 ProductKey.is_used == False,
             )
             .limit(quantity)
@@ -415,7 +406,6 @@ class OrderService:
             reserved_result = await self.db.execute(
                 select(ProductKey).where(
                     ProductKey.product_id == item.product_id,
-                    ProductKey.lot_id == item.lot_id,
                     ProductKey.is_used == True,
                     ProductKey.order_item_id.is_(None),
                 )
@@ -600,8 +590,6 @@ class OrderService:
         result = await self.db.execute(
             select(CartItem)
             .options(
-                selectinload(CartItem.product)
-                .selectinload(Product.lots),
                 selectinload(CartItem.product)
                 .selectinload(Product.category)
                 .selectinload(Category.game),

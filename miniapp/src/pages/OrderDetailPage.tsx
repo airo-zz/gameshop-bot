@@ -151,9 +151,6 @@ export default function OrderDetailPage() {
                   <p className="text-[11px] font-medium mb-0.5" style={{ color: 'var(--hint)' }}>{item.game_name}</p>
                 )}
                 <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{item.product_name}</p>
-                {item.lot_name && (
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>{item.lot_name}</p>
-                )}
                 <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>
                   {item.quantity} шт. × {item.unit_price.toLocaleString('ru')} ₽
                 </p>

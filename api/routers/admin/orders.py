@@ -275,7 +275,6 @@ async def get_order(
                 "id": str(item.id),
                 "product_id": str(item.product_id),
                 "product_name": item.product_name,
-                "lot_name": item.lot_name,
                 "quantity": item.quantity,
                 "unit_price": float(item.unit_price),
                 "total_price": float(item.total_price),

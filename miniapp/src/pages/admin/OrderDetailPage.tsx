@@ -281,9 +281,6 @@ export default function OrderDetailPage() {
           <div key={item.id} className="flex justify-between items-start gap-3">
             <div className="min-w-0">
               <div className="text-sm text-white font-medium truncate">{item.product_name}</div>
-              {item.lot_name && (
-                <div className="text-xs text-white/40">{item.lot_name}</div>
-              )}
               <div className="text-xs text-white/30">{item.quantity} шт.</div>
             </div>
             <div className="text-sm font-semibold text-white shrink-0">

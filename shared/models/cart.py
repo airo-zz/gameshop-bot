@@ -89,10 +89,6 @@ class CartItem(Base, UUIDMixin):
         UUID(as_uuid=True), ForeignKey("products.id", ondelete="CASCADE"),
         nullable=False,
     )
-    lot_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("product_lots.id", ondelete="SET NULL"),
-        nullable=True,
-    )
     quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     price_snapshot: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
     # Цена зафиксирована на момент добавления — защита от изменений цены
@@ -107,7 +103,6 @@ class CartItem(Base, UUIDMixin):
     # Relationships
     cart: Mapped[Cart] = relationship("Cart", back_populates="items")
     product: Mapped["Product"] = relationship("Product")
-    lot: Mapped["ProductLot | None"] = relationship("ProductLot")
 
     @property
     def subtotal(self) -> Decimal:

@@ -119,7 +119,6 @@ export default function CheckoutPage() {
           <div key={item.id} className="flex justify-between text-sm">
             <span className="truncate flex-1 mr-2" style={{ color: 'var(--text)' }}>
               {item.product_name}
-              {item.lot_name && <span style={{ color: 'var(--hint)' }}> · {item.lot_name}</span>}
             </span>
             <span className="font-medium flex-shrink-0" style={{ color: 'var(--text)' }}>
               {fmtPrice(item.subtotal)} ₽

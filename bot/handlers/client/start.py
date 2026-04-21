@@ -185,7 +185,6 @@ async def _show_product_from_start(
 ) -> None:
     """Показывает карточку товара при /start product_{uuid}."""
     import uuid as uuid_mod
-    from sqlalchemy.orm import selectinload
     from shared.models import Product
     from bot.utils.texts import texts as _texts
 
@@ -198,7 +197,6 @@ async def _show_product_from_start(
 
     result = await db.execute(
         select(Product)
-        .options(selectinload(Product.lots))
         .where(Product.id == product_id, Product.is_active == True)
     )
     product = result.scalar_one_or_none()
@@ -206,40 +204,27 @@ async def _show_product_from_start(
         await message.answer("❌ Товар не найден или недоступен.", parse_mode="HTML")
         return
 
-    active_lots = [lot for lot in product.lots if lot.is_active]
-    prices = [float(lot.price) for lot in active_lots] if active_lots else [float(product.price)]
+    price = float(product.price)
 
     card_text = _texts.product_card(
         name=product.name,
         description=product.description or "",
-        price=float(product.price),
+        price=price,
         stock=product.stock,
         delivery_type=product.delivery_type.value,
-        min_price=min(prices),
-        max_price=max(prices),
+        min_price=price,
+        max_price=price,
     )
 
-    buttons = []
-    if active_lots:
-        for lot in active_lots:
-            badge = f" [{lot.badge}]" if lot.badge else ""
-            buttons.append(
-                [
-                    InlineKeyboardButton(
-                        text=f"🛒 {lot.name} — {float(lot.price):.0f} ₽{badge}",
-                        callback_data=f"cart:add:{product.id}:{lot.id}",
-                    )
-                ]
+    btn_text = "Нет в наличии" if product.is_out_of_stock else f"🛒 В корзину — {price:.0f} ₽"
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text=btn_text,
+                callback_data=f"cart:add:{product.id}" if not product.is_out_of_stock else "noop",
             )
-    else:
-        buttons.append(
-            [
-                InlineKeyboardButton(
-                    text=f"🛒 В корзину — {float(product.price):.0f} ₽",
-                    callback_data=f"cart:add:{product.id}",
-                )
-            ]
-        )
+        ]
+    ]
 
     buttons.append(
         [

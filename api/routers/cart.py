@@ -26,23 +26,17 @@ async def get_cart(db: DbSession, user: CurrentUser):
         product_image = (
             item.product.images[0] if item.product and item.product.images else None
         )
-        lot_name = None
-        if item.lot_id and item.product:
-            lot = next((l for l in item.product.lots if l.id == item.lot_id), None)
-            lot_name = lot.name if lot else None
 
         items_out.append(
             CartItemOut(
                 id=item.id,
                 product_id=item.product_id,
-                lot_id=item.lot_id,
                 quantity=item.quantity,
                 price_snapshot=item.price_snapshot,
                 subtotal=item.subtotal,
                 input_data=item.input_data,
                 product_name=product_name,
                 product_image=product_image,
-                lot_name=lot_name,
             )
         )
 
@@ -65,7 +59,7 @@ async def add_to_cart(body: AddToCartRequest, db: DbSession, user: CurrentUser):
     cart = await svc.get_or_create_cart(user)
     try:
         item = await svc.add_item(
-            cart, body.product_id, body.lot_id, body.quantity, body.input_data
+            cart, body.product_id, body.quantity, body.input_data
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

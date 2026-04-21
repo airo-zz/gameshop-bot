@@ -115,7 +115,7 @@ class OrderDetailOut(BaseModel):
     user: dict[str, Any]
     """Поля: id, telegram_id, username, first_name, last_name, balance, orders_count, total_spent, is_blocked."""
     items: list[dict[str, Any]]
-    """Поля: id, product_id, product_name, lot_name, quantity, unit_price, total_price, input_data, delivery_data, delivered_at."""
+    """Поля: id, product_id, product_name, quantity, unit_price, total_price, input_data, delivery_data, delivered_at."""
     status_history: list[dict[str, Any]]
     """Поля: id, from_status, to_status, changed_by_type, reason, created_at."""
     payments: list[dict[str, Any]]
@@ -219,7 +219,11 @@ class ProductCreateIn(BaseModel):
     description: str | None = None
     short_description: str | None = Field(None, max_length=512)
     price: float = Field(..., ge=0)
+    original_price: float | None = Field(None, ge=0)
+    quantity: int = Field(1, ge=1)
+    badge: str | None = Field(None, max_length=32)
     stock: int | None = None
+    is_out_of_stock: bool = False
     delivery_type: str = "manual"
     input_fields: list[Any] = []
     instruction: str | None = None
@@ -234,27 +238,17 @@ class ProductUpdateIn(BaseModel):
     description: str | None = None
     short_description: str | None = Field(None, max_length=512)
     price: float | None = Field(None, ge=0)
+    original_price: float | None = Field(None, ge=0)
+    quantity: int | None = Field(None, ge=1)
+    badge: str | None = Field(None, max_length=32)
     stock: int | None = None
+    is_out_of_stock: bool | None = None
     delivery_type: str | None = None
     input_fields: list[Any] | None = None
     instruction: str | None = None
     images: list[str] | None = None
     is_active: bool | None = None
     sort_order: int | None = None
-
-
-class LotOut(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: uuid.UUID
-    product_id: uuid.UUID
-    name: str
-    price: float
-    original_price: float | None
-    quantity: int
-    badge: str | None
-    is_active: bool
-    sort_order: int
 
 
 class ProductOut(BaseModel):
@@ -266,14 +260,17 @@ class ProductOut(BaseModel):
     description: str | None
     short_description: str | None
     price: float
+    original_price: float | None
+    quantity: int
+    badge: str | None
     stock: int | None
+    is_out_of_stock: bool
     delivery_type: str
     input_fields: list[Any]
     instruction: str | None
     images: list[str]
     is_active: bool
     sort_order: int
-    lots: list[LotOut] = []
     created_at: datetime
 
 
@@ -284,14 +281,17 @@ class ProductListItem(BaseModel):
     category_id: uuid.UUID
     name: str
     price: float
+    original_price: float | None = None
+    badge: str | None = None
     stock: int | None
+    is_out_of_stock: bool = False
     delivery_type: str
     is_active: bool
     sort_order: int
     created_at: datetime
 
 
-# ── Catalog — Lots ────────────────────────────────────────────────────────────
+# ── Catalog — Reorder / BulkPrice ─────────────────────────────────────────────
 
 
 class SortItem(BaseModel):
@@ -310,27 +310,6 @@ class BulkPriceUpdateIn(BaseModel):
     game_id: uuid.UUID | None = None
     category_id: uuid.UUID | None = None
     product_ids: list[uuid.UUID] = []
-    include_lots: bool = True
-
-
-class LotCreateIn(BaseModel):
-    name: str = Field(..., min_length=1, max_length=128)
-    price: float = Field(..., ge=0)
-    original_price: float | None = Field(None, ge=0)
-    quantity: int = Field(1, ge=1)
-    badge: str | None = Field(None, max_length=32)
-    is_active: bool = True
-    sort_order: int = 0
-
-
-class LotUpdateIn(BaseModel):
-    name: str | None = Field(None, min_length=1, max_length=128)
-    price: float | None = Field(None, ge=0)
-    original_price: float | None = Field(None, ge=0)
-    quantity: int | None = Field(None, ge=1)
-    badge: str | None = Field(None, max_length=32)
-    is_active: bool | None = None
-    sort_order: int | None = None
 
 
 # ── Users ─────────────────────────────────────────────────────────────────────

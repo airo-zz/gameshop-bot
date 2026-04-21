@@ -117,17 +117,9 @@ def _build_cart_text(cart, summary: dict) -> str:
 
     for item in cart.items:
         product_name = item.product.name if item.product else "Товар"
-        # Ищем название лота из уже загруженных лотов продукта
-        lot_suffix = ""
-        if item.lot_id and item.product and hasattr(item.product, "lots"):
-            matching_lot = next(
-                (lot for lot in item.product.lots if lot.id == item.lot_id), None
-            )
-            if matching_lot:
-                lot_suffix = f" ({matching_lot.name})"
         subtotal = float(item.price_snapshot) * item.quantity
         lines.append(
-            f"• <b>{product_name}{lot_suffix}</b> ×{item.quantity} — {subtotal:.0f} ₽"
+            f"• <b>{product_name}</b> ×{item.quantity} — {subtotal:.0f} ₽"
         )
 
     lines.append("━━━━━━━━━━━━━━━")
