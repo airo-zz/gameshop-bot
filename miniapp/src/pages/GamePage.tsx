@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, Clock, Plus, Minus, Heart } from 'lucide-react'
+import { Zap, Clock, Plus, Minus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { catalogApi, cartApi, type Category, type Product, type Lot, type InputField } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -70,10 +70,19 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
       {/* Animated pill: [+] → [− qty +] */}
       <div style={{
         flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        borderRadius: 9999, overflow: 'hidden', transition: 'width 0.2s',
-        width: cartQty > 0 ? 84 : 34, height: 34,
-        background: disabled ? 'rgba(239,68,68,0.08)' : 'rgba(45,88,173,0.14)',
-        border: disabled ? '1px solid rgba(239,68,68,0.18)' : '1px solid rgba(45,88,173,0.30)',
+        borderRadius: 9999, overflow: 'hidden', transition: 'width 0.2s, background 0.2s, border-color 0.2s',
+        width: cartQty > 0 ? 96 : 34, height: 34,
+        background: disabled
+          ? 'rgba(239,68,68,0.10)'
+          : cartQty > 0
+            ? 'rgba(45,88,173,0.16)'
+            : 'linear-gradient(135deg, #2563eb, #2d58ad)',
+        border: disabled
+          ? '1px solid rgba(239,68,68,0.22)'
+          : cartQty > 0
+            ? '1px solid rgba(45,88,173,0.32)'
+            : '1px solid rgba(45,88,173,0.60)',
+        boxShadow: disabled || cartQty > 0 ? 'none' : '0 2px 10px rgba(37,99,235,0.35)',
       }}>
         <AnimatePresence mode="wait" initial={false}>
           {cartQty > 0 ? (
@@ -83,15 +92,15 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
               style={{ display: 'flex', alignItems: 'center', width: '100%' }}
             >
               <button type="button" onClick={onRemove}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 34, background: 'none', border: 'none', cursor: 'pointer', color: '#f87171' }}>
-                <Minus size={13} />
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 34, background: 'none', border: 'none', cursor: 'pointer', color: '#f87171' }}>
+                <Minus size={14} />
               </button>
-              <span style={{ flex: 1, textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#6b9de8', userSelect: 'none' }}>
+              <span style={{ flex: 1, textAlign: 'center', fontSize: '0.8125rem', fontWeight: 700, color: '#93b8f0', userSelect: 'none' }}>
                 {cartQty}
               </span>
               <button type="button" disabled={disabled} onClick={onAdd}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 28, height: 34, background: 'none', border: 'none', cursor: 'pointer', color: disabled ? 'rgba(255,255,255,0.2)' : '#6b9de8' }}>
-                <Plus size={13} />
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 34, background: 'none', border: 'none', cursor: 'pointer', color: disabled ? 'rgba(255,255,255,0.2)' : '#93b8f0' }}>
+                <Plus size={14} />
               </button>
             </motion.div>
           ) : (
@@ -99,9 +108,9 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
               initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.15 }}
               disabled={disabled} onClick={onAdd}
-              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: 'none', border: 'none', cursor: 'pointer', color: disabled ? '#f87171' : '#6b9de8' }}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: 'none', border: 'none', cursor: 'pointer', color: disabled ? '#f87171' : '#fff' }}
             >
-              <Plus size={15} />
+              <Plus size={18} strokeWidth={2.6} />
             </motion.button>
           )}
         </AnimatePresence>
@@ -115,14 +124,12 @@ function LotRow({ lot, disabled, cartQty, onAdd, onRemove }: LotRowProps) {
 interface ProductSectionProps {
   product: Product
   cartQtyMap: Map<string, number>
-  isFavorite: boolean
   isFirst: boolean
   onAdd: (product: Product, lot?: Lot, inputData?: Record<string, string>) => void
   onRemove: (product: Product, lot?: Lot) => void
-  onFavoriteToggle: (productId: string, added: boolean) => void
 }
 
-function ProductSection({ product, cartQtyMap, isFavorite, isFirst, onAdd, onRemove, onFavoriteToggle }: ProductSectionProps) {
+function ProductSection({ product, cartQtyMap, isFirst, onAdd, onRemove }: ProductSectionProps) {
   const lots = product.lots ?? []
   const inputFields = product.input_fields ?? []
   const isOutOfStock = product.stock !== null && product.stock === 0
@@ -131,21 +138,6 @@ function ProductSection({ product, cartQtyMap, isFavorite, isFirst, onAdd, onRem
   const [inputData, setInputData] = useState<Record<string, string>>({})
   const [showInputs, setShowInputs] = useState(false)
   const hasInputs = inputFields.length > 0
-  const [favPending, setFavPending] = useState(false)
-
-  const handleFavorite = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (favPending) return
-    setFavPending(true)
-    try {
-      const res = await catalogApi.toggleFavorite(product.id)
-      onFavoriteToggle(product.id, res.added)
-    } catch {
-      // silent
-    } finally {
-      setFavPending(false)
-    }
-  }
 
   return (
     <div>
@@ -172,14 +164,6 @@ function ProductSection({ product, cartQtyMap, isFavorite, isFirst, onAdd, onRem
                 <Clock size={8} />Вручную
               </span>
             )}
-            <button
-              type="button"
-              onClick={handleFavorite}
-              disabled={favPending}
-              style={{ marginLeft: 'auto', flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: 4, display: 'flex', alignItems: 'center' }}
-            >
-              <Heart size={15} fill={isFavorite ? '#f87171' : 'none'} stroke={isFavorite ? '#f87171' : 'rgba(255,255,255,0.3)'} strokeWidth={2} />
-            </button>
           </div>
 
           {/* Input fields */}
@@ -316,25 +300,6 @@ export default function GamePage() {
     queryFn: cartApi.get,
     staleTime: 30_000,
   })
-
-  // Favorites for heart buttons
-  const { data: favorites = [] } = useQuery({
-    queryKey: ['favorites'],
-    queryFn: catalogApi.getFavorites,
-    staleTime: 60_000,
-  })
-  const favoriteIds = new Set(favorites.map(f => f.id))
-
-  const handleFavoriteToggle = (productId: string, added: boolean) => {
-    qc.setQueryData<Product[]>(['favorites'], prev => {
-      if (!prev) return prev
-      if (added) {
-        const product = products.find(p => p.id === productId)
-        return product ? [...prev, product] : prev
-      }
-      return prev.filter(p => p.id !== productId)
-    })
-  }
 
   // Build cart qty map with optimistic deltas applied
   const cartQtyMap = new Map<string, number>()
@@ -525,11 +490,9 @@ export default function GamePage() {
                 key={product.id}
                 product={product}
                 cartQtyMap={cartQtyMap}
-                isFavorite={favoriteIds.has(product.id)}
                 isFirst={i === 0}
                 onAdd={(p, l, data) => handleAdd(p, l, data)}
                 onRemove={handleRemove}
-                onFavoriteToggle={handleFavoriteToggle}
               />
             ))}
           </div>
