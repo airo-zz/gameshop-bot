@@ -25,6 +25,7 @@ from api.schemas.admin import (
 )
 from api.services.order_service import OrderService
 from api.utils.admin_log import log_admin_action
+from api.utils.search import escape_like
 from bot.utils.texts import BotTexts
 from shared.models import (
     ALLOWED_STATUS_TRANSITIONS,
@@ -94,11 +95,11 @@ async def list_orders(
         query = query.where(Order.assigned_admin_id.is_(None))
 
     if search:
-        search_term = f"%{search.strip()}%"
+        search_term = f"%{escape_like(search.strip())}%"
         query = query.where(
             or_(
-                Order.order_number.ilike(search_term),
-                User.username.ilike(search_term),
+                Order.order_number.ilike(search_term, escape="\\"),
+                User.username.ilike(search_term, escape="\\"),
             )
         )
 

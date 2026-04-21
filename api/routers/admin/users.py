@@ -19,6 +19,7 @@ from api.deps import DbSession
 from api.deps_admin import CurrentAdmin, require_permission
 from api.schemas.admin import BalanceAdjustIn, PaginatedResponse, UserUpdateIn
 from api.utils.admin_log import log_admin_action
+from api.utils.search import escape_like
 from shared.models import BalanceTransaction, LoyaltyLevel, Order, User
 
 router = APIRouter()
@@ -46,20 +47,21 @@ async def list_users(
     )
 
     if search:
+        s = escape_like(search)
         # telegram_id — только если search состоит целиком из цифр
         if search.isdigit():
             base_q = base_q.where(
                 or_(
                     User.telegram_id == int(search),
-                    User.username.ilike(f"%{search}%"),
-                    User.first_name.ilike(f"%{search}%"),
+                    User.username.ilike(f"%{s}%", escape="\\"),
+                    User.first_name.ilike(f"%{s}%", escape="\\"),
                 )
             )
         else:
             base_q = base_q.where(
                 or_(
-                    User.username.ilike(f"%{search}%"),
-                    User.first_name.ilike(f"%{search}%"),
+                    User.username.ilike(f"%{s}%", escape="\\"),
+                    User.first_name.ilike(f"%{s}%", escape="\\"),
                 )
             )
 

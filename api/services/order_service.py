@@ -199,11 +199,14 @@ class OrderService:
             items_result = await self.db.execute(
                 select(OrderItem).where(OrderItem.order_id == order.id)
             )
+            from html import escape as _escape_html
             for item in items_result.scalars().all():
                 if item.delivery_data:
                     keys = item.delivery_data.get("keys", [])
                     if keys:
-                        delivery_text = "\n".join(str(k) for k in keys)
+                        # escape защищает от HTML-injection в parse_mode=HTML:
+                        # ключи вводятся оператором и могут содержать < > &
+                        delivery_text = "\n".join(_escape_html(str(k)) for k in keys)
                         break
             from bot.utils.texts import texts as _texts
             await self._notify_user(order, _texts.order_completed(order.order_number, delivery_text))

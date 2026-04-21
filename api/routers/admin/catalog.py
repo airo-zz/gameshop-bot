@@ -33,6 +33,7 @@ from api.schemas.admin import (
     ReorderIn,
 )
 from api.utils.admin_log import log_admin_action
+from api.utils.search import escape_like
 from shared.models.catalog import Category, Game, Product, ProductKey
 
 router = APIRouter()
@@ -335,10 +336,11 @@ async def list_products(
         q = q.where(Product.is_active == is_active)
 
     if search:
+        s = escape_like(search)
         q = q.where(
             or_(
-                Product.name.ilike(f"%{search}%"),
-                Product.short_description.ilike(f"%{search}%"),
+                Product.name.ilike(f"%{s}%", escape="\\"),
+                Product.short_description.ilike(f"%{s}%", escape="\\"),
             )
         )
 

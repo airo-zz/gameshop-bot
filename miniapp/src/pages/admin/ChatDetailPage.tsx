@@ -17,6 +17,12 @@ function formatTime(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
 }
 
+// Защита от javascript:/data:/vbscript: URL в attachments — разрешаем только http(s) и относительные.
+function safeAttachmentUrl(url: string): string {
+  if (url.startsWith('/')) return url
+  return /^https?:\/\//i.test(url) ? url : '#'
+}
+
 function formatDateLabel(dateStr: string): string {
   const d = new Date(dateStr)
   const today = new Date()
@@ -102,11 +108,12 @@ function MessageBubble({
         {msg.attachments && msg.attachments.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: msg.text ? 6 : 0 }}>
             {msg.attachments.map((url, idx) => {
+              const safeUrl = safeAttachmentUrl(url)
               const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(url)
               return isImage ? (
-                <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
+                <a key={idx} href={safeUrl} target="_blank" rel="noopener noreferrer">
                   <img
-                    src={url}
+                    src={safeUrl}
                     alt=""
                     style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', display: 'block' }}
                   />
@@ -114,7 +121,7 @@ function MessageBubble({
               ) : (
                 <a
                   key={idx}
-                  href={url}
+                  href={safeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', fontSize: 11, textDecoration: 'none' }}

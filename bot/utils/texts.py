@@ -56,10 +56,10 @@ class BotTexts:
         return "😔 Каталог пуст. Скоро добавим товары!"
 
     def game_header(self, game_name: str) -> str:
-        return f"🎮 <b>{game_name}</b>\n\nВыбери раздел:"
+        return f"🎮 <b>{escape(game_name)}</b>\n\nВыбери раздел:"
 
     def category_header(self, game_name: str, category_name: str) -> str:
-        return f"🎮 {game_name} › <b>{category_name}</b>\n\nВыбери товар:"
+        return f"🎮 {escape(game_name)} › <b>{escape(category_name)}</b>\n\nВыбери товар:"
 
     def product_card(
         self,
@@ -83,8 +83,8 @@ class BotTexts:
         price_text = f"<b>{_min:.0f} ₽</b>"
 
         lines = [
-            f"<b>{name}</b>\n\n"
-            f"{description}\n\n"
+            f"<b>{escape(name)}</b>\n\n"
+            f"{escape(description)}\n\n"
             f"💰 Цена: {price_text}\n"
             f"📦 Доставка: {delivery_text}"
         ]
@@ -119,7 +119,7 @@ class BotTexts:
 
     def cart_item_added(self, product_name: str, price: float) -> str:
         return (
-            f"✅ В корзину добавлено:\n<b>{product_name}</b>\n\n"
+            f"✅ В корзину добавлено:\n<b>{escape(product_name)}</b>\n\n"
             f"💰 Цена: <b>{price:.0f} ₽</b>"
         )
 
@@ -128,7 +128,7 @@ class BotTexts:
         return "🏷 Введи промокод:"
 
     def cart_promo_applied(self, code: str, discount: float) -> str:
-        return f"✅ Промокод <b>{code}</b> применён! Скидка: <b>{discount:.0f} ₽</b>"
+        return f"✅ Промокод <b>{escape(code)}</b> применён! Скидка: <b>{discount:.0f} ₽</b>"
 
     def cart_promo_invalid(self, reason: str = "") -> str:
         return f"❌ Промокод не действителен.{(' ' + reason) if reason else ''}"
@@ -149,7 +149,7 @@ class BotTexts:
         )
 
     def balance_credited_by_admin(self, amount: float, new_balance: float, reason: str | None = None) -> str:
-        reason_part = f"\n\nПричина: {reason}" if reason else ""
+        reason_part = f"\n\nПричина: {escape(reason)}" if reason else ""
         return (
             f"💰 <b>Начисление баланса</b>\n\n"
             f"Администратор начислил вам <b>+{amount:,.0f} ₽</b>\n"

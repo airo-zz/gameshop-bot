@@ -20,6 +20,7 @@ from shared.models import (
 )
 
 from api.schemas.catalog import ProductListOut
+from api.utils.search import escape_like
 
 
 def _product_to_list_out(product: Product) -> ProductListOut:
@@ -196,11 +197,13 @@ class CatalogService:
 
     async def search_games(self, query: str, limit: int = 10) -> list[Game]:
         """Поиск игр по названию."""
+        q_escaped = escape_like(query)
         result = await self.db.execute(
             select(Game)
             .where(
                 Game.is_active == True,
-                Game.name.ilike(f"%{query}%") | Game.description.ilike(f"%{query}%"),
+                Game.name.ilike(f"%{q_escaped}%", escape="\\")
+                | Game.description.ilike(f"%{q_escaped}%", escape="\\"),
             )
             .order_by(Game.is_featured.desc(), Game.sort_order)
             .limit(limit)
@@ -228,9 +231,10 @@ class CatalogService:
         )
 
         if query:
+            q_escaped = escape_like(query)
             q = q.where(
-                Product.name.ilike(f"%{query}%") |
-                Product.description.ilike(f"%{query}%") |
+                Product.name.ilike(f"%{q_escaped}%", escape="\\") |
+                Product.description.ilike(f"%{q_escaped}%", escape="\\") |
                 Product.tags.any(query.lower())
             )
         if game_id:
