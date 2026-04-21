@@ -9,8 +9,9 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
+import sqlalchemy as sa
 from sqlalchemy import (
-    BigInteger, Boolean, DateTime, ForeignKey, Integer,
+    BigInteger, Boolean, DateTime, ForeignKey, Index, Integer,
     Numeric, String, Text, func, text,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -148,6 +149,15 @@ class User(Base, UUIDMixin, TimestampMixin):
 class BalanceTransaction(Base, UUIDMixin):
     """Лог всех операций с внутренним балансом."""
     __tablename__ = "balance_transactions"
+    __table_args__ = (
+        Index(
+            "uq_balance_transactions_external",
+            "provider",
+            "external_payment_id",
+            unique=True,
+            postgresql_where=sa.text("external_payment_id IS NOT NULL"),
+        ),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
@@ -163,6 +173,11 @@ class BalanceTransaction(Base, UUIDMixin):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     reference_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True)
     # Ссылка на заказ или платёж (polymorphic)
+    provider: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    external_payment_id: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    # provider + external_payment_id обеспечивают идемпотентность внешних топапов
+    # (webhook ретраи от ЮKassa/CryptoBot). Уникальный индекс выше гарантирует
+    # отсутствие дублей на уровне БД при race condition.
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

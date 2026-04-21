@@ -465,8 +465,29 @@ class PaymentService:
         provider: str,
         external_id: str,
     ) -> None:
-        """Зачисляет пополнение баланса пользователю."""
+        """
+        Зачисляет пополнение баланса пользователю.
+
+        Идемпотентен по паре (provider, external_payment_id): повторный вызов
+        с тем же external_id ничего не делает. Защита от ретраев webhook'а
+        ЮKassa/CryptoBot.
+        """
         from shared.models import BalanceTransaction
+        from sqlalchemy.exc import IntegrityError
+
+        existing = await self.db.execute(
+            select(BalanceTransaction.id).where(
+                BalanceTransaction.provider == provider,
+                BalanceTransaction.external_payment_id == external_id,
+            )
+        )
+        if existing.scalar_one_or_none() is not None:
+            logger.info(
+                "Idempotent skip: topup %s/%s already credited",
+                provider, external_id,
+            )
+            return
+
         result = await self.db.execute(select(User).where(User.id == user_id).with_for_update())
         user = result.scalar_one_or_none()
         if not user:
@@ -483,7 +504,22 @@ class PaymentService:
             type="top_up",
             description=f"Пополнение через {provider}",
             reference_id=user.id,
+            provider=provider,
+            external_payment_id=external_id,
         ))
+        try:
+            await self.db.flush()
+        except IntegrityError:
+            # Гонка между двумя параллельными ретраями webhook'а: первый успел
+            # закоммитить, второй падает на unique constraint. Откатываем своё
+            # изменение баланса и выходим — транзакция уже учтена.
+            await self.db.rollback()
+            logger.info(
+                "Idempotent race: topup %s/%s lost insert race, skipped",
+                provider, external_id,
+            )
+            return
+
         logger.info("Balance topup: user %s +%s RUB via %s (%s)", user_id, amount, provider, external_id)
 
         # Уведомление пользователю о пополнении
