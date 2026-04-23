@@ -567,7 +567,10 @@ async def delete_order(
     if not order:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заказ не найден")
 
-    forbidden_statuses = {OrderStatus.paid, OrderStatus.processing, OrderStatus.completed}
+    forbidden_statuses = {
+        OrderStatus.paid, OrderStatus.processing,
+        OrderStatus.completed, OrderStatus.refunded,
+    }
     if order.status in forbidden_statuses:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

@@ -21,17 +21,19 @@ const STATUS_LABELS: Record<string, string> = {
   clarification:   'Уточнение',
   completed:       'Выполнен',
   cancelled:       'Отменён',
+  refunded:        'Возврат',
 }
 
 // Зеркало ALLOWED_STATUS_TRANSITIONS из shared/models/order.py
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
   new:             ['pending_payment', 'cancelled'],
   pending_payment: ['paid', 'cancelled'],
-  paid:            ['processing', 'cancelled'],
-  processing:      ['completed', 'clarification'],
-  clarification:   ['processing', 'cancelled'],
-  completed:       [],
+  paid:            ['processing', 'cancelled', 'refunded'],
+  processing:      ['completed', 'clarification', 'refunded'],
+  clarification:   ['processing', 'cancelled', 'refunded'],
+  completed:       ['processing', 'refunded'],
   cancelled:       [],
+  refunded:        [],
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -42,6 +44,7 @@ const STATUS_COLORS: Record<string, string> = {
   clarification:   'bg-amber-500/15 text-amber-400',
   completed:       'bg-emerald-500/15 text-emerald-400',
   cancelled:       'bg-red-500/15 text-red-400',
+  refunded:        'bg-orange-500/15 text-orange-400',
 }
 
 const inputCls = 'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 transition-all duration-200'

@@ -1,7 +1,7 @@
 // src/components/ui/LoadingScreen.tsx
 import { motion } from 'framer-motion'
 import logoSrc from '@/assets/logo.svg'
-import logoTextSrc from '@/assets/logo-text.png'
+import logoTextSrc from '@/assets/logo-text.svg'
 
 interface LoadingScreenProps {
   exiting?: boolean
@@ -42,7 +42,7 @@ export default function LoadingScreen({ exiting = false }: LoadingScreenProps) {
         />
       </motion.div>
 
-      {/* Brand name — PNG, transparent background */}
+      {/* Brand name */}
       <motion.img
         src={logoTextSrc}
         alt="reDonate"

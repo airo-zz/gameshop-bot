@@ -211,6 +211,7 @@ class BotTexts:
             "clarification": "❓",
             "completed": "✅",
             "cancelled": "❌",
+            "refunded": "↩️",
         }.get(new_status, "📋")
         status_names = {
             "pending_payment": "Ожидает оплаты",
@@ -219,6 +220,7 @@ class BotTexts:
             "clarification": "Требует уточнения",
             "completed": "Выполнен",
             "cancelled": "Отменён",
+            "refunded": "Возврат",
         }
         return (
             f"{status_emoji} Заказ <b>{order_number}</b>\n"

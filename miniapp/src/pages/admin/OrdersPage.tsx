@@ -34,6 +34,7 @@ const STATUS_LABELS: Record<string, string> = {
   clarification:   'Уточнение',
   completed:       'Выполнен',
   cancelled:       'Отменён',
+  refunded:        'Возврат',
   mine:            'Мои',
 }
 
@@ -45,6 +46,7 @@ const STATUS_COLORS: Record<string, string> = {
   clarification:   'bg-amber-500/15 text-amber-400',
   completed:       'bg-emerald-500/15 text-emerald-400',
   cancelled:       'bg-red-500/15 text-red-400',
+  refunded:        'bg-orange-500/15 text-orange-400',
 }
 
 function formatMoney(v: number) {
@@ -146,7 +148,7 @@ export default function OrdersPage() {
     }
   }
 
-  const FILTER_TABS = ['all', 'new', 'pending_payment', 'paid', 'processing', 'clarification', 'completed', 'cancelled', 'mine']
+  const FILTER_TABS = ['all', 'new', 'pending_payment', 'paid', 'processing', 'clarification', 'completed', 'cancelled', 'refunded', 'mine']
 
   return (
     <div className="space-y-4">

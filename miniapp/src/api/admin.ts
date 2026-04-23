@@ -55,6 +55,7 @@ export type AdminOrderStatus =
   | 'clarification'
   | 'completed'
   | 'cancelled'
+  | 'refunded'
 
 export interface AssignedAdmin {
   id: string

@@ -183,13 +183,26 @@ class OrderService:
             await self._update_user_stats(order)
             # Привязываем/создаём чат и отправляем системное сообщение
             await self._link_chat_and_notify(order)
-            # Уведомляем всех активных администраторов о новом заказе
+            # Уведомляем группу операторов о новом заказе
             await self._notify_admins_new_order(order)
             # Запускаем выдачу для авто-товаров
             await self._auto_deliver(order)
 
         elif new_status == OrderStatus.processing:
             order.processing_started_at = now
+            # При переходе completed → processing (реверс) не сбрасываем
+            # completed_at — история остаётся, только processing_started_at
+            # обновляется.
+            from bot.utils.texts import texts as _texts
+            await self._notify_user(
+                order, _texts.order_status_changed(order.order_number, new_status.value)
+            )
+
+        elif new_status == OrderStatus.clarification:
+            from bot.utils.texts import texts as _texts
+            await self._notify_user(
+                order, _texts.order_status_changed(order.order_number, new_status.value)
+            )
 
         elif new_status == OrderStatus.completed:
             order.completed_at = now
@@ -216,6 +229,15 @@ class OrderService:
             await self._release_reserved_keys(order)
             from bot.utils.texts import texts as _texts
             await self._notify_user(order, _texts.order_cancelled(order.order_number))
+
+        elif new_status == OrderStatus.refunded:
+            # Возврат — помечаем статус, ключи/баланс не трогаем.
+            # Фактический возврат денег оператор оформляет отдельно
+            # через balance-transactions (если нужно).
+            from bot.utils.texts import texts as _texts
+            await self._notify_user(
+                order, _texts.order_status_changed(order.order_number, new_status.value)
+            )
 
         # Пишем историю
         self.db.add(OrderStatusHistory(
@@ -507,48 +529,79 @@ class OrderService:
 
     async def _notify_admins_new_order(self, order: Order) -> None:
         """
-        Уведомляет всех активных администраторов о новом оплаченном заказе
-        через Telegram Bot API (httpx).
+        Уведомляет группу операторов (SUPPORT_NOTIFY_CHAT_ID) о новом
+        оплаченном заказе. Отправка идёт через support-бот (он уже
+        добавлен в группу для уведомлений о тикетах); при 400/403 —
+        fallback на основной бот.
+
+        Оформление намеренно отличается от тикетных уведомлений
+        ("Новое обращение" / "Сообщение в обращении") — шапка с
+        эмодзи 🛒 и разделителем, чтобы оператор сразу видел, что
+        это заказ, а не support-тикет.
         """
         try:
+            import html as _html
             import httpx
-            from shared.models.support import AdminUser
             from shared.config import settings
 
-            admins_result = await self.db.execute(
-                select(AdminUser).where(AdminUser.is_active == True)
-            )
-            admins = admins_result.scalars().all()
-            if not admins:
+            chat_id = settings.SUPPORT_NOTIFY_CHAT_ID
+            if not chat_id:
                 return
 
-            amount_str = f"{int(order.total_amount):,}".replace(",", "\u00a0")
+            result = await self.db.execute(
+                select(Order)
+                .options(selectinload(Order.user))
+                .where(Order.id == order.id)
+            )
+            order_full = result.scalar_one_or_none()
+            if not order_full:
+                return
+
+            buyer_name = _html.escape(order_full.user.display_name)
+            amount_str = f"{int(order.total_amount):,}".replace(",", " ")
+            order_number = _html.escape(str(order.order_number))
+
             text = (
-                f"🛒 Новый заказ {order.order_number} — {amount_str} ₽.\n"
-                f"Нажми чтобы открыть."
+                "🛒 <b>НОВЫЙ ЗАКАЗ</b>\n"
+                "━━━━━━━━━━━━━━━\n"
+                f"№ {order_number}\n"
+                f"Сумма: <b>{amount_str} ₽</b>\n"
+                f"Покупатель: {buyer_name}"
             )
             miniapp_url = (
                 f"https://t.me/{settings.BOT_USERNAME}"
                 f"?startapp=admin_order_{order.id}"
             )
-            url = f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage"
+            payload = {
+                "chat_id": chat_id,
+                "text": text,
+                "parse_mode": "HTML",
+                "reply_markup": {
+                    "inline_keyboard": [[
+                        {"text": "Открыть заказ", "url": miniapp_url}
+                    ]]
+                },
+            }
+
+            tokens: list[str] = []
+            if settings.SUPPORT_BOT_TOKEN and settings.SUPPORT_BOT_TOKEN != settings.BOT_TOKEN:
+                tokens.append(settings.SUPPORT_BOT_TOKEN)
+            tokens.append(settings.BOT_TOKEN)
 
             async with httpx.AsyncClient(timeout=10) as client:
-                for admin in admins:
-                    payload: dict = {
-                        "chat_id": admin.telegram_id,
-                        "text": text,
-                        "parse_mode": "HTML",
-                        "reply_markup": {
-                            "inline_keyboard": [[
-                                {"text": "Открыть заказ", "url": miniapp_url}
-                            ]]
-                        },
-                    }
+                for token in tokens:
                     try:
-                        await client.post(url, json=payload)
+                        resp = await client.post(
+                            f"https://api.telegram.org/bot{token}/sendMessage",
+                            json=payload,
+                        )
                     except Exception:
-                        pass  # Не блокируем если один из Admin недоступен
+                        continue
+                    if resp.status_code == 200:
+                        return
+                    if resp.status_code in (400, 403):
+                        continue
+                    return
         except Exception as exc:
             import logging
             logging.getLogger(__name__).warning("_notify_admins_new_order error: %s", exc)

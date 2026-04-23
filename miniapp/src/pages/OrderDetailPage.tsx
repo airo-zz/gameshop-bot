@@ -14,7 +14,8 @@ const STATUS_LABEL: Record<string, { label: string; color: string; bg: string; I
   processing:      { label: 'В процессе выполнения',   color: '#6b9de8', bg: 'rgba(139,92,246,0.1)',  Icon: RefreshCw },
   clarification:   { label: 'Ожидает вашего ответа',  color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',  Icon: HelpCircle },
   completed:       { label: 'Выполнен',                color: '#34d399', bg: 'rgba(16,185,129,0.1)',  Icon: CheckCircle },
-  cancelled:       { label: 'Возврат',                 color: '#f87171', bg: 'rgba(239,68,68,0.1)',   Icon: XCircle },
+  cancelled:       { label: 'Отменён',                 color: '#f87171', bg: 'rgba(239,68,68,0.1)',   Icon: XCircle },
+  refunded:        { label: 'Возврат',                 color: '#fb923c', bg: 'rgba(249,115,22,0.1)',  Icon: RefreshCw },
 }
 
 const SUPPORT_STATUSES = new Set(['clarification', 'paid'])
@@ -50,7 +51,7 @@ export default function OrderDetailPage() {
     refetchInterval: (query) => {
       const status = query.state.data?.status
       if (!status) return 5_000
-      if (['completed', 'cancelled'].includes(status)) return false
+      if (['completed', 'cancelled', 'refunded'].includes(status)) return false
       // Для ожидающих оплаты крипто-заказов — опрашиваем чаще
       if (status === 'pending_payment') return 4_000
       return 8_000

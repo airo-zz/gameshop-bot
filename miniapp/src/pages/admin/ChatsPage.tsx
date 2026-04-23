@@ -18,6 +18,7 @@ const STATUS_LABELS: Record<string, string> = {
   clarification: 'Уточнение',
   completed:     'Выполнен',
   cancelled:     'Отменён',
+  refunded:      'Возврат',
 }
 
 function formatTime(dateStr: string | null): string {
