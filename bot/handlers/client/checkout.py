@@ -45,7 +45,7 @@ def _payment_methods_keyboard(balance: float) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=balance_label, callback_data="checkout:pay:balance")],
-            [InlineKeyboardButton(text="💳 Банковская карта", callback_data="checkout:pay:card")],
+            # ЮKassa отключена до подключения платёжки — вернуть кнопку "Банковская карта" когда появятся креды
             [InlineKeyboardButton(text="₮ USDT TRC-20", callback_data="checkout:pay:usdt")],
             [InlineKeyboardButton(text="💎 TON", callback_data="checkout:pay:ton")],
             [InlineKeyboardButton(text="❌ Отменить заказ", callback_data="checkout:cancel")],
@@ -55,7 +55,7 @@ def _payment_methods_keyboard(balance: float) -> InlineKeyboardMarkup:
 
 def _insufficient_balance_keyboard() -> InlineKeyboardMarkup:
     buttons = [
-        [InlineKeyboardButton(text="💳 Банковская карта", callback_data="checkout:pay:card")],
+        # ЮKassa отключена до подключения платёжки — вернуть кнопку "Банковская карта" когда появятся креды
         [InlineKeyboardButton(text="₮ USDT TRC-20", callback_data="checkout:pay:usdt")],
         [InlineKeyboardButton(text="💎 TON", callback_data="checkout:pay:ton")],
         [InlineKeyboardButton(text="❌ Отменить заказ", callback_data="checkout:cancel")],

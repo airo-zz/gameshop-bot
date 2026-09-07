@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { CheckCircle, Wallet, CreditCard, Bitcoin, AlertCircle } from 'lucide-react'
+import { CheckCircle, Wallet, Bitcoin, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi, ordersApi, profileApi } from '@/api'
 import { LOYALTY_LEVELS, LOYALTY_DISCOUNTS } from '@/utils/loyalty'
@@ -12,7 +12,8 @@ import { useCartStore } from '@/store'
 
 const PAYMENT_METHODS = [
   { id: 'balance',      label: 'Баланс бота',      icon: <Wallet size={20} />,     description: 'Мгновенно' },
-  { id: 'card_yukassa', label: 'Банковская карта',  icon: <CreditCard size={20} />, description: 'Visa, Mastercard, МИР' },
+  // ЮKassa отключена до подключения платёжки — вернуть строку card_yukassa когда появятся креды
+  // { id: 'card_yukassa', label: 'Банковская карта',  icon: <CreditCard size={20} />, description: 'Visa, Mastercard, МИР' },
   { id: 'crypto',       label: 'Криптовалюта',      icon: <Bitcoin size={20} />,    description: 'USDT, TON, BTC, ETH' },
 ]
 

@@ -14,6 +14,8 @@ const PRESET_AMOUNTS = [200, 500, 1000, 5000, 10000]
 const CRYPTO_CURRENCIES = ['USDT', 'TON', 'BTC', 'ETH'] as const
 type CryptoCurrency = typeof CRYPTO_CURRENCIES[number]
 type PaymentMethod = 'card_yukassa' | 'crypto'
+// ЮKassa отключена до подключения платёжки — вернуть 'card_yukassa' в список когда появятся креды
+const ENABLED_METHODS: PaymentMethod[] = ['crypto']
 
 const TX_LABEL: Record<string, string> = {
   manual_credit:    'Пополнение',
@@ -38,7 +40,7 @@ export default function BalancePage() {
   const { tg, haptic } = useTelegram()
 
   const [amount, setAmount] = useState<string>('')
-  const [method, setMethod] = useState<PaymentMethod>('card_yukassa')
+  const [method, setMethod] = useState<PaymentMethod>(ENABLED_METHODS[0])
   const [currency, setCurrency] = useState<CryptoCurrency>('USDT')
   const [loading, setLoading] = useState(false)
 
@@ -165,11 +167,12 @@ export default function BalancePage() {
           />
         </div>
 
-        {/* Payment method */}
+        {/* Payment method — селектор только если методов больше одного */}
+        {ENABLED_METHODS.length > 1 && (
         <div>
           <p className="text-xs mb-2 font-medium" style={{ color: 'var(--hint)' }}>Способ оплаты</p>
           <div className="flex gap-2">
-            {(['card_yukassa', 'crypto'] as PaymentMethod[]).map(m => (
+            {ENABLED_METHODS.map(m => (
               <button
                 key={m}
                 type="button"
@@ -186,6 +189,7 @@ export default function BalancePage() {
             ))}
           </div>
         </div>
+        )}
 
         {/* Crypto currency selector */}
         {method === 'crypto' && (
