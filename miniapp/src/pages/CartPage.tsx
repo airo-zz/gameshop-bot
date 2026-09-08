@@ -17,10 +17,15 @@ export default function CartPage() {
   const { setItemsCount } = useCartStore()
 
   async function handleCheckout() {
-    await Promise.all([
-      import('@/pages/CheckoutPage'),
-      queryClient.prefetchQuery({ queryKey: ['profile'], queryFn: profileApi.get, staleTime: 60_000 }),
-    ])
+    // Preload чанка и данных — оптимизация, но она НЕ должна блокировать переход.
+    // Если import чанка упал (устаревший кэш после деплоя), навигируем всё равно:
+    // lazy-роут перезагрузит страницу через ChunkErrorBoundary и восстановится.
+    try {
+      await Promise.all([
+        import('@/pages/CheckoutPage'),
+        queryClient.prefetchQuery({ queryKey: ['profile'], queryFn: profileApi.get, staleTime: 60_000 }),
+      ])
+    } catch { /* preload failed — переходим без него */ }
     navigate('/checkout')
   }
 

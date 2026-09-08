@@ -87,7 +87,7 @@ class OrderService:
             subtotal=subtotal,
             discount_amount=discount_result.total_discount,
             total_amount=total,
-            payment_method=PaymentMethod(payment_method),
+            payment_method=PaymentMethod(payment_method) if payment_method else None,
             promo_code_id=(
                 discount_result.promo_code.id
                 if discount_result.promo_code else None

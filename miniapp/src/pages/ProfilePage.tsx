@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Heart, Package, Share2, MessageCircle, Wallet, ShoppingBag, Users, Gift, Info, Settings, Shield, Star, Crown, Gem } from 'lucide-react'
+import { Heart, Package, Share2, MessageCircle, Wallet, ShoppingBag, Users, Gift, Info, Settings, Shield, Star, Crown, Gem, FileText } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { profileApi, ordersApi, catalogApi, supportApi, type LoyaltyLevelEntry } from '@/api'
 import { adminApi, type AdminMe } from '@/api/admin'
@@ -143,6 +143,7 @@ const MENU_ITEMS = [
   { to: '/orders',    icon: <Package size={18} />,       label: 'Мои заказы' },
   { to: '/favorites', icon: <Heart size={18} />,         label: 'Избранное' },
   { to: '/support',   icon: <MessageCircle size={18} />, label: 'Поддержка' },
+  { to: 'docs',       icon: <FileText size={18} />,      label: 'Документы' },
 ]
 
 // ── Module-level components (stable identity across ProfilePage renders) ───────
@@ -180,9 +181,15 @@ function AvatarBlock({ showAvatar, avatarSrc, avatarInitial, onError }: AvatarBl
 function MenuBlock() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { openLink } = useTelegram()
   const navigating = useRef(false)
 
   async function handleMenuClick(to: string) {
+    // Документы — внешние HTML-страницы, открываем через Telegram, без навигации по роуту
+    if (to === 'docs') {
+      openLink(`${window.location.origin}/app/legal/privacy.html`)
+      return
+    }
     if (navigating.current) return
     navigating.current = true
     try {
