@@ -298,15 +298,9 @@ async def admin_order_change_status(
         after_data={"status": new_status.value},
     )
 
-    # Уведомляем клиента
-    try:
-        from bot.utils.texts import texts
-        await bot.send_message(
-            order.user.telegram_id,
-            texts.order_status_changed(order.order_number, new_status.value),
-        )
-    except Exception as e:
-        log.warning("admin.order.notify_failed", order_id=str(order.id), exc=str(e))
+    # Уведомление клиенту отправляет сам OrderService.change_status
+    # (для cancelled/processing/clarification/completed/refunded) — здесь
+    # повторно НЕ шлём, иначе клиент получает два сообщения.
 
     await call.answer(f"✅ Статус изменён на {STATUS_NAMES.get(new_status)}", show_alert=False)
     await admin_order_detail(call, db, admin)

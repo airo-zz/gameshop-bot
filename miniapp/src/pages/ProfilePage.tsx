@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Heart, Package, Share2, MessageCircle, Wallet, ShoppingBag, Users, Gift, Info, Settings, Shield, Star, Crown, Gem, FileText } from 'lucide-react'
+import { Heart, Package, Share2, MessageCircle, Wallet, ShoppingBag, Users, Gift, Info, Settings, Shield, Star, Crown, Gem, FileText, ChevronDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { profileApi, ordersApi, catalogApi, supportApi, type LoyaltyLevelEntry } from '@/api'
 import { adminApi, type AdminMe } from '@/api/admin'
@@ -143,7 +143,11 @@ const MENU_ITEMS = [
   { to: '/orders',    icon: <Package size={18} />,       label: 'Мои заказы' },
   { to: '/favorites', icon: <Heart size={18} />,         label: 'Избранное' },
   { to: '/support',   icon: <MessageCircle size={18} />, label: 'Поддержка' },
-  { to: 'docs',       icon: <FileText size={18} />,      label: 'Документы' },
+]
+
+const LEGAL_DOCS = [
+  { label: 'Политика конфиденциальности', file: 'privacy.html' },
+  { label: 'Условия сервиса',            file: 'terms.html' },
 ]
 
 // ── Module-level components (stable identity across ProfilePage renders) ───────
@@ -181,15 +185,9 @@ function AvatarBlock({ showAvatar, avatarSrc, avatarInitial, onError }: AvatarBl
 function MenuBlock() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const { openLink } = useTelegram()
   const navigating = useRef(false)
 
   async function handleMenuClick(to: string) {
-    // Документы — внешние HTML-страницы, открываем через Telegram, без навигации по роуту
-    if (to === 'docs') {
-      openLink(`${window.location.origin}/app/legal/privacy.html`)
-      return
-    }
     if (navigating.current) return
     navigating.current = true
     try {
@@ -251,12 +249,13 @@ function MenuBlock() {
 }
 
 export default function ProfilePage() {
-  const { user, haptic, tg } = useTelegram()
+  const { user, haptic, tg, openLink } = useTelegram()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const navigating = useRef(false)
   const [avatarError, setAvatarError] = useState(false)
   const [showLevels, setShowLevels] = useState(false)
+  const [showDocs, setShowDocs] = useState(false)
 
   async function handleStatClick(to: string) {
     if (navigating.current) return
@@ -502,6 +501,60 @@ export default function ProfilePage() {
 
       {/* ── Меню ── */}
       <MenuBlock />
+
+      {/* ── Документы (раскрывающийся блок) ── */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <button
+          type="button"
+          onClick={() => { setShowDocs(v => !v); haptic.select() }}
+          className="w-full flex items-center gap-3 p-4 active:scale-[0.99] transition-transform"
+          style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+        >
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{
+              background: 'rgba(107,157,232,0.12)',
+              border: '1px solid rgba(107,157,232,0.18)',
+            }}
+          >
+            <FileText size={18} style={{ color: '#6b9de8' }} />
+          </div>
+          <span className="flex-1 text-left text-sm font-semibold" style={{ color: 'var(--text)' }}>
+            Документы
+          </span>
+          <ChevronDown
+            size={18}
+            style={{
+              color: 'var(--hint)',
+              transition: 'transform 0.28s cubic-bezier(0.4,0,0.2,1)',
+              transform: showDocs ? 'rotate(180deg)' : 'rotate(0deg)',
+            }}
+          />
+        </button>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateRows: showDocs ? '1fr' : '0fr',
+          transition: 'grid-template-rows 0.32s cubic-bezier(0.4,0,0.2,1)',
+        }}>
+          <div style={{ overflow: 'hidden' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', padding: '0 12px 12px' }}>
+              {LEGAL_DOCS.map(doc => (
+                <button
+                  key={doc.file}
+                  type="button"
+                  onClick={() => { haptic.impact('light'); openLink(`${window.location.origin}/app/legal/${doc.file}`) }}
+                  className="flex items-center gap-2 py-3 px-2 rounded-xl active:scale-[0.98] transition-transform text-left"
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer' }}
+                >
+                  <FileText size={14} style={{ color: 'var(--hint)', flexShrink: 0 }} />
+                  <span className="text-sm" style={{ color: 'var(--link)' }}>{doc.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* ── Админ-панель (только для админов) ── */}
       {adminProfile && (
