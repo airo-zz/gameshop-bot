@@ -263,3 +263,8 @@ async def btn_faq(message: Message, state: FSMContext) -> None:
 @router.message(Command("help"))
 async def cmd_help(message: Message, state: FSMContext) -> None:
     await nav_edit(message, state, texts.help_text())
+
+
+@router.message(Command("info"))
+async def cmd_info(message: Message, state: FSMContext) -> None:
+    await nav_edit(message, state, texts.info_text())

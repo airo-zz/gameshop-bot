@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { CheckCircle, Wallet, Bitcoin, AlertCircle } from 'lucide-react'
+import { CheckCircle, Wallet, Bitcoin, AlertCircle, CreditCard } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi, ordersApi, profileApi } from '@/api'
 import { LOYALTY_LEVELS, LOYALTY_DISCOUNTS } from '@/utils/loyalty'
@@ -11,10 +11,10 @@ import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
 
 const PAYMENT_METHODS = [
-  { id: 'balance',      label: 'Баланс бота',      icon: <Wallet size={20} />,     description: 'Мгновенно' },
-  // ЮKassa отключена до подключения платёжки — вернуть строку card_yukassa когда появятся креды
-  // { id: 'card_yukassa', label: 'Банковская карта',  icon: <CreditCard size={20} />, description: 'Visa, Mastercard, МИР' },
-  { id: 'crypto',       label: 'Криптовалюта',      icon: <Bitcoin size={20} />,    description: 'USDT, TON, BTC, ETH' },
+  { id: 'balance',      label: 'Баланс бота',        icon: <Wallet size={20} />,     description: 'Мгновенно' },
+  { id: 'crypto',       label: 'Криптовалюта',       icon: <Bitcoin size={20} />,    description: 'USDT, TON, BTC, ETH' },
+  // Фиат (карта/СБП) — заглушка до подключения платёжного провайдера
+  { id: 'card',         label: 'Банковская карта / СБП', icon: <CreditCard size={20} />, description: 'Скоро', comingSoon: true },
 ]
 
 const CRYPTO_COINS = [
@@ -42,6 +42,11 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (placing) return
+    if (selectedMethod === 'card') {
+      haptic.impact('light')
+      toast('Оплата картой и СБП скоро будет доступна. Сейчас можно оплатить криптовалютой или балансом.', { icon: '⏳' })
+      return
+    }
     setPlacing(true)
     haptic.impact('medium')
     try {
@@ -267,7 +272,19 @@ export default function CheckoutPage() {
       </button>
 
       <p className="text-xs text-center" style={{ color: 'var(--hint)' }}>
-        Нажимая «Оплатить», ты соглашаешься с условиями магазина
+        Нажимая «Оплатить», ты принимаешь{' '}
+        <span
+          onClick={() => openLink(`${window.location.origin}/app/legal/terms.html`)}
+          style={{ color: '#6b9de8', cursor: 'pointer' }}
+        >
+          условия сервиса
+        </span>{' '}и{' '}
+        <span
+          onClick={() => openLink(`${window.location.origin}/app/legal/privacy.html`)}
+          style={{ color: '#6b9de8', cursor: 'pointer' }}
+        >
+          политику конфиденциальности
+        </span>
       </p>
     </div>
   )
