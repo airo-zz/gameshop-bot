@@ -7,6 +7,7 @@ api/services/payment_service.py
 """
 
 import logging
+import time
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -44,10 +45,23 @@ FALLBACK_RATES_RUB = {
 }
 
 
+# Кэш последнего успешно полученного курса: currency -> (rate, unix_ts).
+# Пока курс свежий (< _RATE_TTL) — не ходим в сеть. При недоступности CoinGecko
+# используем последний живой курс, а хардкод-константу — только если ни разу не получили.
+_RATE_CACHE: dict[str, tuple[Decimal, float]] = {}
+_RATE_TTL = 300  # секунд
+
+
 async def _get_crypto_rate_rub(currency: str) -> Decimal:
-    """Получает актуальный курс CRYPTO/RUB из CoinGecko."""
+    """Получает актуальный курс CRYPTO/RUB из CoinGecko с кэшем последнего значения."""
+    now = time.time()
+    cached = _RATE_CACHE.get(currency)
+    if cached is not None and now - cached[1] < _RATE_TTL:
+        return cached[0]
+
     coin_id = COINGECKO_IDS.get(currency)
-    fallback = FALLBACK_RATES_RUB.get(currency, Decimal("90"))
+    # fallback: последний живой курс, иначе — хардкод-константа
+    fallback = cached[0] if cached is not None else FALLBACK_RATES_RUB.get(currency, Decimal("90"))
     if not coin_id:
         return fallback
     try:
@@ -58,6 +72,7 @@ async def _get_crypto_rate_rub(currency: str) -> Decimal:
             )
             data = response.json()
             rate = Decimal(str(data[coin_id]["rub"]))
+            _RATE_CACHE[currency] = (rate, now)
             return rate
     except Exception as e:
         logger.warning(

@@ -13,7 +13,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.redis import RedisStorage
-from aiogram.types import ErrorEvent
+from aiogram.types import BotCommand, ErrorEvent
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 
@@ -45,10 +45,28 @@ logging.basicConfig(level=settings.LOG_LEVEL)
 log = structlog.get_logger()
 
 
+CLIENT_COMMANDS = [
+    BotCommand(command="start", description="Главное меню"),
+    BotCommand(command="orders", description="Мои заказы"),
+    BotCommand(command="balance", description="Мой баланс"),
+    BotCommand(command="favorites", description="Избранное"),
+    BotCommand(command="referral", description="Реферальная ссылка"),
+    BotCommand(command="support", description="Поддержка"),
+    BotCommand(command="info", description="Документы и информация"),
+    BotCommand(command="help", description="Справка"),
+]
+
+
 async def on_startup(bot: Bot) -> None:
     log.info("bot.startup", shop_name=settings.SHOP_NAME, env=settings.ENVIRONMENT)
     if not settings.WEBHOOK_SECRET:
         log.warning("WEBHOOK_SECRET не задан — webhook не защищён от подделки запросов!")
+
+    # Меню команд (синяя кнопка «Меню» рядом с полем ввода)
+    try:
+        await bot.set_my_commands(CLIENT_COMMANDS)
+    except Exception as e:
+        log.warning("bot.set_my_commands_failed", error=str(e))
 
     if settings.ENVIRONMENT == "production" and settings.WEBHOOK_HOST:
         await bot.set_webhook(

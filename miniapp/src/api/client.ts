@@ -24,7 +24,10 @@ const isBrowser = !window.Telegram?.WebApp?.initData
 let accessToken: string | null = isBrowser ? localStorage.getItem('access_token') : null
 let refreshToken: string | null = isBrowser ? localStorage.getItem('refresh_token') : null
 let isRefreshing = false
-let pendingRequests: Array<(token: string) => void> = []
+let pendingRequests: Array<{
+  resolve: (token: string) => void
+  reject: (err: unknown) => void
+}> = []
 
 function setTokens(access: string, refresh: string) {
   accessToken  = access
@@ -79,10 +82,13 @@ apiClient.interceptors.response.use(
 
     if (isRefreshing) {
       // Ставим в очередь и ждём пока другой запрос обновит токен
-      return new Promise((resolve) => {
-        pendingRequests.push((token: string) => {
-          original.headers.Authorization = `Bearer ${token}`
-          resolve(apiClient(original))
+      return new Promise((resolve, reject) => {
+        pendingRequests.push({
+          resolve: (token: string) => {
+            original.headers.Authorization = `Bearer ${token}`
+            resolve(apiClient(original))
+          },
+          reject,
         })
       })
     }
@@ -100,13 +106,15 @@ apiClient.interceptors.response.use(
       setTokens(access_token, refresh_token)
 
       // Повторяем все ожидавшие запросы
-      pendingRequests.forEach((cb) => cb(access_token))
+      pendingRequests.forEach((p) => p.resolve(access_token))
       pendingRequests = []
 
       original.headers.Authorization = `Bearer ${access_token}`
       return apiClient(original)
     } catch {
       clearTokens()
+      // Отклоняем ожидавшие запросы, иначе их промисы зависнут навсегда
+      pendingRequests.forEach((p) => p.reject(error))
       pendingRequests = []
       // Не делаем reload — просто отклоняем запрос, чтобы не вызвать бесконечный цикл
       return Promise.reject(error)

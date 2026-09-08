@@ -5,6 +5,8 @@ bot/handlers/admin/admin_discounts.py
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+from html import escape
+
 from aiogram import Router, F
 from aiogram.filters import StateFilter
 from aiogram.fsm.context import FSMContext
@@ -62,7 +64,7 @@ async def admin_discounts_list(call: CallbackQuery, db: AsyncSession, admin: Adm
         for r in rules:
             status = "✅" if r.is_active else "❌"
             val = f"{r.value}%" if r.value_type and r.value_type.value == "percent" else f"{r.value} ₽"
-            lines.append(f"{status} <b>{r.name}</b> — {val}")
+            lines.append(f"{status} <b>{escape(r.name)}</b> — {val}")
         text = "\n".join(lines)
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[

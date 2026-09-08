@@ -14,6 +14,7 @@ bot/handlers/admin/admin_stats.py
 
 import io
 from datetime import datetime, timedelta, timezone
+from html import escape
 
 from aiogram import Router, F
 from aiogram.types import (
@@ -143,7 +144,7 @@ async def admin_stats_top_products(call: CallbackQuery, db: AsyncSession, admin:
     for i, p in enumerate(stats.top_products[:10]):
         medal = medals[i]
         lines.append(
-            f"{medal} <b>{p.name[:35]}</b>\n"
+            f"{medal} <b>{escape(p.name[:35])}</b>\n"
             f"     {p.orders_count} заказов · {fmt_money(p.revenue)}\n"
         )
 
@@ -171,7 +172,7 @@ async def admin_stats_top_games(call: CallbackQuery, db: AsyncSession, admin: Ad
     lines = ["🎮 <b>Топ игр по продажам</b>\n"]
     for i, g in enumerate(stats.top_games):
         lines.append(
-            f"{i+1}. <b>{g['name']}</b>\n"
+            f"{i+1}. <b>{escape(g['name'])}</b>\n"
             f"   {g['orders']} заказов · {fmt_money(g['revenue'])}\n"
         )
 

@@ -6,6 +6,7 @@ api/services/chat_service.py
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -13,6 +14,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.chat import Chat, ChatMessage
+
+logger = logging.getLogger(__name__)
 
 
 class ChatService:
@@ -140,9 +143,9 @@ class ChatService:
                 notify_seller_if_unread.apply_async(args=[chat_id], countdown=30)
             elif sender_type == "admin":
                 notify_user_if_unread.apply_async(args=[chat_id], countdown=600)
-        except Exception:
+        except Exception as e:
             # Celery может быть недоступен — не блокируем основной флоу
-            pass
+            logger.warning("chat notify enqueue failed (celery?): %s", e)
 
     async def mark_read_by_admin(self, chat_id: uuid.UUID) -> None:
         """Обновляет last_admin_read_at = now()."""

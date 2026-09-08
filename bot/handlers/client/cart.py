@@ -6,6 +6,7 @@ bot/handlers/client/cart.py
 """
 
 import uuid
+from html import escape
 
 from aiogram import Router, F
 from aiogram.filters import Command
@@ -119,7 +120,7 @@ def _build_cart_text(cart, summary: dict) -> str:
         product_name = item.product.name if item.product else "Товар"
         subtotal = float(item.price_snapshot) * item.quantity
         lines.append(
-            f"• <b>{product_name}</b> ×{item.quantity} — {subtotal:.0f} ₽"
+            f"• <b>{escape(product_name)}</b> ×{item.quantity} — {subtotal:.0f} ₽"
         )
 
     lines.append("━━━━━━━━━━━━━━━")

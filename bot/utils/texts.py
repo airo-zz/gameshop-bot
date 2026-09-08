@@ -306,10 +306,10 @@ class BotTexts:
         return f"❤️ <b>Избранное</b> ({count} товаров)\n━━━━━━━━━━━━━━━"
 
     def favorite_added(self, product_name: str) -> str:
-        return f"❤️ <b>{product_name}</b> добавлен в избранное!"
+        return f"❤️ <b>{escape(product_name)}</b> добавлен в избранное!"
 
     def favorite_removed(self, product_name: str) -> str:
-        return f"🗑 <b>{product_name}</b> убран из избранного."
+        return f"🗑 <b>{escape(product_name)}</b> убран из избранного."
 
     # ── Профиль ───────────────────────────────────────────────────────────────
     def profile(
@@ -327,7 +327,7 @@ class BotTexts:
         if next_level_name and next_level_need is not None and next_level_need > 0:
             progress_text = (
                 f"\nПотрачено: <b>{total_spent:.0f} ₽</b> → "
-                f"до {next_level_name} нужно ещё <b>{next_level_need:.0f} ₽</b>"
+                f"до {escape(next_level_name)} нужно ещё <b>{next_level_need:.0f} ₽</b>"
             )
         else:
             progress_text = f"\nПотрачено: <b>{total_spent:.0f} ₽</b>"
@@ -338,7 +338,7 @@ class BotTexts:
             f"Имя: {escape(first_name)}\n"
             f"Баланс: <b>{balance:.2f} ₽</b>\n"
             f"Заказов: <b>{orders_count}</b>\n"
-            f"Уровень: {loyalty_emoji} <b>{loyalty_name}</b>"
+            f"Уровень: {loyalty_emoji} <b>{escape(loyalty_name)}</b>"
             f"{progress_text}"
         )
 

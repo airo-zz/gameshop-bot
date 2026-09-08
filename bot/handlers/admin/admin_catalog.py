@@ -12,6 +12,7 @@ FSM-диалоги для каждого шага добавления.
 
 import re
 import uuid as _uuid
+from html import escape
 
 import httpx
 import structlog
@@ -197,7 +198,7 @@ async def admin_game_detail(
     categories_count = len(cat_result.scalars().all())
 
     text = (
-        f"🎮 <b>{game.name}</b>\n\n"
+        f"🎮 <b>{escape(game.name)}</b>\n\n"
         f"Slug: <code>{game.slug}</code>\n"
         f"Статус: {toggle_emoji(game.is_active)} {'Активна' if game.is_active else 'Скрыта'}\n"
         f"Категорий: {categories_count}\n"
@@ -297,7 +298,7 @@ async def admin_game_add_name(message: Message, state: FSMContext) -> None:
 
     await state.update_data(name=name, slug=slug)
     await message.answer(
-        f"✅ Название: <b>{name}</b>\n\n"
+        f"✅ Название: <b>{escape(name)}</b>\n\n"
         f"Шаг 2/4\n\nСлуг (URL-идентификатор):\n"
         f"Авто-генерация: <code>{slug}</code>\n\n"
         f"Отправь другой slug или нажми ✅ чтобы оставить авто:",
@@ -415,7 +416,7 @@ async def _confirm_game(message: Message, state: FSMContext, db: AsyncSession) -
     data = await state.get_data()
     text = (
         f"📋 <b>Подтверждение</b>\n\n"
-        f"Название: <b>{data['name']}</b>\n"
+        f"Название: <b>{escape(data['name'])}</b>\n"
         f"Slug: <code>{data['slug']}</code>\n"
         f"Описание: {data.get('description') or '—'}\n"
         f"Обложка: {'✅ загружена' if data.get('image_url') else '—'}\n\n"
@@ -486,7 +487,7 @@ async def admin_game_save(
     await db.commit()
 
     await call.message.edit_text(
-        f"✅ Игра <b>{game.name}</b> создана!\n\n"
+        f"✅ Игра <b>{escape(game.name)}</b> создана!\n\n"
         f"Статус: 🔴 Скрыта\n"
         f"Активируй когда будешь готов.",
         reply_markup=InlineKeyboardMarkup(
@@ -535,7 +536,7 @@ async def admin_categories_list(
     )
     categories = result.scalars().all()
 
-    text = f"📂 <b>Категории — {game.name}</b> ({len(categories)} шт.)\n\nВыбери для управления:"
+    text = f"📂 <b>Категории — {escape(game.name)}</b> ({len(categories)} шт.)\n\nВыбери для управления:"
     buttons = []
     for cat in categories:
         buttons.append(
@@ -681,7 +682,7 @@ async def admin_game_edit(
     await state.set_state(EditGameFSM.choose_field)
     await state.update_data(game_id=str(game_id))
 
-    text = f"✏️ <b>Редактирование игры: {game.name}</b>\n\nВыбери поле:"
+    text = f"✏️ <b>Редактирование игры: {escape(game.name)}</b>\n\nВыбери поле:"
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [
             InlineKeyboardButton(
@@ -866,7 +867,7 @@ async def admin_game_delete(
             return
         # Есть товары, но нет заказов — предлагаем принудительное удаление
         await call.message.edit_text(
-            f"⚠️ <b>Игра «{game.name}»</b>\n\n"
+            f"⚠️ <b>Игра «{escape(game.name)}»</b>\n\n"
             f"В игре есть <b>{product_count} товаров</b>.\n"
             f"Они будут удалены вместе с игрой.\n\n"
             f"Подтвердить удаление?",
@@ -890,7 +891,7 @@ async def admin_game_delete(
     await db.commit()
     await call.answer(f"🗑 Игра «{game_name}» удалена")
     await call.message.edit_text(
-        f"✅ Игра <b>{game_name}</b> удалена.",
+        f"✅ Игра <b>{escape(game_name)}</b> удалена.",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[[admin_back_btn("admin:catalog:games")]]
         ),
@@ -936,7 +937,7 @@ async def admin_game_force_delete(
 
     await call.answer(f"🗑 Игра «{game_name}» и все товары удалены")
     await call.message.edit_text(
-        f"✅ Игра <b>{game_name}</b> удалена вместе со всеми товарами.",
+        f"✅ Игра <b>{escape(game_name)}</b> удалена вместе со всеми товарами.",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[[admin_back_btn("admin:catalog:games")]]
         ),
@@ -964,7 +965,7 @@ async def _render_category_detail(message: Message, cat: Category, products: lis
     ) if products else "  <i>Товаров пока нет</i>"
 
     text = (
-        f"📂 <b>{cat.name}</b>\n\n"
+        f"📂 <b>{escape(cat.name)}</b>\n\n"
         f"Статус: {toggle_emoji(cat.is_active)} {'Активна' if cat.is_active else 'Скрыта'}\n\n"
         f"Товаров: {len(products)}\n{product_lines}"
     )
@@ -1060,7 +1061,7 @@ async def _save_category(message: Message, state: FSMContext, db: AsyncSession) 
     await state.clear()
 
     await message.answer(
-        f"✅ Категория <b>{cat_name}</b> создана!\n\nТеперь добавьте товары через веб-панель.",
+        f"✅ Категория <b>{escape(cat_name)}</b> создана!\n\nТеперь добавьте товары через веб-панель.",
         reply_markup=InlineKeyboardMarkup(
             inline_keyboard=[
                 [admin_back_btn(f"admin:categories:{game_id_str}")],

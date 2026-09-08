@@ -7,6 +7,7 @@ bot/handlers/client/catalog.py
 
 import uuid
 from decimal import Decimal
+from html import escape
 
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
@@ -634,7 +635,7 @@ async def _add_to_cart_message(
         InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
     ]])
     await message.answer(
-        f"✅ <b>{product.name}</b> — в корзине!",
+        f"✅ <b>{escape(product.name)}</b> — в корзине!",
         reply_markup=cart_btn,
         parse_mode="HTML",
     )

@@ -11,6 +11,7 @@ bot/handlers/admin/admin_orders.py
 """
 
 import uuid as _uuid
+from html import escape
 
 import structlog
 
@@ -195,7 +196,7 @@ async def admin_order_detail(
 
     user: User = order.user
     items_text = "\n".join(
-        f"  • {item.product_name} x{item.quantity} — {item.total_price:.0f}₽"
+        f"  • {escape(item.product_name)} x{item.quantity} — {item.total_price:.0f}₽"
         for item in order.items
     )
 

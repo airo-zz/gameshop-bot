@@ -6,6 +6,7 @@ bot/handlers/client/orders.py
 """
 
 import uuid as _uuid
+from html import escape
 
 from aiogram import Router, F
 from aiogram.filters import Command
@@ -139,7 +140,7 @@ async def cb_order_detail(
     emoji = STATUS_EMOJI.get(order.status, "📋")
     label = STATUS_LABEL.get(order.status, order.status.value)
     items_text = "\n".join(
-        f"  • {item.product_name}"
+        f"  • {escape(item.product_name)}"
         + f" × {item.quantity} — {float(item.total_price):.0f} ₽"
         for item in order.items
     )
