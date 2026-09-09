@@ -296,6 +296,30 @@ _PHOTO_LIST: list[PhotoItem] = [
         group="Экраны бота",
         hint="Картинка над экраном профиля.",
     ),
+    PhotoItem(
+        key="cart",
+        label="Корзина",
+        group="Экраны бота",
+        hint="Картинка над содержимым корзины.",
+    ),
+    PhotoItem(
+        key="orders",
+        label="Мои заказы",
+        group="Экраны бота",
+        hint="Картинка над списком заказов пользователя.",
+    ),
+    PhotoItem(
+        key="support",
+        label="Поддержка",
+        group="Экраны бота",
+        hint="Картинка над экраном поддержки.",
+    ),
+    PhotoItem(
+        key="referral",
+        label="Реферальная программа",
+        group="Экраны бота",
+        hint="Картинка над экраном реферальной программы.",
+    ),
 ]
 
 PHOTOS: dict[str, PhotoItem] = {item.key: item for item in _PHOTO_LIST}

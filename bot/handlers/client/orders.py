@@ -22,8 +22,9 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Order, OrderItem, OrderStatus, User
+from shared.content import get_photo_url
 from bot.utils.texts import texts
-from bot.utils.helpers import safe_edit, nav_edit
+from bot.utils.helpers import safe_edit, render_screen
 
 router = Router(name="client:orders")
 
@@ -97,12 +98,13 @@ async def cmd_orders(message: Message, user: User, db: AsyncSession, state: FSMC
     )
     orders = list(result.scalars().all())
     text, keyboard = await _render_orders(orders)
-    await nav_edit(message, state, text, reply_markup=keyboard)
+    photo_url = await get_photo_url(db, "orders")
+    await render_screen(message, state, text, photo_url=photo_url, reply_markup=keyboard)
 
 
 @router.callback_query(F.data == "orders:list")
 async def cb_orders_list(
-    call: CallbackQuery, user: User, db: AsyncSession
+    call: CallbackQuery, user: User, db: AsyncSession, state: FSMContext
 ) -> None:
     result = await db.execute(
         select(Order)
@@ -112,8 +114,8 @@ async def cb_orders_list(
     )
     orders = list(result.scalars().all())
     text, keyboard = await _render_orders(orders)
-    await safe_edit(call.message, text, reply_markup=keyboard)
-    await call.answer()
+    photo_url = await get_photo_url(db, "orders")
+    await render_screen(call, state, text, photo_url=photo_url, reply_markup=keyboard)
 
 
 @router.callback_query(F.data.startswith("order:detail:"))

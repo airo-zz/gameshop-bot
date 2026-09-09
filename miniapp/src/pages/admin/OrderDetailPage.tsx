@@ -280,17 +280,48 @@ export default function OrderDetailPage() {
       {/* Items */}
       <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
         <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Позиции</h2>
-        {order.items.map((item) => (
-          <div key={item.id} className="flex justify-between items-start gap-3">
-            <div className="min-w-0">
-              <div className="text-sm text-white font-medium truncate">{item.product_name}</div>
-              <div className="text-xs text-white/30">{item.quantity} шт.</div>
+        {order.items.map((item) => {
+          const fields = item.input_data
+            ? Object.entries(item.input_data).filter(([, v]) => v !== null && v !== '' && v !== undefined)
+            : []
+          return (
+            <div key={item.id} className="space-y-2">
+              <div className="flex justify-between items-start gap-3">
+                <div className="min-w-0">
+                  <div className="text-sm text-white font-medium truncate">{item.product_name}</div>
+                  <div className="text-xs text-white/30">{item.quantity} шт.</div>
+                </div>
+                <div className="text-sm font-semibold text-white shrink-0">
+                  {formatMoney(item.total_price)}
+                </div>
+              </div>
+              {fields.length > 0 && (
+                <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-2.5 space-y-1.5">
+                  <div className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">
+                    Данные покупателя
+                  </div>
+                  {fields.map(([key, value]) => (
+                    <div key={key} className="flex items-baseline justify-between gap-3 text-xs">
+                      <span className="text-white/40 shrink-0">{key}</span>
+                      <span
+                        className="text-white/90 font-mono text-right break-all select-all cursor-pointer"
+                        onClick={() => {
+                          navigator.clipboard?.writeText(String(value)).then(
+                            () => toast.success('Скопировано'),
+                            () => {},
+                          )
+                        }}
+                        title="Нажмите, чтобы скопировать"
+                      >
+                        {String(value)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="text-sm font-semibold text-white shrink-0">
-              {formatMoney(item.total_price)}
-            </div>
-          </div>
-        ))}
+          )
+        })}
         <div className="border-t border-white/[0.08] pt-3 flex justify-between text-sm font-bold text-white">
           <span>Итого</span>
           <span>{formatMoney(order.total_amount)}</span>

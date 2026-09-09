@@ -168,12 +168,14 @@ async def render_screen(
     photo_url: str | None = None,
     reply_markup: InlineKeyboardMarkup | None = None,
     parse_mode: str = "HTML",
+    answer_text: str = "",
 ) -> None:
     """
     Универсальный рендер экрана бота с опциональной картинкой сверху.
 
     • CallbackQuery — редактирует сообщение на месте (edit_media / edit_text),
-      при несовместимости типов пересоздаёт сообщение.
+      при несовместимости типов пересоздаёт сообщение. answer_text показывается
+      как всплывающий toast при закрытии «часиков» на кнопке.
     • Message — поведение nav_edit: удаляет сообщение пользователя и
       обновляет сохранённый nav-msg (нужен state).
     """
@@ -188,7 +190,7 @@ async def render_screen(
         )
         if state is not None:
             await state.update_data(nav_msg_id=new_id)
-        await event.answer()
+        await event.answer(answer_text)
         return
 
     # Message-хендлеры (ReplyKeyboard / команды)

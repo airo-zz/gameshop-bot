@@ -24,7 +24,7 @@ from shared.config import settings
 from shared.models import User, LoyaltyLevel
 from shared.content import get_photo_url, get_text
 from bot.utils.texts import texts
-from bot.utils.helpers import safe_edit, nav_edit, render_screen
+from bot.utils.helpers import safe_edit, render_screen
 
 router = Router(name="client:profile")
 
@@ -191,7 +191,8 @@ async def cb_profile_view(
 async def cmd_referral(message: Message, user: User, db: AsyncSession, state: FSMContext) -> None:
     """Команда /referral — показать реферальную ссылку."""
     text, ref_link = await _build_referral_text(user, db)
-    await nav_edit(message, state, text, reply_markup=_referral_keyboard(ref_link))
+    photo_url = await get_photo_url(db, "referral")
+    await render_screen(message, state, text, photo_url=photo_url, reply_markup=_referral_keyboard(ref_link))
 
 
 @router.callback_query(F.data == "balance:topup")
@@ -288,9 +289,9 @@ def _topup_contact_text(user: User, amount: int) -> str:
 
 @router.callback_query(F.data == "referral:show")
 async def cb_referral_show(
-    call: CallbackQuery, user: User, db: AsyncSession
+    call: CallbackQuery, user: User, db: AsyncSession, state: FSMContext
 ) -> None:
     """Inline-кнопка реферальной программы."""
     text, ref_link = await _build_referral_text(user, db)
-    await safe_edit(call.message, text, reply_markup=_referral_keyboard(ref_link))
-    await call.answer()
+    photo_url = await get_photo_url(db, "referral")
+    await render_screen(call, state, text, photo_url=photo_url, reply_markup=_referral_keyboard(ref_link))

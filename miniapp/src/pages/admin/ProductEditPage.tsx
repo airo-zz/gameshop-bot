@@ -8,12 +8,85 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, AlertCircle, Save, ExternalLink, Copy } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Save, ExternalLink, Copy, Plus, Trash2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
 import type { AdminGame, AdminCategory, AdminProductDetail } from '@/api/admin'
 
 // ── Form state ────────────────────────────────────────────────────────────────
+
+/** Поле, которое покупатель заполняет при покупке (логин, пароль, ID и т.д.). */
+interface InputFieldForm {
+  key: string
+  label: string
+  type: 'text' | 'number' | 'select'
+  placeholder: string
+  required: boolean
+  options: string[]
+}
+
+const FIELD_TYPE_OPTIONS: { value: InputFieldForm['type']; label: string }[] = [
+  { value: 'text',   label: 'Текст' },
+  { value: 'number', label: 'Число' },
+  { value: 'select', label: 'Выбор из списка' },
+]
+
+/** Транслитерация названия поля в стабильный латинский ключ. */
+function slugifyKey(label: string): string {
+  const map: Record<string, string> = {
+    а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', е: 'e', ё: 'e', ж: 'zh', з: 'z',
+    и: 'i', й: 'y', к: 'k', л: 'l', м: 'm', н: 'n', о: 'o', п: 'p', р: 'r',
+    с: 's', т: 't', у: 'u', ф: 'f', х: 'h', ц: 'ts', ч: 'ch', ш: 'sh',
+    щ: 'sch', ъ: '', ы: 'y', ь: '', э: 'e', ю: 'yu', я: 'ya',
+  }
+  return label
+    .toLowerCase()
+    .split('')
+    .map((ch) => (ch in map ? map[ch] : ch))
+    .join('')
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '')
+}
+
+/** Приводит произвольный JSON из product.input_fields к форме редактора. */
+function normalizeInputField(raw: unknown): InputFieldForm {
+  const f = (raw ?? {}) as Record<string, unknown>
+  const type = f.type === 'number' || f.type === 'select' ? f.type : 'text'
+  return {
+    key: typeof f.key === 'string' ? f.key : '',
+    label: typeof f.label === 'string' ? f.label : '',
+    type,
+    placeholder: typeof f.placeholder === 'string' ? f.placeholder : '',
+    required: f.required !== false,
+    options: Array.isArray(f.options) ? f.options.map(String) : [],
+  }
+}
+
+/** Готовит поля к отправке: отбрасывает безымянные, генерит уникальные ключи. */
+function serializeInputFields(fields: InputFieldForm[]): Record<string, unknown>[] {
+  const used = new Set<string>()
+  const result: Record<string, unknown>[] = []
+  fields.forEach((f, idx) => {
+    const label = f.label.trim()
+    if (!label) return
+    let key = f.key.trim() || slugifyKey(label) || `field_${idx + 1}`
+    while (used.has(key)) key = `${key}_${idx + 1}`
+    used.add(key)
+    const out: Record<string, unknown> = {
+      key,
+      label,
+      type: f.type,
+      required: f.required,
+    }
+    const placeholder = f.placeholder.trim()
+    if (placeholder) out.placeholder = placeholder
+    if (f.type === 'select') {
+      out.options = f.options.map((o) => o.trim()).filter(Boolean)
+    }
+    result.push(out)
+  })
+  return result
+}
 
 interface FormState {
   game_id: string
@@ -30,6 +103,7 @@ interface FormState {
   delivery_type: 'manual' | 'auto' | 'mixed'
   is_active: boolean
   instruction: string
+  input_fields: InputFieldForm[]
 }
 
 const EMPTY_FORM: FormState = {
@@ -47,6 +121,7 @@ const EMPTY_FORM: FormState = {
   delivery_type: 'manual',
   is_active: true,
   instruction: '',
+  input_fields: [],
 }
 
 const DELIVERY_OPTIONS: { value: FormState['delivery_type']; label: string }[] = [
@@ -187,6 +262,7 @@ export default function ProductEditPage() {
       delivery_type: (product.delivery_type as FormState['delivery_type']) ?? 'manual',
       is_active: product.is_active,
       instruction: product.instruction ?? '',
+      input_fields: (product.input_fields ?? []).map(normalizeInputField),
     })
   }
 
@@ -211,6 +287,32 @@ export default function ProductEditPage() {
     if (errors[key as keyof FormErrors]) {
       setErrors((prev) => ({ ...prev, [key]: undefined }))
     }
+  }
+
+  // ── Input fields (данные от покупателя) ──────────────────────────────────────
+
+  function addInputField() {
+    setForm((prev) => ({
+      ...prev,
+      input_fields: [
+        ...prev.input_fields,
+        { key: '', label: '', type: 'text', placeholder: '', required: true, options: [] },
+      ],
+    }))
+  }
+
+  function updateInputField(idx: number, patch: Partial<InputFieldForm>) {
+    setForm((prev) => ({
+      ...prev,
+      input_fields: prev.input_fields.map((f, i) => (i === idx ? { ...f, ...patch } : f)),
+    }))
+  }
+
+  function removeInputField(idx: number) {
+    setForm((prev) => ({
+      ...prev,
+      input_fields: prev.input_fields.filter((_, i) => i !== idx),
+    }))
   }
 
   // ── Keys handlers ───────────────────────────────────────────────────────────
@@ -265,6 +367,7 @@ export default function ProductEditPage() {
       delivery_type: form.delivery_type,
       instruction: form.instruction.trim() || null,
       is_active: form.is_active,
+      input_fields: serializeInputFields(form.input_fields),
     }
 
     setSaving(true)
@@ -626,6 +729,97 @@ export default function ProductEditPage() {
           </div>
         </div>
       )}
+
+      {/* Section: Поля от покупателя */}
+      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
+        <div>
+          <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Данные от покупателя</h2>
+          <p className="text-xs text-white/40 mt-1.5">
+            Поля, которые покупатель заполняет при оформлении: логин, пароль, почта, ID и т.д.
+            Данные придут вместе с заказом.
+          </p>
+        </div>
+
+        {form.input_fields.length > 0 && (
+          <div className="space-y-3">
+            {form.input_fields.map((field, idx) => (
+              <div
+                key={idx}
+                className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 space-y-2.5"
+              >
+                <div className="flex items-center gap-2">
+                  <input
+                    value={field.label}
+                    onChange={(e) => updateInputField(idx, { label: e.target.value })}
+                    placeholder="Название поля (напр. Логин)"
+                    className={inputCls + ' flex-1'}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeInputField(idx)}
+                    aria-label="Удалить поле"
+                    className="p-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-red-500/10 hover:border-red-500/30 text-white/40 hover:text-red-400 transition-all active:scale-[0.98]"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+
+                <div className="flex gap-2">
+                  <select
+                    value={field.type}
+                    onChange={(e) =>
+                      updateInputField(idx, { type: e.target.value as InputFieldForm['type'] })
+                    }
+                    className={inputCls + ' flex-1'}
+                  >
+                    {FIELD_TYPE_OPTIONS.map((o) => (
+                      <option key={o.value} value={o.value} className="bg-neutral-900">
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                  <label className="flex items-center gap-2 px-3 rounded-xl bg-white/[0.05] border border-white/[0.08] cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={field.required}
+                      onChange={(e) => updateInputField(idx, { required: e.target.checked })}
+                      className="accent-blue-600"
+                    />
+                    <span className="text-sm text-white/70">Обязательно</span>
+                  </label>
+                </div>
+
+                {field.type === 'select' ? (
+                  <textarea
+                    value={field.options.join('\n')}
+                    onChange={(e) =>
+                      updateInputField(idx, { options: e.target.value.split('\n') })
+                    }
+                    rows={3}
+                    placeholder="Варианты — по одному на строку"
+                    className={inputCls + ' resize-none'}
+                  />
+                ) : (
+                  <input
+                    value={field.placeholder}
+                    onChange={(e) => updateInputField(idx, { placeholder: e.target.value })}
+                    placeholder="Подсказка (напр. Введите ваш логин)"
+                    className={inputCls}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={addInputField}
+          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/[0.05] border border-dashed border-white/[0.15] hover:bg-white/[0.08] hover:border-white/25 text-sm text-white/60 hover:text-white/80 transition-all active:scale-[0.98]"
+        >
+          <Plus size={16} /> Добавить поле
+        </button>
+      </div>
 
       {/* Section: Инструкция */}
       <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">

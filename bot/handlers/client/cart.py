@@ -21,9 +21,10 @@ from aiogram.types import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User
+from shared.content import get_photo_url
 from api.services.cart_service import CartService
 from bot.utils.texts import texts
-from bot.utils.helpers import safe_edit, nav_edit
+from bot.utils.helpers import safe_edit, render_screen
 
 router = Router(name="client:cart")
 
@@ -158,14 +159,22 @@ async def _show_cart(
         has_promo = bool(cart.promo_code_id)
         keyboard = _cart_keyboard(cart.items, has_promo=has_promo)
 
+    photo_url = await get_photo_url(db, "cart")
     if isinstance(event, CallbackQuery):
-        await safe_edit(event.message, text, reply_markup=keyboard)
-        await event.answer(answer_text)
+        await render_screen(
+            event, state, text, photo_url=photo_url,
+            reply_markup=keyboard, answer_text=answer_text,
+        )
     else:
         if state is not None:
-            await nav_edit(event, state, text, reply_markup=keyboard)
+            await render_screen(event, state, text, photo_url=photo_url, reply_markup=keyboard)
         else:
-            await event.answer(text, reply_markup=keyboard, parse_mode="HTML")
+            if photo_url:
+                await event.answer_photo(
+                    photo=photo_url, caption=text, reply_markup=keyboard, parse_mode="HTML"
+                )
+            else:
+                await event.answer(text, reply_markup=keyboard, parse_mode="HTML")
 
 
 # ── Handlers: просмотр корзины ────────────────────────────────────────────────
