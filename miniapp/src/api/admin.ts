@@ -323,6 +323,39 @@ export interface ReferralSettings {
   bonus_amount: number
 }
 
+// ── Content (тексты и фото бота) ───────────────────────────────────────────────
+
+export interface ContentVariable {
+  name: string
+  hint: string
+  system: boolean
+}
+
+export interface ContentText {
+  key: string
+  label: string
+  group: string
+  default: string
+  value: string
+  is_overridden: boolean
+  variables: ContentVariable[]
+}
+
+export interface ContentPhoto {
+  key: string
+  label: string
+  group: string
+  hint: string
+  url: string
+  preview_url: string
+  is_set: boolean
+}
+
+export interface BotContent {
+  texts: ContentText[]
+  photos: ContentPhoto[]
+}
+
 // ── Chats ────────────────────────────────────────────────────────────────────
 
 export interface AdminChatUserInfo {
@@ -588,6 +621,26 @@ export const adminApi = {
 
   updateReferralSettings: (data: { bonus_amount: number }) =>
     apiClient.patch<ReferralSettings>('/admin/settings/referral', data).then(r => r.data),
+
+  // Content — тексты и фото бота
+  getContent: () =>
+    apiClient.get<BotContent>('/admin/content').then(r => r.data),
+
+  updateContentText: (key: string, value: string | null) =>
+    apiClient
+      .patch<{ key: string; value: string; is_overridden: boolean }>(
+        `/admin/content/text/${key}`,
+        { value },
+      )
+      .then(r => r.data),
+
+  updateContentPhoto: (key: string, url: string | null) =>
+    apiClient
+      .patch<{ key: string; url: string; preview_url: string; is_set: boolean }>(
+        `/admin/content/photo/${key}`,
+        { url },
+      )
+      .then(r => r.data),
 
   // Chats
   getChats: (filterMode?: 'all' | 'mine' | 'free') =>

@@ -25,7 +25,8 @@ from shared.models import Game, Category, Product, Cart, CartItem, User
 from shared.config import settings
 from api.services.cart_service import CartService
 from bot.utils.texts import texts
-from bot.utils.helpers import safe_edit, nav_edit
+from bot.utils.helpers import safe_edit, render_screen
+from shared.content import get_photo_url, get_text
 
 router = Router(name="client:catalog")
 
@@ -85,15 +86,16 @@ async def show_games_list(
         )
     games = list(result.scalars().all())
 
+    back_btn = InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")
     if services:
-        header_text = f"🔧 <b>Сервисы {settings.SHOP_NAME}</b>\n\nВыбери сервис:"
-        back_btn = InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")
+        header_text = await get_text(db, "services_header")
+        photo_url = await get_photo_url(db, "catalog_services")
     else:
-        header_text = texts.catalog_header
-        back_btn = InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")
+        header_text = await get_text(db, "catalog_header")
+        photo_url = await get_photo_url(db, "catalog_games")
 
     if not games:
-        text = texts.catalog_empty
+        text = await get_text(db, "catalog_empty")
         keyboard = InlineKeyboardMarkup(inline_keyboard=[[back_btn]])
     else:
         buttons = [
@@ -104,27 +106,20 @@ async def show_games_list(
         text = header_text
         keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
 
-    if isinstance(event, CallbackQuery):
-        await safe_edit(event.message, text, reply_markup=keyboard)
-        await event.answer()
-    else:
-        if state is not None:
-            await nav_edit(event, state, text, reply_markup=keyboard)
-        else:
-            await event.answer(text, reply_markup=keyboard, parse_mode="HTML")
+    await render_screen(event, state, text, photo_url=photo_url, reply_markup=keyboard)
 
 
 # ── Handlers: навигация по каталогу ──────────────────────────────────────────
 
 @router.callback_query(F.data == "catalog:main")
 @router.callback_query(F.data == "open_catalog")
-async def cb_catalog_main(call: CallbackQuery, db: AsyncSession) -> None:
-    await show_games_list(call, db)
+async def cb_catalog_main(call: CallbackQuery, db: AsyncSession, state: FSMContext) -> None:
+    await show_games_list(call, db, state=state)
 
 
 @router.callback_query(F.data == "catalog:services")
-async def cb_catalog_services(call: CallbackQuery, db: AsyncSession) -> None:
-    await show_games_list(call, db, services=True)
+async def cb_catalog_services(call: CallbackQuery, db: AsyncSession, state: FSMContext) -> None:
+    await show_games_list(call, db, state=state, services=True)
 
 
 @router.callback_query(F.data.startswith("catalog:game:"))

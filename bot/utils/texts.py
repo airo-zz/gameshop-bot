@@ -12,6 +12,7 @@ bot/utils/texts.py
 from html import escape
 
 from shared.config import settings
+from shared.content import render_default
 
 S = settings  # Короткий псевдоним
 
@@ -25,35 +26,30 @@ class BotTexts:
         return f"{S.shop_name_emoji}"
 
     def greeting(self, first_name: str) -> str:
-        return (
-            f"👋 Привет, {escape(first_name)}!\n\n"
-            f"Добро пожаловать в <b>{S.SHOP_NAME}</b> — {S.SHOP_TAGLINE}.\n\n"
-            f"Выбери действие:"
-        )
+        return render_default("greeting", first_name=escape(first_name))
 
     def greeting_new_user(self, first_name: str, referral_bonus: float = 0) -> str:
-        first_name = escape(first_name)
         bonus_text = (
             f"\n\n🎁 Тебе начислен бонус <b>{referral_bonus:.0f} ₽</b> за использование реферальной ссылки!"
             if referral_bonus > 0
             else ""
         )
-        return (
-            f"🎉 Добро пожаловать в <b>{S.SHOP_NAME}</b>!\n\n"
-            f"{S.SHOP_TAGLINE}.\n\n"
-            f"Здесь ты можешь быстро и безопасно купить игровой донат, "
-            f"скины и многое другое.{bonus_text}\n\n"
-            f"Используй кнопки ниже для навигации:"
+        return render_default(
+            "greeting_new_user", first_name=escape(first_name), bonus=bonus_text
         )
 
     # ── Каталог ───────────────────────────────────────────────────────────────
     @property
     def catalog_header(self) -> str:
-        return f"🎮 <b>Каталог {S.SHOP_NAME}</b>\n\nВыбери игру:"
+        return render_default("catalog_header")
+
+    @property
+    def services_header(self) -> str:
+        return render_default("services_header")
 
     @property
     def catalog_empty(self) -> str:
-        return "😔 Каталог пуст. Скоро добавим товары!"
+        return render_default("catalog_empty")
 
     def game_header(self, game_name: str) -> str:
         return f"🎮 <b>{escape(game_name)}</b>\n\nВыбери раздел:"
@@ -101,10 +97,7 @@ class BotTexts:
     # ── Корзина ───────────────────────────────────────────────────────────────
     @property
     def cart_empty(self) -> str:
-        return (
-            "🛒 Твоя корзина пуста.\n\n"
-            f"Перейди в каталог {S.SHOP_NAME}, чтобы добавить товары."
-        )
+        return render_default("cart_empty")
 
     def cart_summary(self, items_count: int, total: float, discount: float = 0) -> str:
         discount_text = f"\n💸 Скидка: <b>-{discount:.0f} ₽</b>" if discount > 0 else ""
@@ -297,10 +290,7 @@ class BotTexts:
     # ── Избранное ─────────────────────────────────────────────────────────────
     @property
     def favorites_empty(self) -> str:
-        return (
-            "❤️ <b>Избранное</b>\n\n"
-            "У тебя нет избранных товаров. Добавляй через каталог!"
-        )
+        return render_default("favorites_empty")
 
     def favorites_header(self, count: int) -> str:
         return f"❤️ <b>Избранное</b> ({count} товаров)\n━━━━━━━━━━━━━━━"
@@ -332,22 +322,22 @@ class BotTexts:
         else:
             progress_text = f"\nПотрачено: <b>{total_spent:.0f} ₽</b>"
 
-        return (
-            f"👤 <b>Профиль</b>\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"Имя: {escape(first_name)}\n"
-            f"Баланс: <b>{balance:.2f} ₽</b>\n"
-            f"Заказов: <b>{orders_count}</b>\n"
-            f"Уровень: {loyalty_emoji} <b>{escape(loyalty_name)}</b>"
-            f"{progress_text}"
+        return render_default(
+            "profile",
+            first_name=escape(first_name),
+            balance=f"{balance:.2f}",
+            orders_count=orders_count,
+            loyalty_emoji=loyalty_emoji,
+            loyalty_name=escape(loyalty_name),
+            progress=progress_text,
         )
 
     def balance_info(self, balance: float, orders_count: int, total_spent: float) -> str:
-        return (
-            f"💰 <b>Баланс</b>\n\n"
-            f"Текущий баланс: <b>{balance:.2f} ₽</b>\n"
-            f"Заказов: <b>{orders_count}</b>\n"
-            f"Потрачено всего: <b>{total_spent:.0f} ₽</b>"
+        return render_default(
+            "balance_info",
+            balance=f"{balance:.2f}",
+            orders_count=orders_count,
+            total_spent=f"{total_spent:.0f}",
         )
 
     def balance_topup_miniapp(self, balance: float) -> str:
@@ -384,23 +374,12 @@ class BotTexts:
         )
 
     def balance_topup_methods(self, balance: float) -> str:
-        return (
-            f"💰 <b>Управление балансом</b>\n\n"
-            f"Текущий баланс: <b>{balance:.2f} ₽</b>"
-        )
+        return render_default("balance_topup_methods", balance=f"{balance:.2f}")
 
     # ── Поддержка ─────────────────────────────────────────────────────────────
     @property
     def support_header(self) -> str:
-        base = S.MINIAPP_URL.rstrip("/")
-        return (
-            f"💬 <b>Поддержка {S.SHOP_NAME}</b>\n\n"
-            f"Для помощи обратись в наш бот поддержки.\n"
-            f"Время ответа: обычно до 4 часов.\n\n"
-            f"<b>Документы:</b>\n"
-            f'• <a href="{base}/legal/terms.html">Пользовательское соглашение</a>\n'
-            f'• <a href="{base}/legal/privacy.html">Политика конфиденциальности</a>'
-        )
+        return render_default("support_header")
 
     # ── Брошенная корзина ─────────────────────────────────────────────────────
     @staticmethod
@@ -425,7 +404,7 @@ class BotTexts:
     # ── Заказы (клиент) ───────────────────────────────────────────────────────
     @property
     def orders_empty(self) -> str:
-        return "📋 У тебя пока нет заказов.\n\nПерейди в каталог и сделай первую покупку!"
+        return render_default("orders_empty")
 
     def orders_list_header(self, count: int) -> str:
         return f"📋 <b>Мои заказы</b> — последние {count}:"
@@ -464,54 +443,20 @@ class BotTexts:
     # ── Главное меню клиента ──────────────────────────────────────────────────
     @property
     def choose_action(self) -> str:
-        return "👇 Выбери действие:"
+        return render_default("choose_action")
 
     @property
     def open_shop(self) -> str:
         return f"🎮 Открой <b>{S.SHOP_NAME}</b>:"
 
     def faq(self) -> str:
-        return (
-            f"❓ <b>FAQ — {S.SHOP_NAME}</b>\n\n"
-            f"<b>Как быстро выдаётся товар?</b>\n"
-            f"Автоматические товары — мгновенно после оплаты.\n"
-            f"Ручные — в течение 1–24 часов.\n\n"
-            f"<b>Какие способы оплаты?</b>\n"
-            f"Баланс бота, USDT, TON и другая крипта.\n\n"
-            f"<b>Что делать если товар не пришёл?</b>\n"
-            f"Напиши в бот поддержки @{S.SHOP_SUPPORT_USERNAME}.\n\n"
-            f"<b>Есть ли скидки?</b>\n"
-            f"Да! Программа лояльности Bronze → Silver → Gold → VIP.\n"
-            f"Чем больше покупаешь — тем больше скидка.\n\n"
-            f"<b>Как работает реферальная программа?</b>\n"
-            f"Поделись своим кодом из профиля — получи бонус за каждого друга."
-        )
+        return render_default("faq")
 
     def help_text(self) -> str:
-        return (
-            f"🤖 <b>Команды {S.SHOP_NAME}</b>\n\n"
-            f"/start — главное меню\n"
-            f"/orders — мои заказы\n"
-            f"/balance — мой баланс\n"
-            f"/favorites — избранное\n"
-            f"/referral — реферальная ссылка\n"
-            f"/support — поддержка\n"
-            f"/info — документы и информация\n"
-            f"/help — эта справка"
-        )
+        return render_default("help_text")
 
     def info_text(self) -> str:
-        base = S.MINIAPP_URL.rstrip("/")
-        return (
-            f"ℹ️ <b>{S.SHOP_NAME} — информация</b>\n\n"
-            f"{S.SHOP_NAME} — сервис покупки игрового доната и цифровых товаров.\n\n"
-            f"<b>Документы:</b>\n"
-            f'• <a href="{base}/legal/terms.html">Пользовательское соглашение</a>\n'
-            f'• <a href="{base}/legal/privacy.html">Политика конфиденциальности</a>\n\n'
-            f"<b>Поддержка и обратная связь:</b>\n"
-            f"• бот поддержки @{S.SHOP_SUPPORT_USERNAME}\n"
-            f"• тикет-система в приложении (раздел «Поддержка»)"
-        )
+        return render_default("info_text")
 
     # ── Ошибки ────────────────────────────────────────────────────────────────
     @property

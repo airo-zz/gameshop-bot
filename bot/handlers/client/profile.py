@@ -18,10 +18,13 @@ from aiogram.types import (
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
+from html import escape
+
 from shared.config import settings
 from shared.models import User, LoyaltyLevel
+from shared.content import get_photo_url, get_text
 from bot.utils.texts import texts
-from bot.utils.helpers import safe_edit, nav_edit
+from bot.utils.helpers import safe_edit, nav_edit, render_screen
 
 router = Router(name="client:profile")
 
@@ -112,16 +115,24 @@ async def _build_profile_text(user: User, db: AsyncSession) -> str:
         need = float(next_level.min_spent) - float(user.total_spent)
         next_level_need = max(0.0, need)
 
-    return texts.profile(
-        first_name=user.first_name,
-        balance=float(user.balance),
+    total_spent = float(user.total_spent)
+    if next_level_name and next_level_need is not None and next_level_need > 0:
+        progress_text = (
+            f"\nПотрачено: <b>{total_spent:.0f} ₽</b> → "
+            f"до {escape(next_level_name)} нужно ещё <b>{next_level_need:.0f} ₽</b>"
+        )
+    else:
+        progress_text = f"\nПотрачено: <b>{total_spent:.0f} ₽</b>"
+
+    return await get_text(
+        db,
+        "profile",
+        first_name=escape(user.first_name),
+        balance=f"{float(user.balance):.2f}",
         orders_count=user.orders_count,
-        total_spent=float(user.total_spent),
-        loyalty_name=loyalty_name,
         loyalty_emoji=loyalty_emoji,
-        referral_code=user.referral_code,
-        next_level_name=next_level_name,
-        next_level_need=next_level_need,
+        loyalty_name=escape(loyalty_name),
+        progress=progress_text,
     )
 
 
@@ -144,32 +155,36 @@ async def _build_referral_text(user: User, db: AsyncSession) -> tuple[str, str]:
 @router.message(Command("balance"))
 async def cmd_balance(message: Message, user: User, db: AsyncSession, state: FSMContext) -> None:
     """Показывает текущий баланс с кнопкой пополнения."""
-    text = texts.balance_info(
-        balance=float(user.balance),
+    text = await get_text(
+        db,
+        "balance_info",
+        balance=f"{float(user.balance):.2f}",
         orders_count=user.orders_count,
-        total_spent=float(user.total_spent),
+        total_spent=f"{float(user.total_spent):.0f}",
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💰 Баланс", callback_data="balance:topup")],
         [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary")],
     ])
-    await nav_edit(message, state, text, reply_markup=keyboard)
+    photo_url = await get_photo_url(db, "balance")
+    await render_screen(message, state, text, photo_url=photo_url, reply_markup=keyboard)
 
 
 @router.message(Command("profile"))
 @router.message(F.text == "👤 Профиль")
 async def cmd_profile(message: Message, user: User, db: AsyncSession, state: FSMContext) -> None:
     text = await _build_profile_text(user, db)
-    await nav_edit(message, state, text, reply_markup=_profile_keyboard())
+    photo_url = await get_photo_url(db, "profile")
+    await render_screen(message, state, text, photo_url=photo_url, reply_markup=_profile_keyboard())
 
 
 @router.callback_query(F.data == "profile:view")
 async def cb_profile_view(
-    call: CallbackQuery, user: User, db: AsyncSession
+    call: CallbackQuery, user: User, db: AsyncSession, state: FSMContext
 ) -> None:
     text = await _build_profile_text(user, db)
-    await safe_edit(call.message, text, reply_markup=_profile_keyboard())
-    await call.answer()
+    photo_url = await get_photo_url(db, "profile")
+    await render_screen(call, state, text, photo_url=photo_url, reply_markup=_profile_keyboard())
 
 
 @router.message(Command("referral"))
@@ -180,19 +195,18 @@ async def cmd_referral(message: Message, user: User, db: AsyncSession, state: FS
 
 
 @router.callback_query(F.data == "balance:topup")
-async def cb_balance_topup(call: CallbackQuery, user: User, state: FSMContext) -> None:
+async def cb_balance_topup(
+    call: CallbackQuery, user: User, db: AsyncSession, state: FSMContext
+) -> None:
     """Управление балансом."""
     await state.clear()
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💳 Пополнить баланс", callback_data="balance:fill", style="success")],
         [InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu:main", style="primary")],
     ])
-    await safe_edit(
-        call.message,
-        texts.balance_topup_methods(float(user.balance)),
-        reply_markup=keyboard,
-    )
-    await call.answer()
+    text = await get_text(db, "balance_topup_methods", balance=f"{float(user.balance):.2f}")
+    photo_url = await get_photo_url(db, "balance")
+    await render_screen(call, state, text, photo_url=photo_url, reply_markup=keyboard)
 
 
 @router.callback_query(F.data == "balance:fill")

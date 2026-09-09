@@ -9,6 +9,7 @@ bot/handlers/client/start.py
 
 import os
 from datetime import datetime, timezone, timedelta
+from html import escape
 
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
@@ -23,7 +24,8 @@ from sqlalchemy import select
 from shared.config import settings
 from shared.models import User
 from bot.utils.texts import texts
-from bot.utils.helpers import safe_edit, nav_edit
+from bot.utils.helpers import safe_edit, nav_edit, render_screen
+from shared.content import get_photo_url, get_text
 
 router = Router(name="client:start")
 
@@ -159,24 +161,40 @@ async def cmd_start(message: Message, user: User, db: AsyncSession, state: FSMCo
         referral_bonus = await _apply_referral(user, start_param, db)
 
     if is_new:
-        welcome_text = texts.greeting_new_user(user.first_name, referral_bonus)
+        bonus_text = (
+            f"\n\n🎁 Тебе начислен бонус <b>{referral_bonus:.0f} ₽</b> за использование реферальной ссылки!"
+            if referral_bonus > 0
+            else ""
+        )
+        welcome_text = await get_text(
+            db, "greeting_new_user", first_name=escape(user.first_name), bonus=bonus_text
+        )
     else:
-        welcome_text = texts.greeting(user.first_name)
+        welcome_text = await get_text(db, "greeting", first_name=escape(user.first_name))
 
     keyboard = get_start_inline_keyboard()
 
-    assets_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "assets", "welcome.jpg"
-    )
-    if os.path.exists(assets_path):
+    # Приоритет: настроенная в админке картинка → дефолтный welcome.jpg → без фото
+    photo_url = await get_photo_url(db, "main_menu")
+    if photo_url and len(welcome_text) > 1024:
+        photo_url = None  # подпись к фото в Telegram ограничена 1024 символами
+    if photo_url:
         sent = await message.answer_photo(
-            photo=FSInputFile(assets_path),
-            caption=welcome_text,
-            reply_markup=keyboard,
-            parse_mode="HTML",
+            photo=photo_url, caption=welcome_text, reply_markup=keyboard, parse_mode="HTML"
         )
     else:
-        sent = await message.answer(welcome_text, reply_markup=keyboard, parse_mode="HTML")
+        assets_path = os.path.join(
+            os.path.dirname(__file__), "..", "..", "assets", "welcome.jpg"
+        )
+        if os.path.exists(assets_path):
+            sent = await message.answer_photo(
+                photo=FSInputFile(assets_path),
+                caption=welcome_text,
+                reply_markup=keyboard,
+                parse_mode="HTML",
+            )
+        else:
+            sent = await message.answer(welcome_text, reply_markup=keyboard, parse_mode="HTML")
     await state.update_data(nav_msg_id=sent.message_id)
 
 
@@ -246,12 +264,39 @@ async def _show_product_from_start(
 
 
 @router.callback_query(F.data == "menu:main")
-async def cb_menu_main(call: CallbackQuery, user: User, state: FSMContext) -> None:
+async def cb_menu_main(
+    call: CallbackQuery, user: User, db: AsyncSession, state: FSMContext
+) -> None:
     await state.clear()
-    text = texts.greeting(user.first_name)
+    text = await get_text(db, "greeting", first_name=escape(user.first_name))
     keyboard = get_start_inline_keyboard()
-    await safe_edit(call.message, text, reply_markup=keyboard)
-    await state.update_data(nav_msg_id=call.message.message_id)
+    photo_url = await get_photo_url(db, "main_menu")
+
+    if photo_url:
+        await render_screen(call, state, text, photo_url=photo_url, reply_markup=keyboard)
+        return
+
+    # Нет настроенной картинки — fallback на локальный welcome.jpg
+    assets_path = os.path.join(
+        os.path.dirname(__file__), "..", "..", "assets", "welcome.jpg"
+    )
+    if os.path.exists(assets_path):
+        from aiogram.exceptions import TelegramBadRequest
+
+        try:
+            await call.message.delete()
+        except TelegramBadRequest:
+            pass
+        sent = await call.message.answer_photo(
+            photo=FSInputFile(assets_path),
+            caption=text,
+            reply_markup=keyboard,
+            parse_mode="HTML",
+        )
+        await state.update_data(nav_msg_id=sent.message_id)
+    else:
+        await safe_edit(call.message, text, reply_markup=keyboard)
+        await state.update_data(nav_msg_id=call.message.message_id)
     await call.answer()
 
 

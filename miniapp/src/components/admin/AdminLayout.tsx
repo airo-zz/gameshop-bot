@@ -17,6 +17,7 @@ import {
   MessageSquare,
   MessagesSquare,
   Settings,
+  FileText,
   Menu,
   X,
 } from 'lucide-react'
@@ -35,6 +36,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/admin/discounts', label: 'Скидки',           icon: <Tag size={20} /> },
   { to: '/admin/support',   label: 'Поддержка',        icon: <MessageSquare size={20} /> },
   { to: '/admin/chats',    label: 'Чаты',             icon: <MessagesSquare size={20} /> },
+  { to: '/admin/settings/content', label: 'Контент',   icon: <FileText size={20} /> },
   { to: '/admin/settings/loyalty', label: 'Настройки', icon: <Settings size={20} /> },
 ]
 
