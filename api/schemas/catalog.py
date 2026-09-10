@@ -24,6 +24,7 @@ class GameOut(BaseModel):
     sort_order: int
     tags: list[str]
     type: str
+    input_fields: list[dict] = []
 
 
 class CategoryOut(BaseModel):

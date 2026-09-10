@@ -103,6 +103,7 @@ class OrderDetailOut(BaseModel):
     discount_amount: float
     total_amount: float
     payment_method: str | None
+    input_data: dict[str, Any] = {}
     notes: str | None
     cancel_reason: str | None
     created_at: datetime
@@ -147,6 +148,7 @@ class GameCreateIn(BaseModel):
     is_featured: bool = False
     sort_order: int = 0
     type: str = Field("game", pattern="^(game|service)$")
+    input_fields: list[Any] = []
 
 
 class GameUpdateIn(BaseModel):
@@ -158,6 +160,7 @@ class GameUpdateIn(BaseModel):
     is_featured: bool | None = None
     sort_order: int | None = None
     type: str | None = Field(None, pattern="^(game|service)$")
+    input_fields: list[Any] | None = None
 
 
 class GameOut(BaseModel):
@@ -172,6 +175,7 @@ class GameOut(BaseModel):
     is_featured: bool
     sort_order: int
     type: str
+    input_fields: list[Any]
     created_at: datetime
 
 

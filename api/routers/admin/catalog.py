@@ -118,6 +118,7 @@ async def create_game(
         is_featured=body.is_featured,
         sort_order=body.sort_order,
         type=body.type,
+        input_fields=body.input_fields,
     )
     db.add(game)
     await db.flush()
@@ -724,14 +725,24 @@ async def import_ggsel_commit(
     созданные товары. Товары с предупреждением создаются неактивными.
     Вся операция атомарна: при ошибке — полный откат (сессия делает rollback).
     """
-    game = await db.execute(select(Game).where(Game.id == body.game_id))
-    if not game.scalar_one_or_none():
+    game_res = await db.execute(select(Game).where(Game.id == body.game_id))
+    game = game_res.scalar_one_or_none()
+    if not game:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Игра не найдена")
 
     if not body.categories:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нет категорий для импорта")
 
-    input_fields = [f.model_dump() for f in body.input_fields]
+    # Поля покупателя (текст-параметры оффера) — на уровень ИГРЫ, объединяя по ключу
+    new_fields = [f.model_dump() for f in body.input_fields]
+    if new_fields:
+        existing_fields = list(game.input_fields or [])
+        existing_keys = {f.get("key") for f in existing_fields if isinstance(f, dict)}
+        for f in new_fields:
+            if f.get("key") not in existing_keys:
+                existing_fields.append(f)
+                existing_keys.add(f.get("key"))
+        game.input_fields = existing_fields
 
     # Курс и наценка — один раз на весь импорт. ₽-суммы оффера конвертируем в USD
     # (источник истины), а розничную ₽-цену считаем через наценку + округление.
@@ -785,7 +796,6 @@ async def import_ggsel_commit(
                     price_usd=Decimal(str(price_usd_val)),
                     quantity=1,
                     delivery_type=DeliveryType.manual,
-                    input_fields=input_fields,
                     is_active=price_rub > 0,
                     sort_order=idx,
                 )

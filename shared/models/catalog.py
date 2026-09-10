@@ -62,6 +62,9 @@ class Game(Base, UUIDMixin, TimestampMixin):
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    # Поля покупателя на уровне игры (логин/почта/выбор ОС и т.п.).
+    # Спрашиваются один раз при оформлении заказа. Формат — как у input_fields товара.
+    input_fields: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
 
     # Relationships
     categories: Mapped[list["Category"]] = relationship(

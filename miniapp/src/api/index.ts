@@ -20,6 +20,7 @@ export interface Game {
   sort_order: number
   tags: string[]
   type: 'game' | 'service'
+  input_fields?: InputField[]
 }
 
 export interface Category {
@@ -108,6 +109,7 @@ export interface Order {
   total_amount: number
   payment_method: string | null
   items: OrderItem[]
+  input_data?: Record<string, { game_name: string; fields: { key: string; label: string; value: string }[] }>
   items_count?: number   // присутствует в list-endpoint вместо items
   created_at: string
   paid_at: string | null
@@ -241,12 +243,26 @@ export const cartApi = {
 
   applyPromo: (code: string) =>
     apiClient.post<{ valid: boolean; discount: number; message: string }>('/cart/promo', { code }).then(r => r.data),
+
+  getCheckoutFields: () =>
+    apiClient.get<CheckoutFieldGroup[]>('/cart/checkout-fields').then(r => r.data),
 }
 
 // ── Orders API ────────────────────────────────────────────────────────────────
 
+export interface CheckoutFieldGroup {
+  game_id: string
+  game_name: string
+  fields: InputField[]
+}
+
 export const ordersApi = {
-  create: (data: { payment_method: string; crypto_currency?: string; promo_code?: string }) =>
+  create: (data: {
+    payment_method: string
+    crypto_currency?: string
+    promo_code?: string
+    input_data?: Record<string, Record<string, string>>
+  }) =>
     apiClient.post<Order>('/orders', data).then(r => r.data),
 
   list: (page = 0) =>

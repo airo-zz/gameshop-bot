@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useState, useRef } from 'react'
+import InputFieldsEditor from '@/components/admin/InputFieldsEditor'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, Save, Plus, AlertCircle, Upload, Loader2, ImageOff, ExternalLink } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -93,6 +94,7 @@ interface FormState {
   is_active: boolean
   is_featured: boolean
   type: GameType
+  input_fields: Record<string, unknown>[]
 }
 
 const EMPTY_FORM: FormState = {
@@ -103,6 +105,7 @@ const EMPTY_FORM: FormState = {
   is_active: true,
   is_featured: false,
   type: 'game',
+  input_fields: [],
 }
 
 export default function GameEditPage() {
@@ -152,6 +155,7 @@ export default function GameEditPage() {
           is_active:   game.is_active,
           is_featured: game.is_featured,
           type:        (game.type ?? 'game') as GameType,
+          input_fields: (game.input_fields ?? []) as Record<string, unknown>[],
         })
         slugManual.current = true // pre-filled — treat as manual
         setCategories(cats)
@@ -210,6 +214,7 @@ export default function GameEditPage() {
         is_active:   form.is_active,
         is_featured: form.is_featured,
         type:        form.type,
+        input_fields: form.input_fields,
       }
 
       if (isCreate) {
@@ -426,6 +431,18 @@ export default function GameEditPage() {
               <span className="text-sm text-white/70">В подборке</span>
               <Toggle value={form.is_featured} onChange={(v) => set('is_featured', v)} />
             </div>
+          </div>
+
+          {/* Данные от покупателя (поля на уровне игры) */}
+          <div className="pt-1">
+            <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">
+              Данные от покупателя
+            </h2>
+            <InputFieldsEditor
+              key={loadingGame ? 'loading' : 'ready'}
+              value={form.input_fields}
+              onChange={(fields) => set('input_fields', fields)}
+            />
           </div>
 
           {/* Submit */}

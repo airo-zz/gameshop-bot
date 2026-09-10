@@ -28,7 +28,7 @@ async def create_order(request: Request, body: CreateOrderRequest, db: DbSession
 
     try:
         order = await order_svc.create_from_cart(
-            user, cart, body.payment_method, body.promo_code
+            user, cart, body.payment_method, body.promo_code, body.input_data
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

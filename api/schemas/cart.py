@@ -74,6 +74,8 @@ class CreateOrderRequest(BaseModel):
     payment_method: str = Field(..., pattern="^(balance|card_yukassa|crypto|usdt|ton|manual)$")
     crypto_currency: str | None = Field(None, pattern="^(USDT|TON|BTC|ETH)$")
     promo_code: str | None = None
+    # Данные покупателя на уровне игры: { game_id: { field_key: value } }
+    input_data: dict[str, dict[str, str]] = Field(default_factory=dict)
 
 
 class OrderItemOut(BaseModel):
@@ -103,6 +105,7 @@ class OrderOut(BaseModel):
     total_amount: Decimal
     payment_method: str | None
     items: list[OrderItemOut]
+    input_data: dict = Field(default_factory=dict)
     created_at: datetime
     paid_at: datetime | None
     completed_at: datetime | None

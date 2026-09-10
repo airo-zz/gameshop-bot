@@ -256,6 +256,7 @@ async def get_order(
         discount_amount=float(order.discount_amount),
         total_amount=float(order.total_amount),
         payment_method=order.payment_method.value if order.payment_method else None,
+        input_data=order.input_data or {},
         notes=order.notes,
         cancel_reason=order.cancel_reason,
         created_at=order.created_at,

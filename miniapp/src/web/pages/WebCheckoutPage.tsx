@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Wallet, Bitcoin, CreditCard, CheckCircle, AlertCircle } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { ordersApi, profileApi } from '@/api'
+import { ordersApi, profileApi, cartApi } from '@/api'
 import { useWebCart } from '@/web/cart/useWebCart'
 
 function money(v: number) {
@@ -38,6 +38,11 @@ export default function WebCheckoutPage() {
   const [method, setMethod] = useState<string>('balance')
   const [coin, setCoin] = useState('USDT')
   const [placing, setPlacing] = useState(false)
+  const [fieldValues, setFieldValues] = useState<Record<string, Record<string, string>>>({})
+
+  const { data: checkoutFields = [] } = useQuery({ queryKey: ['web', 'checkout-fields'], queryFn: cartApi.getCheckoutFields })
+  const setFieldValue = (gameId: string, key: string, value: string) =>
+    setFieldValues((prev) => ({ ...prev, [gameId]: { ...(prev[gameId] ?? {}), [key]: value } }))
 
   if (!cart || cart.items.length === 0) {
     return (
@@ -58,11 +63,20 @@ export default function WebCheckoutPage() {
       toast('Оплата картой скоро будет доступна. Пока — баланс или криптовалюта.', { icon: '⏳' })
       return
     }
+    for (const group of checkoutFields) {
+      for (const f of group.fields) {
+        if (f.required && !(fieldValues[group.game_id]?.[f.key] ?? '').trim()) {
+          toast.error(`Заполните «${f.label}» для ${group.game_name}`)
+          return
+        }
+      }
+    }
     setPlacing(true)
     try {
       const order = await ordersApi.create({
         payment_method: method,
         ...(method === 'crypto' ? { crypto_currency: coin } : {}),
+        ...(checkoutFields.length > 0 ? { input_data: fieldValues } : {}),
       })
       const payment = await ordersApi.pay(order.id)
       await refresh() // корзина очищена на сервере при создании заказа
@@ -112,6 +126,40 @@ export default function WebCheckoutPage() {
           <span style={{ color: 'var(--link)' }}>{money(cart.total)}</span>
         </div>
       </div>
+
+      {/* Данные для заказа (поля на уровне игры) */}
+      {checkoutFields.map((group) => (
+        <div key={group.game_id} className="mb-6">
+          <p className="text-sm font-semibold text-white/60 mb-3">Данные для {group.game_name}</p>
+          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
+            {group.fields.map((field) => (
+              <div key={field.key}>
+                <label className="block text-xs text-white/50 mb-1.5">
+                  {field.label}{field.required && <span className="text-amber-400"> *</span>}
+                </label>
+                {field.type === 'select' ? (
+                  <select
+                    value={fieldValues[group.game_id]?.[field.key] ?? ''}
+                    onChange={(e) => setFieldValue(group.game_id, field.key, e.target.value)}
+                    className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/20"
+                  >
+                    <option value="">Выберите...</option>
+                    {field.options?.map((o) => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                ) : (
+                  <input
+                    type={field.type === 'number' ? 'number' : 'text'}
+                    value={fieldValues[group.game_id]?.[field.key] ?? ''}
+                    onChange={(e) => setFieldValue(group.game_id, field.key, e.target.value)}
+                    placeholder={field.placeholder ?? field.label}
+                    className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-white/20"
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
 
       {/* Способ оплаты */}
       <p className="text-sm font-semibold text-white/60 mb-3">Способ оплаты</p>

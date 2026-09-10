@@ -277,6 +277,30 @@ export default function OrderDetailPage() {
         <div className="text-xs text-white/30">ID: {order.user.telegram_id}</div>
       </div>
 
+      {/* Данные покупателя (на уровне игры) */}
+      {order.input_data && Object.keys(order.input_data).length > 0 && (
+        <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
+          <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Данные покупателя</h2>
+          {Object.entries(order.input_data).map(([gameId, group]: [string, any]) => (
+            <div key={gameId} className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3 space-y-1.5">
+              <div className="text-[11px] font-semibold text-white/60">{group.game_name}</div>
+              {(group.fields ?? []).map((f: any, i: number) => (
+                <div key={i} className="flex items-baseline justify-between gap-3 text-xs">
+                  <span className="text-white/40 shrink-0">{f.label}</span>
+                  <span
+                    className="text-white/90 font-mono text-right break-all select-all cursor-pointer"
+                    onClick={() => navigator.clipboard?.writeText(String(f.value)).then(() => toast.success('Скопировано'), () => {})}
+                    title="Нажмите, чтобы скопировать"
+                  >
+                    {String(f.value) || '—'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Items */}
       <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
         <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Позиции</h2>

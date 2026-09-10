@@ -113,6 +113,7 @@ export interface AdminOrderDetail {
   discount_amount: number
   total_amount: number
   payment_method: string | null
+  input_data: Record<string, { game_name: string; fields: { key: string; label: string; value: string }[] }>
   notes: string | null
   cancel_reason: string | null
   created_at: string
@@ -221,6 +222,7 @@ export interface AdminGame {
   is_featured: boolean
   sort_order: number
   type: 'game' | 'service'
+  input_fields?: Record<string, unknown>[]
   created_at: string
 }
 
@@ -520,10 +522,10 @@ export const adminApi = {
   getGames: (params?: { is_active?: boolean; type?: 'game' | 'service' }) =>
     apiClient.get<AdminGame[]>('/admin/catalog/games', { params }).then(r => r.data),
 
-  createGame: (data: { name: string; slug?: string; image_url?: string; description?: string; is_active?: boolean; is_featured?: boolean; sort_order?: number; type?: 'game' | 'service' }) =>
+  createGame: (data: { name: string; slug?: string; image_url?: string; description?: string; is_active?: boolean; is_featured?: boolean; sort_order?: number; type?: 'game' | 'service'; input_fields?: Record<string, unknown>[] }) =>
     apiClient.post<AdminGame>('/admin/catalog/games', data).then(r => r.data),
 
-  updateGame: (id: string, data: Partial<{ name: string; slug: string; image_url: string; description: string; is_active: boolean; is_featured: boolean; sort_order: number; type: 'game' | 'service' }>) =>
+  updateGame: (id: string, data: Partial<{ name: string; slug: string; image_url: string; description: string; is_active: boolean; is_featured: boolean; sort_order: number; type: 'game' | 'service'; input_fields: Record<string, unknown>[] }>) =>
     apiClient.patch<AdminGame>(`/admin/catalog/games/${id}`, data).then(r => r.data),
 
   reorderGames: (items: Array<{ id: string; sort_order: number }>) =>

@@ -43,6 +43,7 @@ class OrderService:
         cart: Cart,
         payment_method: str,
         promo_code_str: str | None = None,
+        input_data: dict[str, dict[str, str]] | None = None,
     ) -> Order:
         """
         Создаёт заказ из корзины.
@@ -71,6 +72,11 @@ class OrderService:
                         f"нет ключей для выдачи. Свяжитесь с поддержкой."
                     )
 
+        # Данные покупателя на уровне игры (собираются один раз при оформлении)
+        order_input_snapshot = self._build_order_input_data(
+            items_with_products, input_data or {}
+        )
+
         # Считаем скидки
         discount_result = await self.discount_svc.calculate_cart_discounts(
             user, cart, promo_code_str
@@ -92,6 +98,7 @@ class OrderService:
                 discount_result.promo_code.id
                 if discount_result.promo_code else None
             ),
+            input_data=order_input_snapshot,
         )
         self.db.add(order)
         await self.db.flush()  # Получаем order.id и order.order_number от триггера
@@ -635,6 +642,43 @@ class OrderService:
             logging.getLogger(__name__).warning("Не удалось отправить уведомление: %s", exc)
 
     # ── Helpers ───────────────────────────────────────────────────────────────
+
+    def _build_order_input_data(
+        self,
+        items_with_products: list[tuple[CartItem, Product]],
+        provided: dict[str, dict[str, str]],
+    ) -> dict:
+        """
+        Собирает данные покупателя на уровне игры по input_fields игр в корзине.
+        Валидирует обязательные поля. Возвращает снапшот:
+          { game_id: { "game_name": str, "fields": [ {key, label, value} ] } }
+        """
+        games: dict[str, object] = {}
+        for _, product in items_with_products:
+            game = getattr(getattr(product, "category", None), "game", None)
+            if game is not None:
+                games[str(game.id)] = game
+
+        snapshot: dict = {}
+        for gid, game in games.items():
+            fields = getattr(game, "input_fields", None) or []
+            if not fields:
+                continue
+            vals = provided.get(gid) or {}
+            out_fields = []
+            for f in fields:
+                if not isinstance(f, dict):
+                    continue
+                key = f.get("key")
+                label = f.get("label") or key or ""
+                raw = vals.get(key)
+                value = raw.strip() if isinstance(raw, str) else (raw or "")
+                if f.get("required") and not value:
+                    raise ValueError(f"Заполните поле «{label}» для {getattr(game, 'name', '')}")
+                out_fields.append({"key": key, "label": label, "value": value})
+            if out_fields:
+                snapshot[gid] = {"game_name": getattr(game, "name", ""), "fields": out_fields}
+        return snapshot
 
     async def _load_cart_items(
         self, cart: Cart

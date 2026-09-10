@@ -55,6 +55,41 @@ async def get_cart(db: DbSession, user: CurrentUser):
     )
 
 
+@router.get("/checkout-fields")
+async def get_checkout_fields(db: DbSession, user: CurrentUser):
+    """
+    Поля покупателя на уровне игры для товаров в корзине — спрашиваются один раз
+    при оформлении. Возвращает [{game_id, game_name, fields:[...]}] только для игр,
+    у которых есть input_fields.
+    """
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+    from shared.models import CartItem, Product
+    from shared.models.catalog import Category
+
+    svc = CartService(db)
+    cart = await svc.get_or_create_cart(user)
+
+    result = await db.execute(
+        select(Product)
+        .options(selectinload(Product.category).selectinload(Category.game))
+        .join(CartItem, CartItem.product_id == Product.id)
+        .where(CartItem.cart_id == cart.id)
+    )
+    products = result.scalars().all()
+
+    seen: dict[str, object] = {}
+    for p in products:
+        g = getattr(getattr(p, "category", None), "game", None)
+        if g and str(g.id) not in seen and (getattr(g, "input_fields", None) or []):
+            seen[str(g.id)] = g
+
+    return [
+        {"game_id": str(g.id), "game_name": g.name, "fields": g.input_fields or []}
+        for g in seen.values()
+    ]
+
+
 @router.post("/items", status_code=status.HTTP_200_OK)
 @limiter.limit(f"{settings.RATE_LIMIT_CLIENT}/minute")
 async def add_to_cart(request: Request, body: AddToCartRequest, db: DbSession, user: CurrentUser):

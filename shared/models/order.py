@@ -139,6 +139,10 @@ class Order(Base, UUIDMixin, TimestampMixin):
     meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     # idempotency_key, внешние ID и т.д.
 
+    # Данные покупателя на уровне игры, собранные при оформлении.
+    # Формат: { game_id: { "game_name": str, "fields": [ {key, label, value} ] } }
+    input_data: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+
     # Назначение заказа (миграция 016)
     assigned_admin_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),

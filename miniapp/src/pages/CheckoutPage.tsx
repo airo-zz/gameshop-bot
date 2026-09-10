@@ -33,9 +33,14 @@ export default function CheckoutPage() {
   const [selectedMethod, setSelectedMethod] = useState('balance')
   const [selectedCrypto, setSelectedCrypto] = useState('USDT')
   const [placing, setPlacing] = useState(false)
+  const [fieldValues, setFieldValues] = useState<Record<string, Record<string, string>>>({})
 
   const { data: cart } = useQuery({ queryKey: ['cart'], queryFn: cartApi.get })
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: profileApi.get })
+  const { data: checkoutFields = [] } = useQuery({ queryKey: ['checkout-fields'], queryFn: cartApi.getCheckoutFields })
+
+  const setFieldValue = (gameId: string, key: string, value: string) =>
+    setFieldValues(prev => ({ ...prev, [gameId]: { ...(prev[gameId] ?? {}), [key]: value } }))
 
   const insufficientBalance =
     selectedMethod === 'balance' && profile && cart && Number(profile.balance) < Number(cart.total)
@@ -47,12 +52,24 @@ export default function CheckoutPage() {
       toast('Оплата картой и СБП скоро будет доступна. Сейчас можно оплатить криптовалютой или балансом.', { icon: '⏳' })
       return
     }
+    // Проверяем обязательные поля игр
+    for (const group of checkoutFields) {
+      for (const f of group.fields) {
+        if (f.required && !(fieldValues[group.game_id]?.[f.key] ?? '').trim()) {
+          haptic.error()
+          toast.error(`Заполните «${f.label}» для ${group.game_name}`)
+          return
+        }
+      }
+    }
+
     setPlacing(true)
     haptic.impact('medium')
     try {
       const order   = await ordersApi.create({
         payment_method: selectedMethod,
         ...(selectedMethod === 'crypto' ? { crypto_currency: selectedCrypto } : {}),
+        ...(checkoutFields.length > 0 ? { input_data: fieldValues } : {}),
       })
       const payment = await ordersApi.pay(order.id)
 
@@ -163,6 +180,44 @@ export default function CheckoutPage() {
         {/* Подсказка о прогрессе лояльности */}
         {loyaltyHint}
       </div>
+
+      {/* Данные для заказа (поля на уровне игры) */}
+      {checkoutFields.map(group => (
+        <section key={group.game_id}>
+          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--hint)' }}>
+            Данные для {group.game_name}
+          </h2>
+          <div className="card space-y-3">
+            {group.fields.map(field => (
+              <div key={field.key}>
+                <label className="block text-xs font-medium mb-1.5" style={{ color: 'var(--hint)' }}>
+                  {field.label}{field.required && <span style={{ color: '#f87171' }}> *</span>}
+                </label>
+                {field.type === 'select' ? (
+                  <select
+                    className="input"
+                    style={{ fontSize: 14, padding: '10px 12px', borderRadius: 12 }}
+                    value={fieldValues[group.game_id]?.[field.key] ?? ''}
+                    onChange={e => setFieldValue(group.game_id, field.key, e.target.value)}
+                  >
+                    <option value="">Выберите...</option>
+                    {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                  </select>
+                ) : (
+                  <input
+                    type={field.type === 'number' ? 'number' : 'text'}
+                    className="input"
+                    style={{ fontSize: 14, padding: '10px 12px', borderRadius: 12 }}
+                    placeholder={field.placeholder ?? field.label}
+                    value={fieldValues[group.game_id]?.[field.key] ?? ''}
+                    onChange={e => setFieldValue(group.game_id, field.key, e.target.value)}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
 
       {/* Способы оплаты */}
       <section>
