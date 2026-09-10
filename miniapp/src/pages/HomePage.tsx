@@ -8,6 +8,7 @@ import { Shield, Star, Crown, Gem } from 'lucide-react'
 import { catalogApi, profileApi } from '@/api'
 import { useUIStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
+import { useDragScroll } from '@/hooks/useDragScroll'
 import logoFullSrc from '@/assets/logo-full.svg'
 import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
 import { normalizeImageUrl } from '@/utils/imageUrl'
@@ -486,6 +487,7 @@ export default function HomePage() {
   })
 
   const trendingScrollRef = useRef<HTMLDivElement>(null)
+  useDragScroll(trendingScrollRef)
   const [trendingAtEnd, setTrendingAtEnd] = useState(false)
 
   const { data: trendingCategories = [] } = useQuery({

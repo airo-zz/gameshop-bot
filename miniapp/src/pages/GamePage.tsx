@@ -7,6 +7,7 @@ import { Zap, Clock, Plus, Minus, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { catalogApi, cartApi, type Category, type Product, type InputField } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
+import { useDragScroll } from '@/hooks/useDragScroll'
 import { useCartStore } from '@/store'
 import clsx from 'clsx'
 
@@ -42,7 +43,8 @@ function ProductRow({ product, cartQty, onAdd, onRemove }: ProductRowProps) {
         <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{
             fontSize: '0.875rem', fontWeight: 500, color: isOutOfStock ? 'rgba(255,255,255,0.35)' : 'var(--text)',
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+            overflow: 'hidden', lineHeight: 1.3,
             flex: 1, minWidth: 0,
           }}>
             {product.name}
@@ -193,6 +195,8 @@ export default function GamePage() {
   const { haptic } = useTelegram()
   const { increment, decrement } = useCartStore()
   const qc = useQueryClient()
+  const tabsRef = useDragScroll<HTMLDivElement>()
+  const subRef = useDragScroll<HTMLDivElement>()
 
   // Optimistic local qty overrides: productId → delta from server qty
   const [optimisticDeltas, setOptimisticDeltas] = useState<Map<string, number>>(new Map())
@@ -360,7 +364,7 @@ export default function GamePage() {
       </div>
 
       {/* Category tabs */}
-      <div className="flex gap-2 px-4 pt-3 overflow-x-auto pb-2 no-scrollbar">
+      <div ref={tabsRef} className="flex gap-2 px-4 pt-3 overflow-x-auto pb-2 no-scrollbar">
         {rootCats(categories).map(cat => (
           <button
             key={cat.id}
@@ -377,7 +381,7 @@ export default function GamePage() {
         const parent = categories.find(c => c.id === activeCatId)
         if (!parent?.children?.length) return null
         return (
-          <div className="flex gap-2 px-4 overflow-x-auto pb-2 no-scrollbar">
+          <div ref={subRef} className="flex gap-2 px-4 overflow-x-auto pb-2 no-scrollbar">
             {parent.children.map(sub => (
               <button
                 key={sub.id}
