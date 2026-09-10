@@ -189,9 +189,10 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      # Публичный сайт (base /) — в корне; miniapp (base /app) — вложенным маунтом
-      - ./miniapp/dist-web:/usr/share/nginx/html:ro
+      # miniapp (base /app) и публичный сайт (base /) — раздельными путями,
+      # без вложенности (вложенный ro-маунт ломает создание точки монтирования)
       - ./miniapp/dist:/usr/share/nginx/html/app:ro
+      - ./miniapp/dist-web:/usr/share/nginx/web:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro
       - static_files:/usr/share/nginx/static:ro
