@@ -11,7 +11,7 @@ from decimal import Decimal
 from math import ceil
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
@@ -25,6 +25,9 @@ from api.schemas.admin import (
     GameCreateIn,
     GameOut,
     GameUpdateIn,
+    ImportCommitIn,
+    ImportCommitOut,
+    ImportPreviewOut,
     PaginatedResponse,
     ProductCreateIn,
     ProductListItem,
@@ -32,9 +35,10 @@ from api.schemas.admin import (
     ProductUpdateIn,
     ReorderIn,
 )
+from api.services.ggsel_import import parse_ggsel_csv
 from api.utils.admin_log import log_admin_action
 from api.utils.search import escape_like
-from shared.models.catalog import Category, Game, Product, ProductKey
+from shared.models.catalog import Category, DeliveryType, Game, Product, ProductKey
 
 router = APIRouter()
 
@@ -640,6 +644,137 @@ async def bulk_price_update(
     )
 
     return {"updated_count": updated_count}
+
+
+# ── CSV Import (ggsel) ────────────────────────────────────────────────────────
+
+_IMPORT_MAX_SIZE = 5 * 1024 * 1024  # 5 MB
+
+
+@router.post("/import/ggsel/preview", response_model=ImportPreviewOut,
+             dependencies=[require_permission("catalog.edit")])
+async def import_ggsel_preview(
+    file: UploadFile,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> ImportPreviewOut:
+    """
+    Разбирает CSV-выгрузку оффера ggsel и возвращает план импорта.
+    Ничего не создаёт — только предпросмотр.
+    """
+    raw = await file.read(_IMPORT_MAX_SIZE + 1)
+    if len(raw) > _IMPORT_MAX_SIZE:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="Файл слишком большой. Максимум 5 МБ.",
+        )
+    if not raw:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Файл пуст")
+
+    try:
+        plan = parse_ggsel_csv(raw)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
+    if not plan["categories"]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="В файле не найдено ни одного товара с ценой",
+        )
+
+    return ImportPreviewOut(**plan)
+
+
+@router.post("/import/ggsel/commit", response_model=ImportCommitOut,
+             dependencies=[require_permission("catalog.edit")])
+async def import_ggsel_commit(
+    body: ImportCommitIn,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> ImportCommitOut:
+    """
+    Создаёт категории и товары из подтверждённого плана импорта.
+    Каждая группа → категория, каждый вариант → товар (доставка «вручную»,
+    кол-во 1). Текстовые параметры навешиваются как input_fields на все
+    созданные товары. Товары с предупреждением создаются неактивными.
+    Вся операция атомарна: при ошибке — полный откат (сессия делает rollback).
+    """
+    game = await db.execute(select(Game).where(Game.id == body.game_id))
+    if not game.scalar_one_or_none():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Игра не найдена")
+
+    if not body.categories:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нет категорий для импорта")
+
+    input_fields = [f.model_dump() for f in body.input_fields]
+
+    # Существующие категории игры — переиспользуем по имени (без дублей)
+    existing_result = await db.execute(
+        select(Category).where(Category.game_id == body.game_id)
+    )
+    existing_by_name: dict[str, Category] = {c.name: c for c in existing_result.scalars()}
+
+    # Текущий максимум sort_order у категорий игры
+    max_sort_result = await db.execute(
+        select(func.coalesce(func.max(Category.sort_order), 0)).where(
+            Category.game_id == body.game_id
+        )
+    )
+    next_cat_sort = (max_sort_result.scalar_one() or 0) + 1
+
+    categories_created = 0
+    products_created = 0
+
+    for cat_item in body.categories:
+        category = existing_by_name.get(cat_item.name)
+        if category is None:
+            slug = _slugify(cat_item.name)[:64] or uuid.uuid4().hex[:12]
+            category = Category(
+                game_id=body.game_id,
+                name=cat_item.name,
+                slug=slug,
+                is_active=True,
+                sort_order=next_cat_sort,
+            )
+            next_cat_sort += 1
+            db.add(category)
+            await db.flush()
+            existing_by_name[cat_item.name] = category
+            categories_created += 1
+
+        for idx, prod in enumerate(cat_item.products):
+            db.add(
+                Product(
+                    category_id=category.id,
+                    name=prod.name,
+                    price=Decimal(str(prod.price)),
+                    quantity=1,
+                    delivery_type=DeliveryType.manual,
+                    input_fields=input_fields,
+                    is_active=prod.warning is None,
+                    sort_order=idx,
+                )
+            )
+            products_created += 1
+
+    await db.flush()
+
+    await log_admin_action(
+        db=db,
+        admin=admin,
+        action="catalog.import.ggsel",
+        entity_type="game",
+        entity_id=body.game_id,
+        after_data={
+            "categories_created": categories_created,
+            "products_created": products_created,
+        },
+    )
+
+    return ImportCommitOut(
+        categories_created=categories_created,
+        products_created=products_created,
+    )
 
 
 # ── Product Keys ──────────────────────────────────────────────────────────────

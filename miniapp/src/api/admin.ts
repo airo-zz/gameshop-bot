@@ -271,6 +271,38 @@ export interface AdminCategory {
   sort_order: number
 }
 
+// ── CSV Import (ggsel) ─────────────────────────────────────────────────────────
+
+export interface ImportProductItem {
+  name: string
+  price: number
+  warning: string | null
+}
+
+export interface ImportCategoryItem {
+  name: string
+  products: ImportProductItem[]
+}
+
+export interface ImportInputField {
+  key: string
+  label: string
+  type: string
+  required: boolean
+}
+
+export interface ImportPreview {
+  categories: ImportCategoryItem[]
+  input_fields: ImportInputField[]
+  warnings: string[]
+  stats: { categories: number; products: number; input_fields: number; warnings: number }
+}
+
+export interface ImportCommitResult {
+  categories_created: number
+  products_created: number
+}
+
 // ── Discounts ────────────────────────────────────────────────────────────────
 
 export interface DiscountRule {
@@ -517,6 +549,20 @@ export const adminApi = {
 
   copyProduct: (id: string) =>
     apiClient.post<AdminProductDetail>(`/admin/catalog/products/${id}/copy`).then(r => r.data),
+
+  // Catalog — CSV Import (ggsel)
+  importGgselPreview: (file: File) => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return apiClient.post<ImportPreview>('/admin/catalog/import/ggsel/preview', fd).then(r => r.data)
+  },
+
+  importGgselCommit: (payload: {
+    game_id: string
+    categories: ImportCategoryItem[]
+    input_fields: ImportInputField[]
+  }) =>
+    apiClient.post<ImportCommitResult>('/admin/catalog/import/ggsel/commit', payload).then(r => r.data),
 
   // Catalog — Categories
   getCategories: (gameId: string) =>

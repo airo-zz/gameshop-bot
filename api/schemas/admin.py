@@ -312,6 +312,49 @@ class BulkPriceUpdateIn(BaseModel):
     product_ids: list[uuid.UUID] = []
 
 
+# ── Catalog — CSV Import (ggsel) ──────────────────────────────────────────────
+
+
+class ImportProductItem(BaseModel):
+    name: str = Field(..., min_length=1, max_length=256)
+    price: float = Field(..., ge=0)
+    warning: str | None = None
+
+
+class ImportCategoryItem(BaseModel):
+    name: str = Field(..., min_length=1, max_length=128)
+    products: list[ImportProductItem]
+
+
+class ImportInputField(BaseModel):
+    key: str = Field(..., min_length=1, max_length=64)
+    label: str = Field(..., min_length=1, max_length=128)
+    type: str = Field("text", pattern="^(text|number|select)$")
+    required: bool = False
+
+
+class ImportPreviewOut(BaseModel):
+    """Результат разбора CSV — план импорта для предпросмотра."""
+
+    categories: list[ImportCategoryItem]
+    input_fields: list[ImportInputField]
+    warnings: list[str]
+    stats: dict[str, int]
+
+
+class ImportCommitIn(BaseModel):
+    """Подтверждённый план импорта (после предпросмотра)."""
+
+    game_id: uuid.UUID
+    categories: list[ImportCategoryItem]
+    input_fields: list[ImportInputField] = []
+
+
+class ImportCommitOut(BaseModel):
+    categories_created: int
+    products_created: int
+
+
 # ── Users ─────────────────────────────────────────────────────────────────────
 
 

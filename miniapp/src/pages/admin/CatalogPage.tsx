@@ -1,7 +1,8 @@
 /**
  * src/pages/admin/CatalogPage.tsx
- * Трёхуровневая навигация каталога: Игры → Категории → Товары.
- * Реализована как state-машина внутри одного компонента.
+ * Двухуровневый каталог: Игры → Воркспейс игры.
+ * Воркспейс = аккордеон категорий, под каждой — её товары и строка быстрого
+ * создания лота. Всё для одной игры на одном экране.
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react'
@@ -10,10 +11,10 @@ import { AnimatePresence } from 'framer-motion'
 import {
   Plus,
   AlertCircle,
-  Package,
   Gamepad2,
   FolderOpen,
   ChevronRight,
+  ChevronDown,
   ArrowLeft,
   Trash2,
   Pencil,
@@ -22,6 +23,7 @@ import {
   X,
   Copy,
   Pin,
+  Upload,
 } from 'lucide-react'
 import {
   DndContext,
@@ -41,9 +43,10 @@ import { adminApi } from '@/api/admin'
 import type { AdminGame, AdminCategory, AdminProductListItem } from '@/api/admin'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import SortableRow from '@/components/admin/SortableRow'
+import GgselImportModal from '@/pages/admin/GgselImportModal'
 import toast from 'react-hot-toast'
 
-type Step = 'games' | 'categories' | 'products'
+type Step = 'games' | 'workspace'
 
 function formatMoney(v: number) {
   return new Intl.NumberFormat('ru-RU', {
@@ -237,6 +240,7 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
                   </span>
                 </div>
               </div>
+              <ChevronRight size={16} className="text-white/30 shrink-0" />
             </div>
           ))}
         </div>
@@ -245,157 +249,108 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
   )
 }
 
-// ── Уровень 2: Категории ──────────────────────────────────────────────────────
+// ── Строка быстрого создания товара ───────────────────────────────────────────
 
-interface CategoriesLevelProps {
-  game: AdminGame
-  onBack: () => void
-  onSelect: (category: AdminCategory) => void
+interface QuickAddRowProps {
+  categoryId: string
+  onCreated: (product: AdminProductListItem) => void
 }
 
-function CategoriesLevel({ game, onBack, onSelect }: CategoriesLevelProps) {
-  const [categories, setCategories] = useState<AdminCategory[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
-  const [togglingId, setTogglingId] = useState<string | null>(null)
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+function QuickAddRow({ categoryId, onCreated }: QuickAddRowProps) {
+  const [name, setName] = useState('')
+  const [price, setPrice] = useState('')
+  const [saving, setSaving] = useState(false)
+  const nameRef = useRef<HTMLInputElement>(null)
 
-  const load = useCallback(() => {
-    setLoading(true)
-    setError(false)
-    adminApi
-      .getCategories(game.id)
-      .then(setCategories)
-      .catch(() => setError(true))
-      .finally(() => setLoading(false))
-  }, [game.id])
-
-  const toggleFeatured = useCallback(async (cat: AdminCategory, e: React.MouseEvent) => {
-    e.stopPropagation()
-    setTogglingId(cat.id)
+  const submit = async () => {
+    const trimmed = name.trim()
+    if (!trimmed || price === '' || Number(price) < 0) return
+    setSaving(true)
     try {
-      const updated = await adminApi.updateCategory(cat.id, { is_featured: !cat.is_featured })
-      setCategories(prev => prev.map(c => c.id === cat.id ? updated : c))
+      const created = await adminApi.createProduct({
+        category_id: categoryId,
+        name: trimmed,
+        price: Number(price),
+      })
+      onCreated(created as unknown as AdminProductListItem)
+      setName('')
+      setPrice('')
+      nameRef.current?.focus()
     } catch {
-      toast.error('Не удалось обновить')
+      toast.error('Не удалось создать товар')
     } finally {
-      setTogglingId(null)
+      setSaving(false)
     }
-  }, [])
+  }
 
-  const handleDeleteCategory = useCallback(async (cat: AdminCategory, e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!window.confirm(`Удалить категорию "${cat.name}"? Это действие нельзя отменить.`)) return
-    setDeletingId(cat.id)
-    try {
-      await adminApi.deleteCategory(cat.id)
-      setCategories(prev => prev.filter(c => c.id !== cat.id))
-      toast.success('Категория удалена')
-    } catch (e: any) {
-      toast.error(e?.response?.data?.detail ?? 'Не удалось удалить категорию')
-    } finally {
-      setDeletingId(null)
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      submit()
     }
-  }, [])
+  }
 
-  useEffect(() => { load() }, [load])
+  const ready = name.trim() !== '' && price !== ''
 
   return (
-    <div className="space-y-4">
-      {/* Header + breadcrumb */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="p-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.95] transition-all shrink-0"
-        >
-          <ArrowLeft size={18} className="text-white/60" />
-        </button>
-        <div className="min-w-0">
-          <div className="text-xs text-white/60 truncate">Каталог / {game.name}</div>
-          <h1 className="text-lg font-bold text-white leading-tight">Категории</h1>
-        </div>
-      </div>
-
-      {loading ? (
-        <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
-      ) : error ? (
-        <div className="flex flex-col items-center py-16 gap-3 text-white/40">
-          <AlertCircle size={36} />
-          <p className="text-sm">Ошибка загрузки категорий</p>
-          <button onClick={load} className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform">Попробовать снова</button>
-        </div>
-      ) : categories.length === 0 ? (
-        <div className="flex flex-col items-center py-16 gap-3 text-white/30">
-          <FolderOpen size={36} />
-          <p className="text-sm">Категорий пока нет</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {categories.map((cat) => (
-            <div
-              key={cat.id}
-              onClick={() => onSelect(cat)}
-              className="flex items-center gap-3 bg-[#1a1f2e] hover:bg-[#1f2538] border border-white/[0.06] rounded-xl px-4 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
-            >
-              <FolderOpen size={18} className="text-white/40 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-white truncate">{cat.name}</div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className={`text-xs ${cat.is_active ? 'text-emerald-400' : 'text-white/30'}`}>
-                    {cat.is_active ? 'Активна' : 'Неактивна'}
-                  </span>
-                  {cat.is_featured && (
-                    <span className="text-xs text-amber-400">на главной</span>
-                  )}
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={e => toggleFeatured(cat, e)}
-                disabled={togglingId === cat.id}
-                className={`shrink-0 p-1.5 rounded-lg transition-all ${
-                  cat.is_featured
-                    ? 'text-amber-400 bg-amber-400/10 border border-amber-400/30'
-                    : 'text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-white/50'
-                }`}
-                title={cat.is_featured ? 'Убрать с главной' : 'Закрепить на главной'}
-              >
-                <Pin size={14} className={cat.is_featured ? 'fill-amber-400' : ''} />
-              </button>
-              <button
-                type="button"
-                onClick={e => handleDeleteCategory(cat, e)}
-                disabled={deletingId === cat.id}
-                className="shrink-0 p-1.5 rounded-lg text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-red-400 hover:border-red-400/30 transition-all"
-                title="Удалить категорию"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
+    <div className="flex items-center gap-2 rounded-xl border border-dashed border-white/[0.15] bg-white/[0.02] px-2.5 py-2">
+      <Plus size={15} className="text-white/30 shrink-0" />
+      <input
+        ref={nameRef}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        onKeyDown={onKeyDown}
+        placeholder="Название лота"
+        className="flex-1 min-w-0 bg-transparent text-sm text-white placeholder:text-white/25 focus:outline-none"
+      />
+      <input
+        type="number"
+        value={price}
+        onChange={(e) => setPrice(e.target.value)}
+        onKeyDown={onKeyDown}
+        placeholder="₽"
+        min={0}
+        step="0.01"
+        className="w-20 shrink-0 bg-white/[0.05] border border-white/[0.08] rounded-lg px-2 py-1.5 text-sm text-white text-right placeholder:text-white/25 focus:outline-none focus:border-white/20"
+      />
+      <button
+        type="button"
+        onClick={submit}
+        disabled={!ready || saving}
+        className="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold text-white transition-all active:scale-[0.97]"
+      >
+        {saving ? '…' : 'Создать'}
+      </button>
     </div>
   )
 }
 
-// ── Уровень 3: Товары ─────────────────────────────────────────────────────────
+// ── Секция категории (аккордеон) ──────────────────────────────────────────────
 
-interface ProductsLevelProps {
-  game: AdminGame
+interface CategorySectionProps {
   category: AdminCategory
-  onBack: () => void
+  products: AdminProductListItem[]
+  expanded: boolean
+  onToggleExpanded: () => void
+  onProductsChange: (updater: (prev: AdminProductListItem[]) => AdminProductListItem[]) => void
+  onToggleFeatured: () => void
+  onDeleteCategory: () => void
+  onOpenBulkPrice: () => void
 }
 
-function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
+function CategorySection({
+  category,
+  products,
+  expanded,
+  onToggleExpanded,
+  onProductsChange,
+  onToggleFeatured,
+  onDeleteCategory,
+  onOpenBulkPrice,
+}: CategorySectionProps) {
   const navigate = useNavigate()
-  const [products, setProducts] = useState<AdminProductListItem[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
-  const [showBulkPrice, setShowBulkPrice] = useState(false)
-  const [selectMode, setSelectMode] = useState(false)
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [togglingId, setTogglingId] = useState<string | null>(null)
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const sensors = useSensors(
@@ -403,42 +358,24 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
     useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } }),
   )
 
-  const load = useCallback(() => {
-    setLoading(true)
-    setError(false)
-    adminApi
-      .getProducts({ category_id: category.id, page_size: 100 })
-      .then((r) => setProducts(r.items))
-      .catch(() => setError(true))
-      .finally(() => setLoading(false))
-  }, [category.id])
-
-  useEffect(() => { load() }, [load])
-
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     if (!over || active.id === over.id) return
-    if (selectMode) return
 
-    setProducts(prev => {
-      const oldIndex = prev.findIndex(p => p.id === active.id)
-      const newIndex = prev.findIndex(p => p.id === over.id)
-      const reordered = arrayMove(prev, oldIndex, newIndex)
+    const oldIndex = products.findIndex(p => p.id === active.id)
+    const newIndex = products.findIndex(p => p.id === over.id)
+    if (oldIndex === -1 || newIndex === -1) return
+    const reordered = arrayMove(products, oldIndex, newIndex)
+    onProductsChange(() => reordered)
 
-      if (saveTimeout.current) clearTimeout(saveTimeout.current)
-      saveTimeout.current = setTimeout(async () => {
-        try {
-          await adminApi.reorderProducts(
-            reordered.map((p, i) => ({ id: p.id, sort_order: i }))
-          )
-        } catch {
-          toast.error('Не удалось сохранить порядок')
-          load()
-        }
-      }, 600)
-
-      return reordered
-    })
+    if (saveTimeout.current) clearTimeout(saveTimeout.current)
+    saveTimeout.current = setTimeout(async () => {
+      try {
+        await adminApi.reorderProducts(reordered.map((p, i) => ({ id: p.id, sort_order: i })))
+      } catch {
+        toast.error('Не удалось сохранить порядок')
+      }
+    }, 600)
   }
 
   const handleDelete = async (id: string, name: string) => {
@@ -446,7 +383,7 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
     setDeletingId(id)
     try {
       await adminApi.deleteProduct(id)
-      setProducts((prev) => prev.filter((p) => p.id !== id))
+      onProductsChange(prev => prev.filter(p => p.id !== id))
       toast.success('Товар удалён')
     } catch {
       toast.error('Не удалось удалить товар')
@@ -455,90 +392,280 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
     }
   }
 
-  function toggleSelect(id: string) {
-    setSelectedIds((prev) => {
+  const handleToggleActive = async (product: AdminProductListItem) => {
+    setTogglingId(product.id)
+    try {
+      await adminApi.updateProduct(product.id, { is_active: !product.is_active })
+      onProductsChange(prev => prev.map(p => p.id === product.id ? { ...p, is_active: !p.is_active } : p))
+    } catch {
+      toast.error('Не удалось изменить статус')
+    } finally {
+      setTogglingId(null)
+    }
+  }
+
+  const handleDuplicate = async (id: string) => {
+    try {
+      const copy = await adminApi.copyProduct(id)
+      toast.success('Товар скопирован')
+      navigate(`/admin/catalog/products/${copy.id}`)
+    } catch {
+      toast.error('Ошибка копирования')
+    }
+  }
+
+  return (
+    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+      {/* Заголовок категории */}
+      <div className="flex items-center gap-2 px-3 py-3">
+        <button
+          onClick={onToggleExpanded}
+          className="flex items-center gap-2 flex-1 min-w-0 text-left active:scale-[0.99] transition-transform"
+        >
+          {expanded
+            ? <ChevronDown size={16} className="text-white/40 shrink-0" />
+            : <ChevronRight size={16} className="text-white/40 shrink-0" />}
+          <FolderOpen size={16} className="text-white/40 shrink-0" />
+          <span className="text-sm font-medium text-white truncate">{category.name}</span>
+          <span className="text-xs text-white/30 shrink-0">{products.length}</span>
+          {!category.is_active && (
+            <span className="text-xs text-white/30 shrink-0">· скрыта</span>
+          )}
+          {category.is_featured && (
+            <span className="text-xs text-amber-400 shrink-0">· на главной</span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={onToggleFeatured}
+          className={`shrink-0 p-1.5 rounded-lg transition-all ${
+            category.is_featured
+              ? 'text-amber-400 bg-amber-400/10 border border-amber-400/30'
+              : 'text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-white/50'
+          }`}
+          title={category.is_featured ? 'Убрать с главной' : 'Закрепить на главной'}
+        >
+          <Pin size={13} className={category.is_featured ? 'fill-amber-400' : ''} />
+        </button>
+        <button
+          type="button"
+          onClick={onOpenBulkPrice}
+          className="shrink-0 p-1.5 rounded-lg text-white/30 bg-white/[0.03] border border-white/[0.08] hover:text-white/60 transition-all"
+          title="Изменить цены в категории"
+        >
+          <PercentSquare size={13} />
+        </button>
+        <button
+          type="button"
+          onClick={onDeleteCategory}
+          className="shrink-0 p-1.5 rounded-lg text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-red-400 hover:border-red-400/30 transition-all"
+          title="Удалить категорию"
+        >
+          <Trash2 size={13} />
+        </button>
+      </div>
+
+      {/* Тело: товары + быстрое добавление */}
+      {expanded && (
+        <div className="px-3 pb-3 space-y-2">
+          {products.length > 0 && (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={products.map(p => p.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-1.5">
+                  {products.map((product) => (
+                    <SortableRow key={product.id} id={product.id} style={{ paddingLeft: 24 }}>
+                      <div className="flex items-center gap-2 border rounded-xl px-2.5 py-2 bg-[#1a1f2e] border-white/[0.06]">
+                        <div
+                          className="flex-1 min-w-0 cursor-pointer"
+                          onClick={() => navigate(`/admin/catalog/products/${product.id}`)}
+                        >
+                          <div className="text-sm text-white truncate">{product.name}</div>
+                          <div className="text-xs text-white/40">
+                            {product.delivery_type}
+                            {product.stock !== null && ` · склад: ${product.stock}`}
+                          </div>
+                        </div>
+                        <div className="text-sm font-semibold text-white shrink-0 mr-0.5">
+                          {formatMoney(product.price)}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleActive(product)}
+                          disabled={togglingId === product.id}
+                          className={`shrink-0 px-2 py-1 rounded-lg text-[11px] font-medium border transition-all active:scale-[0.95] disabled:opacity-40 ${
+                            product.is_active
+                              ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/25'
+                              : 'text-white/40 bg-white/[0.04] border-white/[0.08]'
+                          }`}
+                          title={product.is_active ? 'Скрыть с витрины' : 'Показать на витрине'}
+                        >
+                          {product.is_active ? 'Активен' : 'Скрыт'}
+                        </button>
+                        <button
+                          onClick={() => handleDuplicate(product.id)}
+                          className="shrink-0 p-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white/40 hover:text-white/80 active:scale-[0.9] transition-all"
+                          title="Дублировать"
+                        >
+                          <Copy size={14} />
+                        </button>
+                        <button
+                          onClick={() => navigate(`/admin/catalog/products/${product.id}`)}
+                          className="shrink-0 p-1.5 rounded-lg hover:bg-white/[0.08] active:scale-[0.9] transition-all"
+                          title="Редактировать"
+                        >
+                          <Pencil size={14} className="text-white/40" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(product.id, product.name)}
+                          disabled={deletingId === product.id}
+                          className="shrink-0 p-1.5 rounded-lg hover:bg-red-500/20 active:scale-[0.9] transition-all disabled:opacity-40"
+                          title="Удалить"
+                        >
+                          <Trash2 size={14} className="text-red-400/70" />
+                        </button>
+                      </div>
+                    </SortableRow>
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          )}
+
+          <QuickAddRow
+            categoryId={category.id}
+            onCreated={(product) => onProductsChange(prev => [...prev, product])}
+          />
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Уровень 2: Воркспейс игры ─────────────────────────────────────────────────
+
+interface GameWorkspaceLevelProps {
+  game: AdminGame
+  onBack: () => void
+}
+
+function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
+  const [categories, setCategories] = useState<AdminCategory[]>([])
+  const [productsByCat, setProductsByCat] = useState<Record<string, AdminProductListItem[]>>({})
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
+  const [bulkPriceCat, setBulkPriceCat] = useState<string | null>(null)
+
+  const [newCatName, setNewCatName] = useState('')
+  const [creatingCat, setCreatingCat] = useState(false)
+  const [showImport, setShowImport] = useState(false)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(false)
+    try {
+      const cats = await adminApi.getCategories(game.id)
+      const productLists = await Promise.all(
+        cats.map(c =>
+          adminApi
+            .getProducts({ category_id: c.id, page_size: 100 })
+            .then(r => r.items)
+            .catch(() => [] as AdminProductListItem[]),
+        ),
+      )
+      const map: Record<string, AdminProductListItem[]> = {}
+      cats.forEach((c, i) => { map[c.id] = productLists[i] })
+      setCategories(cats)
+      setProductsByCat(map)
+      // Первая категория раскрыта по умолчанию
+      setExpanded(cats.length > 0 ? new Set([cats[0].id]) : new Set())
+    } catch {
+      setError(true)
+    } finally {
+      setLoading(false)
+    }
+  }, [game.id])
+
+  useEffect(() => { load() }, [load])
+
+  const toggleExpanded = (catId: string) => {
+    setExpanded(prev => {
       const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
+      if (next.has(catId)) next.delete(catId)
+      else next.add(catId)
       return next
     })
   }
 
-  async function handleBulkActivate() {
-    await Promise.all([...selectedIds].map(id => adminApi.updateProduct(id, { is_active: true })))
-    toast.success(`Активировано: ${selectedIds.size}`)
-    setSelectedIds(new Set())
-    load()
+  const updateCatProducts = (catId: string, updater: (prev: AdminProductListItem[]) => AdminProductListItem[]) => {
+    setProductsByCat(prev => ({ ...prev, [catId]: updater(prev[catId] ?? []) }))
   }
 
-  async function handleBulkDeactivate() {
-    await Promise.all([...selectedIds].map(id => adminApi.updateProduct(id, { is_active: false })))
-    toast.success(`Деактивировано: ${selectedIds.size}`)
-    setSelectedIds(new Set())
-    load()
+  const handleToggleFeatured = async (cat: AdminCategory) => {
+    try {
+      const updated = await adminApi.updateCategory(cat.id, { is_featured: !cat.is_featured })
+      setCategories(prev => prev.map(c => c.id === cat.id ? updated : c))
+    } catch {
+      toast.error('Не удалось обновить')
+    }
   }
 
-  async function handleBulkDelete() {
-    if (!window.confirm(`Удалить ${selectedIds.size} товаров?`)) return
-    await Promise.all([...selectedIds].map(id => adminApi.deleteProduct(id)))
-    toast.success(`Удалено: ${selectedIds.size}`)
-    setSelectedIds(new Set())
-    setSelectMode(false)
-    load()
+  const handleDeleteCategory = async (cat: AdminCategory) => {
+    if (!window.confirm(`Удалить категорию "${cat.name}"? Это действие нельзя отменить.`)) return
+    try {
+      await adminApi.deleteCategory(cat.id)
+      setCategories(prev => prev.filter(c => c.id !== cat.id))
+      setProductsByCat(prev => {
+        const next = { ...prev }
+        delete next[cat.id]
+        return next
+      })
+      toast.success('Категория удалена')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? 'Не удалось удалить категорию')
+    }
+  }
+
+  const handleCreateCategory = async () => {
+    const name = newCatName.trim()
+    if (!name) return
+    setCreatingCat(true)
+    try {
+      const created = await adminApi.createCategory({ game_id: game.id, name })
+      setCategories(prev => [...prev, created])
+      setProductsByCat(prev => ({ ...prev, [created.id]: [] }))
+      setExpanded(prev => new Set(prev).add(created.id))
+      setNewCatName('')
+    } catch {
+      toast.error('Не удалось создать категорию')
+    } finally {
+      setCreatingCat(false)
+    }
   }
 
   return (
     <>
       <div className="space-y-4">
         {/* Header + breadcrumb */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3 min-w-0">
-            <button
-              onClick={onBack}
-              className="p-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.95] transition-all shrink-0"
-            >
-              <ArrowLeft size={18} className="text-white/60" />
-            </button>
-            <div className="min-w-0">
-              <div className="text-xs text-white/60 truncate">
-                {game.name} / {category.name}
-              </div>
-              <h1 className="text-lg font-bold text-white leading-tight">Товары</h1>
-            </div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onBack}
+            className="p-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.95] transition-all shrink-0"
+          >
+            <ArrowLeft size={18} className="text-white/60" />
+          </button>
+          <div className="min-w-0 flex-1">
+            <div className="text-xs text-white/60 truncate">Каталог</div>
+            <h1 className="text-lg font-bold text-white leading-tight truncate">{game.name}</h1>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {selectMode ? (
-              <button
-                onClick={() => { setSelectMode(false); setSelectedIds(new Set()) }}
-                className="px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.97] text-xs font-medium text-white/60 transition-all duration-200"
-              >
-                Отмена
-              </button>
-            ) : (
-              <>
-                <button
-                  onClick={() => setSelectMode(true)}
-                  className="px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.97] text-xs font-medium text-white/60 transition-all duration-200"
-                >
-                  Выбрать
-                </button>
-                <button
-                  onClick={() => setShowBulkPrice(true)}
-                  title="Изменить цены"
-                  className="p-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.95] transition-all duration-200"
-                >
-                  <PercentSquare size={18} className="text-white/60" />
-                </button>
-                <button
-                  onClick={() => navigate(`/admin/catalog/products/new?category_id=${category.id}`)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.97] text-xs font-semibold text-white transition-all duration-200"
-                >
-                  <Plus size={15} />
-                  Добавить
-                </button>
-              </>
-            )}
-          </div>
+          <button
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.97] text-xs font-medium text-white/60 transition-all shrink-0"
+            title="Импорт CSV из ggsel"
+          >
+            <Upload size={14} />
+            Импорт CSV
+          </button>
         </div>
 
         {loading ? (
@@ -546,143 +673,72 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
         ) : error ? (
           <div className="flex flex-col items-center py-16 gap-3 text-white/40">
             <AlertCircle size={36} />
-            <p className="text-sm">Ошибка загрузки товаров</p>
+            <p className="text-sm">Ошибка загрузки каталога</p>
             <button onClick={load} className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform">Попробовать снова</button>
           </div>
-        ) : products.length === 0 ? (
-          <div className="flex flex-col items-center py-16 gap-3 text-white/30">
-            <Package size={36} />
-            <p className="text-sm">Товаров в этой категории нет</p>
-            <button
-              onClick={() => navigate(`/admin/catalog/products/new?category_id=${category.id}`)}
-              className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform"
-            >
-              Добавить первый товар
-            </button>
-          </div>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={products.map(p => p.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-2">
-                {products.map((product, i) => (
-                  <SortableRow
-                    key={product.id}
-                    id={product.id}
-                    disabled={selectMode}
-                    style={{ paddingLeft: selectMode ? 0 : 28 }}
-                  >
-                    <div
-                      className={[
-                        'flex items-center gap-3 border rounded-xl px-3 py-3 transition-all duration-200',
-                        selectedIds.has(product.id)
-                          ? 'bg-indigo-600/10 border-indigo-500/30'
-                          : 'bg-[#1a1f2e] border-white/[0.06]',
-                      ].join(' ')}
-                    >
-                      {selectMode && (
-                        <input
-                          type="checkbox"
-                          checked={selectedIds.has(product.id)}
-                          onChange={() => toggleSelect(product.id)}
-                          className="w-4 h-4 rounded accent-indigo-500 shrink-0 cursor-pointer"
-                        />
-                      )}
-                      <div className="w-10 h-10 rounded-lg bg-white/[0.05] flex items-center justify-center shrink-0">
-                        <Package size={18} className="text-white/20" />
-                      </div>
-                      <div
-                        className="flex-1 min-w-0 cursor-pointer"
-                        onClick={() => selectMode ? toggleSelect(product.id) : navigate(`/admin/catalog/products/${product.id}`)}
-                      >
-                        <div className="text-sm font-medium text-white truncate">{product.name}</div>
-                        <div className="text-xs text-white/40">
-                          {product.delivery_type}
-                          {product.stock !== null && ` · склад: ${product.stock}`}
-                          {' · '}
-                          <span className={product.is_active ? 'text-emerald-400' : 'text-white/30'}>
-                            {product.is_active ? 'Активен' : 'Неактивен'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-sm font-semibold text-white shrink-0 mr-1">
-                        {formatMoney(product.price)}
-                      </div>
-                      {!selectMode && (
-                        <>
-                          <button
-                            onClick={async (e) => {
-                              e.preventDefault()
-                              try {
-                                const copy = await adminApi.copyProduct(product.id)
-                                toast.success('Товар скопирован')
-                                navigate(`/admin/catalog/products/${copy.id}`)
-                              } catch {
-                                toast.error('Ошибка копирования')
-                              }
-                            }}
-                            className="p-2 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white/40 hover:text-white/80 active:scale-[0.9] transition-all duration-200"
-                            title="Дублировать"
-                          >
-                            <Copy size={15} />
-                          </button>
-                          <button
-                            onClick={() => navigate(`/admin/catalog/products/${product.id}`)}
-                            className="p-1.5 rounded-lg hover:bg-white/[0.08] active:scale-[0.9] transition-all duration-200"
-                            title="Редактировать"
-                          >
-                            <Pencil size={15} className="text-white/40" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(product.id, product.name)}
-                            disabled={deletingId === product.id}
-                            className="p-1.5 rounded-lg hover:bg-red-500/20 active:scale-[0.9] transition-all duration-200 disabled:opacity-40"
-                            title="Удалить"
-                          >
-                            <Trash2 size={15} className="text-red-400/70" />
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </SortableRow>
-                ))}
+          <div className="space-y-2.5">
+            {categories.length === 0 ? (
+              <div className="flex flex-col items-center py-12 gap-3 text-white/30">
+                <FolderOpen size={36} />
+                <p className="text-sm">Категорий пока нет</p>
               </div>
-            </SortableContext>
-          </DndContext>
+            ) : (
+              categories.map((cat) => (
+                <CategorySection
+                  key={cat.id}
+                  category={cat}
+                  products={productsByCat[cat.id] ?? []}
+                  expanded={expanded.has(cat.id)}
+                  onToggleExpanded={() => toggleExpanded(cat.id)}
+                  onProductsChange={(updater) => updateCatProducts(cat.id, updater)}
+                  onToggleFeatured={() => handleToggleFeatured(cat)}
+                  onDeleteCategory={() => handleDeleteCategory(cat)}
+                  onOpenBulkPrice={() => setBulkPriceCat(cat.id)}
+                />
+              ))
+            )}
+
+            {/* Создание категории */}
+            <div className="flex items-center gap-2 rounded-2xl border border-dashed border-white/[0.15] bg-white/[0.02] px-3 py-2.5">
+              <FolderOpen size={16} className="text-white/30 shrink-0" />
+              <input
+                value={newCatName}
+                onChange={(e) => setNewCatName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCreateCategory() } }}
+                placeholder="Новая категория"
+                className="flex-1 min-w-0 bg-transparent text-sm text-white placeholder:text-white/25 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={handleCreateCategory}
+                disabled={!newCatName.trim() || creatingCat}
+                className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold text-white/70 transition-all active:scale-[0.97]"
+              >
+                {creatingCat ? '…' : 'Добавить'}
+              </button>
+            </div>
+          </div>
         )}
       </div>
 
       <AnimatePresence>
-        {showBulkPrice && (
+        {bulkPriceCat && (
           <BulkPriceModal
-            categoryId={category.id}
-            onClose={() => setShowBulkPrice(false)}
+            categoryId={bulkPriceCat}
+            onClose={() => setBulkPriceCat(null)}
             onApplied={load}
           />
         )}
       </AnimatePresence>
 
-      {selectMode && selectedIds.size > 0 && (
-        <div className="fixed bottom-[72px] left-0 right-0 z-40 bg-[#111827] border-t border-white/10 px-4 py-3 flex items-center gap-3">
-            <span className="text-xs text-white/50 flex-1">Выбрано: {selectedIds.size}</span>
-            <button
-              onClick={handleBulkActivate}
-              className="px-3 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 text-xs font-medium hover:bg-emerald-500/25 active:scale-[0.97] transition-all duration-200"
-            >
-              Активировать
-            </button>
-            <button
-              onClick={handleBulkDeactivate}
-              className="px-3 py-1.5 rounded-lg bg-white/[0.05] text-white/60 text-xs font-medium hover:bg-white/[0.1] active:scale-[0.97] transition-all duration-200"
-            >
-              Деактивировать
-            </button>
-            <button
-              onClick={handleBulkDelete}
-              className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 active:scale-[0.97] transition-all duration-200"
-            >
-              Удалить
-            </button>
-        </div>
+      {showImport && (
+        <GgselImportModal
+          gameId={game.id}
+          gameName={game.name}
+          onClose={() => setShowImport(false)}
+          onDone={load}
+        />
       )}
     </>
   )
@@ -693,27 +749,15 @@ function ProductsLevel({ game, category, onBack }: ProductsLevelProps) {
 export default function CatalogPage() {
   const [step, setStep] = useState<Step>('games')
   const [selectedGame, setSelectedGame] = useState<AdminGame | null>(null)
-  const [selectedCategory, setSelectedCategory] = useState<AdminCategory | null>(null)
 
   const handleSelectGame = (game: AdminGame) => {
     setSelectedGame(game)
-    setStep('categories')
-  }
-
-  const handleSelectCategory = (category: AdminCategory) => {
-    setSelectedCategory(category)
-    setStep('products')
+    setStep('workspace')
   }
 
   const handleBackToGames = () => {
     setSelectedGame(null)
-    setSelectedCategory(null)
     setStep('games')
-  }
-
-  const handleBackToCategories = () => {
-    setSelectedCategory(null)
-    setStep('categories')
   }
 
   return (
@@ -722,19 +766,10 @@ export default function CatalogPage() {
         <GamesLevel onSelect={handleSelectGame} />
       )}
 
-      {step === 'categories' && selectedGame && (
-        <CategoriesLevel
+      {step === 'workspace' && selectedGame && (
+        <GameWorkspaceLevel
           game={selectedGame}
           onBack={handleBackToGames}
-          onSelect={handleSelectCategory}
-        />
-      )}
-
-      {step === 'products' && selectedGame && selectedCategory && (
-        <ProductsLevel
-          game={selectedGame}
-          category={selectedCategory}
-          onBack={handleBackToCategories}
         />
       )}
     </>

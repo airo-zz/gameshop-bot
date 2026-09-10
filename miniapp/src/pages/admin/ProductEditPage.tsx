@@ -92,7 +92,6 @@ interface FormState {
   game_id: string
   category_id: string
   name: string
-  short_description: string
   description: string
   price: string
   original_price: string
@@ -110,7 +109,6 @@ const EMPTY_FORM: FormState = {
   game_id: '',
   category_id: '',
   name: '',
-  short_description: '',
   description: '',
   price: '',
   original_price: '',
@@ -249,7 +247,6 @@ export default function ProductEditPage() {
       game_id: gameId,
       category_id: product.category_id,
       name: product.name,
-      short_description: product.short_description ?? '',
       description: product.description ?? '',
       price: String(product.price),
       original_price: product.original_price !== null && product.original_price !== undefined
@@ -357,7 +354,6 @@ export default function ProductEditPage() {
       category_id: form.category_id,
       name: form.name.trim(),
       description: form.description.trim() || null,
-      short_description: form.short_description.trim() || null,
       price: Number(form.price),
       original_price: form.original_price !== '' ? Number(form.original_price) : null,
       quantity: Number(form.quantity) || 1,
@@ -530,18 +526,6 @@ export default function ProductEditPage() {
             className={inputCls}
           />
           {errors.name && <p className="text-xs text-red-400 mt-1">{errors.name}</p>}
-        </div>
-
-        <div>
-          <label className="text-xs text-white/50 mb-1.5 block">Краткое описание</label>
-          <input
-            type="text"
-            value={form.short_description}
-            onChange={(e) => setField('short_description', e.target.value)}
-            placeholder="Отображается в карточке товара"
-            maxLength={512}
-            className={inputCls}
-          />
         </div>
 
         <div>
