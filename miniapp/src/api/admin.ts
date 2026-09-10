@@ -246,6 +246,7 @@ export interface AdminProductDetail {
   description: string | null
   short_description: string | null
   price: number
+  price_usd: number | null
   original_price: number | null
   quantity: number
   badge: string | null
@@ -301,6 +302,12 @@ export interface ImportPreview {
 export interface ImportCommitResult {
   categories_created: number
   products_created: number
+}
+
+export interface PricingSettings {
+  usd_rub_rate: number
+  usd_rub_rate_updated_at: string | null
+  markup_percent: number
 }
 
 // ── Discounts ────────────────────────────────────────────────────────────────
@@ -564,6 +571,13 @@ export const adminApi = {
     input_fields: ImportInputField[]
   }) =>
     apiClient.post<ImportCommitResult>('/admin/catalog/import/ggsel/commit', payload).then(r => r.data),
+
+  // Pricing (USD-курс RAPIRA + наценка платёжки)
+  getPricing: () =>
+    apiClient.get<PricingSettings>('/admin/settings/pricing').then(r => r.data),
+
+  updatePricing: (markup_percent: number) =>
+    apiClient.patch<PricingSettings>('/admin/settings/pricing', { markup_percent }).then(r => r.data),
 
   // Catalog — Categories
   getCategories: (gameId: string) =>

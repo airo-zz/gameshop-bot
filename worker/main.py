@@ -25,6 +25,7 @@ celery_app = Celery(
         "worker.tasks.notification_tasks",
         "worker.tasks.cleanup_tasks",
         "worker.tasks.chat_notifications",
+        "worker.tasks.pricing_tasks",
     ],
 )
 
@@ -60,5 +61,10 @@ celery_app.conf.beat_schedule = {
     "purge-old-deleted-orders": {
         "task": "worker.tasks.cleanup_tasks.purge_old_deleted_orders",
         "schedule": crontab(hour=4, minute=0),
+    },
+    # 2×/сутки (06:00 и 18:00 UTC) — обновление курса USD/RUB (RAPIRA)
+    "refresh-usd-rate": {
+        "task": "worker.tasks.pricing_tasks.refresh_usd_rate",
+        "schedule": crontab(hour="6,18", minute=0),
     },
 }

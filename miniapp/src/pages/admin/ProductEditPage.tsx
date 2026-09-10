@@ -11,7 +11,14 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, AlertCircle, Save, ExternalLink, Copy, Plus, Trash2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
-import type { AdminGame, AdminCategory, AdminProductDetail } from '@/api/admin'
+import type { AdminGame, AdminCategory, AdminProductDetail, PricingSettings } from '@/api/admin'
+
+/** Округление ₽ «в 9» — зеркало backend (api/services/pricing.py). */
+function roundToNine(amount: number): number {
+  const v = Math.max(0, amount)
+  if (v < 1000) return Math.max(9, Math.round((v - 9) / 10) * 10 + 9)
+  return Math.max(90, Math.round((v - 90) / 100) * 100 + 90)
+}
 
 // ── Form state ────────────────────────────────────────────────────────────────
 
@@ -184,6 +191,11 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
   const [loadingCats, setLoadingCats] = useState(false)
   const [initError, setInitError] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [pricing, setPricing] = useState<PricingSettings | null>(null)
+
+  useEffect(() => {
+    adminApi.getPricing().then(setPricing).catch(() => {})
+  }, [])
 
   // Keys management
   const [keyStats, setKeyStats] = useState<{ total: number; used: number; available: number } | null>(null)
@@ -262,7 +274,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
       category_id: product.category_id,
       name: product.name,
       description: product.description ?? '',
-      price: String(product.price),
+      price: product.price_usd !== null && product.price_usd !== undefined ? String(product.price_usd) : '',
       original_price: product.original_price !== null && product.original_price !== undefined
         ? String(product.original_price)
         : '',
@@ -368,7 +380,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
       category_id: form.category_id,
       name: form.name.trim(),
       description: form.description.trim() || null,
-      price: Number(form.price),
+      price_usd: Number(form.price),
       original_price: form.original_price !== '' ? Number(form.original_price) : null,
       quantity: Number(form.quantity) || 1,
       badge: form.badge.trim() || null,
@@ -567,7 +579,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-white/50 mb-1.5 block">
-              Цена, ₽ <span className="text-red-400">*</span>
+              Цена, $ <span className="text-red-400">*</span>
             </label>
             <input
               type="number"
@@ -579,6 +591,12 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
               className={inputCls}
             />
             {errors.price && <p className="text-xs text-red-400 mt-1">{errors.price}</p>}
+            {pricing && form.price !== '' && Number(form.price) >= 0 && (
+              <p className="text-xs text-white/40 mt-1">
+                ≈ {roundToNine(Number(form.price) * pricing.usd_rub_rate * (1 + pricing.markup_percent / 100)).toLocaleString('ru-RU')} ₽ покупателю
+                <span className="text-white/25"> · курс {pricing.usd_rub_rate.toFixed(2)}, наценка {pricing.markup_percent}%</span>
+              </p>
+            )}
           </div>
 
           <div>

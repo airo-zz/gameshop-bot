@@ -272,7 +272,7 @@ function QuickAddRow({ categoryId, onCreated }: QuickAddRowProps) {
       const created = await adminApi.createProduct({
         category_id: categoryId,
         name: trimmed,
-        price: Number(price),
+        price_usd: Number(price),
       })
       onCreated(created as unknown as AdminProductListItem)
       setName('')
@@ -310,7 +310,7 @@ function QuickAddRow({ categoryId, onCreated }: QuickAddRowProps) {
         value={price}
         onChange={(e) => setPrice(e.target.value)}
         onKeyDown={onKeyDown}
-        placeholder="₽"
+        placeholder="$"
         min={0}
         step="0.01"
         className="w-20 shrink-0 bg-white/[0.05] border border-white/[0.08] rounded-lg px-2 py-1.5 text-sm text-white text-right placeholder:text-white/25 focus:outline-none focus:border-white/20"

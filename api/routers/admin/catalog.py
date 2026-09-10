@@ -36,6 +36,8 @@ from api.schemas.admin import (
     ReorderIn,
 )
 from api.services.ggsel_import import parse_ggsel_csv
+from api.services.pricing import rub_to_usd, usd_to_rub
+from api.services.rapira_service import get_markup_percent, get_usd_rub_rate
 from api.utils.admin_log import log_admin_action
 from api.utils.search import escape_like
 from shared.models.catalog import Category, DeliveryType, Game, Product, ProductKey
@@ -423,6 +425,7 @@ async def copy_product(
         description=original.description,
         short_description=original.short_description,
         price=original.price,
+        price_usd=original.price_usd,
         original_price=original.original_price,
         quantity=original.quantity,
         badge=original.badge,
@@ -475,12 +478,28 @@ async def create_product(
             detail=f"Недопустимый delivery_type: {body.delivery_type}",
         )
 
+    # Цена: из USD (источник истины) считаем ₽; иначе — прямой ₽ (legacy)
+    if body.price_usd is not None:
+        rate = await get_usd_rub_rate(db)
+        markup = await get_markup_percent(db)
+        price_rub = Decimal(str(usd_to_rub(body.price_usd, float(rate), float(markup))))
+        price_usd_val: Decimal | None = Decimal(str(body.price_usd))
+    elif body.price is not None:
+        price_rub = Decimal(str(body.price))
+        price_usd_val = None
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Укажите цену: price_usd или price",
+        )
+
     product = Product(
         category_id=body.category_id,
         name=body.name,
         description=body.description,
         short_description=body.short_description,
-        price=Decimal(str(body.price)),
+        price=price_rub,
+        price_usd=price_usd_val,
         original_price=Decimal(str(body.original_price)) if body.original_price is not None else None,
         quantity=body.quantity,
         badge=body.badge,
@@ -546,7 +565,13 @@ async def update_product(
                 detail=f"Недопустимый delivery_type: {update_data['delivery_type']}",
             )
 
-    for key in ("price", "original_price"):
+    # Если пришла цена в USD — пересчитываем ₽ (и сохраняем price_usd)
+    if "price_usd" in update_data and update_data["price_usd"] is not None:
+        rate = await get_usd_rub_rate(db)
+        markup = await get_markup_percent(db)
+        update_data["price"] = usd_to_rub(update_data["price_usd"], float(rate), float(markup))
+
+    for key in ("price", "original_price", "price_usd"):
         if key in update_data and update_data[key] is not None:
             update_data[key] = Decimal(str(update_data[key]))
 
@@ -708,6 +733,11 @@ async def import_ggsel_commit(
 
     input_fields = [f.model_dump() for f in body.input_fields]
 
+    # Курс и наценка — один раз на весь импорт. ₽-суммы оффера конвертируем в USD
+    # (источник истины), а розничную ₽-цену считаем через наценку + округление.
+    rate = float(await get_usd_rub_rate(db))
+    markup = float(await get_markup_percent(db))
+
     # Существующие категории игры — переиспользуем по имени (без дублей)
     existing_result = await db.execute(
         select(Category).where(Category.game_id == body.game_id)
@@ -743,17 +773,20 @@ async def import_ggsel_commit(
             categories_created += 1
 
         for idx, prod in enumerate(cat_item.products):
-            # Итоговая цена лота = базовая цена оффера + модификатор варианта
-            final_price = max(0.0, body.base_price + prod.price_modifier)
+            # ₽-себестоимость оффера = базовая цена + модификатор → в USD (истина)
+            rub_cost = max(0.0, body.base_price + prod.price_modifier)
+            price_usd_val = rub_to_usd(rub_cost, rate)
+            price_rub = usd_to_rub(price_usd_val, rate, markup)
             db.add(
                 Product(
                     category_id=category.id,
                     name=prod.name,
-                    price=Decimal(str(round(final_price, 2))),
+                    price=Decimal(str(price_rub)),
+                    price_usd=Decimal(str(price_usd_val)),
                     quantity=1,
                     delivery_type=DeliveryType.manual,
                     input_fields=input_fields,
-                    is_active=final_price > 0,
+                    is_active=price_rub > 0,
                     sort_order=idx,
                 )
             )

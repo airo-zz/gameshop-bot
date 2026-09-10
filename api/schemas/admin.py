@@ -218,7 +218,10 @@ class ProductCreateIn(BaseModel):
     name: str = Field(..., min_length=1, max_length=256)
     description: str | None = None
     short_description: str | None = Field(None, max_length=512)
-    price: float = Field(..., ge=0)
+    # Цена в USD (источник истины). Если задана — ₽-цена считается из неё.
+    # price (₽) можно передать напрямую (legacy/ручной ввод), если price_usd не задан.
+    price_usd: float | None = Field(None, ge=0)
+    price: float | None = Field(None, ge=0)
     original_price: float | None = Field(None, ge=0)
     quantity: int = Field(1, ge=1)
     badge: str | None = Field(None, max_length=32)
@@ -237,6 +240,7 @@ class ProductUpdateIn(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=256)
     description: str | None = None
     short_description: str | None = Field(None, max_length=512)
+    price_usd: float | None = Field(None, ge=0)
     price: float | None = Field(None, ge=0)
     original_price: float | None = Field(None, ge=0)
     quantity: int | None = Field(None, ge=1)
@@ -260,6 +264,7 @@ class ProductOut(BaseModel):
     description: str | None
     short_description: str | None
     price: float
+    price_usd: float | None
     original_price: float | None
     quantity: int
     badge: str | None

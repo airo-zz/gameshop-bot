@@ -154,6 +154,8 @@ class Product(Base, UUIDMixin, TimestampMixin):
 
     # Цена и скидка
     price: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    # Цена в USD — источник истины при USD-ценообразовании. price (₽) считается из неё.
+    price_usd: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
     original_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     # original_price → перечёркнутая цена в UI (показывает экономию)
     currency: Mapped[str] = mapped_column(String(8), nullable=False, default="RUB")
