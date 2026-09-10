@@ -20,9 +20,11 @@ export const isTelegram = APP_TARGET === 'telegram'
 export const ROUTER_BASENAME = isWeb ? '/' : '/app'
 
 // ── Внешние ссылки бренда ──────────────────────────────────────────────────
-export const SHOP_NAME = 'reDonate'
+export const SHOP_NAME = (import.meta.env.VITE_SHOP_NAME as string) || 'reDonate'
 export const SITE_URL = 'https://redonate.su'
-export const BOT_USERNAME = 'redonate_bot'
+// Username бота берётся из сборочной переменной (в CI = redonate_robot),
+// как и в остальных местах приложения; фолбэк на дефолт из settings.py.
+export const BOT_USERNAME = (import.meta.env.VITE_BOT_USERNAME as string) || 'redonate_bot'
 export const BOT_URL = `https://t.me/${BOT_USERNAME}`
 export const MINIAPP_URL = `https://t.me/${BOT_USERNAME}?startapp`
 export const SUPPORT_BOT_URL = 'https://t.me/reDonateSupport_bot'

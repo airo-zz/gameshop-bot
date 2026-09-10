@@ -189,6 +189,8 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      # Публичный сайт (base /) — в корне; miniapp (base /app) — вложенным маунтом
+      - ./miniapp/dist-web:/usr/share/nginx/html:ro
       - ./miniapp/dist:/usr/share/nginx/html/app:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro

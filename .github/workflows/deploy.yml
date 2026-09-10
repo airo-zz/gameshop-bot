@@ -66,6 +66,7 @@ jobs:
               - 'Dockerfile.api'
               - 'Dockerfile.bot'
               - 'docker-compose.yml'
+              - 'nginx/**'
               - 'alembic.ini'
 
   # ─── Линтинг и тесты ────────────────────────────────────────────────────────
@@ -158,20 +159,28 @@ jobs:
           cache: npm
           cache-dependency-path: miniapp/package-lock.json
 
-      - name: Install & Build
+      - name: Install & Build (Mini App + Website)
         working-directory: miniapp
         env:
           VITE_SHOP_NAME: reDonate
           VITE_BOT_USERNAME: redonate_robot
         run: |
           npm ci
-          npm run build
+          npm run build                        # Telegram Mini App → dist (base /app/)
+          VITE_APP_TARGET=web npx vite build    # Публичный сайт → dist-web (base /)
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
         with:
           name: miniapp-dist
           path: miniapp/dist/
+          retention-days: 1
+
+      - name: Upload web dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: miniapp-dist-web
+          path: miniapp/dist-web/
           retention-days: 1
 
   # ─── Деплой Mini App ─────────────────────────────────────────────────────────
@@ -190,7 +199,13 @@ jobs:
           name: miniapp-dist
           path: miniapp-dist/
 
-      - name: Copy dist to VPS
+      - name: Download Website build
+        uses: actions/download-artifact@v4
+        with:
+          name: miniapp-dist-web
+          path: miniapp-dist-web/
+
+      - name: Copy Mini App dist to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
           host:        ${{ secrets.VPS_HOST }}
@@ -198,6 +213,16 @@ jobs:
           password:    ${{ secrets.VPS_PASSWORD }}
           source:      "miniapp-dist/"
           target:      "/tmp/redonate-miniapp/"
+          strip_components: 1
+
+      - name: Copy Website dist to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host:        ${{ secrets.VPS_HOST }}
+          username:    ${{ secrets.VPS_USER }}
+          password:    ${{ secrets.VPS_PASSWORD }}
+          source:      "miniapp-dist-web/"
+          target:      "/tmp/redonate-miniapp-web/"
           strip_components: 1
 
       - name: Swap dist on VPS and reload nginx
@@ -211,17 +236,22 @@ jobs:
             set -e
             APP_DIR="${{ secrets.VPS_APP_DIR }}"
 
-            # Обновляем miniapp/dist без удаления самой папки
+            # Обновляем miniapp/dist и miniapp/dist-web без удаления самих папок
             # (удаление ломает Docker bind mount до рестарта nginx)
-            mkdir -p "$APP_DIR/miniapp/dist"
+            mkdir -p "$APP_DIR/miniapp/dist" "$APP_DIR/miniapp/dist-web"
+
             find "$APP_DIR/miniapp/dist" -mindepth 1 -delete
             cp -r /tmp/redonate-miniapp/. "$APP_DIR/miniapp/dist/"
             rm -rf /tmp/redonate-miniapp
 
+            find "$APP_DIR/miniapp/dist-web" -mindepth 1 -delete
+            cp -r /tmp/redonate-miniapp-web/. "$APP_DIR/miniapp/dist-web/"
+            rm -rf /tmp/redonate-miniapp-web
+
             # Перезагружаем nginx — он подхватывает новые файлы из bind mount
             docker compose -f "$APP_DIR/docker-compose.yml" exec -T nginx nginx -s reload
 
-            echo "miniapp deployed at $(date)"
+            echo "miniapp + website deployed at $(date)"
 
   # ─── Деплой Backend ──────────────────────────────────────────────────────────
   deploy-backend:
@@ -250,11 +280,15 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
 
-            # Пересобираем и перезапускаем только backend-контейнеры
-            # nginx, db, redis, certbot не трогаем — они не изменились
+            # Каталоги статики должны существовать до старта nginx (bind mount)
+            mkdir -p miniapp/dist miniapp/dist-web
+
+            # Пересобираем backend + nginx. Для nginx `up -d` пересоздаёт контейнер
+            # только если изменилось его определение (напр. новый volume dist-web);
+            # иначе это no-op. db, redis, certbot не трогаем.
             DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 \
               docker compose up -d --build --remove-orphans \
-              migrations api bot support_bot worker beat flower
+              migrations api bot support_bot worker beat flower nginx
 
             # Ждём стабилизации контейнеров
             echo "Waiting for containers..."

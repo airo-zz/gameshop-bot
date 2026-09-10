@@ -28,6 +28,18 @@ if (isWeb) {
   document.body.classList.add('web')
 }
 
+// ── Гейт /app: miniapp открывается только внутри Telegram ────────────────────
+// Вне Telegram (нет initData) и не на админке — уводим на публичный сайт.
+// Только на проде (redonate.su), чтобы не мешать локальной разработке/preview.
+if (!isWeb) {
+  const inTelegram = !!window.Telegram?.WebApp?.initData
+  const isAdmin = window.location.pathname.startsWith('/app/admin')
+  const isProd = window.location.hostname === 'redonate.su'
+  if (isProd && !inTelegram && !isAdmin) {
+    window.location.replace('https://redonate.su/')
+  }
+}
+
 // Корневой компонент выбирается по цели сборки. Web-версия изолирована от
 // Telegram-инициализации (App.tsx), чтобы не влиять на /app.
 function Root() {
