@@ -6,8 +6,9 @@
 
 import { useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { Menu, X, Send } from 'lucide-react'
+import { Menu, X, Send, LogOut } from 'lucide-react'
 import { SHOP_NAME, MINIAPP_URL, SUPPORT_BOT_URL, SITE_URL } from '@/config/appTarget'
+import { useWebAuth } from '@/web/auth/useWebAuth'
 
 interface NavItem {
   label: string
@@ -50,6 +51,45 @@ function TelegramCta({ className = '' }: { className?: string }) {
       <Send size={16} />
       Открыть в Telegram
     </a>
+  )
+}
+
+function AuthArea({ onNavigate }: { onNavigate?: () => void }) {
+  const { user, isAuthenticated, logout, ready } = useWebAuth()
+  if (!ready) return null
+
+  if (isAuthenticated && user) {
+    return (
+      <div className="flex items-center gap-2.5">
+        {user.photo_url ? (
+          <img src={user.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+        ) : (
+          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'var(--gradient-primary)' }}>
+            {(user.first_name || '?').charAt(0).toUpperCase()}
+          </div>
+        )}
+        <span className="text-sm text-white/80 max-w-[120px] truncate">{user.first_name}</span>
+        <button
+          onClick={() => { logout(); onNavigate?.() }}
+          title="Выйти"
+          className="p-2 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+        >
+          <LogOut size={16} />
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <Link
+      to="/login"
+      onClick={onNavigate}
+      className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition-all active:scale-[0.97] hover:brightness-110"
+      style={{ background: 'var(--gradient-primary)' }}
+    >
+      <Send size={16} />
+      Войти
+    </Link>
   )
 }
 
@@ -101,7 +141,7 @@ export default function WebLayout() {
           </nav>
 
           <div className="hidden md:block">
-            <TelegramCta />
+            <AuthArea />
           </div>
 
           {/* Mobile burger */}
@@ -119,7 +159,7 @@ export default function WebLayout() {
           <div className="md:hidden border-t border-white/[0.06]" style={{ background: 'var(--bg)' }}>
             <div className="web-container py-4 flex flex-col gap-4">
               {NAV.map((item) => renderNavLink(item, () => setMenuOpen(false)))}
-              <TelegramCta className="w-full justify-center" />
+              <AuthArea onNavigate={() => setMenuOpen(false)} />
             </div>
           </div>
         )}

@@ -15,6 +15,7 @@ import './web.css'
 const WebHomePage = lazy(() => import('./pages/WebHomePage'))
 const WebCatalogPage = lazy(() => import('./pages/WebCatalogPage'))
 const WebGamePage = lazy(() => import('./pages/WebGamePage'))
+const WebLoginPage = lazy(() => import('./pages/WebLoginPage'))
 
 export default function WebApp() {
   return (
@@ -39,7 +40,8 @@ export default function WebApp() {
           <Route index element={<Suspense fallback={null}><WebHomePage /></Suspense>} />
           <Route path="catalog" element={<Suspense fallback={null}><WebCatalogPage /></Suspense>} />
           <Route path="game/:slug" element={<Suspense fallback={null}><WebGamePage /></Suspense>} />
-          {/* Корзина/чекаут на вебе — следующая фаза (после Telegram-авторизации) */}
+          <Route path="login" element={<Suspense fallback={null}><WebLoginPage /></Suspense>} />
+          {/* Корзина/чекаут на вебе — следующая фаза */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

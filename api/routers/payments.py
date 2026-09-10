@@ -1,5 +1,6 @@
 """api/routers/payments.py"""
 
+import time
 from decimal import Decimal
 from uuid import UUID
 
@@ -7,11 +8,13 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 
-from api.deps import CurrentUser, DbSession
+from api.deps import CurrentUser, DbSession, get_or_create_user
 from api.rate_limit import limiter
 from api.schemas.cart import PaymentInitResponse, TokenResponse, RefreshTokenRequest
 from api.services.payment_service import PaymentService
 from api.deps import create_access_token, create_refresh_token, decode_token
+from api.utils.telegram_login import verify_login_widget
+from shared.config import settings
 from shared.models import Order, OrderStatus, User
 
 router = APIRouter()
@@ -28,6 +31,68 @@ async def auth_telegram(
     access = create_access_token(user.telegram_id)
     refresh = create_refresh_token(user.telegram_id)
     return TokenResponse(access_token=access, refresh_token=refresh)
+
+
+class TelegramWidgetAuthIn(BaseModel):
+    """Данные Telegram Login Widget (вход на сайте через браузер)."""
+
+    id: int
+    first_name: str = ""
+    last_name: str | None = None
+    username: str | None = None
+    photo_url: str | None = None
+    auth_date: int
+    hash: str
+
+
+@router.post("/auth/telegram-widget", response_model=TokenResponse)
+@limiter.limit("5/minute")
+async def auth_telegram_widget(
+    request: Request,
+    body: TelegramWidgetAuthIn,
+    db: DbSession,
+):
+    """
+    Авторизация обычного пользователя на сайте через Telegram Login Widget.
+    Проверяет подпись, находит/создаёт пользователя, выдаёт те же JWT, что и Mini App.
+    """
+    # 1. Собираем поля для проверки подписи (только присутствующие)
+    fields: dict[str, str] = {
+        "id": str(body.id),
+        "first_name": body.first_name,
+        "auth_date": str(body.auth_date),
+    }
+    if body.last_name:
+        fields["last_name"] = body.last_name
+    if body.username:
+        fields["username"] = body.username
+    if body.photo_url:
+        fields["photo_url"] = body.photo_url
+
+    if not verify_login_widget(fields, body.hash, settings.BOT_TOKEN):
+        raise HTTPException(status_code=401, detail="Невалидная подпись")
+
+    # 2. Свежесть (не старше 24 часов)
+    if time.time() - body.auth_date > 86400:
+        raise HTTPException(status_code=401, detail="Данные авторизации устарели")
+
+    # 3. Находим/создаём пользователя (та же логика, что и в Mini App)
+    user = await get_or_create_user(
+        {
+            "id": body.id,
+            "first_name": body.first_name,
+            "last_name": body.last_name,
+            "username": body.username,
+        },
+        db,
+    )
+    if user.is_blocked:
+        raise HTTPException(status_code=403, detail="Аккаунт заблокирован")
+
+    return TokenResponse(
+        access_token=create_access_token(user.telegram_id),
+        refresh_token=create_refresh_token(user.telegram_id),
+    )
 
 
 @router.post("/auth/refresh", response_model=TokenResponse)

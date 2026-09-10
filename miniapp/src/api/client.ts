@@ -134,4 +134,25 @@ export async function authenticateWithTelegram(initData: string): Promise<void> 
   setTokens(res.data.access_token, res.data.refresh_token)
 }
 
+// ── Авторизация через Telegram Login Widget (сайт в браузере) ─────────────────
+export interface TelegramWidgetUser {
+  id: number
+  first_name?: string
+  last_name?: string
+  username?: string
+  photo_url?: string
+  auth_date: number
+  hash: string
+}
+
+export async function authenticateWithTelegramWidget(user: TelegramWidgetUser): Promise<void> {
+  const res = await axios.post(`${BASE_URL}/payments/auth/telegram-widget`, user)
+  setTokens(res.data.access_token, res.data.refresh_token)
+}
+
+/** Есть ли сохранённый access-токен (для веб-режима — залогинен ли пользователь). */
+export function hasStoredToken(): boolean {
+  return !!accessToken
+}
+
 export { setTokens, clearTokens }
