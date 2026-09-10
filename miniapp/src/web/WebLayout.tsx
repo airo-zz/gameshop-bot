@@ -6,9 +6,10 @@
 
 import { useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { Menu, X, Send, LogOut } from 'lucide-react'
+import { Menu, X, Send, LogOut, ShoppingCart } from 'lucide-react'
 import { SHOP_NAME, MINIAPP_URL, SUPPORT_BOT_URL, SITE_URL } from '@/config/appTarget'
 import { useWebAuth } from '@/web/auth/useWebAuth'
+import { useWebCart } from '@/web/cart/useWebCart'
 
 interface NavItem {
   label: string
@@ -51,6 +52,30 @@ function TelegramCta({ className = '' }: { className?: string }) {
       <Send size={16} />
       Открыть в Telegram
     </a>
+  )
+}
+
+function CartButton({ onNavigate }: { onNavigate?: () => void }) {
+  const { isAuthenticated } = useWebAuth()
+  const { count } = useWebCart()
+  if (!isAuthenticated) return null
+  return (
+    <Link
+      to="/cart"
+      onClick={onNavigate}
+      className="relative p-2 rounded-lg text-white/70 hover:bg-white/[0.06] transition-colors"
+      aria-label="Корзина"
+    >
+      <ShoppingCart size={20} />
+      {count > 0 && (
+        <span
+          className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+          style={{ background: 'var(--btn)' }}
+        >
+          {count}
+        </span>
+      )}
+    </Link>
   )
 }
 
@@ -140,7 +165,8 @@ export default function WebLayout() {
             {NAV.map((item) => renderNavLink(item))}
           </nav>
 
-          <div className="hidden md:block">
+          <div className="hidden md:flex items-center gap-2">
+            <CartButton />
             <AuthArea />
           </div>
 
@@ -159,6 +185,9 @@ export default function WebLayout() {
           <div className="md:hidden border-t border-white/[0.06]" style={{ background: 'var(--bg)' }}>
             <div className="web-container py-4 flex flex-col gap-4">
               {NAV.map((item) => renderNavLink(item, () => setMenuOpen(false)))}
+              <Link to="/cart" onClick={() => setMenuOpen(false)} className="text-sm text-white/60 hover:text-white transition-colors">
+                Корзина
+              </Link>
               <AuthArea onNavigate={() => setMenuOpen(false)} />
             </div>
           </div>

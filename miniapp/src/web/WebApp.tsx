@@ -10,12 +10,16 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { ROUTER_BASENAME } from '@/config/appTarget'
 import WebLayout from './WebLayout'
+import RequireWebAuth from './auth/RequireWebAuth'
 import './web.css'
 
 const WebHomePage = lazy(() => import('./pages/WebHomePage'))
 const WebCatalogPage = lazy(() => import('./pages/WebCatalogPage'))
 const WebGamePage = lazy(() => import('./pages/WebGamePage'))
 const WebLoginPage = lazy(() => import('./pages/WebLoginPage'))
+const WebCartPage = lazy(() => import('./pages/WebCartPage'))
+const WebCheckoutPage = lazy(() => import('./pages/WebCheckoutPage'))
+const WebOrderPage = lazy(() => import('./pages/WebOrderPage'))
 
 export default function WebApp() {
   return (
@@ -41,7 +45,9 @@ export default function WebApp() {
           <Route path="catalog" element={<Suspense fallback={null}><WebCatalogPage /></Suspense>} />
           <Route path="game/:slug" element={<Suspense fallback={null}><WebGamePage /></Suspense>} />
           <Route path="login" element={<Suspense fallback={null}><WebLoginPage /></Suspense>} />
-          {/* Корзина/чекаут на вебе — следующая фаза */}
+          <Route path="cart" element={<RequireWebAuth><Suspense fallback={null}><WebCartPage /></Suspense></RequireWebAuth>} />
+          <Route path="checkout" element={<RequireWebAuth><Suspense fallback={null}><WebCheckoutPage /></Suspense></RequireWebAuth>} />
+          <Route path="orders/:id" element={<RequireWebAuth><Suspense fallback={null}><WebOrderPage /></Suspense></RequireWebAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
