@@ -13,6 +13,8 @@ import WebLayout from './WebLayout'
 import './web.css'
 
 const WebHomePage = lazy(() => import('./pages/WebHomePage'))
+const WebCatalogPage = lazy(() => import('./pages/WebCatalogPage'))
+const WebGamePage = lazy(() => import('./pages/WebGamePage'))
 
 export default function WebApp() {
   return (
@@ -35,7 +37,9 @@ export default function WebApp() {
       <Routes>
         <Route element={<WebLayout />}>
           <Route index element={<Suspense fallback={null}><WebHomePage /></Suspense>} />
-          {/* Каталог/товар/корзина/чекаут на вебе — следующая фаза */}
+          <Route path="catalog" element={<Suspense fallback={null}><WebCatalogPage /></Suspense>} />
+          <Route path="game/:slug" element={<Suspense fallback={null}><WebGamePage /></Suspense>} />
+          {/* Корзина/чекаут на вебе — следующая фаза (после Telegram-авторизации) */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

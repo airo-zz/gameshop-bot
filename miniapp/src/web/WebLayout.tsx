@@ -16,7 +16,7 @@ interface NavItem {
 }
 
 const NAV: NavItem[] = [
-  { label: 'Каталог', href: '/#catalog' },
+  { label: 'Каталог', href: '/catalog' },
   { label: 'Как это работает', href: '/#how' },
   { label: 'Вопросы', href: '/#faq' },
   { label: 'Поддержка', href: SUPPORT_BOT_URL, external: true },
