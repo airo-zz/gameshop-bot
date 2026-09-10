@@ -1,10 +1,12 @@
 /**
  * src/pages/admin/GgselImportModal.tsx
  * Импорт CSV-выгрузки оффера ggsel в выбранную игру.
- * Флоу: выбор файла → предпросмотр плана (сервер) → подтверждение → создание.
+ * Флоу: выбор файла → предпросмотр плана (сервер) → базовая цена → создание.
+ *
+ * Цена лота = базовая цена оффера (с ggsel) + модификатор варианта из CSV.
  */
 
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { X, UploadCloud, AlertTriangle, FolderOpen, Package, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
@@ -18,11 +20,13 @@ interface GgselImportModalProps {
 }
 
 function formatMoney(v: number) {
-  return new Intl.NumberFormat('ru-RU', {
-    style: 'currency',
-    currency: 'RUB',
-    maximumFractionDigits: 0,
-  }).format(v)
+  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(v)
+}
+
+function formatModifier(v: number) {
+  if (v === 0) return '±0'
+  const sign = v > 0 ? '+' : '−'
+  return `${sign}${new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(Math.abs(v))} ₽`
 }
 
 export default function GgselImportModal({ gameId, gameName, onClose, onDone }: GgselImportModalProps) {
@@ -31,6 +35,12 @@ export default function GgselImportModal({ gameId, gameName, onClose, onDone }: 
   const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [previewing, setPreviewing] = useState(false)
   const [committing, setCommitting] = useState(false)
+  const [basePrice, setBasePrice] = useState('0')
+
+  const base = Math.max(0, Number(basePrice) || 0)
+  const finalPrice = (modifier: number) => Math.max(0, base + modifier)
+
+  const totalProducts = preview?.stats.products ?? 0
 
   const handleFile = async (file: File) => {
     setFileName(file.name)
@@ -53,6 +63,7 @@ export default function GgselImportModal({ gameId, gameName, onClose, onDone }: 
     try {
       const res = await adminApi.importGgselCommit({
         game_id: gameId,
+        base_price: base,
         categories: preview.categories,
         input_fields: preview.input_fields,
       })
@@ -66,24 +77,24 @@ export default function GgselImportModal({ gameId, gameName, onClose, onDone }: 
     }
   }
 
-  const warnedCount = preview?.categories.reduce(
-    (n, c) => n + c.products.filter((p) => p.warning).length,
-    0,
-  ) ?? 0
+  const priceRange = useMemo(() => {
+    if (!preview) return null
+    const finals = preview.categories.flatMap((c) => c.products.map((p) => finalPrice(p.price_modifier)))
+    if (!finals.length) return null
+    return { min: Math.min(...finals), max: Math.max(...finals) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preview, base])
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-lg bg-[#1a1f2e] border border-white/[0.1] rounded-t-2xl max-h-[85vh] flex flex-col">
+      <div className="w-full max-w-lg bg-[#1a1f2e] border border-white/[0.1] rounded-t-2xl max-h-[88vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-5 pb-3">
           <div className="min-w-0">
             <h3 className="text-base font-semibold text-white">Импорт CSV из ggsel</h3>
             <p className="text-xs text-white/40 truncate">в игру «{gameName}»</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-white/[0.08] active:scale-[0.95] transition-all shrink-0"
-          >
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-white/[0.08] active:scale-[0.95] transition-all shrink-0">
             <X size={18} className="text-white/50" />
           </button>
         </div>
@@ -113,13 +124,32 @@ export default function GgselImportModal({ gameId, gameName, onClose, onDone }: 
             </span>
           </button>
 
-          {previewing && (
-            <p className="text-sm text-white/40 py-4 text-center">Разбираем файл...</p>
-          )}
+          {previewing && <p className="text-sm text-white/40 py-4 text-center">Разбираем файл...</p>}
 
-          {/* Предпросмотр */}
           {preview && !previewing && (
             <>
+              {/* Базовая цена */}
+              <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3.5">
+                <label className="text-sm font-medium text-white block mb-1">Базовая цена оффера, ₽</label>
+                <p className="text-xs text-white/40 mb-2.5">
+                  Цена, указанная в товаре на ggsel. Цена лота = базовая + модификатор из файла.
+                </p>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={basePrice}
+                  onChange={(e) => setBasePrice(e.target.value)}
+                  placeholder="0"
+                  className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50"
+                />
+                {priceRange && (
+                  <p className="text-xs text-white/50 mt-2">
+                    Диапазон цен лотов: <span className="text-white font-medium">{formatMoney(priceRange.min)} – {formatMoney(priceRange.max)}</span>
+                  </p>
+                )}
+              </div>
+
               {/* Сводка */}
               <div className="grid grid-cols-3 gap-2">
                 {[
@@ -137,9 +167,7 @@ export default function GgselImportModal({ gameId, gameName, onClose, onDone }: 
               {/* Поля от покупателя */}
               {preview.input_fields.length > 0 && (
                 <div className="rounded-xl bg-white/[0.03] border border-white/[0.06] p-3">
-                  <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">
-                    Данные от покупателя
-                  </p>
+                  <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Данные от покупателя</p>
                   <div className="space-y-1">
                     {preview.input_fields.map((f) => (
                       <div key={f.key} className="text-sm text-white/80 flex items-center gap-2">
@@ -165,11 +193,9 @@ export default function GgselImportModal({ gameId, gameName, onClose, onDone }: 
                         <div key={j} className="flex items-center gap-2 px-3 py-1.5">
                           <Package size={12} className="text-white/20 shrink-0" />
                           <span className="text-xs text-white/70 truncate flex-1">{p.name}</span>
-                          {p.warning && (
-                            <AlertTriangle size={12} className="text-amber-400 shrink-0" />
-                          )}
-                          <span className="text-xs font-medium text-white/80 shrink-0">
-                            {formatMoney(p.price)}
+                          <span className="text-[11px] text-white/35 shrink-0 tabular-nums">{formatModifier(p.price_modifier)}</span>
+                          <span className="text-xs font-semibold text-white shrink-0 w-16 text-right tabular-nums">
+                            {formatMoney(finalPrice(p.price_modifier))}
                           </span>
                         </div>
                       ))}
@@ -178,18 +204,13 @@ export default function GgselImportModal({ gameId, gameName, onClose, onDone }: 
                 ))}
               </div>
 
-              {/* Предупреждения */}
+              {/* Предупреждения парсера (неизвестные типы параметров) */}
               {preview.warnings.length > 0 && (
                 <div className="rounded-xl bg-amber-500/[0.06] border border-amber-500/20 p-3">
                   <div className="flex items-center gap-2 mb-1.5">
                     <AlertTriangle size={14} className="text-amber-400 shrink-0" />
-                    <p className="text-xs font-semibold text-amber-300">
-                      Проверьте {warnedCount} товар(ов)
-                    </p>
+                    <p className="text-xs font-semibold text-amber-300">Пропущено при разборе</p>
                   </div>
-                  <p className="text-[11px] text-amber-200/60 mb-2">
-                    Скидки-модификаторы и цены 0 будут созданы <b>неактивными</b> — включите вручную после проверки.
-                  </p>
                   <ul className="space-y-0.5 max-h-24 overflow-y-auto">
                     {preview.warnings.map((w, i) => (
                       <li key={i} className="text-[11px] text-amber-200/50 truncate">· {w}</li>
@@ -214,7 +235,7 @@ export default function GgselImportModal({ gameId, gameName, onClose, onDone }: 
               ) : (
                 <Check size={16} />
               )}
-              Импортировать {preview.stats.products} товаров
+              Импортировать {totalProducts} товаров
             </button>
           </div>
         )}

@@ -275,8 +275,8 @@ export interface AdminCategory {
 
 export interface ImportProductItem {
   name: string
-  price: number
-  warning: string | null
+  /** Модификатор к базовой цене оффера (может быть отрицательным). */
+  price_modifier: number
 }
 
 export interface ImportCategoryItem {
@@ -559,6 +559,7 @@ export const adminApi = {
 
   importGgselCommit: (payload: {
     game_id: string
+    base_price: number
     categories: ImportCategoryItem[]
     input_fields: ImportInputField[]
   }) =>

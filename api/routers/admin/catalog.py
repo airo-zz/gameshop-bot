@@ -743,15 +743,17 @@ async def import_ggsel_commit(
             categories_created += 1
 
         for idx, prod in enumerate(cat_item.products):
+            # Итоговая цена лота = базовая цена оффера + модификатор варианта
+            final_price = max(0.0, body.base_price + prod.price_modifier)
             db.add(
                 Product(
                     category_id=category.id,
                     name=prod.name,
-                    price=Decimal(str(prod.price)),
+                    price=Decimal(str(round(final_price, 2))),
                     quantity=1,
                     delivery_type=DeliveryType.manual,
                     input_fields=input_fields,
-                    is_active=prod.warning is None,
+                    is_active=final_price > 0,
                     sort_order=idx,
                 )
             )

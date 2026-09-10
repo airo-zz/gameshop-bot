@@ -79,7 +79,13 @@ def _parse_price(raw: str) -> float:
 
 
 def _add_variant(group: dict, row: dict, warnings: list[str]) -> None:
-    """Добавляет вариант-товар в группу, если строка его содержит."""
+    """
+    Добавляет вариант-товар в группу, если строка его содержит.
+
+    price в CSV — это МОДИФИКАТОР к базовой цене оффера (не абсолютная цена).
+    impact_variant: increase → +price, decrease → −price. Итоговая цена лота
+    считается позже как base_price + price_modifier.
+    """
     title = (row.get("variant_title_ru") or "").strip()
     variant_id = (row.get("variant_id") or "").strip()
     if not title or not variant_id:
@@ -87,21 +93,12 @@ def _add_variant(group: dict, row: dict, warnings: list[str]) -> None:
 
     price = _parse_price(row.get("price", ""))
     impact = (row.get("impact_variant") or "").strip().lower()
-
-    warning: str | None = None
-    if impact == "decrease":
-        warning = "модификатор-скидка (не обычный лот)"
-    elif price <= 0:
-        warning = "цена 0 — проверьте"
-
-    if warning:
-        warnings.append(f"«{title[:60]}» — {warning}")
+    modifier = -price if impact == "decrease" else price
 
     group["products"].append(
         {
             "name": title[:MAX_PRODUCT_NAME],
-            "price": price,
-            "warning": warning,
+            "price_modifier": modifier,
         }
     )
 

@@ -24,6 +24,7 @@ import {
   Copy,
   Pin,
   Upload,
+  Check,
 } from 'lucide-react'
 import {
   DndContext,
@@ -44,6 +45,7 @@ import type { AdminGame, AdminCategory, AdminProductListItem } from '@/api/admin
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import SortableRow from '@/components/admin/SortableRow'
 import GgselImportModal from '@/pages/admin/GgselImportModal'
+import ProductEditModal from '@/pages/admin/ProductEditModal'
 import toast from 'react-hot-toast'
 
 type Step = 'games' | 'workspace'
@@ -336,6 +338,9 @@ interface CategorySectionProps {
   onToggleFeatured: () => void
   onDeleteCategory: () => void
   onOpenBulkPrice: () => void
+  onRename: (name: string) => Promise<void>
+  onEditProduct: (productId: string) => void
+  onReloadCategory: () => void
 }
 
 function CategorySection({
@@ -347,11 +352,30 @@ function CategorySection({
   onToggleFeatured,
   onDeleteCategory,
   onOpenBulkPrice,
+  onRename,
+  onEditProduct,
+  onReloadCategory,
 }: CategorySectionProps) {
-  const navigate = useNavigate()
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [draftName, setDraftName] = useState(category.name)
+  const [renaming, setRenaming] = useState(false)
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  async function saveRename() {
+    const name = draftName.trim()
+    if (!name || name === category.name) { setEditing(false); setDraftName(category.name); return }
+    setRenaming(true)
+    try {
+      await onRename(name)
+      setEditing(false)
+    } catch {
+      toast.error('Не удалось переименовать')
+    } finally {
+      setRenaming(false)
+    }
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -408,7 +432,8 @@ function CategorySection({
     try {
       const copy = await adminApi.copyProduct(id)
       toast.success('Товар скопирован')
-      navigate(`/admin/catalog/products/${copy.id}`)
+      onReloadCategory()
+      onEditProduct(copy.id)
     } catch {
       toast.error('Ошибка копирования')
     }
@@ -418,51 +443,95 @@ function CategorySection({
     <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
       {/* Заголовок категории */}
       <div className="flex items-center gap-2 px-3 py-3">
-        <button
-          onClick={onToggleExpanded}
-          className="flex items-center gap-2 flex-1 min-w-0 text-left active:scale-[0.99] transition-transform"
-        >
-          {expanded
-            ? <ChevronDown size={16} className="text-white/40 shrink-0" />
-            : <ChevronRight size={16} className="text-white/40 shrink-0" />}
-          <FolderOpen size={16} className="text-white/40 shrink-0" />
-          <span className="text-sm font-medium text-white truncate">{category.name}</span>
-          <span className="text-xs text-white/30 shrink-0">{products.length}</span>
-          {!category.is_active && (
-            <span className="text-xs text-white/30 shrink-0">· скрыта</span>
-          )}
-          {category.is_featured && (
-            <span className="text-xs text-amber-400 shrink-0">· на главной</span>
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={onToggleFeatured}
-          className={`shrink-0 p-1.5 rounded-lg transition-all ${
-            category.is_featured
-              ? 'text-amber-400 bg-amber-400/10 border border-amber-400/30'
-              : 'text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-white/50'
-          }`}
-          title={category.is_featured ? 'Убрать с главной' : 'Закрепить на главной'}
-        >
-          <Pin size={13} className={category.is_featured ? 'fill-amber-400' : ''} />
-        </button>
-        <button
-          type="button"
-          onClick={onOpenBulkPrice}
-          className="shrink-0 p-1.5 rounded-lg text-white/30 bg-white/[0.03] border border-white/[0.08] hover:text-white/60 transition-all"
-          title="Изменить цены в категории"
-        >
-          <PercentSquare size={13} />
-        </button>
-        <button
-          type="button"
-          onClick={onDeleteCategory}
-          className="shrink-0 p-1.5 rounded-lg text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-red-400 hover:border-red-400/30 transition-all"
-          title="Удалить категорию"
-        >
-          <Trash2 size={13} />
-        </button>
+        {editing ? (
+          <>
+            <FolderOpen size={16} className="text-white/40 shrink-0" />
+            <input
+              autoFocus
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') { e.preventDefault(); saveRename() }
+                if (e.key === 'Escape') { setEditing(false); setDraftName(category.name) }
+              }}
+              maxLength={128}
+              className="flex-1 min-w-0 bg-white/[0.05] border border-white/[0.12] rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+            />
+            <button
+              type="button"
+              onClick={saveRename}
+              disabled={renaming}
+              className="shrink-0 p-1.5 rounded-lg text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 hover:bg-emerald-400/20 disabled:opacity-40 transition-all"
+              title="Сохранить"
+            >
+              <Check size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={() => { setEditing(false); setDraftName(category.name) }}
+              className="shrink-0 p-1.5 rounded-lg text-white/40 bg-white/[0.03] border border-white/[0.08] hover:text-white/70 transition-all"
+              title="Отмена"
+            >
+              <X size={13} />
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={onToggleExpanded}
+              className="flex items-center gap-2 flex-1 min-w-0 text-left active:scale-[0.99] transition-transform"
+            >
+              {expanded
+                ? <ChevronDown size={16} className="text-white/40 shrink-0" />
+                : <ChevronRight size={16} className="text-white/40 shrink-0" />}
+              <FolderOpen size={16} className="text-white/40 shrink-0" />
+              <span className="text-sm font-medium text-white truncate">{category.name}</span>
+              <span className="text-xs text-white/30 shrink-0">{products.length}</span>
+              {!category.is_active && (
+                <span className="text-xs text-white/30 shrink-0">· скрыта</span>
+              )}
+              {category.is_featured && (
+                <span className="text-xs text-amber-400 shrink-0">· на главной</span>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setDraftName(category.name); setEditing(true) }}
+              className="shrink-0 p-1.5 rounded-lg text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-white/60 transition-all"
+              title="Переименовать"
+            >
+              <Pencil size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={onToggleFeatured}
+              className={`shrink-0 p-1.5 rounded-lg transition-all ${
+                category.is_featured
+                  ? 'text-amber-400 bg-amber-400/10 border border-amber-400/30'
+                  : 'text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-white/50'
+              }`}
+              title={category.is_featured ? 'Убрать с главной' : 'Закрепить на главной'}
+            >
+              <Pin size={13} className={category.is_featured ? 'fill-amber-400' : ''} />
+            </button>
+            <button
+              type="button"
+              onClick={onOpenBulkPrice}
+              className="shrink-0 p-1.5 rounded-lg text-white/30 bg-white/[0.03] border border-white/[0.08] hover:text-white/60 transition-all"
+              title="Изменить цены в категории"
+            >
+              <PercentSquare size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={onDeleteCategory}
+              className="shrink-0 p-1.5 rounded-lg text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-red-400 hover:border-red-400/30 transition-all"
+              title="Удалить категорию"
+            >
+              <Trash2 size={13} />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Тело: товары + быстрое добавление */}
@@ -477,7 +546,7 @@ function CategorySection({
                       <div className="flex items-center gap-2 border rounded-xl px-2.5 py-2 bg-[#1a1f2e] border-white/[0.06]">
                         <div
                           className="flex-1 min-w-0 cursor-pointer"
-                          onClick={() => navigate(`/admin/catalog/products/${product.id}`)}
+                          onClick={() => onEditProduct(product.id)}
                         >
                           <div className="text-sm text-white truncate">{product.name}</div>
                           <div className="text-xs text-white/40">
@@ -509,7 +578,7 @@ function CategorySection({
                           <Copy size={14} />
                         </button>
                         <button
-                          onClick={() => navigate(`/admin/catalog/products/${product.id}`)}
+                          onClick={() => onEditProduct(product.id)}
                           className="shrink-0 p-1.5 rounded-lg hover:bg-white/[0.08] active:scale-[0.9] transition-all"
                           title="Редактировать"
                         >
@@ -559,6 +628,7 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
   const [newCatName, setNewCatName] = useState('')
   const [creatingCat, setCreatingCat] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [editor, setEditor] = useState<{ productId: string; categoryId: string } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -601,6 +671,14 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
     setProductsByCat(prev => ({ ...prev, [catId]: updater(prev[catId] ?? []) }))
   }
 
+  // Точечная перезагрузка товаров одной категории (без полного reload воркспейса)
+  const reloadCategory = useCallback(async (catId: string) => {
+    try {
+      const r = await adminApi.getProducts({ category_id: catId, page_size: 100 })
+      setProductsByCat(prev => ({ ...prev, [catId]: r.items }))
+    } catch { /* тихо — данные останутся прежними */ }
+  }, [])
+
   const handleToggleFeatured = async (cat: AdminCategory) => {
     try {
       const updated = await adminApi.updateCategory(cat.id, { is_featured: !cat.is_featured })
@@ -608,6 +686,11 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
     } catch {
       toast.error('Не удалось обновить')
     }
+  }
+
+  const handleRenameCategory = async (cat: AdminCategory, name: string) => {
+    const updated = await adminApi.updateCategory(cat.id, { name })
+    setCategories(prev => prev.map(c => c.id === cat.id ? updated : c))
   }
 
   const handleDeleteCategory = async (cat: AdminCategory) => {
@@ -694,7 +777,10 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
                   onProductsChange={(updater) => updateCatProducts(cat.id, updater)}
                   onToggleFeatured={() => handleToggleFeatured(cat)}
                   onDeleteCategory={() => handleDeleteCategory(cat)}
+                  onRename={(name) => handleRenameCategory(cat, name)}
                   onOpenBulkPrice={() => setBulkPriceCat(cat.id)}
+                  onEditProduct={(productId) => setEditor({ productId, categoryId: cat.id })}
+                  onReloadCategory={() => reloadCategory(cat.id)}
                 />
               ))
             )}
@@ -738,6 +824,18 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
           gameName={game.name}
           onClose={() => setShowImport(false)}
           onDone={load}
+        />
+      )}
+
+      {editor && (
+        <ProductEditModal
+          productId={editor.productId}
+          categoryId={editor.categoryId}
+          onClose={() => setEditor(null)}
+          onSaved={(updated) => {
+            reloadCategory(editor.categoryId)
+            if (updated.category_id !== editor.categoryId) reloadCategory(updated.category_id)
+          }}
         />
       )}
     </>

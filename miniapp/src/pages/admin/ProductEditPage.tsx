@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, AlertCircle, Save, ExternalLink, Copy, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Save, ExternalLink, Copy, Plus, Trash2, X } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
 import type { AdminGame, AdminCategory, AdminProductDetail } from '@/api/admin'
@@ -155,12 +155,26 @@ function validate(form: FormState): FormErrors {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function ProductEditPage() {
-  const { id } = useParams<{ id: string }>()
+export interface ProductEditPageProps {
+  /** Модальный режим: id товара ('new' для создания). Если не задан — берётся из URL. */
+  modalId?: string
+  /** Предвыбранная категория (для создания в модалке). */
+  modalCategoryId?: string
+  /** Модальный режим: закрыть окно. Наличие включает модальный режим. */
+  onClose?: () => void
+  /** Модальный режим: вызывается после успешного сохранения с обновлённым товаром. */
+  onSaved?: (product: AdminProductDetail) => void
+}
+
+export default function ProductEditPage(props: ProductEditPageProps = {}) {
+  const { id: routeId } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+
+  const isModal = !!props.onClose
+  const id = props.modalId ?? routeId
   const isNew = id === 'new'
-  const presetCategoryId = isNew ? searchParams.get('category_id') : null
+  const presetCategoryId = isNew ? (props.modalCategoryId ?? searchParams.get('category_id')) : null
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [errors, setErrors] = useState<FormErrors>({})
@@ -368,13 +382,18 @@ export default function ProductEditPage() {
 
     setSaving(true)
     try {
-      if (isNew) {
-        const created = await adminApi.createProduct(payload)
-        toast.success('Товар создан')
-        navigate(`/admin/catalog/products/${created.id}`, { replace: true })
+      const saved = isNew
+        ? await adminApi.createProduct(payload)
+        : await adminApi.updateProduct(id!, payload)
+      toast.success(isNew ? 'Товар создан' : 'Товар сохранён')
+
+      if (isModal) {
+        // Модальный режим: обновляем воркспейс на месте, без навигации
+        props.onSaved?.(saved)
+        props.onClose?.()
+      } else if (isNew) {
+        navigate(`/admin/catalog/products/${saved.id}`, { replace: true })
       } else {
-        await adminApi.updateProduct(id!, payload)
-        toast.success('Товар сохранён')
         navigate('/admin/catalog')
       }
     } catch {
@@ -412,10 +431,11 @@ export default function ProductEditPage() {
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => (isModal ? props.onClose?.() : navigate(-1))}
           className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+          title={isModal ? 'Закрыть' : 'Назад'}
         >
-          <ArrowLeft size={18} className="text-white/60" />
+          {isModal ? <X size={18} className="text-white/60" /> : <ArrowLeft size={18} className="text-white/60" />}
         </button>
         <div className="flex-1 min-w-0">
           <h1 className="text-lg font-bold text-white">
@@ -425,7 +445,7 @@ export default function ProductEditPage() {
             {isNew ? 'Заполните данные и сохраните' : 'Измените нужные поля'}
           </p>
         </div>
-        {!isNew && (
+        {!isNew && !isModal && (
           <>
             <button
               onClick={() => window.open(`${window.location.origin}/app/product/${id}`, '_blank')}

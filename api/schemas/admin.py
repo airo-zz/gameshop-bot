@@ -317,8 +317,8 @@ class BulkPriceUpdateIn(BaseModel):
 
 class ImportProductItem(BaseModel):
     name: str = Field(..., min_length=1, max_length=256)
-    price: float = Field(..., ge=0)
-    warning: str | None = None
+    # Модификатор к базовой цене оффера (может быть отрицательным).
+    price_modifier: float = 0
 
 
 class ImportCategoryItem(BaseModel):
@@ -346,6 +346,8 @@ class ImportCommitIn(BaseModel):
     """Подтверждённый план импорта (после предпросмотра)."""
 
     game_id: uuid.UUID
+    # Базовая цена оффера с ggsel; итоговая цена лота = base_price + price_modifier.
+    base_price: float = Field(0, ge=0)
     categories: list[ImportCategoryItem]
     input_fields: list[ImportInputField] = []
 
