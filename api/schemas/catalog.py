@@ -61,6 +61,8 @@ class ProductListOut(BaseModel):
     game_name: str | None = None
     game_slug: str | None = None
     category_id: uuid.UUID | None = None
+    # Нужно карточке: поле type=quantity (T19) даёт ввод количества с минимумом.
+    input_fields: list[dict] = []
 
 
 class InputFieldSchema(BaseModel):

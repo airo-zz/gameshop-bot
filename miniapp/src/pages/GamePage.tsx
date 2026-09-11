@@ -16,7 +16,7 @@ import clsx from 'clsx'
 interface ProductRowProps {
   product: Product
   cartQty: number
-  onAdd: (inputData?: Record<string, string>) => void
+  onAdd: (inputData?: Record<string, string>, qty?: number) => void
   onRemove: () => void
 }
 
@@ -27,6 +27,58 @@ function ProductRow({ product, cartQty, onAdd, onRemove }: ProductRowProps) {
     : 0
 
   const isOutOfStock = product.is_out_of_stock || (product.stock !== null && product.stock === 0)
+
+  // T19: товар с переменным количеством (напр. Telegram Stars). Цена — за 1 единицу,
+  // покупатель вводит количество (≥ min). Итог = цена × количество.
+  const qtyField = product.input_fields?.find((f) => f.type === 'quantity')
+  const minQty = Math.max(1, Number(qtyField?.min ?? 1))
+  const [qty, setQty] = useState<string>(String(minQty))
+  if (qtyField && !isOutOfStock) {
+    const n = Math.max(minQty, Math.floor(Number(qty) || 0))
+    const total = Number(product.price) * n
+    const unit = qtyField.unit || 'шт'
+    return (
+      <div style={{
+        background: 'var(--bg2)', border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 16, padding: '12px 14px',
+        display: 'flex', flexDirection: 'column', gap: 10,
+      }}>
+        <span style={{ fontSize: '0.9rem', fontWeight: 500, lineHeight: 1.35, color: 'var(--text)', wordBreak: 'break-word' }}>
+          {product.name}
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <input
+            type="number" inputMode="numeric" min={minQty} value={qty}
+            onChange={(e) => setQty(e.target.value)}
+            onBlur={() => setQty(String(Math.max(minQty, Math.floor(Number(qty) || 0))))}
+            style={{
+              width: 96, height: 40, textAlign: 'center', borderRadius: 12,
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
+              color: 'var(--text)', fontSize: '0.95rem', fontWeight: 600,
+            }}
+          />
+          <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.45)' }}>{unit}</span>
+          <span style={{ marginLeft: 'auto', fontSize: '1.05rem', fontWeight: 700, color: '#6b9de8' }}>
+            {total.toLocaleString('ru')} ₽
+          </span>
+        </div>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+          Минимум {minQty.toLocaleString('ru')} {unit} · {Number(product.price).toLocaleString('ru')} ₽ за 1 {unit}
+        </div>
+        <button
+          type="button" onClick={() => onAdd({}, n)}
+          style={{
+            height: 42, borderRadius: 12, border: '1px solid rgba(45,88,173,0.60)',
+            background: 'linear-gradient(135deg, #2563eb, #2d58ad)', color: '#fff',
+            fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}
+        >
+          <Plus size={18} strokeWidth={2.6} /> В корзину
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div style={{
@@ -220,14 +272,14 @@ export default function GamePage() {
   const gameName = gameFromApi?.name ?? slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) ?? ''
   const rootCats = (cats: Category[]) => cats.filter(c => !c.parent_id)
 
-  const handleAdd = async (product: Product, inputData?: Record<string, string>) => {
+  const handleAdd = async (product: Product, inputData?: Record<string, string>, qty: number = 1) => {
     const key = product.id
     if (pendingKeys.current.has(key)) return
     pendingKeys.current.add(key)
 
     setOptimisticDeltas(prev => {
       const next = new Map(prev)
-      next.set(key, (next.get(key) ?? 0) + 1)
+      next.set(key, (next.get(key) ?? 0) + qty)
       return next
     })
     increment()
@@ -236,7 +288,7 @@ export default function GamePage() {
     try {
       await cartApi.addItem({
         product_id: product.id,
-        quantity: 1,
+        quantity: qty,
         input_data: inputData ?? {},
       })
       await qc.refetchQueries({ queryKey: ['cart'] })
@@ -423,7 +475,7 @@ export default function GamePage() {
                   key={product.id}
                   product={product}
                   cartQty={cartQtyMap.get(product.id) ?? 0}
-                  onAdd={(inputData) => handleAdd(product, inputData)}
+                  onAdd={(inputData, qty) => handleAdd(product, inputData, qty)}
                   onRemove={() => handleRemove(product)}
                 />
               ))}

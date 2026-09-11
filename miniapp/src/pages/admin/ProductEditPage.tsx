@@ -26,16 +26,19 @@ function roundToNine(amount: number): number {
 interface InputFieldForm {
   key: string
   label: string
-  type: 'text' | 'number' | 'select'
+  type: 'text' | 'number' | 'select' | 'quantity'
   placeholder: string
   required: boolean
   options: string[]
+  min: string   // для type=quantity — минимально допустимое количество
+  unit: string  // для type=quantity — единица (напр. «звёзд»)
 }
 
 const FIELD_TYPE_OPTIONS: { value: InputFieldForm['type']; label: string }[] = [
-  { value: 'text',   label: 'Текст' },
-  { value: 'number', label: 'Число' },
-  { value: 'select', label: 'Выбор из списка' },
+  { value: 'text',     label: 'Текст' },
+  { value: 'number',   label: 'Число' },
+  { value: 'select',   label: 'Выбор из списка' },
+  { value: 'quantity', label: 'Количество (цена за единицу)' },
 ]
 
 /** Транслитерация названия поля в стабильный латинский ключ. */
@@ -58,7 +61,10 @@ function slugifyKey(label: string): string {
 /** Приводит произвольный JSON из product.input_fields к форме редактора. */
 function normalizeInputField(raw: unknown): InputFieldForm {
   const f = (raw ?? {}) as Record<string, unknown>
-  const type = f.type === 'number' || f.type === 'select' ? f.type : 'text'
+  const type =
+    f.type === 'number' || f.type === 'select' || f.type === 'quantity'
+      ? f.type
+      : 'text'
   return {
     key: typeof f.key === 'string' ? f.key : '',
     label: typeof f.label === 'string' ? f.label : '',
@@ -66,6 +72,8 @@ function normalizeInputField(raw: unknown): InputFieldForm {
     placeholder: typeof f.placeholder === 'string' ? f.placeholder : '',
     required: f.required !== false,
     options: Array.isArray(f.options) ? f.options.map(String) : [],
+    min: f.min !== undefined && f.min !== null ? String(f.min) : '',
+    unit: typeof f.unit === 'string' ? f.unit : '',
   }
 }
 
@@ -89,6 +97,11 @@ function serializeInputFields(fields: InputFieldForm[]): Record<string, unknown>
     if (placeholder) out.placeholder = placeholder
     if (f.type === 'select') {
       out.options = f.options.map((o) => o.trim()).filter(Boolean)
+    }
+    if (f.type === 'quantity') {
+      out.min = Math.max(1, Math.floor(Number(f.min) || 1))
+      const unit = f.unit.trim()
+      if (unit) out.unit = unit
     }
     result.push(out)
   })
@@ -319,7 +332,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
       ...prev,
       input_fields: [
         ...prev.input_fields,
-        { key: '', label: '', type: 'text', placeholder: '', required: true, options: [] },
+        { key: '', label: '', type: 'text', placeholder: '', required: true, options: [], min: '', unit: '' },
       ],
     }))
   }
@@ -389,6 +402,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
       delivery_type: form.delivery_type,
       instruction: form.instruction.trim() || null,
       is_active: form.is_active,
+      input_fields: serializeInputFields(form.input_fields),
     }
 
     setSaving(true)
@@ -751,7 +765,88 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
         </div>
       )}
 
-      {/* Поля от покупателя теперь настраиваются на уровне ИГРЫ (см. редактор игры) */}
+      {/* Section: Поля товара (в основном — «Количество» для Stars/переменной цены).
+          Обычные поля покупателя (логин/username) настраиваются на уровне игры/подраздела. */}
+      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
+        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Поля товара</h2>
+        <p className="text-xs text-white/40">
+          Тип «Количество» — покупатель вводит число (напр. звёзд ≥ минимума), цена берётся
+          за 1 единицу, итог = цена × количество. Для автовыдачи Stars задайте это поле здесь,
+          а @username — в полях игры/подраздела.
+        </p>
+
+        {form.input_fields.map((field, idx) => (
+          <div key={idx} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 space-y-2.5">
+            <div className="flex items-center gap-2">
+              <input
+                value={field.label}
+                onChange={(e) => updateInputField(idx, { label: e.target.value })}
+                placeholder="Название поля (напр. Количество звёзд)"
+                className={inputCls + ' flex-1'}
+              />
+              <button
+                type="button" onClick={() => removeInputField(idx)} aria-label="Удалить поле"
+                className="p-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-red-500/10 hover:border-red-500/30 text-white/40 hover:text-red-400 transition-all"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+            <div className="flex gap-2">
+              <select
+                value={field.type}
+                onChange={(e) => updateInputField(idx, { type: e.target.value as InputFieldForm['type'] })}
+                className={inputCls + ' flex-1'}
+              >
+                {FIELD_TYPE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value} className="bg-neutral-900">{o.label}</option>
+                ))}
+              </select>
+              <label className="flex items-center gap-2 px-3 rounded-xl bg-white/[0.05] border border-white/[0.08] cursor-pointer select-none">
+                <input
+                  type="checkbox" checked={field.required}
+                  onChange={(e) => updateInputField(idx, { required: e.target.checked })}
+                  className="accent-blue-600"
+                />
+                <span className="text-sm text-white/70">Обязательно</span>
+              </label>
+            </div>
+            {field.type === 'select' ? (
+              <textarea
+                value={field.options.join('\n')}
+                onChange={(e) => updateInputField(idx, { options: e.target.value.split('\n') })}
+                rows={3} placeholder="Варианты — по одному на строку"
+                className={inputCls + ' resize-none'}
+              />
+            ) : field.type === 'quantity' ? (
+              <div className="flex gap-2">
+                <input
+                  type="number" min={1} value={field.min}
+                  onChange={(e) => updateInputField(idx, { min: e.target.value })}
+                  placeholder="Минимум (напр. 50)" className={inputCls + ' flex-1'}
+                />
+                <input
+                  value={field.unit}
+                  onChange={(e) => updateInputField(idx, { unit: e.target.value })}
+                  placeholder="Единица (напр. звёзд)" className={inputCls + ' flex-1'}
+                />
+              </div>
+            ) : (
+              <input
+                value={field.placeholder}
+                onChange={(e) => updateInputField(idx, { placeholder: e.target.value })}
+                placeholder="Подсказка" className={inputCls}
+              />
+            )}
+          </div>
+        ))}
+
+        <button
+          type="button" onClick={addInputField}
+          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/[0.05] border border-dashed border-white/[0.15] hover:bg-white/[0.08] hover:border-white/25 text-sm text-white/60 hover:text-white/80 transition-all"
+        >
+          <Plus size={16} /> Добавить поле
+        </button>
+      </div>
 
       {/* Section: Инструкция */}
       <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">

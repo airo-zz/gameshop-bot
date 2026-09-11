@@ -71,10 +71,13 @@ export interface Product {
 export interface InputField {
   key: string
   label: string
-  type: 'text' | 'select' | 'number'
+  type: 'text' | 'select' | 'number' | 'quantity'
   placeholder?: string
   required: boolean
   options?: string[]
+  // type=quantity (T19): покупатель вводит количество (напр. звёзд), цена = за 1 ед.
+  min?: number
+  unit?: string
 }
 
 export interface CartItem {

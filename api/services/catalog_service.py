@@ -52,6 +52,7 @@ def _product_to_list_out(product: Product) -> ProductListOut:
         game_name=game_name,
         game_slug=game_slug,
         category_id=product.category_id,
+        input_fields=product.input_fields or [],
     )
 
 
