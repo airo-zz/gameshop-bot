@@ -7,7 +7,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Plus, AlertCircle, Gamepad2, Star, ImageOff, ArrowLeft } from 'lucide-react'
+import { Plus, AlertCircle, Gamepad2, Star, ImageOff, ArrowLeft, Trash2 } from 'lucide-react'
 import {
   DndContext,
   closestCenter,
@@ -59,6 +59,17 @@ export default function GamesListPage() {
   }, [])
 
   useEffect(() => { load(tab) }, [load, tab])
+
+  const handleDeleteGame = async (game: AdminGame) => {
+    if (!window.confirm(`Удалить «${game.name}»? Это действие нельзя отменить.`)) return
+    try {
+      await adminApi.deleteGame(game.id)
+      setGames(prev => prev.filter(g => g.id !== game.id))
+      toast.success('Игра удалена')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? 'Не удалось удалить игру')
+    }
+  }
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
@@ -198,6 +209,15 @@ export default function GamesListPage() {
                         </span>
                       </div>
                     </div>
+
+                    {/* Delete */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleDeleteGame(game) }}
+                      className="p-2 rounded-lg text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                      title="Удалить игру"
+                    >
+                      <Trash2 size={16} />
+                    </button>
 
                     {/* Arrow hint */}
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"

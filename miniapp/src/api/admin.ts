@@ -528,6 +528,12 @@ export const adminApi = {
   updateGame: (id: string, data: Partial<{ name: string; slug: string; image_url: string; description: string; is_active: boolean; is_featured: boolean; sort_order: number; type: 'game' | 'service'; input_fields: Record<string, unknown>[] }>) =>
     apiClient.patch<AdminGame>(`/admin/catalog/games/${id}`, data).then(r => r.data),
 
+  deleteGame: (id: string) =>
+    apiClient.delete(`/admin/catalog/games/${id}`).then(r => r.data),
+
+  reorderCategories: (items: Array<{ id: string; sort_order: number }>) =>
+    apiClient.post('/admin/catalog/categories/reorder', { items }),
+
   reorderGames: (items: Array<{ id: string; sort_order: number }>) =>
     apiClient.post('/admin/catalog/games/reorder', { items }),
 

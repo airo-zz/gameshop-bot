@@ -679,6 +679,33 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
     } catch { /* тихо — данные останутся прежними */ }
   }, [])
 
+  // Drag-порядок категорий (подразделов)
+  const catSensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } }),
+  )
+  const catSaveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleCatDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    setCategories((prev) => {
+      const oldIndex = prev.findIndex((c) => c.id === active.id)
+      const newIndex = prev.findIndex((c) => c.id === over.id)
+      if (oldIndex === -1 || newIndex === -1) return prev
+      const reordered = arrayMove(prev, oldIndex, newIndex)
+      if (catSaveTimeout.current) clearTimeout(catSaveTimeout.current)
+      catSaveTimeout.current = setTimeout(async () => {
+        try {
+          await adminApi.reorderCategories(reordered.map((c, i) => ({ id: c.id, sort_order: i })))
+        } catch {
+          toast.error('Не удалось сохранить порядок')
+        }
+      }, 600)
+      return reordered
+    })
+  }
+
   const handleToggleFeatured = async (cat: AdminCategory) => {
     try {
       const updated = await adminApi.updateCategory(cat.id, { is_featured: !cat.is_featured })
@@ -767,22 +794,27 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
                 <p className="text-sm">Категорий пока нет</p>
               </div>
             ) : (
-              categories.map((cat) => (
-                <CategorySection
-                  key={cat.id}
-                  category={cat}
-                  products={productsByCat[cat.id] ?? []}
-                  expanded={expanded.has(cat.id)}
-                  onToggleExpanded={() => toggleExpanded(cat.id)}
-                  onProductsChange={(updater) => updateCatProducts(cat.id, updater)}
-                  onToggleFeatured={() => handleToggleFeatured(cat)}
-                  onDeleteCategory={() => handleDeleteCategory(cat)}
-                  onRename={(name) => handleRenameCategory(cat, name)}
-                  onOpenBulkPrice={() => setBulkPriceCat(cat.id)}
-                  onEditProduct={(productId) => setEditor({ productId, categoryId: cat.id })}
-                  onReloadCategory={() => reloadCategory(cat.id)}
-                />
-              ))
+              <DndContext sensors={catSensors} collisionDetection={closestCenter} onDragEnd={handleCatDragEnd}>
+                <SortableContext items={categories.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                  {categories.map((cat) => (
+                    <SortableRow key={cat.id} id={cat.id} style={{ paddingLeft: 26, marginBottom: 10 }}>
+                      <CategorySection
+                        category={cat}
+                        products={productsByCat[cat.id] ?? []}
+                        expanded={expanded.has(cat.id)}
+                        onToggleExpanded={() => toggleExpanded(cat.id)}
+                        onProductsChange={(updater) => updateCatProducts(cat.id, updater)}
+                        onToggleFeatured={() => handleToggleFeatured(cat)}
+                        onDeleteCategory={() => handleDeleteCategory(cat)}
+                        onRename={(name) => handleRenameCategory(cat, name)}
+                        onOpenBulkPrice={() => setBulkPriceCat(cat.id)}
+                        onEditProduct={(productId) => setEditor({ productId, categoryId: cat.id })}
+                        onReloadCategory={() => reloadCategory(cat.id)}
+                      />
+                    </SortableRow>
+                  ))}
+                </SortableContext>
+              </DndContext>
             )}
 
             {/* Создание категории */}

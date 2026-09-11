@@ -75,13 +75,14 @@ async def show_games_list(
     if services:
         result = await db.execute(
             select(Game)
-            .where(Game.is_active == True, Game.tags.contains(["service"]))
+            .where(Game.is_active == True, Game.type == "service")
             .order_by(Game.sort_order.asc(), Game.name.asc())
         )
     else:
+        # Игры: type != 'service' (включая 'game' и возможные NULL у старых записей)
         result = await db.execute(
             select(Game)
-            .where(Game.is_active == True, ~Game.tags.contains(["service"]))
+            .where(Game.is_active == True, Game.type != "service")
             .order_by(Game.sort_order.asc(), Game.name.asc())
         )
     games = list(result.scalars().all())

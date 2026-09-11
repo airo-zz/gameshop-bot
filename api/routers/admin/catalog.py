@@ -178,7 +178,55 @@ async def update_game(
     return game
 
 
+@router.delete("/games/{game_id}", status_code=status.HTTP_204_NO_CONTENT,
+               dependencies=[require_permission("catalog.edit")])
+async def delete_game(
+    game_id: uuid.UUID,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> None:
+    result = await db.execute(select(Game).where(Game.id == game_id))
+    game = result.scalar_one_or_none()
+    if not game:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Игра не найдена")
+
+    from sqlalchemy import func as sqlfunc
+    cnt = await db.execute(
+        select(sqlfunc.count()).select_from(Category).where(Category.game_id == game_id)
+    )
+    cats_count = cnt.scalar_one() or 0
+    if cats_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Нельзя удалить: в игре {cats_count} категор(ий). Сначала удалите их.",
+        )
+
+    await log_admin_action(
+        db=db, admin=admin, action="game.delete", entity_type="game",
+        entity_id=game.id, before_data={"name": game.name},
+    )
+    await db.delete(game)
+
+
 # ── Categories ────────────────────────────────────────────────────────────────
+
+
+@router.post("/categories/reorder", status_code=status.HTTP_204_NO_CONTENT,
+             dependencies=[require_permission("catalog.edit")])
+async def reorder_categories(
+    body: ReorderIn,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> None:
+    """Массово обновляет sort_order для категорий (порядок подразделов)."""
+    for item in body.items:
+        result = await db.execute(select(Category).where(Category.id == item.id))
+        category = result.scalar_one_or_none()
+        if category:
+            category.sort_order = item.sort_order
+    await db.commit()
+    await log_admin_action(db, admin, "categories.reorder", "category",
+                           description=f"reordered {len(body.items)} items")
 
 
 @router.get("/games/{game_id}/categories", response_model=list[CategoryOut])
