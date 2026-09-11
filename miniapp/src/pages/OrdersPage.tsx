@@ -1,9 +1,9 @@
 // src/pages/OrdersPage.tsx
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Package, ChevronRight } from 'lucide-react'
+import { Package, ChevronRight, Search } from 'lucide-react'
 import { ordersApi } from '@/api'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -28,6 +28,7 @@ export default function OrdersPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const navigating = useRef(false)
+  const [search, setSearch] = useState('')
 
   async function handleOrderClick(id: string) {
     if (navigating.current) return
@@ -49,8 +50,11 @@ export default function OrdersPage() {
     staleTime: 30_000,
   })
 
-  // Скрываем неоплаченные заказы (new, pending_payment)
-  const orders = rawOrders.filter(o => o.status !== 'new' && o.status !== 'pending_payment')
+  // Показываем все заказы (паритет с ботом). Поиск — по номеру заказа.
+  const q = search.trim().toLowerCase()
+  const orders = q
+    ? rawOrders.filter(o => o.order_number.toLowerCase().includes(q))
+    : rawOrders
 
   if (isError) return (
     <div style={{ textAlign: 'center', padding: '60px 20px' }}>
@@ -75,7 +79,28 @@ export default function OrdersPage() {
     >
       <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>Мои заказы</h1>
 
+      {rawOrders.length > 0 && (
+        <div
+          className="flex items-center gap-2 rounded-2xl px-3"
+          style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+        >
+          <Search size={16} style={{ color: 'var(--hint)' }} />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Поиск по номеру заказа"
+            className="flex-1 bg-transparent py-2.5 text-sm focus:outline-none"
+            style={{ color: 'var(--text)' }}
+          />
+        </div>
+      )}
+
       {orders.length === 0 ? (
+        q ? (
+          <p className="text-sm text-center py-16" style={{ color: 'var(--hint)' }}>
+            По запросу «{search}» ничего не найдено
+          </p>
+        ) : (
         <div className="flex flex-col items-center justify-center py-20 gap-5">
           <div
             className="w-24 h-24 rounded-3xl flex items-center justify-center"
@@ -89,6 +114,7 @@ export default function OrdersPage() {
           </div>
           <Link to="/catalog" className="btn-primary" style={{ maxWidth: 200 }}>В каталог</Link>
         </div>
+        )
       ) : (
         <div className="space-y-2">
           {orders.map(order => (

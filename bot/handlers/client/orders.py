@@ -21,7 +21,7 @@ from sqlalchemy import desc, select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import Order, OrderItem, OrderStatus, User
+from shared.models import Order, OrderStatus, User
 from shared.content import get_photo_url
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, render_screen
@@ -51,10 +51,26 @@ STATUS_LABEL = {
 PAGE_SIZE = 10
 
 
+async def _load_orders_page(db: AsyncSession, user_id, page: int) -> tuple[list[Order], bool]:
+    """Возвращает заказы страницы и флаг наличия следующей (fetch PAGE_SIZE+1)."""
+    result = await db.execute(
+        select(Order)
+        .where(Order.user_id == user_id)
+        .order_by(desc(Order.created_at))
+        .offset(page * PAGE_SIZE)
+        .limit(PAGE_SIZE + 1)
+    )
+    orders = list(result.scalars().all())
+    has_next = len(orders) > PAGE_SIZE
+    return orders[:PAGE_SIZE], has_next
+
+
 async def _render_orders(
     orders: list[Order],
+    page: int = 0,
+    has_next: bool = False,
 ) -> tuple[str, InlineKeyboardMarkup]:
-    if not orders:
+    if not orders and page == 0:
         return texts.orders_empty, InlineKeyboardMarkup(
             inline_keyboard=[
                 [
@@ -81,6 +97,15 @@ async def _render_orders(
             ]
         )
 
+    # Навигация страницами
+    nav: list[InlineKeyboardButton] = []
+    if page > 0:
+        nav.append(InlineKeyboardButton(text="◀️", callback_data=f"orders:page:{page - 1}"))
+    if has_next:
+        nav.append(InlineKeyboardButton(text="▶️", callback_data=f"orders:page:{page + 1}"))
+    if nav:
+        buttons.append(nav)
+
     buttons.append(
         [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary")]
     )
@@ -90,14 +115,8 @@ async def _render_orders(
 @router.message(Command("orders"))
 @router.message(F.text == "📋 Мои заказы")
 async def cmd_orders(message: Message, user: User, db: AsyncSession, state: FSMContext) -> None:
-    result = await db.execute(
-        select(Order)
-        .where(Order.user_id == user.id)
-        .order_by(desc(Order.created_at))
-        .limit(PAGE_SIZE)
-    )
-    orders = list(result.scalars().all())
-    text, keyboard = await _render_orders(orders)
+    orders, has_next = await _load_orders_page(db, user.id, 0)
+    text, keyboard = await _render_orders(orders, page=0, has_next=has_next)
     photo_url = await get_photo_url(db, "orders")
     await render_screen(message, state, text, photo_url=photo_url, reply_markup=keyboard)
 
@@ -106,16 +125,26 @@ async def cmd_orders(message: Message, user: User, db: AsyncSession, state: FSMC
 async def cb_orders_list(
     call: CallbackQuery, user: User, db: AsyncSession, state: FSMContext
 ) -> None:
-    result = await db.execute(
-        select(Order)
-        .where(Order.user_id == user.id)
-        .order_by(desc(Order.created_at))
-        .limit(PAGE_SIZE)
-    )
-    orders = list(result.scalars().all())
-    text, keyboard = await _render_orders(orders)
+    orders, has_next = await _load_orders_page(db, user.id, 0)
+    text, keyboard = await _render_orders(orders, page=0, has_next=has_next)
     photo_url = await get_photo_url(db, "orders")
     await render_screen(call, state, text, photo_url=photo_url, reply_markup=keyboard)
+
+
+@router.callback_query(F.data.startswith("orders:page:"))
+async def cb_orders_page(
+    call: CallbackQuery, user: User, db: AsyncSession, state: FSMContext
+) -> None:
+    try:
+        page = max(0, int(call.data.split(":")[2]))
+    except (IndexError, ValueError):
+        await call.answer()
+        return
+    orders, has_next = await _load_orders_page(db, user.id, page)
+    text, keyboard = await _render_orders(orders, page=page, has_next=has_next)
+    photo_url = await get_photo_url(db, "orders")
+    await render_screen(call, state, text, photo_url=photo_url, reply_markup=keyboard)
+    await call.answer()
 
 
 @router.callback_query(F.data.startswith("order:detail:"))
