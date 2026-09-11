@@ -63,6 +63,8 @@ def _category_to_out(
         parent_id=cat.parent_id,
         children=children,
         delivery_type=delivery_type,
+        auto_engine=cat.auto_engine,
+        input_fields=cat.input_fields,
     )
 
 

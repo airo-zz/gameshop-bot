@@ -8,6 +8,7 @@ Async SQLAlchemy сессия и управление соединением.
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -53,6 +54,35 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
         except Exception:
             await session.rollback()
             raise
+
+
+# ── Изолированная сессия для Celery-задач ──────────────────────────────────────
+@asynccontextmanager
+async def get_worker_db_session() -> AsyncGenerator[AsyncSession, None]:
+    """Сессия на СВЕЖЕМ engine, привязанном к текущему event loop.
+
+    Celery-задачи запускают свой `asyncio.run()` на каждый вызов — новый loop
+    каждый раз. Общий модульный `engine` держит пул соединений, привязанный к
+    ПЕРВОМУ loop'у; при повторном вызове это даёт «attached to a different loop»
+    / «Event loop is closed». Поэтому здесь создаём отдельный engine с NullPool
+    (без пула) и гарантированно закрываем его в конце задачи.
+    """
+    eng = create_async_engine(
+        settings.DATABASE_URL, poolclass=NullPool, pool_pre_ping=True
+    )
+    factory = async_sessionmaker(
+        bind=eng, class_=AsyncSession, expire_on_commit=False, autoflush=False
+    )
+    try:
+        async with factory() as session:
+            try:
+                yield session
+                await session.commit()
+            except Exception:
+                await session.rollback()
+                raise
+    finally:
+        await eng.dispose()
 
 
 # ── FastAPI Dependency ─────────────────────────────────────────────────────────

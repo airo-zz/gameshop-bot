@@ -42,6 +42,12 @@ def resolve_field_sources(products: list) -> dict[str, dict]:
     for p in products:
         cat = getattr(p, "category", None)
         game = getattr(cat, "game", None) if cat else None
+        # Telegram (авто-движок): поля покупателя (@username) собираются на экране
+        # подраздела и лежат в позиции заказа — на чекауте их НЕ спрашиваем.
+        if cat is not None and getattr(cat, "auto_engine", None) in (
+            "telegram_stars", "telegram_premium"
+        ):
+            continue
         cat_fields = (getattr(cat, "input_fields", None) or []) if cat else []
         if cat_fields:
             sources[str(cat.id)] = {"name": cat.name, "fields": cat_fields}

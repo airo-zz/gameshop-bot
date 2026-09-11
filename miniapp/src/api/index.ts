@@ -33,6 +33,10 @@ export interface Category {
   parent_id: string | null
   children: Category[]
   delivery_type: 'auto' | 'manual' | 'mixed' | null
+  // Авто-движок выдачи (T20): telegram_stars | telegram_premium | null
+  auto_engine?: string | null
+  // Поля покупателя подраздела (для Telegram собираются тут, а не на оплате)
+  input_fields?: InputField[] | null
 }
 
 export interface TrendingCategory {

@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Zap, Clock, Plus, Minus, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { catalogApi, cartApi, type Category, type Product } from '@/api'
+import { catalogApi, cartApi, type Category, type Product, type InputField } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useDragScroll } from '@/hooks/useDragScroll'
 import { useCartStore } from '@/store'
@@ -48,8 +48,8 @@ function ProductRow({ product, cartQty, onAdd, onRemove }: ProductRowProps) {
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <input
-            type="number" inputMode="numeric" min={minQty} value={qty}
-            onChange={(e) => setQty(e.target.value)}
+            type="text" inputMode="numeric" pattern="[0-9]*" value={qty}
+            onChange={(e) => setQty(e.target.value.replace(/\D/g, ''))}
             onBlur={() => setQty(String(Math.max(minQty, Math.floor(Number(qty) || 0))))}
             style={{
               width: 96, height: 40, textAlign: 'center', borderRadius: 12,
@@ -272,6 +272,18 @@ export default function GamePage() {
   const gameName = gameFromApi?.name ?? slug?.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) ?? ''
   const rootCats = (cats: Category[]) => cats.filter(c => !c.parent_id)
 
+  // Telegram-подраздел (авто-выдача): поля покупателя (@username) вводятся ЗДЕСЬ,
+  // на экране подраздела, а не на оплате. Берём поля категории, иначе — игры.
+  const activeCategory = categories.find(c => c.id === activeCatId)
+    ?? categories.flatMap(c => c.children ?? []).find(c => c.id === activeCatId)
+  const isTgAuto = !!activeCategory?.auto_engine
+  const tgFieldDefs: InputField[] = isTgAuto
+    ? ((activeCategory?.input_fields?.length ? activeCategory.input_fields : gameFromApi?.input_fields) ?? [])
+    : []
+  const [tgFields, setTgFields] = useState<Record<string, string>>({})
+  // Сбрасываем введённые поля при смене подраздела.
+  useEffect(() => { setTgFields({}) }, [activeCatId])
+
   const handleAdd = async (product: Product, inputData?: Record<string, string>, qty: number = 1) => {
     const key = product.id
     if (pendingKeys.current.has(key)) return
@@ -340,6 +352,23 @@ export default function GamePage() {
         return next
       })
       pendingKeys.current.delete(key)
+    }
+  }
+
+  // Добавление с учётом Telegram-полей подраздела: валидируем обязательные и
+  // прикрепляем @username к позиции корзины (на оплате их уже не спрашиваем).
+  const addWithTg = (product: Product, inputData?: Record<string, string>, qty: number = 1) => {
+    if (isTgAuto && tgFieldDefs.length) {
+      for (const f of tgFieldDefs) {
+        if (f.required && !(tgFields[f.key] ?? '').trim()) {
+          haptic.error()
+          toast.error(`Заполните: ${f.label}`)
+          return
+        }
+      }
+      handleAdd(product, { ...tgFields, ...(inputData ?? {}) }, qty)
+    } else {
+      handleAdd(product, inputData, qty)
     }
   }
 
@@ -470,12 +499,54 @@ export default function GamePage() {
           </div>
         ) : (
           <div className="space-y-2">
+            {isTgAuto && tgFieldDefs.length > 0 && (
+              <div style={{
+                background: 'var(--bg2)', border: '1px solid rgba(45,88,173,0.3)',
+                borderRadius: 16, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10,
+              }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#6b9de8' }}>
+                  Данные получателя
+                </span>
+                {tgFieldDefs.map(f => (
+                  <div key={f.key}>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--hint)', display: 'block', marginBottom: 4 }}>
+                      {f.label}{f.required && <span style={{ color: '#f87171' }}> *</span>}
+                    </label>
+                    {f.type === 'select' ? (
+                      <select
+                        value={tgFields[f.key] ?? ''}
+                        onChange={(e) => setTgFields(prev => ({ ...prev, [f.key]: e.target.value }))}
+                        style={{
+                          width: '100%', height: 40, borderRadius: 12, padding: '0 12px',
+                          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
+                          color: 'var(--text)', fontSize: '0.9rem',
+                        }}
+                      >
+                        <option value="">— выберите —</option>
+                        {(f.options ?? []).map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    ) : (
+                      <input
+                        value={tgFields[f.key] ?? ''}
+                        onChange={(e) => setTgFields(prev => ({ ...prev, [f.key]: e.target.value }))}
+                        placeholder={f.placeholder || ''}
+                        style={{
+                          width: '100%', height: 40, borderRadius: 12, padding: '0 12px',
+                          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
+                          color: 'var(--text)', fontSize: '0.9rem',
+                        }}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
             {products.map(product => (
                 <ProductRow
                   key={product.id}
                   product={product}
                   cartQty={cartQtyMap.get(product.id) ?? 0}
-                  onAdd={(inputData, qty) => handleAdd(product, inputData, qty)}
+                  onAdd={(inputData, qty) => addWithTg(product, inputData, qty)}
                   onRemove={() => handleRemove(product)}
                 />
               ))}

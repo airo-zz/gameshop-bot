@@ -39,6 +39,10 @@ class CategoryOut(BaseModel):
     parent_id: uuid.UUID | None
     children: list["CategoryOut"] = []
     delivery_type: str | None = None  # 'auto' | 'manual' | 'mixed' | None
+    # Движок автовыдачи (T20): telegram_stars | telegram_premium | None.
+    auto_engine: str | None = None
+    # Поля покупателя категории (для авто-движка собираются на экране подраздела).
+    input_fields: list[dict] | None = None
 
 
 class ProductListOut(BaseModel):

@@ -36,14 +36,22 @@ def deliver_fragment_order(self, order_id: str):
     asyncio.run(_deliver_async(order_id))
 
 
-def _make_opt(input_data: dict):
+def _make_opt(order_input_data: dict, item_input_data: dict | None = None):
     """Строит колбэк opt(*names) — ищет значение поля покупателя по имени/подписи.
 
     Движки Fragment зовут ctx['opt']('username','телеграм','telegram','@') чтобы
     достать @username получателя. Матчим подстрокой по key И label поля.
+
+    Источники (для Telegram @username собирается на экране подраздела → лежит в
+    позиции заказа item_input_data (плоский {key: value}); для остального —
+    order_input_data (вложенный {sid: {fields: [{key,label,value}]}})).
     """
     entries: list[tuple[str, str]] = []
-    for src in (input_data or {}).values():
+    # Плоские поля позиции (приоритетнее — их вводили именно для этого товара)
+    for k, v in (item_input_data or {}).items():
+        entries.append((str(k).lower(), v))
+    # Вложенные поля уровня заказа (чекаут)
+    for src in (order_input_data or {}).values():
         for f in (src.get("fields") or []):
             if not isinstance(f, dict):
                 continue
@@ -70,12 +78,12 @@ async def _deliver_async(order_id: str) -> None:
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
 
-    from shared.database.session import get_db_session
+    from shared.database.session import get_worker_db_session
     from shared.models import Order, OrderItem, OrderStatus
     from shared.models.catalog import Product
     from api.services.fragment_config import get_full_config
 
-    async with get_db_session() as db:
+    async with get_worker_db_session() as db:
         cfg = await get_full_config(db)
         if not cfg.get("enabled"):
             logger.info("fragment: автовыдача выключена, order=%s", order_id)
@@ -104,8 +112,6 @@ async def _deliver_async(order_id: str) -> None:
             ).scalars().all()
         )
 
-        opt = _make_opt(order.input_data or {})
-
         # Ленивое создание движков (у каждого свой TonClient-поток) — по одному на тип.
         engines: dict = {}
 
@@ -129,12 +135,19 @@ async def _deliver_async(order_id: str) -> None:
             if item.delivered_at is not None:
                 continue  # уже выдано
 
+            # Кандидаты на поле @username: сначала типовые подсказки, затем
+            # реальные ключи полей позиции (Telegram-поля вводятся на подразделе)
+            # — чтобы движок нашёл получателя как бы поле ни назвали.
+            username_field = [
+                "username", "телеграм", "telegram", "юзернейм", "@",
+                *list((item.input_data or {}).keys()),
+            ]
             ctx = {
-                "opt": opt,
+                "opt": _make_opt(order.input_data or {}, item.input_data or {}),
                 "cnt_goods": item.quantity,   # для Stars = кол-во звёзд
                 "product_name": item.product_name,
                 "options": {},
-                "lot": {},
+                "lot": {"username_field": username_field},
             }
             try:
                 engine = _get_engine(kind)
@@ -201,12 +214,12 @@ async def _finalize_if_complete(order_id: str) -> None:
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
 
-    from shared.database.session import get_db_session
+    from shared.database.session import get_worker_db_session
     from shared.models import Order, OrderItem, OrderStatus
     from shared.models.catalog import Product
     from api.services.order_service import OrderService
 
-    async with get_db_session() as db:
+    async with get_worker_db_session() as db:
         order = (
             await db.execute(select(Order).where(Order.id == order_id))
         ).scalar_one_or_none()

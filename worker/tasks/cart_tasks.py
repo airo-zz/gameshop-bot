@@ -24,14 +24,14 @@ def check_abandoned_carts(self):
 async def _check_abandoned_carts_async():
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
-    from shared.database.session import get_db_session
+    from shared.database.session import get_worker_db_session
     from shared.models import Cart, CartItem, AbandonedCart
 
     threshold = datetime.now(timezone.utc) - timedelta(
         hours=settings.ABANDONED_CART_HOURS
     )
 
-    async with get_db_session() as db:
+    async with get_worker_db_session() as db:
         # Корзины с товарами, не обновлявшиеся > N часов
         result = await db.execute(
             select(Cart)
@@ -157,10 +157,10 @@ def recalculate_all_loyalty():
 
 async def _recalculate_all_async():
     from sqlalchemy import select
-    from shared.database.session import get_db_session
+    from shared.database.session import get_worker_db_session
     from shared.models import LoyaltyLevel, User
 
-    async with get_db_session() as db:
+    async with get_worker_db_session() as db:
         # Получаем все уровни отсортированные по убыванию min_spent
         levels_result = await db.execute(
             select(LoyaltyLevel)
@@ -200,12 +200,12 @@ def expire_pending_orders():
 async def _expire_orders_async():
     from sqlalchemy import select
     from datetime import timedelta
-    from shared.database.session import get_db_session
+    from shared.database.session import get_worker_db_session
     from shared.models import Order, OrderStatus
 
     cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
 
-    async with get_db_session() as db:
+    async with get_worker_db_session() as db:
         result = await db.execute(
             select(Order).where(
                 Order.status == OrderStatus.pending_payment,

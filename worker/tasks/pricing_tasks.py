@@ -24,12 +24,12 @@ async def _refresh_async():
 
     from sqlalchemy import select
 
-    from shared.database.session import get_db_session
+    from shared.database.session import get_worker_db_session
     from shared.models import Product
     from api.services.pricing import usd_to_rub
     from api.services.rapira_service import get_markup_percent, refresh_usd_rub_rate
 
-    async with get_db_session() as db:
+    async with get_worker_db_session() as db:
         try:
             rate = await refresh_usd_rub_rate(db)
         except Exception as exc:  # noqa: BLE001 — сетевой сбой не должен ронять задачу
