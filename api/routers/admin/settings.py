@@ -434,6 +434,26 @@ async def update_pricing_settings(
     await _set(MARKUP_KEYS["balance"], body.markup_balance, "Наценка баланс, %")
     await db.flush()
 
+    # Пересчитываем ₽-цену показа для всех USD-товаров под наценку группы показа
+    # (по умолчанию balance = 0 → база без наценки). Наценка метода добавляется
+    # на оплате, а не в каталоге.
+    from decimal import Decimal as _D
+
+    from sqlalchemy import select as _select
+
+    from api.services.pricing import usd_to_rub
+    from api.services.rapira_service import DISPLAY_GROUP
+    from shared.models import Product
+
+    rate_now = float(await get_usd_rub_rate(db))
+    display_markup = {
+        "crypto": body.markup_crypto, "card": body.markup_card,
+        "sbp": body.markup_sbp, "balance": body.markup_balance,
+    }[DISPLAY_GROUP]
+    products = (await db.execute(_select(Product).where(Product.price_usd.is_not(None)))).scalars().all()
+    for p in products:
+        p.price = _D(str(usd_to_rub(float(p.price_usd), rate_now, display_markup)))
+
     await log_admin_action(
         db=db, admin=admin, action="shop_settings.update",
         entity_type="shop_settings", entity_id=None,

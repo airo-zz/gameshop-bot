@@ -59,18 +59,19 @@ async def get_cart(db: DbSession, user: CurrentUser):
 async def get_cart_quote(db: DbSession, user: CurrentUser):
     """Итоговая сумма корзины по каждому способу оплаты (с наценкой метода)."""
     from api.services.pricing import method_total
-    from api.services.rapira_service import get_all_markups
+    from api.services.rapira_service import DISPLAY_GROUP, get_all_markups
 
     svc = CartService(db)
     cart = await svc.get_or_create_cart(user)
     summary = await svc.get_cart_summary(cart, user)
-    base = float(summary["total"])  # крипто-база с учётом скидки
+    base = float(summary["total"])  # база показа (без наценки метода) с учётом скидки
     markups = await get_all_markups(db)
+    disp = markups[DISPLAY_GROUP]  # наценка, заложенная в base (по умолч. баланс = 0)
     return {
-        "crypto": method_total(base, markups["crypto"], markups["crypto"]),
-        "balance": method_total(base, markups["crypto"], markups["balance"]),
-        "card": method_total(base, markups["crypto"], markups["card"]),
-        "sbp": method_total(base, markups["crypto"], markups["sbp"]),
+        "crypto": method_total(base, disp, markups["crypto"]),
+        "balance": method_total(base, disp, markups["balance"]),
+        "card": method_total(base, disp, markups["card"]),
+        "sbp": method_total(base, disp, markups["sbp"]),
     }
 
 

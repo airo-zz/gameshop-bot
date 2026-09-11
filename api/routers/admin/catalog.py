@@ -680,6 +680,16 @@ async def bulk_price_update(
 ) -> dict:
     from decimal import Decimal, ROUND_HALF_UP
 
+    # percent: допускаем снижение (отриц.), но не ниже -100% (цена не может стать ≤0
+    # для 100% и уйти в минус). fixed: неотрицательная цена.
+    if body.mode == "percent":
+        if body.value <= -100:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail="Снижение не может быть 100% и более")
+    elif body.value < 0:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                            detail="Цена не может быть отрицательной")
+
     q = select(Product)
     if body.scope == "game" and body.game_id:
         category_ids_q = select(Category.id).where(Category.game_id == body.game_id)

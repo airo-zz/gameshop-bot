@@ -324,7 +324,9 @@ class ReorderIn(BaseModel):
 
 class BulkPriceUpdateIn(BaseModel):
     mode: str = Field(..., pattern="^(percent|fixed)$")
-    value: float = Field(..., ge=0)
+    # percent: может быть отрицательным (снижение, напр. -5); fixed: цена ≥ 0.
+    # Диапазон проверяется в эндпоинте с учётом mode.
+    value: float
     scope: str = Field(..., pattern="^(game|category|selected)$")
     game_id: uuid.UUID | None = None
     category_id: uuid.UUID | None = None

@@ -33,8 +33,10 @@ MARKUP_KEYS = {
     "sbp": "markup_sbp",
     "balance": "markup_balance",
 }
-# База отображения (каталог/корзина) считается по крипте
-DISPLAY_GROUP = "crypto"
+# База отображения (каталог/корзина) — БЕЗ наценки платёжки: цена как при оплате
+# балансом (комиссия уже оплачена при пополнении). Наценка метода добавляется
+# только на шаге оплаты (см. method_total / cart.quote). balance по умолч. = 0.
+DISPLAY_GROUP = "balance"
 
 FALLBACK_RATE = Decimal("90")
 DEFAULT_MARKUP = Decimal("0")

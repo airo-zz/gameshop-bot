@@ -77,8 +77,18 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
 
   const handleApply = async () => {
     const numVal = parseFloat(value)
-    if (isNaN(numVal) || numVal < 0) {
+    if (isNaN(numVal)) {
       toast.error('Введите корректное значение')
+      return
+    }
+    if (mode === 'percent') {
+      // Процент может быть отрицательным (снижение), но не ≤ -100%.
+      if (numVal <= -100) {
+        toast.error('Снижение не может быть 100% и более')
+        return
+      }
+    } else if (numVal < 0) {
+      toast.error('Цена не может быть отрицательной')
       return
     }
     setLoading(true)
@@ -135,11 +145,11 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
           </label>
           <input
             type="number"
-            min="0"
+            min={mode === 'percent' ? undefined : '0'}
             step={mode === 'percent' ? '1' : '0.01'}
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            placeholder={mode === 'percent' ? 'Например: 10' : 'Например: 299'}
+            placeholder={mode === 'percent' ? 'Например: 10 или -5' : 'Например: 299'}
             className={inputCls}
           />
           {mode === 'percent' && value && !isNaN(parseFloat(value)) && (

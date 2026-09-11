@@ -34,14 +34,20 @@ def usd_to_rub(usd: float, rate: float, markup_percent: float = 0.0) -> int:
     return round_to_nine(raw)
 
 
-def method_total(base_rub: float, crypto_markup: float, method_markup: float) -> int:
+def method_total(base_rub: float, display_markup: float, method_markup: float) -> float:
     """
-    Итог по способу оплаты. base_rub уже посчитан с крипто-наценкой (база показа);
-    множитель приводит его к наценке выбранного метода. Округление «в 9».
+    Итог по способу оплаты.
+
+    base_rub — цена показа (каталог/корзина), в неё заложена наценка display_markup
+    (по умолчанию это баланс = 0, т.е. base_rub — чистая база). Снимаем её и
+    накладываем наценку выбранного метода.
+
+    БЕЗ округления «в 9»: возвращаем точную сумму до копеек — база (уже округлённая
+    «в 9») плюс процент платёжки даёт неровное число, и это ожидаемо.
     """
-    denom = 1 + float(crypto_markup) / 100
-    mult = (1 + float(method_markup) / 100) / denom if denom else 1.0
-    return round_to_nine(float(base_rub) * mult)
+    denom = 1 + float(display_markup) / 100
+    net = float(base_rub) / denom if denom else float(base_rub)
+    return round(net * (1 + float(method_markup) / 100), 2)
 
 
 def rub_to_usd(rub: float, rate: float) -> float:

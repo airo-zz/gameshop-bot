@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from api.services.pricing import method_total
-from api.services.rapira_service import get_all_markups, method_group
+from api.services.rapira_service import DISPLAY_GROUP, get_all_markups, method_group
 
 from shared.models import (
     BalanceTransaction, Cart, CartItem, Order, OrderDiscountLog,
@@ -121,11 +121,12 @@ class OrderService:
         if payment_method:
             markups = await get_all_markups(self.db)
             grp = method_group(payment_method)
+            disp = markups[DISPLAY_GROUP]
             new_total = method_total(
-                float(base_total), markups["crypto"], markups.get(grp, markups["crypto"])
+                float(base_total), disp, markups.get(grp, disp)
             )
             total = Decimal(str(new_total))
-            fee = new_total - float(base_total)
+            fee = round(new_total - float(base_total), 2)
             if fee:
                 order_meta["method_fee"] = fee
 
@@ -216,9 +217,10 @@ class OrderService:
         base = float(order.subtotal) - float(order.discount_amount)
         markups = await get_all_markups(self.db)
         grp = method_group(method)
-        new_total = method_total(base, markups["crypto"], markups.get(grp, markups["crypto"]))
+        disp = markups[DISPLAY_GROUP]
+        new_total = method_total(base, disp, markups.get(grp, disp))
         order.total_amount = Decimal(str(new_total))
-        fee = new_total - base
+        fee = round(new_total - base, 2)
         meta = {k: v for k, v in (order.meta or {}).items() if k != "method_fee"}
         if fee:
             meta["method_fee"] = fee
