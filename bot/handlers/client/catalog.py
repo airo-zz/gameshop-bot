@@ -168,15 +168,14 @@ async def cb_catalog_game(call: CallbackQuery, db: AsyncSession) -> None:
     await call.answer()
 
 
-@router.callback_query(F.data.startswith("catalog:cat:"))
-async def cb_catalog_category(call: CallbackQuery, db: AsyncSession, user: User) -> None:
-    category_id_str = call.data.split(":")[2]
-    try:
-        category_id = uuid.UUID(category_id_str)
-    except ValueError:
-        await call.answer("Некорректный ID категории", show_alert=True)
-        return
-
+async def _render_category(
+    call: CallbackQuery,
+    category_id: uuid.UUID,
+    db: AsyncSession,
+    user: User,
+    toast: str | None = None,
+) -> None:
+    """Рисует список товаров категории. Клик по товару = добавить в корзину."""
     category = await db.get(Category, category_id)
     if not category:
         await call.answer("Категория не найдена", show_alert=True)
@@ -196,16 +195,25 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession, user: User)
     cart = await CartService(db).get_or_create_cart(user)
     cart_total = float(cart.total) if not cart.is_empty else None
 
+    # Кол-во каждого товара в корзине
+    qty_map: dict = {}
+    for it in cart.items:
+        qty_map[it.product_id] = qty_map.get(it.product_id, 0) + it.quantity
+
     if len(products) == 1:
         return await _show_product(call, products[0].id, db, cart=cart)
 
     game = await db.get(Game, category.game_id)
     game_name = game.name if game else "Игра"
 
-    buttons = [
-        [InlineKeyboardButton(text=p.name, callback_data=f"catalog:product:{p.id}")]
-        for p in products
-    ]
+    buttons = []
+    for p in products:
+        q = qty_map.get(p.id, 0)
+        label = f"{p.name} — {float(p.price):.0f} ₽"
+        if q:
+            label += f" (в корзине: {q})"
+        buttons.append([InlineKeyboardButton(text=label, callback_data=f"catalog:qadd:{p.id}")])
+
     cart_row = _cart_button(cart_total)
     if cart_row:
         buttons.append(cart_row)
@@ -229,7 +237,49 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession, user: User)
         texts.category_header(game_name, category.name),
         reply_markup=keyboard,
     )
-    await call.answer()
+    await call.answer(toast or "")
+
+
+@router.callback_query(F.data.startswith("catalog:cat:"))
+async def cb_catalog_category(call: CallbackQuery, db: AsyncSession, user: User) -> None:
+    category_id_str = call.data.split(":")[2]
+    try:
+        category_id = uuid.UUID(category_id_str)
+    except ValueError:
+        await call.answer("Некорректный ID категории", show_alert=True)
+        return
+    await _render_category(call, category_id, db, user)
+
+
+@router.callback_query(F.data.startswith("catalog:qadd:"))
+async def cb_catalog_quick_add(call: CallbackQuery, db: AsyncSession, user: User) -> None:
+    """Клик по товару в списке — добавляет 1 шт в корзину и обновляет список."""
+    try:
+        product_id = uuid.UUID(call.data.split(":")[2])
+    except (IndexError, ValueError):
+        await call.answer("Ошибка", show_alert=True)
+        return
+
+    result = await db.execute(
+        select(Product).where(Product.id == product_id, Product.is_active == True)
+    )
+    product = result.scalar_one_or_none()
+    if not product:
+        await call.answer("❌ Товар недоступен", show_alert=True)
+        return
+    if product.is_out_of_stock:
+        await call.answer("❌ Нет в наличии", show_alert=True)
+        return
+
+    try:
+        await _persist_cart_item(db, user, product, {})
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        await call.answer("Ошибка при добавлении в корзину", show_alert=True)
+        return
+
+    await _render_category(call, product.category_id, db, user, toast=f"✅ {product.name}")
 
 
 @router.callback_query(F.data.startswith("catalog:cat:reset:"))
