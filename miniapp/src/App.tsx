@@ -57,6 +57,7 @@ const FavoritesPage  = lazy(() => import('@/pages/FavoritesPage'))
 const SearchPage     = lazy(() => import('@/pages/SearchPage'))
 const SupportPage    = lazy(() => import('@/pages/SupportPage'))
 const ChatPage       = lazy(() => import('@/pages/ChatPage'))
+const PayOrderPage   = lazy(() => import('@/pages/PayOrderPage'))
 
 // Admin — structural components eagerly imported to avoid cascading Suspense flashes
 import AdminLayout from '@/components/admin/AdminLayout'
@@ -197,6 +198,7 @@ export default function App() {
           <Route path="checkout"     element={<LazyPage><CheckoutPage /></LazyPage>} />
           <Route path="orders"       element={<LazyPage><OrdersPage /></LazyPage>} />
           <Route path="orders/:id"   element={<LazyPage><OrderDetailPage /></LazyPage>} />
+          <Route path="pay/:orderId" element={<LazyPage><PayOrderPage /></LazyPage>} />
           <Route path="profile"      element={<LazyPage><ProfilePage /></LazyPage>} />
           <Route path="favorites"    element={<LazyPage><FavoritesPage /></LazyPage>} />
           <Route path="search"       element={<LazyPage><SearchPage /></LazyPage>} />

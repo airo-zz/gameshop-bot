@@ -281,7 +281,13 @@ export const ordersApi = {
   get: (id: string) =>
     apiClient.get<Order>(`/orders/${id}`).then(r => r.data),
 
-  pay: (orderId: string) =>
+  // Котировка по способам оплаты для заранее созданного заказа (спец-лот)
+  payQuote: (orderId: string) =>
+    apiClient.get<{ crypto: number; balance: number; card: number; sbp: number }>(
+      `/orders/${orderId}/pay-quote`,
+    ).then(r => r.data),
+
+  pay: (orderId: string, body?: { payment_method?: string; crypto_currency?: string }) =>
     apiClient.post<{
       payment_id: string
       method: string
@@ -289,7 +295,7 @@ export const ordersApi = {
       redirect_url?: string
       mini_app_invoice_url?: string
       success?: boolean
-    }>(`/payments/orders/${orderId}/pay`).then(r => r.data),
+    }>(`/payments/orders/${orderId}/pay`, body ?? {}).then(r => r.data),
 }
 
 // ── Profile API ───────────────────────────────────────────────────────────────

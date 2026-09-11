@@ -113,7 +113,44 @@ function TextWithLinks({ text }: { text: string }): ReactNode {
 // Matches: "Заказ #001000 на сумму 1 500 ₽ успешно оплачен. Товар: X. Ожидайте...|oid=uuid"
 const PAYMENT_RE = /^(Заказ\s+#\S+\s+на\s+сумму\s+[\d\s\u00a0]+₽\s+успешно\s+оплачен\..*?)(?:\|oid=([a-f0-9-]+))?$/s
 
+// Индивидуальный лот: "__lot__|{orderId}|{price}|{title}" → карточка с «Оплатить»
+const LOT_RE = /^__lot__\|([0-9a-f-]+)\|(\d+)\|([\s\S]+)$/
+
 function SystemMessage({ text }: { text: string }) {
+  const lot = LOT_RE.exec(text)
+  if (lot) {
+    const [, oid, price, title] = lot
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 8px', marginBottom: 8 }}>
+        <div style={{
+          display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 16px',
+          borderRadius: 16, background: 'rgba(45,88,173,0.12)',
+          border: '1px solid rgba(45,88,173,0.35)', maxWidth: '88%', width: '100%',
+        }}>
+          <span style={{ fontSize: 11, color: '#6b9de8', fontWeight: 700, letterSpacing: 0.3 }}>
+            ИНДИВИДУАЛЬНЫЙ ЛОТ
+          </span>
+          <span style={{ fontSize: 14, color: '#fff', fontWeight: 500, lineHeight: 1.4, wordBreak: 'break-word' }}>
+            {title}
+          </span>
+          <span style={{ fontSize: 18, fontWeight: 800, color: '#93b8f0' }}>
+            {Number(price).toLocaleString('ru')} ₽
+          </span>
+          <Link
+            to={`/pay/${oid}`}
+            style={{
+              marginTop: 2, textAlign: 'center', padding: '10px 14px', borderRadius: 12,
+              background: 'linear-gradient(135deg, #2563eb, #2d58ad)', color: '#fff',
+              fontSize: 14, fontWeight: 600, textDecoration: 'none',
+            }}
+          >
+            Оплатить
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   const match = PAYMENT_RE.exec(text)
 
   if (match) {

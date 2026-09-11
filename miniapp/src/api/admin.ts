@@ -772,6 +772,9 @@ export const adminApi = {
   markChatRead: (chatId: string) =>
     apiClient.post(`/admin/chats/${chatId}/read`).then(r => r.data),
 
+  createCustomLot: (chatId: string, data: { title: string; price: number; description?: string }) =>
+    apiClient.post<{ order_id: string; order_number: string }>(`/admin/chats/${chatId}/custom-lot`, data).then(r => r.data),
+
   notifyUserChat: (chatId: string, text?: string) =>
     apiClient.post(`/admin/chats/${chatId}/notify`, { text }).then(r => r.data),
 }

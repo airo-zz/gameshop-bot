@@ -17,6 +17,7 @@ from pathlib import Path
 import aiofiles
 import structlog
 from fastapi import APIRouter, HTTPException, UploadFile, status
+from pydantic import BaseModel, Field
 from sqlalchemy import select
 
 from api.deps import DbSession
@@ -198,6 +199,51 @@ async def send_message(
     msg = await svc.send_message(chat_id, "admin", text, body.attachments)
     log.info("admin.chat.send", chat_id=str(chat_id), admin_id=str(admin.id))
     return ChatMessageOut.model_validate(msg)
+
+
+class CustomLotRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=256)
+    price: float = Field(..., gt=0, description="Цена в ₽ (база, без наценки метода)")
+    description: str | None = Field(None, max_length=2000)
+
+
+@router.post("/{chat_id}/custom-lot", status_code=201)
+async def create_custom_lot(
+    chat_id: uuid.UUID,
+    body: CustomLotRequest,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> dict:
+    """Создаёт индивидуальный (спец) лот для пользователя чата и постит карточку
+    с кнопкой «Оплатить» в чат. Покупатель выбирает способ оплаты при оплате."""
+    from api.services.order_service import OrderService
+
+    svc = ChatService(db)
+    chat = await svc.get_chat_by_id(chat_id)
+    if chat is None:
+        raise HTTPException(status_code=404, detail="Чат не найден")
+
+    user = (
+        await db.execute(select(User).where(User.telegram_id == chat.user_id))
+    ).scalar_one_or_none()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Пользователь чата не найден")
+
+    try:
+        order = await OrderService(db).create_custom_order(
+            user, body.title, body.price, body.description
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    await db.flush()
+
+    # Карточка-лот в чат (маркер парсится в MiniApp → кнопка «Оплатить»).
+    price_int = int(round(body.price))
+    await svc.add_system_message(chat.user_id, f"__lot__|{order.id}|{price_int}|{body.title.strip()}")
+
+    log.info("admin.chat.custom_lot", chat_id=str(chat_id), admin_id=str(admin.id),
+             order_id=str(order.id))
+    return {"order_id": str(order.id), "order_number": order.order_number}
 
 
 @router.post("/{chat_id}/upload")

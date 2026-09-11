@@ -390,6 +390,18 @@ export default function GamePage() {
   // Добавление с учётом Telegram-полей подраздела: валидируем обязательные и
   // прикрепляем @username к позиции корзины (на оплате их уже не спрашиваем).
   const addWithTg = (product: Product, inputData?: Record<string, string>, qty: number = 1): boolean => {
+    // Telegram Premium: в корзине допустим только ОДИН вариант (срок). Разные
+    // сроки одновременно ломают выдачу — блокируем добавление второго.
+    if (activeCategory?.auto_engine === 'telegram_premium') {
+      const otherInCart = products.find(
+        p => p.id !== product.id && (cartQtyMap.get(p.id) ?? 0) > 0,
+      )
+      if (otherInCart) {
+        haptic.error()
+        toast.error('В корзине уже есть вариант Telegram Premium — сначала удалите его')
+        return false
+      }
+    }
     if (isTgAuto && tgFieldDefs.length) {
       for (const f of tgFieldDefs) {
         if (f.required && !(tgFields[f.key] ?? '').trim()) {

@@ -214,6 +214,56 @@ class OrderService:
 
         return order
 
+    async def create_custom_order(
+        self,
+        user: User,
+        title: str,
+        base_price_rub: Decimal | float | str,
+        description: str | None = None,
+    ) -> Order:
+        """Индивидуальный (спец) лот — заказ без товара из каталога.
+
+        Оператор задаёт название, цену (₽, БЕЗ наценки метода — как база показа) и
+        описание. Метод оплаты и наценка добавятся, когда покупатель выберет способ
+        оплаты (apply_payment_method при оплате). Позиция заказа — с product_id=None.
+        """
+        base = Decimal(str(base_price_rub))
+        if base <= 0:
+            raise ValueError("Цена лота должна быть больше нуля")
+
+        order = Order(
+            order_number="",  # генерит триггер БД
+            user_id=user.id,
+            status=OrderStatus.new,
+            subtotal=base,
+            discount_amount=Decimal("0"),
+            total_amount=base,
+            meta={"custom_lot": True},
+            payment_method=None,
+            input_data={},
+        )
+        self.db.add(order)
+        await self.db.flush()
+
+        self.db.add(OrderItem(
+            order_id=order.id,
+            product_id=None,
+            product_name=title.strip()[:256] or "Индивидуальный лот",
+            game_name=None,
+            quantity=1,
+            unit_price=base,
+            total_price=base,
+            instruction=(description or None),
+        ))
+        self.db.add(OrderStatusHistory(
+            order_id=order.id,
+            from_status=None,
+            to_status=OrderStatus.new,
+            changed_by_type="admin",
+            reason="Индивидуальный лот",
+        ))
+        return order
+
     async def apply_payment_method(self, order: Order, method: str) -> None:
         """
         Пересчитывает итог заказа под выбранный способ оплаты.
@@ -415,10 +465,12 @@ class OrderService:
                 "telegram_stars", "telegram_premium"
             )
 
-        # Фильтруем позиции с ключевой авто-выдачей (движковые — только через воркер)
+        # Фильтруем позиции с ключевой авто-выдачей (движковые — только через воркер;
+        # кастомные позиции без товара (product_id=None) — всегда ручные)
         auto_items = [
             item for item in items
-            if not _is_engine_item(item)
+            if item.product is not None
+            and not _is_engine_item(item)
             and item.product.delivery_type.value in ("auto", "mixed")
         ]
 
@@ -445,7 +497,8 @@ class OrderService:
                 # Движковая позиция (Fragment) — выдаётся в воркере, здесь не завершаем.
                 all_delivered = False
                 continue
-            if item.product.delivery_type.value not in ("auto", "mixed"):
+            if item.product is None or item.product.delivery_type.value not in ("auto", "mixed"):
+                # Кастомный лот (без товара) или ручная выдача — оператор завершит сам.
                 all_delivered = False
                 continue
 

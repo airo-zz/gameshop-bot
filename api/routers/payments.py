@@ -112,9 +112,22 @@ async def refresh_token(request: Request, body: RefreshTokenRequest, db: DbSessi
     )
 
 
+class PayOrderIn(BaseModel):
+    # Необязательные — для оплаты заранее созданного заказа (напр. индивидуальный
+    # лот), когда покупатель выбирает способ оплаты в момент оплаты.
+    payment_method: str | None = Field(None, pattern="^(balance|card_yukassa|crypto)$")
+    crypto_currency: str | None = None
+
+
 @router.post("/orders/{order_id}/pay", response_model=PaymentInitResponse)
 @limiter.limit("10/minute")
-async def initiate_payment(request: Request, order_id: UUID, db: DbSession, user: CurrentUser):
+async def initiate_payment(
+    request: Request, order_id: UUID, db: DbSession, user: CurrentUser,
+    body: PayOrderIn | None = None,
+):
+    from shared.models import PaymentMethod
+    from api.services.order_service import OrderService
+
     # Блокируем заказ FOR UPDATE чтобы предотвратить параллельную оплату
     result = await db.execute(
         select(Order)
@@ -128,6 +141,17 @@ async def initiate_payment(request: Request, order_id: UUID, db: DbSession, user
     # Допускаем оплату только нового или ожидающего заказа
     if order.status not in (OrderStatus.new, OrderStatus.pending_payment):
         raise HTTPException(400, "Заказ уже обрабатывается или оплачен")
+
+    # Способ оплаты можно задать прямо при оплате (заранее созданный заказ / спец-лот)
+    if body and body.payment_method:
+        try:
+            order.payment_method = PaymentMethod(body.payment_method)
+        except ValueError:
+            raise HTTPException(400, "Неподдерживаемый метод оплаты")
+        await OrderService(db).apply_payment_method(order, body.payment_method)
+        if body.payment_method == "crypto" and body.crypto_currency:
+            order.meta = {**(order.meta or {}), "crypto_currency": body.crypto_currency}
+        await db.flush()
 
     if order.payment_method is None:
         raise HTTPException(400, "У заказа не указан метод оплаты")
