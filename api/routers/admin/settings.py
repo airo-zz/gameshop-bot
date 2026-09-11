@@ -441,7 +441,7 @@ async def update_pricing_settings(
 
     from sqlalchemy import select as _select
 
-    from api.services.pricing import usd_to_rub
+    from api.services.pricing import has_quantity_field, usd_to_rub
     from api.services.rapira_service import DISPLAY_GROUP
     from shared.models import Product
 
@@ -452,7 +452,8 @@ async def update_pricing_settings(
     }[DISPLAY_GROUP]
     products = (await db.execute(_select(Product).where(Product.price_usd.is_not(None)))).scalars().all()
     for p in products:
-        p.price = _D(str(usd_to_rub(float(p.price_usd), rate_now, display_markup)))
+        round_nine = not has_quantity_field(p.input_fields)
+        p.price = _D(str(usd_to_rub(float(p.price_usd), rate_now, display_markup, round_nine)))
 
     await log_admin_action(
         db=db, admin=admin, action="shop_settings.update",

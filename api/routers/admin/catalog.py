@@ -535,9 +535,12 @@ async def create_product(
 
     # Цена: из USD (источник истины) считаем ₽; иначе — прямой ₽ (legacy)
     if body.price_usd is not None:
+        from api.services.pricing import has_quantity_field
         rate = await get_usd_rub_rate(db)
         markup = await get_markup_percent(db)
-        price_rub = Decimal(str(usd_to_rub(body.price_usd, float(rate), float(markup))))
+        # Товар с полем «Количество» — цена за 1 ед., без округления «в 9».
+        round_nine = not has_quantity_field(body.input_fields)
+        price_rub = Decimal(str(usd_to_rub(body.price_usd, float(rate), float(markup), round_nine)))
         price_usd_val: Decimal | None = Decimal(str(body.price_usd))
     elif body.price is not None:
         price_rub = Decimal(str(body.price))
@@ -622,9 +625,15 @@ async def update_product(
 
     # Если пришла цена в USD — пересчитываем ₽ (и сохраняем price_usd)
     if "price_usd" in update_data and update_data["price_usd"] is not None:
+        from api.services.pricing import has_quantity_field
         rate = await get_usd_rub_rate(db)
         markup = await get_markup_percent(db)
-        update_data["price"] = usd_to_rub(update_data["price_usd"], float(rate), float(markup))
+        # input_fields из запроса (если пришли) иначе текущие у товара.
+        fields = update_data.get("input_fields", product.input_fields)
+        round_nine = not has_quantity_field(fields)
+        update_data["price"] = usd_to_rub(
+            update_data["price_usd"], float(rate), float(markup), round_nine
+        )
 
     for key in ("price", "original_price", "price_usd"):
         if key in update_data and update_data[key] is not None:

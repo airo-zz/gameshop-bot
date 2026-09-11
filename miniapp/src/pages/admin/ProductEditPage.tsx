@@ -604,12 +604,18 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
               className={inputCls}
             />
             {errors.price && <p className="text-xs text-red-400 mt-1">{errors.price}</p>}
-            {pricing && form.price !== '' && Number(form.price) >= 0 && (
-              <p className="text-xs text-white/40 mt-1">
-                ≈ {roundToNine(Number(form.price) * pricing.usd_rub_rate * (1 + pricing.markup_crypto / 100)).toLocaleString('ru-RU')} ₽ (крипта)
-                <span className="text-white/25"> · курс {pricing.usd_rub_rate.toFixed(2)}, крипта {pricing.markup_crypto}% / карта {pricing.markup_card}%</span>
-              </p>
-            )}
+            {pricing && form.price !== '' && Number(form.price) >= 0 && (() => {
+              const isQty = form.input_fields.some((f) => f.type === 'quantity')
+              // База показа — без наценки (группа баланс). На оплате добавится наценка метода.
+              const base = Number(form.price) * pricing.usd_rub_rate * (1 + pricing.markup_balance / 100)
+              const shown = isQty ? Math.round(base * 100) / 100 : roundToNine(base)
+              return (
+                <p className="text-xs text-white/40 mt-1">
+                  ≈ {shown.toLocaleString('ru-RU')} ₽ {isQty ? 'за 1 ед. (без округления)' : '(база, без наценки)'}
+                  <span className="text-white/25"> · курс {pricing.usd_rub_rate.toFixed(2)}; на оплате +крипта {pricing.markup_crypto}% / карта {pricing.markup_card}%</span>
+                </p>
+              )
+            })()}
           </div>
 
           <div>

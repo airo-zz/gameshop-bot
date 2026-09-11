@@ -21,7 +21,9 @@ def round_to_nine(amount: float) -> int:
     return int(max(90, n))
 
 
-def usd_to_rub(usd: float, rate: float, markup_percent: float = 0.0) -> int:
+def usd_to_rub(
+    usd: float, rate: float, markup_percent: float = 0.0, round_nine: bool = True
+) -> float:
     """
     Итоговая ₽-цена для покупателя из цены в USD.
 
@@ -29,9 +31,20 @@ def usd_to_rub(usd: float, rate: float, markup_percent: float = 0.0) -> int:
         usd: цена в долларах (себестоимость + твоя наценка).
         rate: курс USD/RUB (RUB за 1 USD, из RAPIRA — USDT/RUB close).
         markup_percent: наценка платёжной системы, %.
+        round_nine: округлять «в 9» (для обычных товаров). Для товаров с ценой
+            за единицу (поле type=quantity, напр. цена за 1 звезду) — False:
+            цена за 1 ед. мелкая и «в 9» её ломает; возвращаем точно до копеек.
     """
     raw = float(usd) * float(rate) * (1 + float(markup_percent) / 100)
-    return round_to_nine(raw)
+    return round_to_nine(raw) if round_nine else round(raw, 2)
+
+
+def has_quantity_field(input_fields) -> bool:
+    """True, если у товара есть поле type=quantity (переменное кол-во, цена за 1 ед.)."""
+    return any(
+        isinstance(f, dict) and f.get("type") == "quantity"
+        for f in (input_fields or [])
+    )
 
 
 def method_total(base_rub: float, display_markup: float, method_markup: float) -> float:

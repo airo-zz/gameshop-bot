@@ -38,10 +38,13 @@ async def _refresh_async():
 
         markup = float(await get_markup_percent(db))
 
+        from api.services.pricing import has_quantity_field
+
         result = await db.execute(select(Product).where(Product.price_usd.is_not(None)))
         products = result.scalars().all()
         for p in products:
-            p.price = Decimal(str(usd_to_rub(float(p.price_usd), float(rate), markup)))
+            round_nine = not has_quantity_field(p.input_fields)
+            p.price = Decimal(str(usd_to_rub(float(p.price_usd), float(rate), markup, round_nine)))
 
         await db.commit()
         logger.info("USD/RUB=%s, пересчитано товаров: %d", rate, len(products))
