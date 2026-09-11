@@ -11,14 +11,15 @@ import type { PricingSettings } from '@/api/admin'
 
 export default function PricingSettingsPage() {
   const [pricing, setPricing] = useState<PricingSettings | null>(null)
-  const [markup, setMarkup] = useState('')
+  const [markupCrypto, setMarkupCrypto] = useState('')
+  const [markupCard, setMarkupCard] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
   const load = () => {
     setLoading(true)
     adminApi.getPricing()
-      .then((p) => { setPricing(p); setMarkup(String(p.markup_percent)) })
+      .then((p) => { setPricing(p); setMarkupCrypto(String(p.markup_crypto)); setMarkupCard(String(p.markup_card)) })
       .catch(() => toast.error('Не удалось загрузить'))
       .finally(() => setLoading(false))
   }
@@ -26,13 +27,15 @@ export default function PricingSettingsPage() {
   useEffect(() => { load() }, [])
 
   const save = async () => {
-    const val = Number(markup)
-    if (isNaN(val) || val < 0 || val > 100) { toast.error('Наценка 0–100%'); return }
+    const c = Number(markupCrypto)
+    const k = Number(markupCard)
+    if ([c, k].some((v) => isNaN(v) || v < 0 || v > 100)) { toast.error('Наценка 0–100%'); return }
     setSaving(true)
     try {
-      const p = await adminApi.updatePricing(val)
+      const p = await adminApi.updatePricing({ markup_crypto: c, markup_card: k })
       setPricing(p)
-      setMarkup(String(p.markup_percent))
+      setMarkupCrypto(String(p.markup_crypto))
+      setMarkupCard(String(p.markup_card))
       toast.success('Сохранено')
     } catch {
       toast.error('Ошибка сохранения')
@@ -78,21 +81,30 @@ export default function PricingSettingsPage() {
         <p className="text-xs text-white/30 mt-2">Курс обновляется автоматически 2 раза в сутки.</p>
       </div>
 
-      {/* Наценка */}
+      {/* Наценки по методам */}
       <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
         <div>
-          <label className="text-xs text-white/50 mb-1.5 block">Наценка платёжной системы, %</label>
+          <label className="text-xs text-white/50 mb-1.5 block">Наценка: крипта и баланс, %</label>
           <input
             type="number"
-            value={markup}
-            onChange={(e) => setMarkup(e.target.value)}
-            min={0}
-            max={100}
-            step="0.1"
+            value={markupCrypto}
+            onChange={(e) => setMarkupCrypto(e.target.value)}
+            min={0} max={100} step="0.1"
+            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+          />
+          <p className="text-xs text-white/40 mt-1.5">Базовая цена в каталоге считается по этой наценке.</p>
+        </div>
+        <div>
+          <label className="text-xs text-white/50 mb-1.5 block">Наценка: карта / SberPay / СБП, %</label>
+          <input
+            type="number"
+            value={markupCard}
+            onChange={(e) => setMarkupCard(e.target.value)}
+            min={0} max={100} step="0.1"
             className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
           />
           <p className="text-xs text-white/40 mt-1.5">
-            Прибавляется к цене: ₽ = USD × курс × (1 + наценка%), округляется «в 9».
+            Итог: ₽ = USD × курс × (1 + наценка метода), округление «в 9». Покупатель видит цену метода при оформлении.
           </p>
         </div>
         <button

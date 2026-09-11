@@ -17,9 +17,9 @@ from sqlalchemy import select
 from api.deps import DbSession
 from api.deps_admin import CurrentAdmin, require_permission
 from api.services.rapira_service import (
-    MARKUP_KEY,
+    MARKUP_KEYS,
     RATE_UPDATED_KEY,
-    get_markup_percent,
+    get_all_markups,
     get_usd_rub_rate,
 )
 from api.utils.admin_log import log_admin_action
@@ -376,11 +376,13 @@ async def update_referral_settings(
 class PricingOut(BaseModel):
     usd_rub_rate: float
     usd_rub_rate_updated_at: str | None
-    markup_percent: float
+    markup_crypto: float  # база: крипта и баланс
+    markup_card: float    # карта / SberPay / СБП
 
 
 class PricingUpdateIn(BaseModel):
-    markup_percent: float = Field(..., ge=0, le=100)
+    markup_crypto: float = Field(..., ge=0, le=100)
+    markup_card: float = Field(..., ge=0, le=100)
 
 
 @router.get(
@@ -389,14 +391,15 @@ class PricingUpdateIn(BaseModel):
     dependencies=[require_permission("settings.view")],
 )
 async def get_pricing_settings(db: DbSession, admin: CurrentAdmin) -> PricingOut:
-    """Текущий курс USD/RUB (RAPIRA) и наценка платёжной системы."""
+    """Курс USD/RUB (RAPIRA) и наценки по группам методов оплаты."""
     rate = await get_usd_rub_rate(db)
-    markup = await get_markup_percent(db)
+    markups = await get_all_markups(db)
     updated = await _get_setting(db, RATE_UPDATED_KEY)
     return PricingOut(
         usd_rub_rate=float(rate),
         usd_rub_rate_updated_at=updated.value if updated else None,
-        markup_percent=float(markup),
+        markup_crypto=markups["crypto"],
+        markup_card=markups["card"],
     )
 
 
@@ -410,29 +413,22 @@ async def update_pricing_settings(
     db: DbSession,
     admin: CurrentAdmin,
 ) -> PricingOut:
-    """Обновляет наценку платёжной системы (%). Курс тянется автоматически."""
-    row = await _get_setting(db, MARKUP_KEY)
-    new_value = str(Decimal(str(body.markup_percent)))
-    before = float(Decimal(row.value)) if row else 0.0
+    """Обновляет наценки крипта/баланс и карта (%). Курс тянется автоматически."""
+    async def _set(key: str, value: float, desc: str) -> None:
+        row = await _get_setting(db, key)
+        if row:
+            row.value = str(Decimal(str(value)))
+        else:
+            db.add(ShopSettings(key=key, value=str(Decimal(str(value))), description=desc))
 
-    if row:
-        row.value = new_value
-    else:
-        db.add(ShopSettings(
-            key=MARKUP_KEY,
-            value=new_value,
-            description="Наценка платёжной системы, %",
-        ))
+    await _set(MARKUP_KEYS["crypto"], body.markup_crypto, "Наценка крипта/баланс, %")
+    await _set(MARKUP_KEYS["card"], body.markup_card, "Наценка карта/SberPay/СБП, %")
     await db.flush()
 
     await log_admin_action(
-        db=db,
-        admin=admin,
-        action="shop_settings.update",
-        entity_type="shop_settings",
-        entity_id=None,
-        before_data={"payment_markup_percent": before},
-        after_data={"payment_markup_percent": body.markup_percent},
+        db=db, admin=admin, action="shop_settings.update",
+        entity_type="shop_settings", entity_id=None,
+        after_data={"markup_crypto": body.markup_crypto, "markup_card": body.markup_card},
     )
 
     rate = await get_usd_rub_rate(db)
@@ -440,5 +436,6 @@ async def update_pricing_settings(
     return PricingOut(
         usd_rub_rate=float(rate),
         usd_rub_rate_updated_at=updated.value if updated else None,
-        markup_percent=body.markup_percent,
+        markup_crypto=body.markup_crypto,
+        markup_card=body.markup_card,
     )

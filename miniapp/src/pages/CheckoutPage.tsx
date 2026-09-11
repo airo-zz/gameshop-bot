@@ -38,6 +38,10 @@ export default function CheckoutPage() {
   const { data: cart } = useQuery({ queryKey: ['cart'], queryFn: cartApi.get })
   const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: profileApi.get })
   const { data: checkoutFields = [] } = useQuery({ queryKey: ['checkout-fields'], queryFn: cartApi.getCheckoutFields })
+  const { data: quote } = useQuery({ queryKey: ['cart-quote'], queryFn: cartApi.getQuote })
+
+  const methodGroup = (m: string) => (m === 'card' ? 'card' : m === 'crypto' ? 'crypto' : 'balance')
+  const payTotal = quote ? quote[methodGroup(selectedMethod) as 'crypto' | 'balance' | 'card'] : Number(cart?.total ?? 0)
 
   const setFieldValue = (gameId: string, key: string, value: string) =>
     setFieldValues(prev => ({ ...prev, [gameId]: { ...(prev[gameId] ?? {}), [key]: value } }))
@@ -248,7 +252,14 @@ export default function CheckoutPage() {
                   {method.icon}
                 </span>
                 <div className="flex-1">
-                  <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{method.label}</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{method.label}</p>
+                    {quote && method.id !== 'card' && (
+                      <p className="text-sm font-bold" style={{ color: '#6b9de8' }}>
+                        {fmtPrice(quote[method.id as 'crypto' | 'balance' | 'card'])} ₽
+                      </p>
+                    )}
+                  </div>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>
                     {method.id === 'balance' && profile
                       ? `Баланс: ${fmtPrice(profile.balance)} ₽`
@@ -323,7 +334,7 @@ export default function CheckoutPage() {
             </svg>
             Оформляем...
           </span>
-        ) : `Оплатить ${fmtPrice(cart.total)} ₽`}
+        ) : `Оплатить ${fmtPrice(payTotal)} ₽`}
       </button>
 
       <p className="text-xs text-center" style={{ color: 'var(--hint)' }}>

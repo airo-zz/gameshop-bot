@@ -19,6 +19,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from api.services.pricing import method_total
+from api.services.rapira_service import get_all_markups, method_group
+
 from shared.models import (
     BalanceTransaction, Cart, CartItem, Order, OrderDiscountLog,
     OrderItem, OrderStatus, OrderStatusHistory, PaymentMethod,
@@ -83,7 +86,22 @@ class OrderService:
         )
 
         subtotal = cart.total
-        total = max(Decimal("0"), subtotal - discount_result.total_discount)
+        base_total = max(Decimal("0"), subtotal - discount_result.total_discount)
+
+        # Наценка способа оплаты (если метод уже выбран — miniapp/web).
+        # base_total посчитан по крипто-наценке; приводим к наценке метода.
+        total = base_total
+        order_meta: dict = {}
+        if payment_method:
+            markups = await get_all_markups(self.db)
+            grp = method_group(payment_method)
+            new_total = method_total(
+                float(base_total), markups["crypto"], markups.get(grp, markups["crypto"])
+            )
+            total = Decimal(str(new_total))
+            fee = new_total - float(base_total)
+            if fee:
+                order_meta["method_fee"] = fee
 
         # Создаём заказ
         order = Order(
@@ -93,6 +111,7 @@ class OrderService:
             subtotal=subtotal,
             discount_amount=discount_result.total_discount,
             total_amount=total,
+            meta=order_meta,
             payment_method=PaymentMethod(payment_method) if payment_method else None,
             promo_code_id=(
                 discount_result.promo_code.id
@@ -161,6 +180,23 @@ class OrderService:
             await self.db.delete(item)
 
         return order
+
+    async def apply_payment_method(self, order: Order, method: str) -> None:
+        """
+        Пересчитывает итог заказа под выбранный способ оплаты.
+        Нужно там, где метод выбирается ПОСЛЕ создания заказа (бот).
+        База = subtotal − discount (по крипто-наценке), не меняется от метода.
+        """
+        base = float(order.subtotal) - float(order.discount_amount)
+        markups = await get_all_markups(self.db)
+        grp = method_group(method)
+        new_total = method_total(base, markups["crypto"], markups.get(grp, markups["crypto"]))
+        order.total_amount = Decimal(str(new_total))
+        fee = new_total - base
+        meta = {k: v for k, v in (order.meta or {}).items() if k != "method_fee"}
+        if fee:
+            meta["method_fee"] = fee
+        order.meta = meta
 
     # ── Смена статуса ─────────────────────────────────────────────────────────
 

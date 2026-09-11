@@ -55,6 +55,24 @@ async def get_cart(db: DbSession, user: CurrentUser):
     )
 
 
+@router.get("/quote")
+async def get_cart_quote(db: DbSession, user: CurrentUser):
+    """Итоговая сумма корзины по каждому способу оплаты (с наценкой метода)."""
+    from api.services.pricing import method_total
+    from api.services.rapira_service import get_all_markups
+
+    svc = CartService(db)
+    cart = await svc.get_or_create_cart(user)
+    summary = await svc.get_cart_summary(cart, user)
+    base = float(summary["total"])  # крипто-база с учётом скидки
+    markups = await get_all_markups(db)
+    return {
+        "crypto": method_total(base, markups["crypto"], markups["crypto"]),
+        "balance": method_total(base, markups["crypto"], markups["crypto"]),
+        "card": method_total(base, markups["crypto"], markups["card"]),
+    }
+
+
 @router.get("/checkout-fields")
 async def get_checkout_fields(db: DbSession, user: CurrentUser):
     """

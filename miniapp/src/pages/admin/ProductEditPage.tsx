@@ -592,8 +592,8 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
             {errors.price && <p className="text-xs text-red-400 mt-1">{errors.price}</p>}
             {pricing && form.price !== '' && Number(form.price) >= 0 && (
               <p className="text-xs text-white/40 mt-1">
-                ≈ {roundToNine(Number(form.price) * pricing.usd_rub_rate * (1 + pricing.markup_percent / 100)).toLocaleString('ru-RU')} ₽ покупателю
-                <span className="text-white/25"> · курс {pricing.usd_rub_rate.toFixed(2)}, наценка {pricing.markup_percent}%</span>
+                ≈ {roundToNine(Number(form.price) * pricing.usd_rub_rate * (1 + pricing.markup_crypto / 100)).toLocaleString('ru-RU')} ₽ (крипта)
+                <span className="text-white/25"> · курс {pricing.usd_rub_rate.toFixed(2)}, крипта {pricing.markup_crypto}% / карта {pricing.markup_card}%</span>
               </p>
             )}
           </div>

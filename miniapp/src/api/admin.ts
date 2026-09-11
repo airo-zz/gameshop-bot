@@ -309,7 +309,8 @@ export interface ImportCommitResult {
 export interface PricingSettings {
   usd_rub_rate: number
   usd_rub_rate_updated_at: string | null
-  markup_percent: number
+  markup_crypto: number
+  markup_card: number
 }
 
 // ── Discounts ────────────────────────────────────────────────────────────────
@@ -584,8 +585,8 @@ export const adminApi = {
   getPricing: () =>
     apiClient.get<PricingSettings>('/admin/settings/pricing').then(r => r.data),
 
-  updatePricing: (markup_percent: number) =>
-    apiClient.patch<PricingSettings>('/admin/settings/pricing', { markup_percent }).then(r => r.data),
+  updatePricing: (data: { markup_crypto: number; markup_card: number }) =>
+    apiClient.patch<PricingSettings>('/admin/settings/pricing', data).then(r => r.data),
 
   // Catalog — Categories
   getCategories: (gameId: string) =>

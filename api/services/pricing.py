@@ -34,6 +34,16 @@ def usd_to_rub(usd: float, rate: float, markup_percent: float = 0.0) -> int:
     return round_to_nine(raw)
 
 
+def method_total(base_rub: float, crypto_markup: float, method_markup: float) -> int:
+    """
+    Итог по способу оплаты. base_rub уже посчитан с крипто-наценкой (база показа);
+    множитель приводит его к наценке выбранного метода. Округление «в 9».
+    """
+    denom = 1 + float(crypto_markup) / 100
+    mult = (1 + float(method_markup) / 100) / denom if denom else 1.0
+    return round_to_nine(float(base_rub) * mult)
+
+
 def rub_to_usd(rub: float, rate: float) -> float:
     """Обратная конверсия ₽→USD (для импорта CSV: суммы оффера в ₽ → USD)."""
     if rate <= 0:

@@ -23,10 +23,28 @@ SYMBOL = "USDT/RUB"
 
 RATE_KEY = "usd_rub_rate"
 RATE_UPDATED_KEY = "usd_rub_rate_updated_at"
-MARKUP_KEY = "payment_markup_percent"
+MARKUP_KEY = "payment_markup_percent"  # legacy единая наценка (fallback)
+
+# Наценки по группам методов оплаты (ключи в ShopSettings).
+# Баланс = уже конвертированные средства → считается как крипта (та же наценка).
+MARKUP_KEYS = {
+    "crypto": "markup_crypto",
+    "card": "markup_card",
+}
+# База отображения (каталог/корзина) считается по самому дешёвому методу — крипте
+DISPLAY_GROUP = "crypto"
 
 FALLBACK_RATE = Decimal("90")
 DEFAULT_MARKUP = Decimal("0")
+
+
+def method_group(payment_method: str | None) -> str:
+    """Сводит конкретный метод оплаты к группе наценки ('crypto' | 'card')."""
+    m = (payment_method or "").lower()
+    if m in ("card_yukassa", "sberpay", "sbp", "card"):
+        return "card"
+    # crypto, usdt, ton, balance и всё прочее — по крипте
+    return "crypto"
 
 
 async def fetch_rapira_rate() -> Decimal:
@@ -87,11 +105,24 @@ async def refresh_usd_rub_rate(db: AsyncSession) -> Decimal:
     return rate
 
 
-async def get_markup_percent(db: AsyncSession) -> Decimal:
-    stored = await _get(db, MARKUP_KEY)
+async def get_group_markup(db: AsyncSession, group: str) -> Decimal:
+    """Наценка группы методов ('crypto'|'card'|'balance'), с fallback на legacy."""
+    key = MARKUP_KEYS.get(group, MARKUP_KEYS["crypto"])
+    stored = await _get(db, key)
+    if stored is None:
+        stored = await _get(db, MARKUP_KEY)  # legacy единая
     if stored:
         try:
             return Decimal(stored)
         except Exception:
             pass
     return DEFAULT_MARKUP
+
+
+async def get_all_markups(db: AsyncSession) -> dict[str, float]:
+    return {g: float(await get_group_markup(db, g)) for g in MARKUP_KEYS}
+
+
+async def get_markup_percent(db: AsyncSession) -> Decimal:
+    """Базовая наценка для кэша ₽-цены товара — по крипте (самый дешёвый метод)."""
+    return await get_group_markup(db, DISPLAY_GROUP)

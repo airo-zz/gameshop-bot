@@ -694,7 +694,7 @@ async def btn_shop(message: Message, db: AsyncSession, state: FSMContext) -> Non
     from aiogram.types import WebAppInfo
 
     if settings.MINIAPP_URL:
-        await nav_edit(
+        await render_screen(
             message,
             state,
             texts.open_shop,

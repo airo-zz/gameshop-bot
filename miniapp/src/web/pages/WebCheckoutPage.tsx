@@ -41,6 +41,9 @@ export default function WebCheckoutPage() {
   const [fieldValues, setFieldValues] = useState<Record<string, Record<string, string>>>({})
 
   const { data: checkoutFields = [] } = useQuery({ queryKey: ['web', 'checkout-fields'], queryFn: cartApi.getCheckoutFields })
+  const { data: quote } = useQuery({ queryKey: ['web', 'cart-quote'], queryFn: cartApi.getQuote })
+  const methodGroup = (m: string) => (m === 'card' ? 'card' : m === 'crypto' ? 'crypto' : 'balance')
+  const payTotal = quote ? quote[methodGroup(method) as 'crypto' | 'balance' | 'card'] : Number(cart?.total ?? 0)
   const setFieldValue = (gameId: string, key: string, value: string) =>
     setFieldValues((prev) => ({ ...prev, [gameId]: { ...(prev[gameId] ?? {}), [key]: value } }))
 
@@ -180,7 +183,14 @@ export default function WebCheckoutPage() {
             >
               <m.icon size={20} style={{ color: selected ? 'var(--link)' : 'var(--hint)' }} />
               <div className="flex-1">
-                <p className="text-sm font-semibold text-white">{m.label}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-white">{m.label}</p>
+                  {quote && m.id !== 'card' && (
+                    <p className="text-sm font-bold" style={{ color: 'var(--link)' }}>
+                      {money(quote[m.id])}
+                    </p>
+                  )}
+                </div>
                 <p className="text-xs text-white/45 mt-0.5">
                   {m.id === 'balance' && profile ? `Баланс: ${money(profile.balance)}` : m.description}
                 </p>
@@ -227,7 +237,7 @@ export default function WebCheckoutPage() {
         className="mt-6 w-full py-3.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98] hover:brightness-110 disabled:opacity-50"
         style={{ background: 'var(--gradient-primary)' }}
       >
-        {placing ? 'Оформляем...' : `Оплатить ${money(cart.total)}`}
+        {placing ? 'Оформляем...' : `Оплатить ${money(payTotal)}`}
       </button>
     </div>
   )
