@@ -22,6 +22,7 @@ from api.services.rapira_service import (
     get_all_markups,
     get_usd_rub_rate,
 )
+from api.services.fragment_config import get_admin_view, update_config
 from api.utils.admin_log import log_admin_action
 from shared.models import LoyaltyLevel, ShopSettings
 
@@ -452,3 +453,66 @@ async def update_pricing_settings(
         markup_sbp=body.markup_sbp,
         markup_balance=body.markup_balance,
     )
+
+
+# ── Интеграции: Fragment (Stars/Premium автопополнение) ─────────────────────
+
+
+class IntegrationsOut(BaseModel):
+    enabled: bool
+    cookie_set: bool
+    cookie_masked: str
+    seed_set: bool
+    seed_masked: str
+    payment_method: str
+    stars_min: int
+    stars_max: int
+    show_sender: bool
+
+
+class IntegrationsUpdateIn(BaseModel):
+    enabled: bool | None = None
+    cookie: str | None = None      # пусто/не передано = не менять
+    ton_seed: str | None = None    # пусто/не передано = не менять
+    payment_method: str | None = Field(None, pattern="^(ton|usdt_ton)$")
+    stars_min: int | None = Field(None, ge=1)
+    stars_max: int | None = Field(None, ge=1)
+    show_sender: bool | None = None
+
+
+@router.get(
+    "/integrations",
+    response_model=IntegrationsOut,
+    dependencies=[require_permission("settings.view")],
+)
+async def get_integrations(db: DbSession, admin: CurrentAdmin) -> IntegrationsOut:
+    return IntegrationsOut(**await get_admin_view(db))
+
+
+@router.patch(
+    "/integrations",
+    response_model=IntegrationsOut,
+    dependencies=[require_permission("settings.edit")],
+)
+async def update_integrations(
+    body: IntegrationsUpdateIn,
+    db: DbSession,
+    admin: CurrentAdmin,
+) -> IntegrationsOut:
+    await update_config(
+        db,
+        enabled=body.enabled,
+        cookie=body.cookie,
+        ton_seed=body.ton_seed,
+        payment_method=body.payment_method,
+        stars_min=body.stars_min,
+        stars_max=body.stars_max,
+        show_sender=body.show_sender,
+    )
+    # В лог НЕ пишем секреты — только факт изменения
+    await log_admin_action(
+        db=db, admin=admin, action="shop_settings.integrations_update",
+        entity_type="shop_settings", entity_id=None,
+        after_data={"enabled": body.enabled, "payment_method": body.payment_method},
+    )
+    return IntegrationsOut(**await get_admin_view(db))

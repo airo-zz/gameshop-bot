@@ -317,6 +317,18 @@ export interface PricingSettings {
   markup_balance: number
 }
 
+export interface IntegrationsSettings {
+  enabled: boolean
+  cookie_set: boolean
+  cookie_masked: string
+  seed_set: boolean
+  seed_masked: string
+  payment_method: string
+  stars_min: number
+  stars_max: number
+  show_sender: boolean
+}
+
 // ── Discounts ────────────────────────────────────────────────────────────────
 
 export interface DiscountRule {
@@ -584,6 +596,21 @@ export const adminApi = {
     input_fields: ImportInputField[]
   }) =>
     apiClient.post<ImportCommitResult>('/admin/catalog/import/ggsel/commit', payload).then(r => r.data),
+
+  // Integrations (Fragment: Stars/Premium автопополнение)
+  getIntegrations: () =>
+    apiClient.get<IntegrationsSettings>('/admin/settings/integrations').then(r => r.data),
+
+  updateIntegrations: (data: {
+    enabled?: boolean
+    cookie?: string
+    ton_seed?: string
+    payment_method?: string
+    stars_min?: number
+    stars_max?: number
+    show_sender?: boolean
+  }) =>
+    apiClient.patch<IntegrationsSettings>('/admin/settings/integrations', data).then(r => r.data),
 
   // Pricing (USD-курс RAPIRA + наценка платёжки)
   getPricing: () =>
