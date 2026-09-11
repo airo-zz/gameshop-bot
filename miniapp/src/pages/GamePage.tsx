@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, Clock, Plus, Minus, Info } from 'lucide-react'
+import { Zap, Clock, Plus, Minus, Info, Check } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { catalogApi, cartApi, type Category, type Product, type InputField } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -16,11 +16,13 @@ import clsx from 'clsx'
 interface ProductRowProps {
   product: Product
   cartQty: number
-  onAdd: (inputData?: Record<string, string>, qty?: number) => void
+  onAdd: (inputData?: Record<string, string>, qty?: number) => boolean | void
   onRemove: () => void
+  singleAdd?: boolean  // Telegram Premium — в корзину только 1 шт
 }
 
-function ProductRow({ product, cartQty, onAdd, onRemove }: ProductRowProps) {
+function ProductRow({ product, cartQty, onAdd, onRemove, singleAdd }: ProductRowProps) {
+  const [added, setAdded] = useState(false)
   const hasDiscount = !!product.original_price && Number(product.original_price) > Number(product.price)
   const discountPct = hasDiscount
     ? Math.round((1 - Number(product.price) / Number(product.original_price!)) * 100)
@@ -65,17 +67,47 @@ function ProductRow({ product, cartQty, onAdd, onRemove }: ProductRowProps) {
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
           Минимум {minQty.toLocaleString('ru')} {unit} · {Number(product.price).toLocaleString('ru')} ₽ за 1 {unit}
         </div>
-        <button
-          type="button" onClick={() => onAdd({}, n)}
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.97 }}
+          onClick={() => {
+            if (onAdd({}, n) !== false) {
+              setAdded(true)
+              setTimeout(() => setAdded(false), 1300)
+            }
+          }}
+          animate={{
+            background: added
+              ? 'linear-gradient(135deg, #10b981, #059669)'
+              : 'linear-gradient(135deg, #2563eb, #2d58ad)',
+          }}
+          transition={{ duration: 0.2 }}
           style={{
             height: 42, borderRadius: 12, border: '1px solid rgba(45,88,173,0.60)',
-            background: 'linear-gradient(135deg, #2563eb, #2d58ad)', color: '#fff',
-            fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
+            color: '#fff', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}
         >
-          <Plus size={18} strokeWidth={2.6} /> В корзину
-        </button>
+          <AnimatePresence mode="wait" initial={false}>
+            {added ? (
+              <motion.span key="ok"
+                initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.7 }} transition={{ duration: 0.15 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <Check size={18} strokeWidth={2.8} /> Добавлено
+              </motion.span>
+            ) : (
+              <motion.span key="add"
+                initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.7 }} transition={{ duration: 0.15 }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <Plus size={18} strokeWidth={2.6} /> В корзину
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </motion.button>
       </div>
     )
   }
@@ -168,8 +200,8 @@ function ProductRow({ product, cartQty, onAdd, onRemove }: ProductRowProps) {
                 <span style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', fontWeight: 700, color: '#93b8f0', userSelect: 'none' }}>
                   {cartQty}
                 </span>
-                <button type="button" disabled={isOutOfStock} onClick={() => onAdd()}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 38, background: 'none', border: 'none', cursor: 'pointer', color: isOutOfStock ? 'rgba(255,255,255,0.2)' : '#93b8f0' }}>
+                <button type="button" disabled={isOutOfStock || (singleAdd && cartQty >= 1)} onClick={() => onAdd()}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 38, background: 'none', border: 'none', cursor: (isOutOfStock || (singleAdd && cartQty >= 1)) ? 'not-allowed' : 'pointer', color: (isOutOfStock || (singleAdd && cartQty >= 1)) ? 'rgba(255,255,255,0.18)' : '#93b8f0' }}>
                   <Plus size={15} />
                 </button>
               </motion.div>
@@ -357,19 +389,20 @@ export default function GamePage() {
 
   // Добавление с учётом Telegram-полей подраздела: валидируем обязательные и
   // прикрепляем @username к позиции корзины (на оплате их уже не спрашиваем).
-  const addWithTg = (product: Product, inputData?: Record<string, string>, qty: number = 1) => {
+  const addWithTg = (product: Product, inputData?: Record<string, string>, qty: number = 1): boolean => {
     if (isTgAuto && tgFieldDefs.length) {
       for (const f of tgFieldDefs) {
         if (f.required && !(tgFields[f.key] ?? '').trim()) {
           haptic.error()
           toast.error(`Заполните: ${f.label}`)
-          return
+          return false
         }
       }
       handleAdd(product, { ...tgFields, ...(inputData ?? {}) }, qty)
-    } else {
-      handleAdd(product, inputData, qty)
+      return true
     }
+    handleAdd(product, inputData, qty)
+    return true
   }
 
   if (catsError) return (
@@ -548,6 +581,7 @@ export default function GamePage() {
                   cartQty={cartQtyMap.get(product.id) ?? 0}
                   onAdd={(inputData, qty) => addWithTg(product, inputData, qty)}
                   onRemove={() => handleRemove(product)}
+                  singleAdd={activeCategory?.auto_engine === 'telegram_premium'}
                 />
               ))}
           </div>

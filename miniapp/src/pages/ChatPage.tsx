@@ -155,13 +155,15 @@ function SystemMessage({ text }: { text: string }) {
   }
 
   return (
-    <div style={{ textAlign: 'center', padding: '4px 0', marginBottom: 8 }}>
+    <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 8px', marginBottom: 8 }}>
       <span style={{
-        fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic',
-        display: 'inline-block', padding: '4px 12px', borderRadius: 20,
+        fontSize: 12, color: 'rgba(255,255,255,0.55)',
+        display: 'inline-block', padding: '8px 14px', borderRadius: 16,
         background: 'rgba(255,255,255,0.04)',
+        maxWidth: '88%', textAlign: 'center', lineHeight: 1.5,
+        whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere',
       }}>
-        {text}
+        <TextWithLinks text={text} />
       </span>
     </div>
   )
