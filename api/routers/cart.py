@@ -68,8 +68,9 @@ async def get_cart_quote(db: DbSession, user: CurrentUser):
     markups = await get_all_markups(db)
     return {
         "crypto": method_total(base, markups["crypto"], markups["crypto"]),
-        "balance": method_total(base, markups["crypto"], markups["crypto"]),
+        "balance": method_total(base, markups["crypto"], markups["balance"]),
         "card": method_total(base, markups["crypto"], markups["card"]),
+        "sbp": method_total(base, markups["crypto"], markups["sbp"]),
     }
 
 
@@ -84,6 +85,7 @@ async def get_checkout_fields(db: DbSession, user: CurrentUser):
     from sqlalchemy.orm import selectinload
     from shared.models import CartItem, Product
     from shared.models.catalog import Category
+    from api.services.order_service import resolve_field_sources
 
     svc = CartService(db)
     cart = await svc.get_or_create_cart(user)
@@ -96,15 +98,11 @@ async def get_checkout_fields(db: DbSession, user: CurrentUser):
     )
     products = result.scalars().all()
 
-    seen: dict[str, object] = {}
-    for p in products:
-        g = getattr(getattr(p, "category", None), "game", None)
-        if g and str(g.id) not in seen and (getattr(g, "input_fields", None) or []):
-            seen[str(g.id)] = g
-
+    # Источник полей: категория со своими полями, иначе игра
+    sources = resolve_field_sources(list(products))
     return [
-        {"game_id": str(g.id), "game_name": g.name, "fields": g.input_fields or []}
-        for g in seen.values()
+        {"game_id": sid, "game_name": src["name"], "fields": src["fields"]}
+        for sid, src in sources.items()
     ]
 
 

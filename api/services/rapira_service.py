@@ -26,12 +26,14 @@ RATE_UPDATED_KEY = "usd_rub_rate_updated_at"
 MARKUP_KEY = "payment_markup_percent"  # legacy единая наценка (fallback)
 
 # Наценки по группам методов оплаты (ключи в ShopSettings).
-# Баланс = уже конвертированные средства → считается как крипта (та же наценка).
+# balance = 0 по умолчанию (комиссия уже оплачена при пополнении баланса).
 MARKUP_KEYS = {
     "crypto": "markup_crypto",
     "card": "markup_card",
+    "sbp": "markup_sbp",
+    "balance": "markup_balance",
 }
-# База отображения (каталог/корзина) считается по самому дешёвому методу — крипте
+# База отображения (каталог/корзина) считается по крипте
 DISPLAY_GROUP = "crypto"
 
 FALLBACK_RATE = Decimal("90")
@@ -39,11 +41,15 @@ DEFAULT_MARKUP = Decimal("0")
 
 
 def method_group(payment_method: str | None) -> str:
-    """Сводит конкретный метод оплаты к группе наценки ('crypto' | 'card')."""
+    """Сводит метод оплаты к группе наценки ('crypto'|'card'|'sbp'|'balance')."""
     m = (payment_method or "").lower()
-    if m in ("card_yukassa", "sberpay", "sbp", "card"):
+    if m == "balance":
+        return "balance"
+    if m == "sbp":
+        return "sbp"
+    if m in ("card_yukassa", "sberpay", "card"):
         return "card"
-    # crypto, usdt, ton, balance и всё прочее — по крипте
+    # crypto, usdt, ton и всё прочее — по крипте
     return "crypto"
 
 
@@ -106,11 +112,11 @@ async def refresh_usd_rub_rate(db: AsyncSession) -> Decimal:
 
 
 async def get_group_markup(db: AsyncSession, group: str) -> Decimal:
-    """Наценка группы методов ('crypto'|'card'|'balance'), с fallback на legacy."""
+    """Наценка группы методов. balance по умолчанию 0; остальные — с fallback на legacy."""
     key = MARKUP_KEYS.get(group, MARKUP_KEYS["crypto"])
     stored = await _get(db, key)
-    if stored is None:
-        stored = await _get(db, MARKUP_KEY)  # legacy единая
+    if stored is None and group != "balance":
+        stored = await _get(db, MARKUP_KEY)  # legacy единая (не для баланса)
     if stored:
         try:
             return Decimal(stored)

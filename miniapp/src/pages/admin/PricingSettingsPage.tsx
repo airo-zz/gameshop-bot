@@ -13,13 +13,21 @@ export default function PricingSettingsPage() {
   const [pricing, setPricing] = useState<PricingSettings | null>(null)
   const [markupCrypto, setMarkupCrypto] = useState('')
   const [markupCard, setMarkupCard] = useState('')
+  const [markupSbp, setMarkupSbp] = useState('')
+  const [markupBalance, setMarkupBalance] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
   const load = () => {
     setLoading(true)
     adminApi.getPricing()
-      .then((p) => { setPricing(p); setMarkupCrypto(String(p.markup_crypto)); setMarkupCard(String(p.markup_card)) })
+      .then((p) => {
+        setPricing(p)
+        setMarkupCrypto(String(p.markup_crypto))
+        setMarkupCard(String(p.markup_card))
+        setMarkupSbp(String(p.markup_sbp))
+        setMarkupBalance(String(p.markup_balance))
+      })
       .catch(() => toast.error('Не удалось загрузить'))
       .finally(() => setLoading(false))
   }
@@ -29,13 +37,17 @@ export default function PricingSettingsPage() {
   const save = async () => {
     const c = Number(markupCrypto)
     const k = Number(markupCard)
-    if ([c, k].some((v) => isNaN(v) || v < 0 || v > 100)) { toast.error('Наценка 0–100%'); return }
+    const s = Number(markupSbp)
+    const b = Number(markupBalance)
+    if ([c, k, s, b].some((v) => isNaN(v) || v < 0 || v > 100)) { toast.error('Наценка 0–100%'); return }
     setSaving(true)
     try {
-      const p = await adminApi.updatePricing({ markup_crypto: c, markup_card: k })
+      const p = await adminApi.updatePricing({ markup_crypto: c, markup_card: k, markup_sbp: s, markup_balance: b })
       setPricing(p)
       setMarkupCrypto(String(p.markup_crypto))
       setMarkupCard(String(p.markup_card))
+      setMarkupSbp(String(p.markup_sbp))
+      setMarkupBalance(String(p.markup_balance))
       toast.success('Сохранено')
     } catch {
       toast.error('Ошибка сохранения')
@@ -83,30 +95,27 @@ export default function PricingSettingsPage() {
 
       {/* Наценки по методам */}
       <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
-        <div>
-          <label className="text-xs text-white/50 mb-1.5 block">Наценка: крипта и баланс, %</label>
-          <input
-            type="number"
-            value={markupCrypto}
-            onChange={(e) => setMarkupCrypto(e.target.value)}
-            min={0} max={100} step="0.1"
-            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
-          />
-          <p className="text-xs text-white/40 mt-1.5">Базовая цена в каталоге считается по этой наценке.</p>
-        </div>
-        <div>
-          <label className="text-xs text-white/50 mb-1.5 block">Наценка: карта / SberPay / СБП, %</label>
-          <input
-            type="number"
-            value={markupCard}
-            onChange={(e) => setMarkupCard(e.target.value)}
-            min={0} max={100} step="0.1"
-            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
-          />
-          <p className="text-xs text-white/40 mt-1.5">
-            Итог: ₽ = USD × курс × (1 + наценка метода), округление «в 9». Покупатель видит цену метода при оформлении.
-          </p>
-        </div>
+        {([
+          ['Крипта, %', markupCrypto, setMarkupCrypto, 'Базовая цена в каталоге считается по этой наценке.'],
+          ['Карта / SberPay, %', markupCard, setMarkupCard, ''],
+          ['СБП НСПК, %', markupSbp, setMarkupSbp, ''],
+          ['Баланс, %', markupBalance, setMarkupBalance, 'Обычно 0 — комиссия уже оплачена при пополнении.'],
+        ] as [string, string, (v: string) => void, string][]).map(([label, val, setter, hint]) => (
+          <div key={label}>
+            <label className="text-xs text-white/50 mb-1.5 block">Наценка: {label}</label>
+            <input
+              type="number"
+              value={val}
+              onChange={(e) => setter(e.target.value)}
+              min={0} max={100} step="0.1"
+              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+            />
+            {hint && <p className="text-xs text-white/40 mt-1.5">{hint}</p>}
+          </div>
+        ))}
+        <p className="text-xs text-white/40">
+          Итог: ₽ = USD × курс × (1 + наценка метода), округление «в 9». Покупатель видит цену метода при оформлении.
+        </p>
         <button
           onClick={save}
           disabled={saving}

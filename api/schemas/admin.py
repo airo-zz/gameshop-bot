@@ -187,6 +187,7 @@ class CategoryCreateIn(BaseModel):
     parent_id: uuid.UUID | None = None
     name: str = Field(..., min_length=1, max_length=128)
     slug: str | None = Field(None, max_length=64)
+    description: str | None = None
     is_active: bool = True
     sort_order: int = 0
 
@@ -196,9 +197,12 @@ class CategoryUpdateIn(BaseModel):
     parent_id: uuid.UUID | None = None
     name: str | None = Field(None, min_length=1, max_length=128)
     slug: str | None = Field(None, max_length=64)
+    description: str | None = None
     is_active: bool | None = None
     is_featured: bool | None = None
     sort_order: int | None = None
+    # null/[] = наследовать поля игры; непустой список = свои поля категории
+    input_fields: list[Any] | None = None
 
 
 class CategoryOut(BaseModel):
@@ -209,9 +213,11 @@ class CategoryOut(BaseModel):
     parent_id: uuid.UUID | None
     name: str
     slug: str
+    description: str | None = None
     is_active: bool
     is_featured: bool
     sort_order: int
+    input_fields: list[Any] | None = None
 
 
 # ── Catalog — Products ────────────────────────────────────────────────────────

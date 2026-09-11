@@ -248,7 +248,7 @@ export const cartApi = {
     apiClient.get<CheckoutFieldGroup[]>('/cart/checkout-fields').then(r => r.data),
 
   getQuote: () =>
-    apiClient.get<{ crypto: number; balance: number; card: number }>('/cart/quote').then(r => r.data),
+    apiClient.get<{ crypto: number; balance: number; card: number; sbp: number }>('/cart/quote').then(r => r.data),
 }
 
 // ── Orders API ────────────────────────────────────────────────────────────────

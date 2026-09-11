@@ -25,6 +25,7 @@ import {
   Pin,
   Upload,
   Check,
+  Settings,
 } from 'lucide-react'
 import {
   DndContext,
@@ -46,6 +47,7 @@ import { normalizeImageUrl } from '@/utils/imageUrl'
 import SortableRow from '@/components/admin/SortableRow'
 import GgselImportModal from '@/pages/admin/GgselImportModal'
 import ProductEditModal from '@/pages/admin/ProductEditModal'
+import CategoryEditModal from '@/pages/admin/CategoryEditModal'
 import toast from 'react-hot-toast'
 
 type Step = 'games' | 'workspace'
@@ -341,6 +343,7 @@ interface CategorySectionProps {
   onRename: (name: string) => Promise<void>
   onEditProduct: (productId: string) => void
   onReloadCategory: () => void
+  onEditCategory: () => void
 }
 
 function CategorySection({
@@ -355,6 +358,7 @@ function CategorySection({
   onRename,
   onEditProduct,
   onReloadCategory,
+  onEditCategory,
 }: CategorySectionProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
@@ -504,6 +508,14 @@ function CategorySection({
             </button>
             <button
               type="button"
+              onClick={onEditCategory}
+              className="shrink-0 p-1.5 rounded-lg text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-white/60 transition-all"
+              title="Описание и поля подраздела"
+            >
+              <Settings size={13} />
+            </button>
+            <button
+              type="button"
               onClick={onToggleFeatured}
               className={`shrink-0 p-1.5 rounded-lg transition-all ${
                 category.is_featured
@@ -629,6 +641,7 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
   const [creatingCat, setCreatingCat] = useState(false)
   const [showImport, setShowImport] = useState(false)
   const [editor, setEditor] = useState<{ productId: string; categoryId: string } | null>(null)
+  const [editCat, setEditCat] = useState<AdminCategory | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -810,6 +823,7 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
                         onOpenBulkPrice={() => setBulkPriceCat(cat.id)}
                         onEditProduct={(productId) => setEditor({ productId, categoryId: cat.id })}
                         onReloadCategory={() => reloadCategory(cat.id)}
+                        onEditCategory={() => setEditCat(cat)}
                       />
                     </SortableRow>
                   ))}
@@ -868,6 +882,14 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
             reloadCategory(editor.categoryId)
             if (updated.category_id !== editor.categoryId) reloadCategory(updated.category_id)
           }}
+        />
+      )}
+
+      {editCat && (
+        <CategoryEditModal
+          category={editCat}
+          onClose={() => setEditCat(null)}
+          onSaved={(updated) => setCategories(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c))}
         />
       )}
     </>

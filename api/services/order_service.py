@@ -32,6 +32,26 @@ from shared.models.order import ALLOWED_STATUS_TRANSITIONS
 from api.services.discount_service import DiscountService, DiscountResult
 
 
+def resolve_field_sources(products: list) -> dict[str, dict]:
+    """
+    Источники полей покупателя для набора товаров: если у категории заданы свои
+    input_fields — берём их (ключ = id категории), иначе поля игры (ключ = id игры).
+    Требует загруженных product.category.game. Возвращает { source_id: {name, fields} }.
+    """
+    sources: dict[str, dict] = {}
+    for p in products:
+        cat = getattr(p, "category", None)
+        game = getattr(cat, "game", None) if cat else None
+        cat_fields = (getattr(cat, "input_fields", None) or []) if cat else []
+        if cat_fields:
+            sources[str(cat.id)] = {"name": cat.name, "fields": cat_fields}
+        elif game is not None:
+            gfields = getattr(game, "input_fields", None) or []
+            if gfields:
+                sources[str(game.id)] = {"name": game.name, "fields": gfields}
+    return sources
+
+
 class OrderService:
 
     def __init__(self, db: AsyncSession):
@@ -685,24 +705,17 @@ class OrderService:
         provided: dict[str, dict[str, str]],
     ) -> dict:
         """
-        Собирает данные покупателя на уровне игры по input_fields игр в корзине.
-        Валидирует обязательные поля. Возвращает снапшот:
-          { game_id: { "game_name": str, "fields": [ {key, label, value} ] } }
+        Собирает данные покупателя по источникам полей (категория со своими полями,
+        иначе игра). Валидирует обязательные. Снапшот:
+          { source_id: { "game_name": str, "fields": [ {key, label, value} ] } }
         """
-        games: dict[str, object] = {}
-        for _, product in items_with_products:
-            game = getattr(getattr(product, "category", None), "game", None)
-            if game is not None:
-                games[str(game.id)] = game
+        sources = resolve_field_sources([p for _, p in items_with_products])
 
         snapshot: dict = {}
-        for gid, game in games.items():
-            fields = getattr(game, "input_fields", None) or []
-            if not fields:
-                continue
-            vals = provided.get(gid) or {}
+        for sid, src in sources.items():
+            vals = provided.get(sid) or {}
             out_fields = []
-            for f in fields:
+            for f in src["fields"]:
                 if not isinstance(f, dict):
                     continue
                 key = f.get("key")
@@ -710,10 +723,10 @@ class OrderService:
                 raw = vals.get(key)
                 value = raw.strip() if isinstance(raw, str) else (raw or "")
                 if f.get("required") and not value:
-                    raise ValueError(f"Заполните поле «{label}» для {getattr(game, 'name', '')}")
+                    raise ValueError(f"Заполните поле «{label}» для {src['name']}")
                 out_fields.append({"key": key, "label": label, "value": value})
             if out_fields:
-                snapshot[gid] = {"game_name": getattr(game, "name", ""), "fields": out_fields}
+                snapshot[sid] = {"game_name": src["name"], "fields": out_fields}
         return snapshot
 
     async def _load_cart_items(

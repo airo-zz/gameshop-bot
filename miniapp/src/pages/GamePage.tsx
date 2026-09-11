@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Zap, Clock, Plus, Minus, Info } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { catalogApi, cartApi, type Category, type Product, type InputField } from '@/api'
+import { catalogApi, cartApi, type Category, type Product } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useDragScroll } from '@/hooks/useDragScroll'
 import { useCartStore } from '@/store'
@@ -27,55 +27,51 @@ function ProductRow({ product, cartQty, onAdd, onRemove }: ProductRowProps) {
     : 0
 
   const isOutOfStock = product.is_out_of_stock || (product.stock !== null && product.stock === 0)
-  const inputFields = product.input_fields ?? []
-  const hasInputs = inputFields.length > 0
-
-  const [inputData, setInputData] = useState<Record<string, string>>({})
-  const [showInputs, setShowInputs] = useState(false)
 
   return (
-    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', flexWrap: 'nowrap',
-        gap: 8, padding: '10px 14px', minWidth: 0,
-      }}>
-        {/* Name + badge + delivery */}
-        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 6 }}>
+    <div style={{
+      background: 'var(--bg2)', border: '1px solid rgba(255,255,255,0.07)',
+      borderRadius: 16, padding: '12px 14px',
+      display: 'flex', flexDirection: 'column', gap: 10,
+    }}>
+      {/* Name (на всю ширину, перенос) + бейдж */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6 }}>
+        <span style={{
+          flex: 1, minWidth: 0,
+          fontSize: '0.9rem', fontWeight: 500, lineHeight: 1.35,
+          color: isOutOfStock ? 'rgba(255,255,255,0.4)' : 'var(--text)',
+          wordBreak: 'break-word',
+        }}>
+          {product.name}
+        </span>
+        {product.badge && !isOutOfStock && (
           <span style={{
-            fontSize: '0.875rem', fontWeight: 500, color: isOutOfStock ? 'rgba(255,255,255,0.35)' : 'var(--text)',
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-            overflow: 'hidden', lineHeight: 1.3,
-            flex: 1, minWidth: 0,
+            flexShrink: 0,
+            background: 'linear-gradient(135deg,#f59e0b,#ef4444)', color: '#fff',
+            fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 999,
           }}>
-            {product.name}
+            {product.badge}
           </span>
-          {product.badge && !isOutOfStock && (
-            <span style={{
-              flexShrink: 0,
-              background: 'linear-gradient(135deg,#f59e0b,#ef4444)', color: '#fff',
-              fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 999,
-            }}>
-              {product.badge}
-            </span>
-          )}
-          {isOutOfStock && (
-            <span style={{
-              flexShrink: 0, fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 20,
-              background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)',
-            }}>
-              Нет в наличии
-            </span>
-          )}
-        </div>
+        )}
+        {isOutOfStock && (
+          <span style={{
+            flexShrink: 0, fontSize: 9, fontWeight: 600, padding: '2px 6px', borderRadius: 20,
+            background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.3)',
+          }}>
+            Нет в наличии
+          </span>
+        )}
+      </div>
 
-        {/* Price */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+      {/* Нижняя строка: цена слева + кнопка/счётчик справа */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
           {hasDiscount && (
             <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', textDecoration: 'line-through' }}>
               {Number(product.original_price).toLocaleString('ru')} ₽
             </span>
           )}
-          <span style={{ fontSize: '0.875rem', fontWeight: 700, color: isOutOfStock ? 'rgba(255,255,255,0.25)' : '#6b9de8' }}>
+          <span style={{ fontSize: '1.05rem', fontWeight: 700, color: isOutOfStock ? 'rgba(255,255,255,0.25)' : '#6b9de8' }}>
             {Number(product.price).toLocaleString('ru')} ₽
           </span>
           {hasDiscount && (
@@ -92,7 +88,7 @@ function ProductRow({ product, cartQty, onAdd, onRemove }: ProductRowProps) {
         <div style={{
           flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
           borderRadius: 9999, overflow: 'hidden', transition: 'width 0.2s, background 0.2s',
-          width: cartQty > 0 ? 96 : 34, height: 34,
+          width: cartQty > 0 ? 104 : 38, height: 38,
           background: isOutOfStock
             ? 'rgba(239,68,68,0.10)'
             : cartQty > 0
@@ -114,72 +110,30 @@ function ProductRow({ product, cartQty, onAdd, onRemove }: ProductRowProps) {
                 style={{ display: 'flex', alignItems: 'center', width: '100%' }}
               >
                 <button type="button" onClick={onRemove}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 34, background: 'none', border: 'none', cursor: 'pointer', color: '#f87171' }}>
-                  <Minus size={14} />
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 38, background: 'none', border: 'none', cursor: 'pointer', color: '#f87171' }}>
+                  <Minus size={15} />
                 </button>
-                <span style={{ flex: 1, textAlign: 'center', fontSize: '0.8125rem', fontWeight: 700, color: '#93b8f0', userSelect: 'none' }}>
+                <span style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', fontWeight: 700, color: '#93b8f0', userSelect: 'none' }}>
                   {cartQty}
                 </span>
-                <button type="button" disabled={isOutOfStock} onClick={() => onAdd(inputData)}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 34, background: 'none', border: 'none', cursor: 'pointer', color: isOutOfStock ? 'rgba(255,255,255,0.2)' : '#93b8f0' }}>
-                  <Plus size={14} />
+                <button type="button" disabled={isOutOfStock} onClick={() => onAdd()}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 38, background: 'none', border: 'none', cursor: 'pointer', color: isOutOfStock ? 'rgba(255,255,255,0.2)' : '#93b8f0' }}>
+                  <Plus size={15} />
                 </button>
               </motion.div>
             ) : (
               <motion.button key="add" type="button"
                 initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.8 }} transition={{ duration: 0.15 }}
-                disabled={isOutOfStock} onClick={() => onAdd(hasInputs && Object.keys(inputData).length > 0 ? inputData : undefined)}
+                disabled={isOutOfStock} onClick={() => onAdd()}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', background: 'none', border: 'none', cursor: isOutOfStock ? 'not-allowed' : 'pointer', color: isOutOfStock ? '#f87171' : '#fff' }}
               >
-                <Plus size={18} strokeWidth={2.6} />
+                <Plus size={20} strokeWidth={2.6} />
               </motion.button>
             )}
           </AnimatePresence>
         </div>
       </div>
-
-      {/* Input fields (collapsible) */}
-      {hasInputs && !isOutOfStock && (
-        <div style={{ padding: '0 14px 8px' }}>
-          <button
-            type="button"
-            style={{ display: 'flex', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 500, color: '#6b9de8', marginBottom: showInputs ? 8 : 0 }}
-            onClick={() => setShowInputs(!showInputs)}
-          >
-            Данные для заказа
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
-              style={{ transform: showInputs ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>
-              <path d="M6 9l6 6 6-6"/>
-            </svg>
-          </button>
-          {showInputs && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {inputFields.map((field: InputField) => (
-                <div key={field.key}>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 500, color: 'rgba(255,255,255,0.4)', marginBottom: 4 }}>
-                    {field.label}
-                  </label>
-                  {field.type === 'select' ? (
-                    <select className="input" style={{ fontSize: 13, padding: '8px 12px', borderRadius: 12 }}
-                      value={inputData[field.key] ?? ''}
-                      onChange={e => setInputData(prev => ({ ...prev, [field.key]: e.target.value }))}>
-                      <option value="">Выбери...</option>
-                      {field.options?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                    </select>
-                  ) : (
-                    <input type={field.type === 'number' ? 'number' : 'text'} className="input"
-                      style={{ fontSize: 13, padding: '8px 12px', borderRadius: 12 }}
-                      placeholder={field.placeholder ?? `Введи ${field.label.toLowerCase()}`}
-                      value={inputData[field.key] ?? ''}
-                      onChange={e => setInputData(prev => ({ ...prev, [field.key]: e.target.value }))} />
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }
@@ -402,6 +356,19 @@ export default function GamePage() {
         )
       })()}
 
+      {/* Описание категории (или общее по игре) */}
+      {activeCatId && (() => {
+        const activeCat = categories.find(c => c.id === activeCatId)
+          ?? categories.flatMap(c => c.children ?? []).find(c => c.id === activeCatId)
+        const desc = (activeCat?.description || gameFromApi?.description || '').trim()
+        if (!desc) return null
+        return (
+          <p className="px-4 pt-2 text-sm" style={{ color: 'var(--hint)', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
+            {desc}
+          </p>
+        )
+      })()}
+
       {/* Delivery type badge for active category */}
       {activeCatId && (() => {
         const activeCat = categories.find(c => c.id === activeCatId)
@@ -450,10 +417,7 @@ export default function GamePage() {
             <p style={{ color: 'var(--hint)' }}>Товары скоро появятся</p>
           </div>
         ) : (
-          <div style={{
-            borderRadius: 18, overflow: 'hidden',
-            background: 'var(--bg2)', border: '1px solid rgba(255,255,255,0.07)',
-          }}>
+          <div className="space-y-2">
             {products.map(product => (
                 <ProductRow
                   key={product.id}

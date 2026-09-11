@@ -232,11 +232,14 @@ async def _render_category(
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
 
-    await safe_edit(
-        call.message,
-        texts.category_header(game_name, category.name),
-        reply_markup=keyboard,
-    )
+    # Описание категории или общее по игре
+    header = texts.category_header(game_name, category.name)
+    desc = (category.description or (game.description if game else None) or "").strip()
+    if desc:
+        import html as _html
+        header = f"{header}\n\n{_html.escape(desc)}"
+
+    await safe_edit(call.message, header, reply_markup=keyboard)
     await call.answer(toast or "")
 
 

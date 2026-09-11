@@ -376,13 +376,17 @@ async def update_referral_settings(
 class PricingOut(BaseModel):
     usd_rub_rate: float
     usd_rub_rate_updated_at: str | None
-    markup_crypto: float  # база: крипта и баланс
-    markup_card: float    # карта / SberPay / СБП
+    markup_crypto: float   # база показа (крипта)
+    markup_card: float     # карта / SberPay
+    markup_sbp: float      # СБП НСПК
+    markup_balance: float  # баланс (обычно 0)
 
 
 class PricingUpdateIn(BaseModel):
     markup_crypto: float = Field(..., ge=0, le=100)
     markup_card: float = Field(..., ge=0, le=100)
+    markup_sbp: float = Field(..., ge=0, le=100)
+    markup_balance: float = Field(..., ge=0, le=100)
 
 
 @router.get(
@@ -400,6 +404,8 @@ async def get_pricing_settings(db: DbSession, admin: CurrentAdmin) -> PricingOut
         usd_rub_rate_updated_at=updated.value if updated else None,
         markup_crypto=markups["crypto"],
         markup_card=markups["card"],
+        markup_sbp=markups["sbp"],
+        markup_balance=markups["balance"],
     )
 
 
@@ -421,14 +427,19 @@ async def update_pricing_settings(
         else:
             db.add(ShopSettings(key=key, value=str(Decimal(str(value))), description=desc))
 
-    await _set(MARKUP_KEYS["crypto"], body.markup_crypto, "Наценка крипта/баланс, %")
-    await _set(MARKUP_KEYS["card"], body.markup_card, "Наценка карта/SberPay/СБП, %")
+    await _set(MARKUP_KEYS["crypto"], body.markup_crypto, "Наценка крипта, %")
+    await _set(MARKUP_KEYS["card"], body.markup_card, "Наценка карта/SberPay, %")
+    await _set(MARKUP_KEYS["sbp"], body.markup_sbp, "Наценка СБП НСПК, %")
+    await _set(MARKUP_KEYS["balance"], body.markup_balance, "Наценка баланс, %")
     await db.flush()
 
     await log_admin_action(
         db=db, admin=admin, action="shop_settings.update",
         entity_type="shop_settings", entity_id=None,
-        after_data={"markup_crypto": body.markup_crypto, "markup_card": body.markup_card},
+        after_data={
+            "markup_crypto": body.markup_crypto, "markup_card": body.markup_card,
+            "markup_sbp": body.markup_sbp, "markup_balance": body.markup_balance,
+        },
     )
 
     rate = await get_usd_rub_rate(db)
@@ -438,4 +449,6 @@ async def update_pricing_settings(
         usd_rub_rate_updated_at=updated.value if updated else None,
         markup_crypto=body.markup_crypto,
         markup_card=body.markup_card,
+        markup_sbp=body.markup_sbp,
+        markup_balance=body.markup_balance,
     )

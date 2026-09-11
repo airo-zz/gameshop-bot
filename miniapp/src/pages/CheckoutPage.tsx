@@ -47,7 +47,8 @@ export default function CheckoutPage() {
     setFieldValues(prev => ({ ...prev, [gameId]: { ...(prev[gameId] ?? {}), [key]: value } }))
 
   const insufficientBalance =
-    selectedMethod === 'balance' && profile && cart && Number(profile.balance) < Number(cart.total)
+    selectedMethod === 'balance' && profile && cart &&
+    Number(profile.balance) < Number(quote?.balance ?? cart.total)
 
   const handlePlaceOrder = async () => {
     if (placing) return

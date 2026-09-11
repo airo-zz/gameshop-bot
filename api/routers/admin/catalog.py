@@ -280,6 +280,7 @@ async def create_category(
         parent_id=body.parent_id,
         name=body.name,
         slug=slug,
+        description=body.description,
         is_active=body.is_active,
         sort_order=body.sort_order,
     )

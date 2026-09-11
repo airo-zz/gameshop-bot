@@ -58,7 +58,7 @@ export default function WebCheckoutPage() {
     )
   }
 
-  const insufficientBalance = method === 'balance' && profile && Number(profile.balance) < Number(cart.total)
+  const insufficientBalance = method === 'balance' && profile && Number(profile.balance) < Number(quote?.balance ?? cart.total)
 
   async function placeOrder() {
     if (placing) return

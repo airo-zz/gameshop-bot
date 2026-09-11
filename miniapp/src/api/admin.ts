@@ -269,9 +269,11 @@ export interface AdminCategory {
   parent_id: string | null
   name: string
   slug: string
+  description?: string | null
   is_active: boolean
   is_featured: boolean
   sort_order: number
+  input_fields?: Record<string, unknown>[] | null
 }
 
 // ── CSV Import (ggsel) ─────────────────────────────────────────────────────────
@@ -311,6 +313,8 @@ export interface PricingSettings {
   usd_rub_rate_updated_at: string | null
   markup_crypto: number
   markup_card: number
+  markup_sbp: number
+  markup_balance: number
 }
 
 // ── Discounts ────────────────────────────────────────────────────────────────
@@ -585,7 +589,7 @@ export const adminApi = {
   getPricing: () =>
     apiClient.get<PricingSettings>('/admin/settings/pricing').then(r => r.data),
 
-  updatePricing: (data: { markup_crypto: number; markup_card: number }) =>
+  updatePricing: (data: { markup_crypto: number; markup_card: number; markup_sbp: number; markup_balance: number }) =>
     apiClient.patch<PricingSettings>('/admin/settings/pricing', data).then(r => r.data),
 
   // Catalog — Categories
@@ -595,7 +599,7 @@ export const adminApi = {
   createCategory: (data: { game_id: string; parent_id?: string; name: string; slug?: string; is_active?: boolean; sort_order?: number }) =>
     apiClient.post<AdminCategory>('/admin/catalog/categories', data).then(r => r.data),
 
-  updateCategory: (id: string, data: { is_featured?: boolean; is_active?: boolean; sort_order?: number; name?: string }) =>
+  updateCategory: (id: string, data: { is_featured?: boolean; is_active?: boolean; sort_order?: number; name?: string; description?: string | null; input_fields?: Record<string, unknown>[] }) =>
     apiClient.patch<AdminCategory>(`/admin/catalog/categories/${id}`, data).then(r => r.data),
 
   deleteCategory: (id: string) =>
