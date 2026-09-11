@@ -23,6 +23,7 @@ const inputCls =
 export default function CategoryEditModal({ category, onClose, onSaved }: Props) {
   const [name, setName] = useState(category.name)
   const [description, setDescription] = useState(category.description ?? '')
+  const [autoEngine, setAutoEngine] = useState(category.auto_engine ?? '')
   const [fields, setFields] = useState<Record<string, unknown>[]>(
     (category.input_fields as Record<string, unknown>[] | null) ?? [],
   )
@@ -36,6 +37,7 @@ export default function CategoryEditModal({ category, onClose, onSaved }: Props)
         name: name.trim(),
         description: description.trim() || null,
         input_fields: fields, // [] = наследовать поля игры
+        auto_engine: autoEngine || 'none', // '' → 'none' = выключить на бэке
       })
       onSaved(updated)
       onClose()
@@ -71,6 +73,23 @@ export default function CategoryEditModal({ category, onClose, onSaved }: Props)
             placeholder="Пусто — показывается общее описание игры"
             className={inputCls + ' resize-none'}
           />
+        </div>
+
+        <div>
+          <label className="text-xs text-white/50 mb-1.5 block">Автовыдача (движок)</label>
+          <select
+            value={autoEngine}
+            onChange={(e) => setAutoEngine(e.target.value)}
+            className={inputCls + ' appearance-none'}
+          >
+            <option value="" className="bg-[#0b1220]">Нет — обычная выдача (ключи/вручную)</option>
+            <option value="telegram_stars" className="bg-[#0b1220]">Telegram Stars (Fragment)</option>
+            <option value="telegram_premium" className="bg-[#0b1220]">Telegram Premium (Fragment)</option>
+          </select>
+          <p className="text-xs text-white/40 mt-1.5">
+            При оплате заказ выдаётся автоматически через Fragment. Нужны креды на
+            странице «Интеграции» и поле покупателя с Telegram @username в этом подразделе или игре.
+          </p>
         </div>
 
         <div>

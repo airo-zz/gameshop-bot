@@ -315,6 +315,11 @@ async def update_category(
     before = {"name": category.name, "is_active": category.is_active}
     update_data = body.model_dump(exclude_none=True)
 
+    # auto_engine: "" / "none" = выключить (→ NULL). Валидные движки — только Fragment.
+    if "auto_engine" in update_data:
+        val = (update_data.pop("auto_engine") or "").strip().lower()
+        category.auto_engine = val if val in ("telegram_stars", "telegram_premium") else None
+
     for field, value in update_data.items():
         setattr(category, field, value)
 

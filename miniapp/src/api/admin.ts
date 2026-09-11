@@ -274,6 +274,8 @@ export interface AdminCategory {
   is_featured: boolean
   sort_order: number
   input_fields?: Record<string, unknown>[] | null
+  // Движок автовыдачи (T20): null = нет; telegram_stars | telegram_premium
+  auto_engine?: string | null
 }
 
 // ── CSV Import (ggsel) ─────────────────────────────────────────────────────────
@@ -626,7 +628,7 @@ export const adminApi = {
   createCategory: (data: { game_id: string; parent_id?: string; name: string; slug?: string; is_active?: boolean; sort_order?: number }) =>
     apiClient.post<AdminCategory>('/admin/catalog/categories', data).then(r => r.data),
 
-  updateCategory: (id: string, data: { is_featured?: boolean; is_active?: boolean; sort_order?: number; name?: string; description?: string | null; input_fields?: Record<string, unknown>[] }) =>
+  updateCategory: (id: string, data: { is_featured?: boolean; is_active?: boolean; sort_order?: number; name?: string; description?: string | null; input_fields?: Record<string, unknown>[]; auto_engine?: string }) =>
     apiClient.patch<AdminCategory>(`/admin/catalog/categories/${id}`, data).then(r => r.data),
 
   deleteCategory: (id: string) =>

@@ -203,6 +203,9 @@ class CategoryUpdateIn(BaseModel):
     sort_order: int | None = None
     # null/[] = наследовать поля игры; непустой список = свои поля категории
     input_fields: list[Any] | None = None
+    # Движок автовыдачи (T20): "" / "none" = выключить, telegram_stars | telegram_premium.
+    # Обрабатывается отдельно в update_category (exclude_none не даёт очистить через None).
+    auto_engine: str | None = None
 
 
 class CategoryOut(BaseModel):
@@ -218,6 +221,7 @@ class CategoryOut(BaseModel):
     is_featured: bool
     sort_order: int
     input_fields: list[Any] | None = None
+    auto_engine: str | None = None
 
 
 # ── Catalog — Products ────────────────────────────────────────────────────────

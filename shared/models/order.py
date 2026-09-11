@@ -70,7 +70,10 @@ ALLOWED_STATUS_TRANSITIONS: dict[OrderStatus, set[OrderStatus]] = {
     OrderStatus.new: {OrderStatus.pending_payment, OrderStatus.cancelled},
     OrderStatus.pending_payment: {OrderStatus.paid, OrderStatus.cancelled},
     OrderStatus.paid: {
-        OrderStatus.processing, OrderStatus.cancelled, OrderStatus.refunded
+        # completed достижим напрямую при автовыдаче (ключи/Fragment) —
+        # заказ не проходит через processing, если всё выдано автоматически.
+        OrderStatus.processing, OrderStatus.completed,
+        OrderStatus.cancelled, OrderStatus.refunded
     },
     OrderStatus.processing: {
         OrderStatus.completed, OrderStatus.clarification, OrderStatus.refunded

@@ -81,13 +81,19 @@ class OrderService:
         # Загружаем товары
         items_with_products = await self._load_cart_items(cart)
 
+        def _has_engine(product) -> bool:
+            cat = getattr(product, "category", None)
+            return getattr(cat, "auto_engine", None) in (
+                "telegram_stars", "telegram_premium"
+            )
+
         # Проверяем наличие и ключи ДО создания заказа
         for item, product in items_with_products:
             if product.is_out_of_stock:
                 raise ValueError(f"Товар '{product.name}' недоступен (нет в наличии)")
             if product.stock is not None and product.stock < item.quantity:
                 raise ValueError(f"Товар '{product.name}' недоступен в нужном количестве")
-            if product.delivery_type.value in ("auto", "mixed"):
+            if not _has_engine(product) and product.delivery_type.value in ("auto", "mixed"):
                 available = await self._count_available_keys(product.id)
                 if available < item.quantity:
                     raise ValueError(
@@ -163,8 +169,8 @@ class OrderService:
             )
             self.db.add(order_item)
 
-            # Резервируем ключи для auto-выдачи
-            if product.delivery_type.value in ("auto", "mixed"):
+            # Резервируем ключи для auto-выдачи (движковые позиции — без ключей)
+            if not _has_engine(product) and product.delivery_type.value in ("auto", "mixed"):
                 await self._reserve_keys(product.id, item.quantity)
                 remaining = await self._count_available_keys(product.id)
                 if remaining == 0 and product.delivery_type.value == "auto":
@@ -357,18 +363,55 @@ class OrderService:
     # ── Автовыдача ────────────────────────────────────────────────────────────
 
     async def _auto_deliver(self, order: Order) -> None:
-        """Выдаёт ключи для товаров с delivery_type=auto."""
+        """Выдаёт ключи для товаров с delivery_type=auto.
+
+        Позиции с движком автовыдачи на категории (Fragment: telegram_stars/
+        telegram_premium) выдаются не здесь, а в Celery-воркере — это медленная
+        сетевая/on-chain операция, её нельзя запускать внутри платёжного вебхука.
+        Такие заказы остаются в статусе paid; воркер завершит их после выдачи.
+        """
+        from shared.models.catalog import Category, Product as _Product
         result = await self.db.execute(
             select(OrderItem)
-            .options(selectinload(OrderItem.product))
+            .options(
+                selectinload(OrderItem.product).selectinload(_Product.category)
+            )
             .where(OrderItem.order_id == order.id)
         )
         items = result.scalars().all()
 
-        # Фильтруем позиции с авто-выдачей
+        # Есть ли позиции с движком автовыдачи (Fragment) на уровне категории?
+        has_engine_items = any(
+            getattr(getattr(item.product, "category", None), "auto_engine", None)
+            in ("telegram_stars", "telegram_premium")
+            for item in items
+        )
+        if has_engine_items:
+            # Запускаем выдачу в воркере (после коммита текущей транзакции).
+            try:
+                from worker.main import celery_app
+                celery_app.send_task(
+                    "worker.tasks.fulfillment_tasks.deliver_fragment_order",
+                    args=[str(order.id)],
+                    countdown=5,  # дать вебхуку зафиксировать транзакцию
+                )
+            except Exception as exc:  # noqa: BLE001 — брокер недоступен: не рушим оплату
+                import logging
+                logging.getLogger(__name__).warning(
+                    "Не удалось поставить задачу автовыдачи Fragment: %s", exc
+                )
+
+        def _is_engine_item(it) -> bool:
+            cat = getattr(it.product, "category", None)
+            return getattr(cat, "auto_engine", None) in (
+                "telegram_stars", "telegram_premium"
+            )
+
+        # Фильтруем позиции с ключевой авто-выдачей (движковые — только через воркер)
         auto_items = [
             item for item in items
-            if item.product.delivery_type.value in ("auto", "mixed")
+            if not _is_engine_item(item)
+            and item.product.delivery_type.value in ("auto", "mixed")
         ]
 
         # Для каждого auto-item ищем зарезервированные ключи по product_id.
@@ -390,6 +433,10 @@ class OrderService:
 
         all_delivered = True
         for item in items:
+            if _is_engine_item(item):
+                # Движковая позиция (Fragment) — выдаётся в воркере, здесь не завершаем.
+                all_delivered = False
+                continue
             if item.product.delivery_type.value not in ("auto", "mixed"):
                 all_delivered = False
                 continue

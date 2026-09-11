@@ -26,6 +26,7 @@ celery_app = Celery(
         "worker.tasks.cleanup_tasks",
         "worker.tasks.chat_notifications",
         "worker.tasks.pricing_tasks",
+        "worker.tasks.fulfillment_tasks",
     ],
 )
 

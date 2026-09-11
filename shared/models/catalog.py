@@ -101,6 +101,9 @@ class Category(Base, UUIDMixin, TimestampMixin):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Поля покупателя категории. NULL/пусто = наследовать поля игры.
     input_fields: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    # Движок автовыдачи на уровне подкатегории (T20). NULL = нет автовыдачи через
+    # движок (обычная ключевая/ручная выдача). Значения: telegram_stars | telegram_premium.
+    auto_engine: Mapped[str | None] = mapped_column(String(32), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     is_featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
