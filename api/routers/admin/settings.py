@@ -481,8 +481,12 @@ async def update_pricing_settings(
 
 class IntegrationsOut(BaseModel):
     enabled: bool
-    cookie_set: bool
-    cookie_masked: str
+    ssid_set: bool
+    ssid_masked: str
+    token_set: bool
+    token_masked: str
+    ton_token_set: bool
+    ton_token_masked: str
     seed_set: bool
     seed_masked: str
     payment_method: str
@@ -493,7 +497,11 @@ class IntegrationsOut(BaseModel):
 
 class IntegrationsUpdateIn(BaseModel):
     enabled: bool | None = None
-    cookie: str | None = None      # пусто/не передано = не менять
+    # Три куки fragment.com (пусто/не передано = не менять). Можно вставлять
+    # как значение, так и «имя=значение» — бэк очистит префикс.
+    stel_ssid: str | None = None
+    stel_token: str | None = None
+    stel_ton_token: str | None = None
     ton_seed: str | None = None    # пусто/не передано = не менять
     payment_method: str | None = Field(None, pattern="^(ton|usdt_ton)$")
     stars_min: int | None = Field(None, ge=1)
@@ -523,7 +531,9 @@ async def update_integrations(
     await update_config(
         db,
         enabled=body.enabled,
-        cookie=body.cookie,
+        stel_ssid=body.stel_ssid,
+        stel_token=body.stel_token,
+        stel_ton_token=body.stel_ton_token,
         ton_seed=body.ton_seed,
         payment_method=body.payment_method,
         stars_min=body.stars_min,

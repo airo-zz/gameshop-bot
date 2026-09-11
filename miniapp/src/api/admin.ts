@@ -321,8 +321,12 @@ export interface PricingSettings {
 
 export interface IntegrationsSettings {
   enabled: boolean
-  cookie_set: boolean
-  cookie_masked: string
+  ssid_set: boolean
+  ssid_masked: string
+  token_set: boolean
+  token_masked: string
+  ton_token_set: boolean
+  ton_token_masked: string
   seed_set: boolean
   seed_masked: string
   payment_method: string
@@ -605,7 +609,9 @@ export const adminApi = {
 
   updateIntegrations: (data: {
     enabled?: boolean
-    cookie?: string
+    stel_ssid?: string
+    stel_token?: string
+    stel_ton_token?: string
     ton_seed?: string
     payment_method?: string
     stars_min?: number

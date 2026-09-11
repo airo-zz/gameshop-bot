@@ -20,7 +20,9 @@ export default function IntegrationsPage() {
   const [saving, setSaving] = useState(false)
 
   const [enabled, setEnabled] = useState(false)
-  const [cookie, setCookie] = useState('')
+  const [ssid, setSsid] = useState('')
+  const [token, setToken] = useState('')
+  const [tonToken, setTonToken] = useState('')
   const [seed, setSeed] = useState('')
   const [payment, setPayment] = useState('ton')
   const [starsMin, setStarsMin] = useState('50')
@@ -37,7 +39,7 @@ export default function IntegrationsPage() {
         setStarsMin(String(d.stars_min))
         setStarsMax(String(d.stars_max))
         setShowSender(d.show_sender)
-        setCookie(''); setSeed('')
+        setSsid(''); setToken(''); setTonToken(''); setSeed('')
       })
       .catch(() => toast.error('Не удалось загрузить'))
       .finally(() => setLoading(false))
@@ -54,11 +56,13 @@ export default function IntegrationsPage() {
         stars_min: Number(starsMin) || 1,
         stars_max: Number(starsMax) || 1,
         show_sender: showSender,
-        ...(cookie.trim() ? { cookie: cookie.trim() } : {}),
+        ...(ssid.trim() ? { stel_ssid: ssid.trim() } : {}),
+        ...(token.trim() ? { stel_token: token.trim() } : {}),
+        ...(tonToken.trim() ? { stel_ton_token: tonToken.trim() } : {}),
         ...(seed.trim() ? { ton_seed: seed.trim() } : {}),
       })
       setData(d)
-      setCookie(''); setSeed('')
+      setSsid(''); setToken(''); setTonToken(''); setSeed('')
       toast.success('Сохранено')
     } catch {
       toast.error('Ошибка сохранения')
@@ -97,18 +101,43 @@ export default function IntegrationsPage() {
           </button>
         </div>
 
-        {/* Fragment cookie */}
-        <div>
-          <label className="text-xs text-white/50 mb-1.5 block">
-            Fragment cookie {data?.cookie_set && <span className="text-emerald-400/70">· задано ({data.cookie_masked})</span>}
-          </label>
-          <textarea
-            value={cookie}
-            onChange={(e) => setCookie(e.target.value)}
-            rows={2}
-            placeholder={data?.cookie_set ? 'Оставьте пустым — не менять' : 'Вставьте cookie из fragment.com'}
-            className={inputCls + ' resize-none font-mono text-xs'}
-          />
+        {/* Fragment cookie — три отдельных значения из fragment.com */}
+        <div className="space-y-3">
+          <p className="text-xs text-white/40">
+            Три куки из fragment.com (F12 → Application → Cookies). Можно вставлять как
+            само значение, так и «имя=значение» — лишнее уберётся. stel_ton_token
+            обязателен (без него Fragment не проведёт оплату).
+          </p>
+          <div>
+            <label className="text-xs text-white/50 mb-1.5 block">
+              stel_ssid {data?.ssid_set && <span className="text-emerald-400/70">· задано ({data.ssid_masked})</span>}
+            </label>
+            <input
+              value={ssid} onChange={(e) => setSsid(e.target.value)} autoComplete="off"
+              placeholder={data?.ssid_set ? 'Оставьте пустым — не менять' : 'Значение stel_ssid'}
+              className={inputCls + ' font-mono text-xs'}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-white/50 mb-1.5 block">
+              stel_token {data?.token_set && <span className="text-emerald-400/70">· задано ({data.token_masked})</span>}
+            </label>
+            <input
+              value={token} onChange={(e) => setToken(e.target.value)} autoComplete="off"
+              placeholder={data?.token_set ? 'Оставьте пустым — не менять' : 'Значение stel_token'}
+              className={inputCls + ' font-mono text-xs'}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-white/50 mb-1.5 block">
+              stel_ton_token {data?.ton_token_set && <span className="text-emerald-400/70">· задано ({data.ton_token_masked})</span>}
+            </label>
+            <input
+              value={tonToken} onChange={(e) => setTonToken(e.target.value)} autoComplete="off"
+              placeholder={data?.ton_token_set ? 'Оставьте пустым — не менять' : 'Значение stel_ton_token'}
+              className={inputCls + ' font-mono text-xs'}
+            />
+          </div>
         </div>
 
         {/* TON seed */}
