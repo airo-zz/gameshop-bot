@@ -365,8 +365,9 @@ class CatalogService:
         result = await self.db.execute(
             select(Category)
             .join(trending_subq, trending_subq.c.category_id == Category.id)
+            .join(Game, Game.id == Category.game_id)
             .options(selectinload(Category.game))
-            .where(Category.is_active == True)
+            .where(Category.is_active == True, Game.is_active == True)
             .order_by(trending_subq.c.order_count.desc())
             .limit(limit)
         )
@@ -376,8 +377,13 @@ class CatalogService:
         if not categories:
             fallback = await self.db.execute(
                 select(Category)
+                .join(Game, Game.id == Category.game_id)
                 .options(selectinload(Category.game))
-                .where(Category.is_active == True, Category.is_featured == True)
+                .where(
+                    Category.is_active == True,
+                    Category.is_featured == True,
+                    Game.is_active == True,
+                )
                 .order_by(Category.sort_order, Category.name)
                 .limit(limit)
             )
@@ -406,10 +412,16 @@ class CatalogService:
         result = await self.db.execute(
             select(Product)
             .join(trending_subq, trending_subq.c.product_id == Product.id)
+            .join(Category, Category.id == Product.category_id)
+            .join(Game, Game.id == Category.game_id)
             .options(
                 selectinload(Product.category).selectinload(Category.game),
             )
-            .where(Product.is_active == True)
+            .where(
+                Product.is_active == True,
+                Category.is_active == True,
+                Game.is_active == True,
+            )
             .order_by(trending_subq.c.order_count.desc())
         )
         return result.scalars().all()
