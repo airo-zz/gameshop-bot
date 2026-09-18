@@ -356,7 +356,12 @@ class PaymentService:
         """
         external_id = str(payload.get("Id") or payload.get("id") or "")
         status = payload.get("status")
+        logger.info(
+            "Platega webhook in: external_id=%s status=%s keys=%s",
+            external_id, status, list(payload.keys()),
+        )
         if not external_id:
+            logger.warning("Platega webhook без Id: body=%s", payload)
             return False
 
         # ── Пополнение баланса ────────────────────────────────────────────────
@@ -399,6 +404,10 @@ class PaymentService:
         )
         payment = result.scalar_one_or_none()
         if not payment:
+            logger.warning(
+                "Platega webhook: платёж не найден по external_id=%s; body=%s",
+                external_id, payload,
+            )
             return False
 
         if payment.status == PaymentStatus.succeeded:
