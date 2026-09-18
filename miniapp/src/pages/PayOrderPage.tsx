@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Wallet, Bitcoin, CreditCard, AlertCircle, CheckCircle } from 'lucide-react'
+import { Wallet, Bitcoin, CreditCard, AlertCircle, CheckCircle, Smartphone } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ordersApi, profileApi } from '@/api'
 import { fmtPrice } from '@/utils/format'
@@ -12,21 +12,19 @@ import { useTelegram } from '@/hooks/useTelegram'
 
 const PAYMENT_METHODS = [
   { id: 'balance', label: 'Баланс бота', icon: <Wallet size={20} />, description: 'Мгновенно' },
-  { id: 'crypto', label: 'Криптовалюта', icon: <Bitcoin size={20} />, description: 'USDT, TON, BTC, ETH' },
-  { id: 'card', label: 'Банковская карта / СБП', icon: <CreditCard size={20} />, description: 'Скоро', comingSoon: true },
+  { id: 'sbp', label: 'СБП', icon: <Smartphone size={20} />, description: 'Система быстрых платежей' },
+  { id: 'card', label: 'Банковская карта', icon: <CreditCard size={20} />, description: 'Visa · Mastercard · МИР' },
+  { id: 'crypto', label: 'Криптовалюта', icon: <Bitcoin size={20} />, description: 'USDT, TON, BTC и др.' },
 ]
-const CRYPTO_COINS = [
-  { id: 'USDT', label: 'USDT' }, { id: 'TON', label: 'TON' },
-  { id: 'BTC', label: 'BTC' }, { id: 'ETH', label: 'ETH' },
-]
+
+type QuoteKey = 'crypto' | 'balance' | 'card' | 'sbp'
 
 export default function PayOrderPage() {
   const { orderId } = useParams<{ orderId: string }>()
   const navigate = useNavigate()
-  const { haptic, openLink, openTelegramLink } = useTelegram()
+  const { haptic, openLink } = useTelegram()
 
   const [method, setMethod] = useState('balance')
-  const [crypto, setCrypto] = useState('USDT')
   const [paying, setPaying] = useState(false)
 
   const { data: order, isLoading } = useQuery({
@@ -41,8 +39,9 @@ export default function PayOrderPage() {
     enabled: !!orderId,
   })
 
-  const group = (m: string) => (m === 'card' ? 'card' : m === 'crypto' ? 'crypto' : 'balance')
-  const payTotal = quote ? quote[group(method) as 'crypto' | 'balance' | 'card'] : Number(order?.total_amount ?? 0)
+  const group = (m: string): QuoteKey =>
+    m === 'card' ? 'card' : m === 'sbp' ? 'sbp' : m === 'crypto' ? 'crypto' : 'balance'
+  const payTotal = quote ? quote[group(method)] : Number(order?.total_amount ?? 0)
   const insufficient = method === 'balance' && profile && quote && Number(profile.balance) < Number(quote.balance)
 
   if (isLoading) return <p style={{ textAlign: 'center', padding: 40, color: 'var(--hint)' }}>Загрузка…</p>
@@ -63,11 +62,6 @@ export default function PayOrderPage() {
 
   const handlePay = async () => {
     if (paying) return
-    if (method === 'card') {
-      haptic.impact('light')
-      toast('Оплата картой и СБП скоро будет доступна. Сейчас — криптовалюта или баланс.', { icon: '⏳' })
-      return
-    }
     if (insufficient) {
       haptic.error()
       toast.error('Недостаточно средств на балансе')
@@ -76,26 +70,14 @@ export default function PayOrderPage() {
     setPaying(true)
     haptic.impact('medium')
     try {
-      const payment = await ordersApi.pay(order.id, {
-        payment_method: method,
-        ...(method === 'crypto' ? { crypto_currency: crypto } : {}),
-      })
+      const payment = await ordersApi.pay(order.id, { payment_method: method })
       if (payment.success) {
         haptic.success()
         navigate(`/chat?order_id=${order.id}`, { replace: true })
         return
       }
-      if (payment.mini_app_invoice_url && (window as any).Telegram?.WebApp?.openInvoice) {
-        ;(window as any).Telegram.WebApp.openInvoice(payment.mini_app_invoice_url, (st: string) => {
-          if (st === 'paid') { haptic.success(); navigate(`/orders/${order.id}?success=1`, { replace: true }) }
-          else if (st === 'cancelled') { toast('Оплата отменена') }
-        })
-        navigate(`/chat?order_id=${order.id}`, { replace: true })
-        return
-      }
       if (payment.redirect_url) {
-        if (payment.redirect_url.includes('t.me/')) openTelegramLink(payment.redirect_url)
-        else openLink(payment.redirect_url)
+        openLink(payment.redirect_url)
         navigate(`/chat?order_id=${order.id}`, { replace: true })
         return
       }
@@ -129,7 +111,7 @@ export default function PayOrderPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
         {PAYMENT_METHODS.map(m => {
           const active = method === m.id
-          const price = quote ? quote[group(m.id) as 'crypto' | 'balance' | 'card'] : null
+          const price = quote ? quote[group(m.id)] : null
           return (
             <button key={m.id} type="button"
               onClick={() => { setMethod(m.id); haptic.impact('light') }}
@@ -144,7 +126,7 @@ export default function PayOrderPage() {
                 <span style={{ display: 'block', fontSize: 14, fontWeight: 600 }}>{m.label}</span>
                 <span style={{ display: 'block', fontSize: 11, color: 'var(--hint)' }}>{m.description}</span>
               </span>
-              {price != null && !m.comingSoon && (
+              {price != null && (
                 <span style={{ fontSize: 14, fontWeight: 700, color: '#93b8f0' }}>{fmtPrice(price)} ₽</span>
               )}
             </button>
@@ -152,21 +134,10 @@ export default function PayOrderPage() {
         })}
       </div>
 
-      {/* Выбор монеты для крипты */}
       {method === 'crypto' && (
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-          {CRYPTO_COINS.map(c => (
-            <button key={c.id} type="button" onClick={() => setCrypto(c.id)}
-              style={{
-                flex: 1, minWidth: 70, padding: '8px 10px', borderRadius: 12, fontSize: 13, fontWeight: 600,
-                background: crypto === c.id ? 'rgba(45,88,173,0.2)' : 'var(--bg2)',
-                border: crypto === c.id ? '1px solid rgba(45,88,173,0.6)' : '1px solid rgba(255,255,255,0.08)',
-                color: crypto === c.id ? '#93b8f0' : 'var(--hint)', cursor: 'pointer',
-              }}>
-              {c.label}
-            </button>
-          ))}
-        </div>
+        <p style={{ fontSize: 11, color: 'var(--hint)', textAlign: 'center', marginBottom: 16 }}>
+          Монета и сеть выбираются на странице оплаты
+        </p>
       )}
 
       {insufficient && (

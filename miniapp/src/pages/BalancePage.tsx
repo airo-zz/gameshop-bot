@@ -11,11 +11,13 @@ import { useTelegram } from '@/hooks/useTelegram'
 const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'redonate_bot'
 
 const PRESET_AMOUNTS = [200, 500, 1000, 5000, 10000]
-const CRYPTO_CURRENCIES = ['USDT', 'TON', 'BTC', 'ETH'] as const
-type CryptoCurrency = typeof CRYPTO_CURRENCIES[number]
-type PaymentMethod = 'card_yukassa' | 'crypto'
-// ЮKassa отключена до подключения платёжки — вернуть 'card_yukassa' в список когда появятся креды
-const ENABLED_METHODS: PaymentMethod[] = ['crypto']
+type PaymentMethod = 'sbp' | 'card' | 'crypto'
+const ENABLED_METHODS: PaymentMethod[] = ['sbp', 'card', 'crypto']
+const METHOD_LABELS: Record<PaymentMethod, string> = {
+  sbp: 'СБП',
+  card: 'Карта',
+  crypto: 'Криптовалюта',
+}
 
 const TX_LABEL: Record<string, string> = {
   manual_credit:    'Пополнение',
@@ -41,7 +43,6 @@ export default function BalancePage() {
 
   const [amount, setAmount] = useState<string>('')
   const [method, setMethod] = useState<PaymentMethod>(ENABLED_METHODS[0])
-  const [currency, setCurrency] = useState<CryptoCurrency>('USDT')
   const [loading, setLoading] = useState(false)
 
   const { data: profile } = useQuery({
@@ -64,19 +65,10 @@ export default function BalancePage() {
     haptic.impact('medium')
     setLoading(true)
     try {
-      const res = await paymentsApi.topupBalance(
-        numericAmount,
-        method,
-        method === 'crypto' ? currency : undefined
-      )
-      const url = res.redirect_url ?? res.pay_url
-      if (url) {
+      const res = await paymentsApi.topupBalance(numericAmount, method)
+      if (res.redirect_url) {
         toast.success('Переход к оплате...')
-        if (method === 'crypto' && url.includes('t.me')) {
-          tg?.openTelegramLink(url)
-        } else {
-          tg?.openLink(url)
-        }
+        tg?.openLink(res.redirect_url)
       }
     } catch (err: unknown) {
       const message =
@@ -184,35 +176,11 @@ export default function BalancePage() {
                   color: method === m ? '#6b9de8' : 'var(--text)',
                 }}
               >
-                {m === 'card_yukassa' ? 'Карта' : 'Криптовалюта'}
+                {METHOD_LABELS[m]}
               </button>
             ))}
           </div>
         </div>
-        )}
-
-        {/* Crypto currency selector */}
-        {method === 'crypto' && (
-          <div>
-            <p className="text-xs mb-2 font-medium" style={{ color: 'var(--hint)' }}>Валюта</p>
-            <div className="flex gap-2">
-              {CRYPTO_CURRENCIES.map(c => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => { haptic.select(); setCurrency(c) }}
-                  className="flex-1 py-2 rounded-xl text-xs font-bold transition-all active:scale-95"
-                  style={{
-                    background: currency === c ? 'rgba(107,157,232,0.2)' : 'var(--bg3, rgba(255,255,255,0.06))',
-                    border: `1px solid ${currency === c ? 'rgba(107,157,232,0.4)' : 'var(--border)'}`,
-                    color: currency === c ? '#6b9de8' : 'var(--text)',
-                  }}
-                >
-                  {c}
-                </button>
-              ))}
-            </div>
-          </div>
         )}
 
         {/* Submit */}

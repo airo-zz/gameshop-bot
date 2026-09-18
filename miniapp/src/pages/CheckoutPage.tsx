@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { CheckCircle, Wallet, Bitcoin, AlertCircle, CreditCard } from 'lucide-react'
+import { CheckCircle, Wallet, Bitcoin, AlertCircle, CreditCard, Smartphone } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { cartApi, ordersApi, profileApi } from '@/api'
 import { LOYALTY_LEVELS, LOYALTY_DISCOUNTS } from '@/utils/loyalty'
@@ -11,27 +11,21 @@ import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
 
 const PAYMENT_METHODS = [
-  { id: 'balance',      label: 'Баланс бота',        icon: <Wallet size={20} />,     description: 'Мгновенно' },
-  { id: 'crypto',       label: 'Криптовалюта',       icon: <Bitcoin size={20} />,    description: 'USDT, TON, BTC, ETH' },
-  // Фиат (карта/СБП) — заглушка до подключения платёжного провайдера
-  { id: 'card',         label: 'Банковская карта / СБП', icon: <CreditCard size={20} />, description: 'Скоро', comingSoon: true },
+  { id: 'balance', label: 'Баланс бота',      icon: <Wallet size={20} />,     description: 'Мгновенно' },
+  { id: 'sbp',     label: 'СБП',              icon: <Smartphone size={20} />, description: 'Система быстрых платежей' },
+  { id: 'card',    label: 'Банковская карта', icon: <CreditCard size={20} />, description: 'Visa · Mastercard · МИР' },
+  { id: 'crypto',  label: 'Криптовалюта',     icon: <Bitcoin size={20} />,    description: 'USDT, TON, BTC и др.' },
 ]
 
-const CRYPTO_COINS = [
-  { id: 'USDT', label: 'USDT',  description: 'Tether' },
-  { id: 'TON',  label: 'TON',   description: 'Toncoin' },
-  { id: 'BTC',  label: 'BTC',   description: 'Bitcoin' },
-  { id: 'ETH',  label: 'ETH',   description: 'Ethereum' },
-]
+type QuoteKey = 'crypto' | 'balance' | 'card' | 'sbp'
 
 
 export default function CheckoutPage() {
   const navigate = useNavigate()
-  const { haptic, openLink, openTelegramLink } = useTelegram()
+  const { haptic, openLink } = useTelegram()
   const { setItemsCount } = useCartStore()
 
   const [selectedMethod, setSelectedMethod] = useState('balance')
-  const [selectedCrypto, setSelectedCrypto] = useState('USDT')
   const [placing, setPlacing] = useState(false)
   const [fieldValues, setFieldValues] = useState<Record<string, Record<string, string>>>({})
 
@@ -40,8 +34,9 @@ export default function CheckoutPage() {
   const { data: checkoutFields = [] } = useQuery({ queryKey: ['checkout-fields'], queryFn: cartApi.getCheckoutFields })
   const { data: quote } = useQuery({ queryKey: ['cart-quote'], queryFn: cartApi.getQuote })
 
-  const methodGroup = (m: string) => (m === 'card' ? 'card' : m === 'crypto' ? 'crypto' : 'balance')
-  const payTotal = quote ? quote[methodGroup(selectedMethod) as 'crypto' | 'balance' | 'card'] : Number(cart?.total ?? 0)
+  const methodGroup = (m: string): QuoteKey =>
+    m === 'card' ? 'card' : m === 'sbp' ? 'sbp' : m === 'crypto' ? 'crypto' : 'balance'
+  const payTotal = quote ? quote[methodGroup(selectedMethod)] : Number(cart?.total ?? 0)
 
   const setFieldValue = (gameId: string, key: string, value: string) =>
     setFieldValues(prev => ({ ...prev, [gameId]: { ...(prev[gameId] ?? {}), [key]: value } }))
@@ -52,11 +47,6 @@ export default function CheckoutPage() {
 
   const handlePlaceOrder = async () => {
     if (placing) return
-    if (selectedMethod === 'card') {
-      haptic.impact('light')
-      toast('Оплата картой и СБП скоро будет доступна. Сейчас можно оплатить криптовалютой или балансом.', { icon: '⏳' })
-      return
-    }
     // Проверяем обязательные поля игр
     for (const group of checkoutFields) {
       for (const f of group.fields) {
@@ -73,7 +63,6 @@ export default function CheckoutPage() {
     try {
       const order   = await ordersApi.create({
         payment_method: selectedMethod,
-        ...(selectedMethod === 'crypto' ? { crypto_currency: selectedCrypto } : {}),
         ...(checkoutFields.length > 0 ? { input_data: fieldValues } : {}),
       })
       const payment = await ordersApi.pay(order.id)
@@ -84,30 +73,9 @@ export default function CheckoutPage() {
         navigate(`/chat?order_id=${order.id}`, { replace: true })
         return
       }
-      if (payment.mini_app_invoice_url && (window as any).Telegram?.WebApp?.openInvoice) {
-        setItemsCount(0)
-        ;(window as any).Telegram.WebApp.openInvoice(
-          payment.mini_app_invoice_url,
-          (invoiceStatus: string) => {
-            if (invoiceStatus === 'paid') {
-              haptic.success()
-              navigate(`/orders/${order.id}?success=1`, { replace: true })
-            } else if (invoiceStatus === 'cancelled') {
-              toast('Оплата отменена')
-            }
-            // pending / failed — остаёмся, webhook уточнит статус
-          },
-        )
-        navigate(`/chat?order_id=${order.id}`, { replace: true })
-        return
-      }
       if (payment.redirect_url) {
-        // t.me links (CryptoBot) open natively in Telegram, others in browser
-        if (payment.redirect_url.includes('t.me/')) {
-          openTelegramLink(payment.redirect_url)
-        } else {
-          openLink(payment.redirect_url)
-        }
+        // Platega — страница оплаты открывается во внешнем браузере
+        openLink(payment.redirect_url)
         setItemsCount(0)
         navigate(`/chat?order_id=${order.id}`, { replace: true })
         return
@@ -255,9 +223,9 @@ export default function CheckoutPage() {
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{method.label}</p>
-                    {quote && method.id !== 'card' && (
+                    {quote && (
                       <p className="text-sm font-bold" style={{ color: '#6b9de8' }}>
-                        {fmtPrice(quote[method.id as 'crypto' | 'balance' | 'card'])} ₽
+                        {fmtPrice(quote[method.id as QuoteKey])} ₽
                       </p>
                     )}
                   </div>
@@ -274,38 +242,10 @@ export default function CheckoutPage() {
           })}
         </div>
 
-        {/* Выбор монеты при крипто-оплате */}
         {selectedMethod === 'crypto' && (
-          <div className="mt-3">
-            <p className="text-xs font-medium mb-2.5" style={{ color: 'var(--hint)' }}>Выберите монету</p>
-            <div className="grid grid-cols-2 gap-2">
-              {CRYPTO_COINS.map(coin => {
-                const active = selectedCrypto === coin.id
-                return (
-                  <button
-                    type="button"
-                    key={coin.id}
-                    onClick={() => { setSelectedCrypto(coin.id); haptic.select() }}
-                    className="flex flex-col items-center justify-center py-3 rounded-2xl transition-all active:scale-[0.97]"
-                    style={{
-                      background: active ? 'rgba(45,88,173,0.25)' : 'var(--bg2)',
-                      border: active ? '1.5px solid rgba(45,88,173,0.55)' : '1.5px solid var(--border)',
-                    }}
-                  >
-                    <span className="text-sm font-bold" style={{ color: active ? '#6b9de8' : 'var(--text)' }}>
-                      {coin.label}
-                    </span>
-                    <span className="text-[11px] mt-0.5" style={{ color: 'var(--hint)' }}>
-                      {coin.description}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-            <p className="text-[11px] mt-2 text-center" style={{ color: 'var(--hint)' }}>
-              Сеть выбирается при оплате в CryptoBot
-            </p>
-          </div>
+          <p className="text-[11px] mt-2.5 text-center" style={{ color: 'var(--hint)' }}>
+            Монета и сеть выбираются на странице оплаты
+          </p>
         )}
       </section>
 

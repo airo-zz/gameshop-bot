@@ -7,7 +7,6 @@ api/services/payment_service.py
 """
 
 import logging
-import time
 import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -30,55 +29,13 @@ from api.services.order_service import OrderService
 logger = logging.getLogger(__name__)
 
 
-COINGECKO_IDS = {
-    "USDT": "tether",
-    "TON": "the-open-network",
-    "BTC": "bitcoin",
-    "ETH": "ethereum",
+# Platega paymentMethod-коды по нашему PaymentMethod.value.
+# 2 = СБП QR + Sberpay, 11 = эквайринг карт, 13 = криптовалюта.
+PLATEGA_METHOD_CODES: dict[str, int] = {
+    "sbp": 2,
+    "card": 11,
+    "crypto": 13,
 }
-
-FALLBACK_RATES_RUB = {
-    "USDT": Decimal("90"),
-    "TON": Decimal("250"),
-    "BTC": Decimal("8500000"),
-    "ETH": Decimal("250000"),
-}
-
-
-# Кэш последнего успешно полученного курса: currency -> (rate, unix_ts).
-# Пока курс свежий (< _RATE_TTL) — не ходим в сеть. При недоступности CoinGecko
-# используем последний живой курс, а хардкод-константу — только если ни разу не получили.
-_RATE_CACHE: dict[str, tuple[Decimal, float]] = {}
-_RATE_TTL = 300  # секунд
-
-
-async def _get_crypto_rate_rub(currency: str) -> Decimal:
-    """Получает актуальный курс CRYPTO/RUB из CoinGecko с кэшем последнего значения."""
-    now = time.time()
-    cached = _RATE_CACHE.get(currency)
-    if cached is not None and now - cached[1] < _RATE_TTL:
-        return cached[0]
-
-    coin_id = COINGECKO_IDS.get(currency)
-    # fallback: последний живой курс, иначе — хардкод-константа
-    fallback = cached[0] if cached is not None else FALLBACK_RATES_RUB.get(currency, Decimal("90"))
-    if not coin_id:
-        return fallback
-    try:
-        async with httpx.AsyncClient(timeout=5.0) as client:
-            response = await client.get(
-                "https://api.coingecko.com/api/v3/simple/price",
-                params={"ids": coin_id, "vs_currencies": "rub"},
-            )
-            data = response.json()
-            rate = Decimal(str(data[coin_id]["rub"]))
-            _RATE_CACHE[currency] = (rate, now)
-            return rate
-    except Exception as e:
-        logger.warning(
-            "Не удалось получить курс %s/RUB, fallback %s: %s", currency, fallback, e
-        )
-        return fallback
 
 
 class PaymentService:
@@ -200,77 +157,79 @@ class PaymentService:
             "redirect_url": confirm_url,
         }
 
-    # ── 3. CryptoBot (USDT / TON) ─────────────────────────────────────────────
+    # ── 3. Platega (СБП / карта / крипта) ─────────────────────────────────────
 
-    async def pay_crypto(
+    async def _platega_headers(self) -> dict:
+        return {
+            "X-MerchantId": settings.PLATEGA_MERCHANT_ID,
+            "X-Secret": settings.PLATEGA_SECRET,
+            "Content-Type": "application/json",
+        }
+
+    async def pay_platega(
         self,
         order: Order,
         user: User,
-        currency: str = "USDT",
+        method_value: str = "card",
     ) -> dict:
         """
-        Создаёт инвойс через CryptoBot API (t.me/CryptoBot).
-        Поддерживает USDT, TON, BTC и другие.
+        Создаёт транзакцию в Platega (POST /transaction/process) и возвращает
+        ссылку на оплату. Подтверждение приходит через webhook (status=CONFIRMED).
+        method_value — 'sbp' | 'card' | 'crypto'.
         """
-        if not settings.CRYPTOBOT_TOKEN:
-            raise ValueError("CryptoBot не настроен")
+        if not settings.PLATEGA_MERCHANT_ID or not settings.PLATEGA_SECRET:
+            raise ValueError("Platega не настроена")
+        code = PLATEGA_METHOD_CODES.get(method_value)
+        if code is None:
+            raise ValueError("Неподдерживаемый метод Platega")
 
-        payment = await self._create_payment_record(order, user, PaymentMethod.crypto)
-
-        # Конвертируем RUB → crypto с актуальным курсом конкретной монеты
-        rate_rub = await _get_crypto_rate_rub(currency)
-        crypto_amount = order.total_amount / rate_rub
-
-        base_url = (
-            "https://pay.crypt.bot/api"
-            if settings.CRYPTOBOT_NETWORK == "mainnet"
-            else "https://testnet-pay.crypt.bot/api"
+        payment = await self._create_payment_record(
+            order, user, PaymentMethod(method_value)
         )
 
+        miniapp = settings.MINIAPP_URL.rstrip("/")
         payload = {
-            "asset": currency,
-            "amount": str(crypto_amount.quantize(Decimal("0.000001"))),
+            "amount": float(order.total_amount),
+            "currency": "RUB",
+            "paymentMethod": code,
             "description": f"Заказ {order.order_number} — {settings.SHOP_NAME}",
-            "payload": str(order.id),
-            "paid_btn_name": "openBot",
-            "paid_btn_url": f"https://t.me/{settings.BOT_USERNAME}",
+            "returnUrl": f"{miniapp}/orders/{order.id}?success=1",
+            "failedUrl": f"{miniapp}/orders/{order.id}",
+            "payload": {
+                "order_id": str(order.id),
+                "payment_record_id": str(payment.id),
+            },
         }
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{base_url}/createInvoice",
+                f"{settings.PLATEGA_BASE_URL.rstrip('/')}/transaction/process",
                 json=payload,
-                headers={"Crypto-Pay-API-Token": settings.CRYPTOBOT_TOKEN},
-                timeout=10.0,
+                headers=await self._platega_headers(),
+                timeout=15.0,
             )
 
-        data = response.json()
+        data = response.json() if response.content else {}
         payment.raw_response = data
+        payment.external_id = str(data.get("id") or "")
 
-        if not data.get("ok"):
+        redirect = data.get("redirect")
+        if response.status_code not in (200, 201) or not redirect:
             payment.status = PaymentStatus.failed
-            raise ValueError(f"Ошибка CryptoBot: {data.get('error', 'Unknown')}")
-
-        invoice = data["result"]
-        payment.external_id = str(invoice.get("invoice_id"))
+            reason = data.get("message") or data.get("error") or f"HTTP {response.status_code}"
+            raise ValueError(f"Ошибка Platega: {reason}")
 
         await self.order_svc.change_status(
             order,
             OrderStatus.pending_payment,
             changed_by_type="system",
-            reason=f"{currency} инвойс создан",
+            reason=f"Platega {method_value}: транзакция создана",
         )
-
-        pay_url = invoice.get("pay_url")
-        mini_app_invoice_url = invoice.get("mini_app_invoice_url") or pay_url
 
         return {
             "success": False,
             "payment_id": str(payment.id),
-            "redirect_url": pay_url,
-            "mini_app_invoice_url": mini_app_invoice_url,
-            "crypto_amount": str(crypto_amount),
-            "crypto_currency": currency,
+            "redirect_url": redirect,
         }
 
     # ── Webhook обработчик ────────────────────────────────────────────────────
@@ -338,27 +297,34 @@ class PaymentService:
 
         return True
 
-    async def handle_cryptobot_webhook(self, payload: dict) -> bool:
-        """Обработка webhook от CryptoBot."""
-        invoice_id = str(payload.get("invoice_id", ""))
+    async def handle_platega_webhook(self, payload: dict) -> bool:
+        """
+        Обработка webhook от Platega.
+        Тело: {Id, amount, currency, status, paymentMethod, payload}.
+        status ∈ CONFIRMED | CANCELED | PENDING | CHARGEBACKED.
+        """
+        external_id = str(payload.get("Id") or payload.get("id") or "")
         status = payload.get("status")
-        payload_str = payload.get("payload", "")
+        meta = payload.get("payload") or {}
+        if not external_id:
+            return False
 
-        # Топап-инвойс: payload начинается с "topup:"
-        if str(payload_str).startswith("topup:") and status == "paid":
-            parts = str(payload_str).split(":")
-            # parts: ["topup", user_id, amount_rub]
-            if len(parts) == 3:
-                await self._credit_balance_topup(
-                    uuid.UUID(parts[1]),
-                    Decimal(parts[2]),
-                    "cryptobot",
-                    str(payload.get("invoice_id", "")),
-                )
+        # Пополнение баланса — транзакция не привязана к заказу (эхо payload).
+        if isinstance(meta, dict) and meta.get("type") == "balance_topup":
+            if status == "CONFIRMED":
+                user_id_str = meta.get("user_id")
+                amount_str = meta.get("amount_rub")
+                if user_id_str and amount_str:
+                    await self._credit_balance_topup(
+                        uuid.UUID(user_id_str),
+                        Decimal(amount_str),
+                        "platega",
+                        external_id,
+                    )
             return True
 
         result = await self.db.execute(
-            select(Payment).where(Payment.external_id == invoice_id)
+            select(Payment).where(Payment.external_id == external_id)
         )
         payment = result.scalar_one_or_none()
         if not payment:
@@ -369,7 +335,7 @@ class PaymentService:
 
         payment.raw_response = payload
 
-        if status == "paid":
+        if status == "CONFIRMED":
             payment.status = PaymentStatus.succeeded
             payment.paid_at = datetime.now(timezone.utc)
 
@@ -382,9 +348,12 @@ class PaymentService:
                     order,
                     OrderStatus.paid,
                     changed_by_type="system",
-                    reason="CryptoBot: invoice paid",
+                    reason="Platega: CONFIRMED",
                 )
                 await self._notify_user_payment_success(order)
+
+        elif status in ("CANCELED", "CHARGEBACKED"):
+            payment.status = PaymentStatus.cancelled
 
         return True
 
@@ -428,50 +397,53 @@ class PaymentService:
         confirm_url = data.get("confirmation", {}).get("confirmation_url")
         return {"redirect_url": confirm_url, "payment_id": data.get("id")}
 
-    async def topup_crypto(self, user: User, amount_rub: Decimal, currency: str = "USDT") -> dict:
-        """Создаёт инвойс CryptoBot для пополнения баланса."""
-        if not settings.CRYPTOBOT_TOKEN:
-            raise ValueError("CryptoBot не настроен")
+    async def topup_platega(
+        self, user: User, amount_rub: Decimal, method_value: str = "card"
+    ) -> dict:
+        """Создаёт транзакцию Platega для пополнения баланса.
+
+        Зачисление — в handle_platega_webhook по payload.type == 'balance_topup'.
+        Payment-строка не создаётся (как и в topup_yukassa); идемпотентность
+        зачисления обеспечивает _credit_balance_topup по (provider, external_id).
+        """
+        if not settings.PLATEGA_MERCHANT_ID or not settings.PLATEGA_SECRET:
+            raise ValueError("Platega не настроена")
+        code = PLATEGA_METHOD_CODES.get(method_value)
+        if code is None:
+            raise ValueError("Неподдерживаемый метод Platega")
         if amount_rub < Decimal("10"):
             raise ValueError("Минимальная сумма пополнения: 10 ₽")
 
-        rate_rub = await _get_crypto_rate_rub(currency)
-        crypto_amount = amount_rub / rate_rub
-
-        base_url = (
-            "https://pay.crypt.bot/api"
-            if settings.CRYPTOBOT_NETWORK == "mainnet"
-            else "https://testnet-pay.crypt.bot/api"
-        )
-
-        topup_payload = f"topup:{user.id}:{amount_rub:.2f}"
-
+        miniapp = settings.MINIAPP_URL.rstrip("/")
         payload = {
-            "asset": currency,
-            "amount": str(crypto_amount.quantize(Decimal("0.000001"))),
+            "amount": float(amount_rub),
+            "currency": "RUB",
+            "paymentMethod": code,
             "description": f"Пополнение баланса — {settings.SHOP_NAME}",
-            "payload": topup_payload,
-            "paid_btn_name": "openBot",
-            "paid_btn_url": f"https://t.me/{settings.BOT_USERNAME}",
+            "returnUrl": f"{miniapp}?topup=success",
+            "failedUrl": f"{miniapp}?topup=failed",
+            "payload": {
+                "type": "balance_topup",
+                "user_id": str(user.id),
+                "amount_rub": f"{amount_rub:.2f}",
+            },
         }
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{base_url}/createInvoice",
+                f"{settings.PLATEGA_BASE_URL.rstrip('/')}/transaction/process",
                 json=payload,
-                headers={"Crypto-Pay-API-Token": settings.CRYPTOBOT_TOKEN},
-                timeout=10.0,
+                headers=await self._platega_headers(),
+                timeout=15.0,
             )
 
-        data = response.json()
-        if not data.get("ok"):
-            raise ValueError(f"Ошибка CryptoBot: {data.get('error', 'Unknown')}")
+        data = response.json() if response.content else {}
+        redirect = data.get("redirect")
+        if response.status_code not in (200, 201) or not redirect:
+            reason = data.get("message") or data.get("error") or f"HTTP {response.status_code}"
+            raise ValueError(f"Ошибка Platega: {reason}")
 
-        invoice = data["result"]
-        return {
-            "pay_url": invoice.get("pay_url") or invoice.get("bot_invoice_url"),
-            "invoice_id": invoice.get("invoice_id"),
-        }
+        return {"redirect_url": redirect, "payment_id": data.get("id")}
 
     async def _credit_balance_topup(
         self,

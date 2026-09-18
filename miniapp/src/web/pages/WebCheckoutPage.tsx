@@ -1,14 +1,13 @@
 /**
  * src/web/pages/WebCheckoutPage.tsx
  * Оформление заказа на сайте: способ оплаты → создание заказа → оплата.
- * Баланс — мгновенно; крипта — редирект на CryptoBot (новая вкладка);
- * карта — пока «скоро».
+ * Баланс — мгновенно; СБП / карта / крипта — редирект на Platega (новая вкладка).
  */
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Wallet, Bitcoin, CreditCard, CheckCircle, AlertCircle } from 'lucide-react'
+import { Wallet, Bitcoin, CreditCard, CheckCircle, AlertCircle, Smartphone } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { ordersApi, profileApi, cartApi } from '@/api'
 import { useWebCart } from '@/web/cart/useWebCart'
@@ -19,16 +18,12 @@ function money(v: number) {
 
 const METHODS = [
   { id: 'balance', label: 'Баланс', icon: Wallet, description: 'Мгновенно' },
-  { id: 'crypto', label: 'Криптовалюта', icon: Bitcoin, description: 'USDT, TON, BTC, ETH' },
-  { id: 'card', label: 'Банковская карта / СБП', icon: CreditCard, description: 'Скоро', comingSoon: true },
+  { id: 'sbp', label: 'СБП', icon: Smartphone, description: 'Система быстрых платежей' },
+  { id: 'card', label: 'Банковская карта', icon: CreditCard, description: 'Visa · Mastercard · МИР' },
+  { id: 'crypto', label: 'Криптовалюта', icon: Bitcoin, description: 'USDT, TON, BTC и др.' },
 ] as const
 
-const CRYPTO_COINS = [
-  { id: 'USDT', label: 'USDT' },
-  { id: 'TON', label: 'TON' },
-  { id: 'BTC', label: 'BTC' },
-  { id: 'ETH', label: 'ETH' },
-]
+type QuoteKey = 'crypto' | 'balance' | 'card' | 'sbp'
 
 export default function WebCheckoutPage() {
   const navigate = useNavigate()
@@ -36,14 +31,14 @@ export default function WebCheckoutPage() {
   const { data: profile } = useQuery({ queryKey: ['web', 'profile'], queryFn: profileApi.get, staleTime: 5 * 60_000 })
 
   const [method, setMethod] = useState<string>('balance')
-  const [coin, setCoin] = useState('USDT')
   const [placing, setPlacing] = useState(false)
   const [fieldValues, setFieldValues] = useState<Record<string, Record<string, string>>>({})
 
   const { data: checkoutFields = [] } = useQuery({ queryKey: ['web', 'checkout-fields'], queryFn: cartApi.getCheckoutFields })
   const { data: quote } = useQuery({ queryKey: ['web', 'cart-quote'], queryFn: cartApi.getQuote })
-  const methodGroup = (m: string) => (m === 'card' ? 'card' : m === 'crypto' ? 'crypto' : 'balance')
-  const payTotal = quote ? quote[methodGroup(method) as 'crypto' | 'balance' | 'card'] : Number(cart?.total ?? 0)
+  const methodGroup = (m: string): QuoteKey =>
+    m === 'card' ? 'card' : m === 'sbp' ? 'sbp' : m === 'crypto' ? 'crypto' : 'balance'
+  const payTotal = quote ? quote[methodGroup(method)] : Number(cart?.total ?? 0)
   const setFieldValue = (gameId: string, key: string, value: string) =>
     setFieldValues((prev) => ({ ...prev, [gameId]: { ...(prev[gameId] ?? {}), [key]: value } }))
 
@@ -62,10 +57,6 @@ export default function WebCheckoutPage() {
 
   async function placeOrder() {
     if (placing) return
-    if (method === 'card') {
-      toast('Оплата картой скоро будет доступна. Пока — баланс или криптовалюта.', { icon: '⏳' })
-      return
-    }
     for (const group of checkoutFields) {
       for (const f of group.fields) {
         if (f.required && !(fieldValues[group.game_id]?.[f.key] ?? '').trim()) {
@@ -78,7 +69,6 @@ export default function WebCheckoutPage() {
     try {
       const order = await ordersApi.create({
         payment_method: method,
-        ...(method === 'crypto' ? { crypto_currency: coin } : {}),
         ...(checkoutFields.length > 0 ? { input_data: fieldValues } : {}),
       })
       const payment = await ordersApi.pay(order.id)
@@ -89,7 +79,7 @@ export default function WebCheckoutPage() {
         return
       }
       if (payment.redirect_url) {
-        // CryptoBot / провайдер — открываем оплату в новой вкладке,
+        // Platega — открываем оплату в новой вкладке,
         // текущую уводим на страницу заказа (статус уточнит webhook).
         window.open(payment.redirect_url, '_blank', 'noopener')
         navigate(`/orders/${order.id}`, { replace: true })
@@ -185,7 +175,7 @@ export default function WebCheckoutPage() {
               <div className="flex-1">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-white">{m.label}</p>
-                  {quote && m.id !== 'card' && (
+                  {quote && (
                     <p className="text-sm font-bold" style={{ color: 'var(--link)' }}>
                       {money(quote[m.id])}
                     </p>
@@ -201,27 +191,10 @@ export default function WebCheckoutPage() {
         })}
       </div>
 
-      {/* Монеты */}
       {method === 'crypto' && (
-        <div className="grid grid-cols-4 gap-2 mt-3">
-          {CRYPTO_COINS.map((c) => {
-            const active = coin === c.id
-            return (
-              <button
-                key={c.id}
-                onClick={() => setCoin(c.id)}
-                className="py-2.5 rounded-xl text-sm font-bold transition-all"
-                style={{
-                  background: active ? 'rgba(45,88,173,0.25)' : 'var(--bg2)',
-                  border: active ? '1.5px solid rgba(45,88,173,0.55)' : '1.5px solid var(--border)',
-                  color: active ? 'var(--link)' : '#fff',
-                }}
-              >
-                {c.label}
-              </button>
-            )
-          })}
-        </div>
+        <p className="text-xs text-white/45 mt-3 text-center">
+          Монета и сеть выбираются на странице оплаты
+        </p>
       )}
 
       {insufficientBalance && (

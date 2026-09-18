@@ -269,7 +269,6 @@ export interface CheckoutFieldGroup {
 export const ordersApi = {
   create: (data: {
     payment_method: string
-    crypto_currency?: string
     promo_code?: string
     input_data?: Record<string, Record<string, string>>
   }) =>
@@ -287,13 +286,12 @@ export const ordersApi = {
       `/orders/${orderId}/pay-quote`,
     ).then(r => r.data),
 
-  pay: (orderId: string, body?: { payment_method?: string; crypto_currency?: string }) =>
+  pay: (orderId: string, body?: { payment_method?: string }) =>
     apiClient.post<{
       payment_id: string
       method: string
       status: string
       redirect_url?: string
-      mini_app_invoice_url?: string
       success?: boolean
     }>(`/payments/orders/${orderId}/pay`, body ?? {}).then(r => r.data),
 }
@@ -337,10 +335,10 @@ export const profileApi = {
 // ── Payments API ──────────────────────────────────────────────────────────────
 
 export const paymentsApi = {
-  topupBalance: (amount: number, method: 'card_yukassa' | 'crypto', currency?: string) =>
-    apiClient.post<{ redirect_url?: string; pay_url?: string; payment_id?: string; invoice_id?: string }>(
+  topupBalance: (amount: number, method: 'sbp' | 'card' | 'crypto') =>
+    apiClient.post<{ redirect_url?: string; payment_id?: string }>(
       '/payments/balance/topup',
-      { amount, method, currency: currency ?? 'USDT' }
+      { amount, method }
     ).then(r => r.data),
 }
 

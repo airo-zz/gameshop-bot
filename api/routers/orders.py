@@ -32,9 +32,6 @@ async def create_order(request: Request, body: CreateOrderRequest, db: DbSession
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    # Сохраняем выбранную криптовалюту если метод crypto
-    if body.payment_method == 'crypto' and body.crypto_currency:
-        order.meta = {**(order.meta or {}), 'crypto_currency': body.crypto_currency}
     await db.flush()
 
     # Перезагружаем заказ с позициями, чтобы избежать lazy-load в async-контексте

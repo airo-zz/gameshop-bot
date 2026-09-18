@@ -71,8 +71,7 @@ class CartOut(BaseModel):
 # ════════════════════════════════════════════════════════════════════════════
 
 class CreateOrderRequest(BaseModel):
-    payment_method: str = Field(..., pattern="^(balance|card_yukassa|crypto|usdt|ton|manual)$")
-    crypto_currency: str | None = Field(None, pattern="^(USDT|TON|BTC|ETH)$")
+    payment_method: str = Field(..., pattern="^(balance|sbp|card|crypto|manual)$")
     promo_code: str | None = None
     # Данные покупателя на уровне игры: { game_id: { field_key: value } }
     input_data: dict[str, dict[str, str]] = Field(default_factory=dict)
@@ -133,14 +132,8 @@ class PaymentInitResponse(BaseModel):
     payment_id: uuid.UUID
     method: str
     status: str
-    # Для карты — URL страницы оплаты
+    # Для внешнего шлюза (Platega) — URL страницы оплаты
     redirect_url: str | None = None
-    # Для крипты — ссылка для Telegram.WebApp.openInvoice (CryptoBot mini_app_invoice_url)
-    mini_app_invoice_url: str | None = None
-    # Для крипты — адрес и сумма
-    crypto_address: str | None = None
-    crypto_amount: str | None = None
-    crypto_currency: str | None = None
     # Для баланса — сразу success
     success: bool = False
 
@@ -181,4 +174,4 @@ class ProfileOut(BaseModel):
 
 class TopUpBalanceRequest(BaseModel):
     amount: Decimal = Field(..., gt=0, le=100000)
-    payment_method: str = Field(..., pattern="^(card_yukassa|usdt|ton)$")
+    payment_method: str = Field(..., pattern="^(sbp|card|crypto)$")

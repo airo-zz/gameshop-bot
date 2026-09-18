@@ -99,7 +99,7 @@ export default function OrderDetailPage() {
           <div>
             <p className="font-semibold text-sm" style={{ color: '#fbbf24' }}>Ожидаем подтверждения оплаты</p>
             <p className="text-xs mt-1" style={{ color: 'var(--hint)' }}>
-              После оплаты в CryptoBot статус обновится автоматически — можешь не закрывать эту страницу.
+              После оплаты статус обновится автоматически — можешь не закрывать эту страницу.
             </p>
           </div>
         </div>

@@ -115,8 +115,7 @@ async def refresh_token(request: Request, body: RefreshTokenRequest, db: DbSessi
 class PayOrderIn(BaseModel):
     # Необязательные — для оплаты заранее созданного заказа (напр. индивидуальный
     # лот), когда покупатель выбирает способ оплаты в момент оплаты.
-    payment_method: str | None = Field(None, pattern="^(balance|card_yukassa|crypto)$")
-    crypto_currency: str | None = None
+    payment_method: str | None = Field(None, pattern="^(balance|sbp|card|crypto)$")
 
 
 @router.post("/orders/{order_id}/pay", response_model=PaymentInitResponse)
@@ -149,16 +148,15 @@ async def initiate_payment(
         except ValueError:
             raise HTTPException(400, "Неподдерживаемый метод оплаты")
         await OrderService(db).apply_payment_method(order, body.payment_method)
-        if body.payment_method == "crypto" and body.crypto_currency:
-            order.meta = {**(order.meta or {}), "crypto_currency": body.crypto_currency}
         await db.flush()
 
     if order.payment_method is None:
         raise HTTPException(400, "У заказа не указан метод оплаты")
 
     svc = PaymentService(db)
+    method = order.payment_method.value
 
-    if order.payment_method.value == "balance":
+    if method == "balance":
         try:
             data = await svc.pay_balance(order, user)
         except ValueError as e:
@@ -169,25 +167,20 @@ async def initiate_payment(
             payment_id=data.get("payment_id"),
         )
 
-    elif order.payment_method.value == "card_yukassa":
-        data = await svc.pay_yukassa(order, user)
-        return PaymentInitResponse(method="card_yukassa", status="pending", **data)
-
-    elif order.payment_method.value in ("crypto", "usdt", "ton"):
-        # Определяем валюту: из meta (новый flow) или из legacy method name
-        currency = (order.meta or {}).get("crypto_currency")
-        if not currency:
-            currency = "USDT" if order.payment_method.value == "usdt" else "TON"
-        data = await svc.pay_crypto(order, user, currency)
-        return PaymentInitResponse(method="crypto", status="pending", **data)
+    # Внешний шлюз Platega: СБП / карта / крипта.
+    if method in ("sbp", "card", "crypto"):
+        try:
+            data = await svc.pay_platega(order, user, method)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        return PaymentInitResponse(method=method, status="pending", **data)
 
     raise HTTPException(400, "Неподдерживаемый метод оплаты")
 
 
 class BalanceTopupRequest(BaseModel):
     amount: Decimal = Field(..., ge=10, le=100000, description="Сумма в рублях")
-    method: str = Field(..., pattern="^(card_yukassa|crypto)$")
-    currency: str = Field("USDT", description="Криптовалюта (для метода crypto)")
+    method: str = Field(..., pattern="^(sbp|card|crypto)$")
 
 
 @router.post("/balance/topup")
@@ -195,10 +188,7 @@ class BalanceTopupRequest(BaseModel):
 async def topup_balance(request: Request, body: BalanceTopupRequest, db: DbSession, user: CurrentUser):
     svc = PaymentService(db)
     try:
-        if body.method == "card_yukassa":
-            data = await svc.topup_yukassa(user, body.amount)
-        else:
-            data = await svc.topup_crypto(user, body.amount, body.currency)
+        data = await svc.topup_platega(user, body.amount, body.method)
     except ValueError as e:
         raise HTTPException(400, str(e))
     return data

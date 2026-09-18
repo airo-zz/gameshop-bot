@@ -1,5 +1,4 @@
 """api/routers/webhooks.py"""
-import hashlib
 import hmac
 import ipaddress
 
@@ -57,33 +56,34 @@ async def yukassa_webhook(request: Request, db: DbSession):
     return {"ok": True}
 
 
-@router.post("/cryptobot")
-async def cryptobot_webhook(
+@router.post("/platega")
+async def platega_webhook(
     request: Request,
     db: DbSession,
-    crypto_pay_api_signature: str = Header(None),
+    x_merchantid: str = Header(None),
+    x_secret: str = Header(None),
 ):
     """
-    Webhook от CryptoBot.
-    Верификация через HMAC-SHA256 подпись в заголовке.
+    Webhook от Platega.
+    Верификация: заголовки x-merchantid / x-secret должны совпадать с нашими
+    кредами (constant-time сравнение). Тело — {Id, amount, currency, status,
+    paymentMethod, payload}.
     """
-    body = await request.body()
-
-    # Верифицируем подпись — токен обязан быть настроен, заголовок обязателен
-    if not settings.CRYPTOBOT_TOKEN:
-        raise HTTPException(500, "CRYPTOBOT_TOKEN не настроен")
-    if not crypto_pay_api_signature:
-        raise HTTPException(401, "Отсутствует подпись")
-    secret = hashlib.sha256(settings.CRYPTOBOT_TOKEN.encode()).digest()
-    expected = hmac.new(secret, body, hashlib.sha256).hexdigest()
-    if not hmac.compare_digest(expected, crypto_pay_api_signature):
-        raise HTTPException(401, "Неверная подпись")
+    if not settings.PLATEGA_MERCHANT_ID or not settings.PLATEGA_SECRET:
+        raise HTTPException(500, "Platega не настроена")
+    if not x_merchantid or not x_secret:
+        raise HTTPException(401, "Отсутствуют заголовки авторизации")
+    ok_merchant = hmac.compare_digest(x_merchantid, settings.PLATEGA_MERCHANT_ID)
+    ok_secret = hmac.compare_digest(x_secret, settings.PLATEGA_SECRET)
+    if not (ok_merchant and ok_secret):
+        raise HTTPException(401, "Неверные креды Platega")
 
     payload = await request.json()
-    if payload.get("update_type") != "invoice_paid":
-        return {"ok": True}  # Игнорируем другие события
 
     svc = PaymentService(db)
-    ok = await svc.handle_cryptobot_webhook(payload.get("payload", {}))
+    ok = await svc.handle_platega_webhook(payload)
 
-    return {"ok": ok}
+    if not ok:
+        raise HTTPException(400, "Ошибка обработки webhook")
+
+    return {"ok": True}

@@ -49,9 +49,9 @@ def _payment_methods_keyboard(balance: float) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=balance_label, callback_data="checkout:pay:balance")],
-            # ЮKassa отключена до подключения платёжки — вернуть кнопку "Банковская карта" когда появятся креды
-            [InlineKeyboardButton(text="₮ USDT TRC-20", callback_data="checkout:pay:usdt")],
-            [InlineKeyboardButton(text="💎 TON", callback_data="checkout:pay:ton")],
+            [InlineKeyboardButton(text="🏦 СБП", callback_data="checkout:pay:sbp")],
+            [InlineKeyboardButton(text="💳 Банковская карта", callback_data="checkout:pay:card")],
+            [InlineKeyboardButton(text="🪙 Криптовалюта", callback_data="checkout:pay:crypto")],
             [InlineKeyboardButton(text="❌ Отменить заказ", callback_data="checkout:cancel")],
         ]
     )
@@ -59,9 +59,9 @@ def _payment_methods_keyboard(balance: float) -> InlineKeyboardMarkup:
 
 def _insufficient_balance_keyboard() -> InlineKeyboardMarkup:
     buttons = [
-        # ЮKassa отключена до подключения платёжки — вернуть кнопку "Банковская карта" когда появятся креды
-        [InlineKeyboardButton(text="₮ USDT TRC-20", callback_data="checkout:pay:usdt")],
-        [InlineKeyboardButton(text="💎 TON", callback_data="checkout:pay:ton")],
+        [InlineKeyboardButton(text="🏦 СБП", callback_data="checkout:pay:sbp")],
+        [InlineKeyboardButton(text="💳 Банковская карта", callback_data="checkout:pay:card")],
+        [InlineKeyboardButton(text="🪙 Криптовалюта", callback_data="checkout:pay:crypto")],
         [InlineKeyboardButton(text="❌ Отменить заказ", callback_data="checkout:cancel")],
     ]
     if settings.MINIAPP_URL:
@@ -348,10 +348,13 @@ async def cb_pay_balance(
         await call.answer("❌ Недостаточно средств", show_alert=True)
 
 
-# ── Оплата картой (ЮKassa) ────────────────────────────────────────────────────
+# ── Оплата через Platega (СБП / карта / крипта) ───────────────────────────────
 
-@router.callback_query(CheckoutFSM.selecting_method, F.data == "checkout:pay:card")
-async def cb_pay_card(
+@router.callback_query(
+    CheckoutFSM.selecting_method,
+    F.data.in_({"checkout:pay:sbp", "checkout:pay:card", "checkout:pay:crypto"}),
+)
+async def cb_pay_platega(
     call: CallbackQuery,
     user: User,
     db: AsyncSession,
@@ -359,17 +362,21 @@ async def cb_pay_card(
 ) -> None:
     data = await state.get_data()
     order_id = uuid.UUID(data["order_id"])
+    method_value = call.data.split(":")[-1]  # sbp | card | crypto
 
     order = await db.get(Order, order_id)
     if not order:
         await call.answer("Заказ не найден", show_alert=True)
         return
 
+    # Метод выбран после создания заказа — фиксируем его и пересчитываем сумму
+    # под наценку выбранного метода.
+    order.payment_method = PaymentMethod(method_value)
+    await OrderService(db).apply_payment_method(order, method_value)
+
     payment_svc = PaymentService(db)
     try:
-        result = await payment_svc.pay_yukassa(order, user)
-        # БАГ 3 ИСПРАВЛЕН: фиксируем реальный метод оплаты в заказе
-        order.payment_method = PaymentMethod.card_yukassa
+        result = await payment_svc.pay_platega(order, user, method_value)
     except ValueError as exc:
         await call.answer(str(exc), show_alert=True)
         return
@@ -383,89 +390,7 @@ async def cb_pay_card(
 
     await safe_edit(
         call.message,
-        texts.payment_waiting_external("card", float(order.total_amount), redirect_url),
-        reply_markup=_external_payment_keyboard(redirect_url, str(order.id)),
-    )
-    await call.answer()
-
-
-# ── Оплата USDT ───────────────────────────────────────────────────────────────
-
-@router.callback_query(CheckoutFSM.selecting_method, F.data == "checkout:pay:usdt")
-async def cb_pay_usdt(
-    call: CallbackQuery,
-    user: User,
-    db: AsyncSession,
-    state: FSMContext,
-) -> None:
-    data = await state.get_data()
-    order_id = uuid.UUID(data["order_id"])
-
-    order = await db.get(Order, order_id)
-    if not order:
-        await call.answer("Заказ не найден", show_alert=True)
-        return
-
-    payment_svc = PaymentService(db)
-    try:
-        result = await payment_svc.pay_crypto(order, user, currency="USDT")
-        # БАГ 3 ИСПРАВЛЕН: фиксируем реальный метод оплаты в заказе
-        order.payment_method = PaymentMethod.usdt
-    except ValueError as exc:
-        await call.answer(str(exc), show_alert=True)
-        return
-
-    redirect_url = result.get("redirect_url", "")
-    if not redirect_url:
-        await call.answer("Не удалось создать инвойс", show_alert=True)
-        return
-
-    await state.set_state(CheckoutFSM.waiting_external)
-
-    await safe_edit(
-        call.message,
-        texts.payment_waiting_external("usdt", float(order.total_amount), redirect_url),
-        reply_markup=_external_payment_keyboard(redirect_url, str(order.id)),
-    )
-    await call.answer()
-
-
-# ── Оплата TON ────────────────────────────────────────────────────────────────
-
-@router.callback_query(CheckoutFSM.selecting_method, F.data == "checkout:pay:ton")
-async def cb_pay_ton(
-    call: CallbackQuery,
-    user: User,
-    db: AsyncSession,
-    state: FSMContext,
-) -> None:
-    data = await state.get_data()
-    order_id = uuid.UUID(data["order_id"])
-
-    order = await db.get(Order, order_id)
-    if not order:
-        await call.answer("Заказ не найден", show_alert=True)
-        return
-
-    payment_svc = PaymentService(db)
-    try:
-        result = await payment_svc.pay_crypto(order, user, currency="TON")
-        # БАГ 3 ИСПРАВЛЕН: фиксируем реальный метод оплаты в заказе
-        order.payment_method = PaymentMethod.ton
-    except ValueError as exc:
-        await call.answer(str(exc), show_alert=True)
-        return
-
-    redirect_url = result.get("redirect_url", "")
-    if not redirect_url:
-        await call.answer("Не удалось создать инвойс", show_alert=True)
-        return
-
-    await state.set_state(CheckoutFSM.waiting_external)
-
-    await safe_edit(
-        call.message,
-        texts.payment_waiting_external("ton", float(order.total_amount), redirect_url),
+        texts.payment_waiting_external(method_value, float(order.total_amount), redirect_url),
         reply_markup=_external_payment_keyboard(redirect_url, str(order.id)),
     )
     await call.answer()

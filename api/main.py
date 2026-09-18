@@ -28,10 +28,10 @@ log = structlog.get_logger()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     log.info("api.startup", shop=settings.SHOP_NAME, env=settings.ENVIRONMENT)
-    # CryptoBot webhook настраивается вручную через @CryptoBot → Crypto Pay → My Apps → Webhooks
-    # URL: {WEBHOOK_HOST}/webhooks/cryptobot
+    # Callback URL Platega указывается в ЛК: Настройки проекта → Callback URL.
+    # URL: {WEBHOOK_HOST}/webhooks/platega
     if settings.WEBHOOK_HOST:
-        log.info("cryptobot.webhook_url", url=f"{settings.WEBHOOK_HOST}/webhooks/cryptobot")
+        log.info("platega.webhook_url", url=f"{settings.WEBHOOK_HOST}/webhooks/platega")
     yield
     await engine.dispose()
     log.info("api.shutdown")

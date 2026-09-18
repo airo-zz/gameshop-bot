@@ -97,7 +97,7 @@ cat <<EOF
   1. Создать .env:
        cd $APP_DIR
        cp .env.example .env   # затем вставить подготовленный продакшн-.env
-       nano .env              # заполнить <BOT_TOKEN>, ЮKassa, CryptoBot, S3
+       nano .env              # заполнить <BOT_TOKEN>, Platega, S3
 
   2. Собрать Mini App (или дождаться деплоя из GitHub Actions):
        # локально: npm run build → dist попадёт через CI/CD
@@ -117,7 +117,8 @@ cat <<EOF
   6. Проверить бэкап вручную:
        ./scripts/backup_db.sh
 
-  7. Зарегистрировать webhook бота и CryptoBot (через бота/кабинет).
+  7. Зарегистрировать webhook бота; Callback URL Platega в ЛК:
+       Настройки проекта → https://redonate.su/api/webhooks/platega
 
   Не забудь: GitHub Secrets → VPS_HOST / VPS_USER / VPS_PASSWORD / VPS_APP_DIR=$APP_DIR
 EOF

@@ -50,10 +50,13 @@ class OrderStatus(str, enum.Enum):
 
 class PaymentMethod(str, enum.Enum):
     balance = "balance"
-    card_yukassa = "card_yukassa"
-    crypto = "crypto"
-    usdt = "usdt"       # legacy, kept for existing orders
-    ton = "ton"         # legacy, kept for existing orders
+    # Platega-методы (внешний шлюз): группа наценки определяется method_group()
+    sbp = "sbp"         # Platega paymentMethod=2  (СБП QR + Sberpay)
+    card = "card"       # Platega paymentMethod=11 (эквайринг карт)
+    crypto = "crypto"   # Platega paymentMethod=13 (криптовалюта)
+    card_yukassa = "card_yukassa"  # legacy / дремлющий провайдер
+    usdt = "usdt"       # legacy (CryptoBot), kept for existing orders
+    ton = "ton"         # legacy (CryptoBot), kept for existing orders
     manual = "manual"
 
 

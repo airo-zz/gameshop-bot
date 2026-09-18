@@ -258,9 +258,9 @@ class BotTexts:
         self, method: str, amount: float, url: str
     ) -> str:
         method_names = {
+            "sbp": "🏦 СБП",
             "card": "💳 Банковская карта",
-            "usdt": "₮ USDT TRC-20",
-            "ton": "💎 TON",
+            "crypto": "🪙 Криптовалюта",
         }
         method_label = method_names.get(method, method)
         return (
