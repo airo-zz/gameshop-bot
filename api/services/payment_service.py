@@ -241,8 +241,12 @@ class PaymentService:
         redirect = data.get("redirect")
         if response.status_code not in (200, 201) or not redirect:
             payment.status = PaymentStatus.failed
-            reason = data.get("message") or data.get("error") or f"HTTP {response.status_code}"
-            logger.warning("Platega pay error for order %s: %s", order.id, reason)
+            logger.warning(
+                "Platega pay error order=%s HTTP=%s body=%s req=%s",
+                order.id, response.status_code, response.text[:2000],
+                {"amount": payload["amount"], "currency": payload["currency"],
+                 "paymentMethod": payload["paymentMethod"]},
+            )
             raise ValueError("Не удалось создать платёж, попробуйте позже")
 
         await self.order_svc.change_status(
@@ -502,8 +506,12 @@ class PaymentService:
         redirect = data.get("redirect")
         external_id = str(data.get("id")) if data.get("id") else None
         if response.status_code not in (200, 201) or not redirect or not external_id:
-            reason = data.get("message") or data.get("error") or f"HTTP {response.status_code}"
-            logger.warning("Platega topup error for user %s: %s", user.id, reason)
+            logger.warning(
+                "Platega topup error user=%s HTTP=%s body=%s req=%s",
+                user.id, response.status_code, response.text[:2000],
+                {"amount": payload["amount"], "currency": payload["currency"],
+                 "paymentMethod": payload["paymentMethod"]},
+            )
             raise ValueError("Не удалось создать платёж, попробуйте позже")
 
         # Якорь: source of truth по сумме/пользователю для webhook-зачисления.
