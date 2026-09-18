@@ -170,8 +170,3 @@ class ProfileOut(BaseModel):
     loyalty_cashback_percent: Decimal = Decimal("0")
     loyalty_color_hex: str = "#CD7F32"
     loyalty_levels: list[dict] = []
-
-
-class TopUpBalanceRequest(BaseModel):
-    amount: Decimal = Field(..., gt=0, le=100000)
-    payment_method: str = Field(..., pattern="^(sbp|card|crypto)$")

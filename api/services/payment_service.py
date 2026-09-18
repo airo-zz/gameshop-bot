@@ -9,7 +9,7 @@ api/services/payment_service.py
 import logging
 import uuid
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 import httpx
 from sqlalchemy import select
@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.config import settings
 from shared.models import (
+    BalanceTopup,
     Order,
     OrderStatus,
     Payment,
@@ -54,6 +55,18 @@ class PaymentService:
         user: User,
         method: PaymentMethod,
     ) -> Payment:
+        key = self._make_idempotency_key(order.id, method.value)
+        # Повторная инициация оплаты тем же методом (заказ ещё в pending_payment):
+        # переиспользуем существующую запись вместо вставки-дубля (IntegrityError).
+        existing = await self.db.execute(
+            select(Payment).where(Payment.idempotency_key == key)
+        )
+        payment = existing.scalar_one_or_none()
+        if payment is not None:
+            payment.amount = order.total_amount
+            payment.status = PaymentStatus.pending
+            return payment
+
         payment = Payment(
             order_id=order.id,
             user_id=user.id,
@@ -61,11 +74,22 @@ class PaymentService:
             status=PaymentStatus.pending,
             amount=order.total_amount,
             currency="RUB",
-            idempotency_key=self._make_idempotency_key(order.id, method.value),
+            idempotency_key=key,
         )
         self.db.add(payment)
         await self.db.flush()
         return payment
+
+    @staticmethod
+    def _amounts_match(payload_amount, expected: Decimal) -> bool:
+        """Сверка суммы из webhook с ожидаемой (серверной). None → не блокируем."""
+        if payload_amount is None:
+            return True
+        try:
+            got = Decimal(str(payload_amount))
+        except (InvalidOperation, ValueError, TypeError):
+            return False
+        return abs(got - expected) <= Decimal("0.01")
 
     # ── 1. Баланс ─────────────────────────────────────────────────────────────
 
@@ -211,13 +235,15 @@ class PaymentService:
 
         data = response.json() if response.content else {}
         payment.raw_response = data
-        payment.external_id = str(data.get("id") or "")
+        # Пустой id не пишем ('' сломал бы UNIQUE-индекс external_id) — только реальный.
+        payment.external_id = str(data.get("id")) if data.get("id") else None
 
         redirect = data.get("redirect")
         if response.status_code not in (200, 201) or not redirect:
             payment.status = PaymentStatus.failed
             reason = data.get("message") or data.get("error") or f"HTTP {response.status_code}"
-            raise ValueError(f"Ошибка Platega: {reason}")
+            logger.warning("Platega pay error for order %s: %s", order.id, reason)
+            raise ValueError("Не удалось создать платёж, попробуйте позже")
 
         await self.order_svc.change_status(
             order,
@@ -246,9 +272,9 @@ class PaymentService:
         if not external_id:
             return False
 
-        # Находим платёж
+        # Находим платёж (FOR UPDATE — защита от гонки параллельных ретраев)
         result = await self.db.execute(
-            select(Payment).where(Payment.external_id == external_id)
+            select(Payment).where(Payment.external_id == external_id).with_for_update()
         )
         payment = result.scalar_one_or_none()
         if not payment:
@@ -258,12 +284,16 @@ class PaymentService:
                 user_id_str = meta.get("user_id")
                 amount_str = meta.get("amount_rub")
                 if user_id_str and amount_str:
-                    await self._credit_balance_topup(
-                        uuid.UUID(user_id_str),
-                        Decimal(amount_str),
-                        "yukassa",
-                        external_id,
-                    )
+                    try:
+                        await self._credit_balance_topup(
+                            uuid.UUID(user_id_str),
+                            Decimal(amount_str),
+                            "yukassa",
+                            external_id,
+                        )
+                    except (ValueError, InvalidOperation):
+                        logger.warning("ЮKassa topup: некорректный payload %s", meta)
+                        return False
                 return True
             return False
 
@@ -279,7 +309,7 @@ class PaymentService:
 
             # Переводим заказ в paid
             order_result = await self.db.execute(
-                select(Order).where(Order.id == payment.order_id)
+                select(Order).where(Order.id == payment.order_id).with_for_update()
             )
             order = order_result.scalar_one_or_none()
             if order and order.status == OrderStatus.pending_payment:
@@ -309,22 +339,47 @@ class PaymentService:
         if not external_id:
             return False
 
-        # Пополнение баланса — транзакция не привязана к заказу (эхо payload).
+        # ── Пополнение баланса ────────────────────────────────────────────────
+        # Источник истины — якорная запись BalanceTopup (сумма/пользователь
+        # зафиксированы сервером при инициации). Тело webhook НЕ доверенное.
         if isinstance(meta, dict) and meta.get("type") == "balance_topup":
+            topup_result = await self.db.execute(
+                select(BalanceTopup)
+                .where(
+                    BalanceTopup.provider == "platega",
+                    BalanceTopup.external_id == external_id,
+                )
+                .with_for_update()
+            )
+            topup = topup_result.scalar_one_or_none()
+            if topup is None:
+                # Неизвестная транзакция (форж или гонка «webhook раньше коммита»).
+                logger.warning("Platega webhook: неизвестный topup external_id=%s", external_id)
+                return False
+            if topup.status == "credited":
+                return True  # Идемпотентность
             if status == "CONFIRMED":
-                user_id_str = meta.get("user_id")
-                amount_str = meta.get("amount_rub")
-                if user_id_str and amount_str:
-                    await self._credit_balance_topup(
-                        uuid.UUID(user_id_str),
-                        Decimal(amount_str),
-                        "platega",
-                        external_id,
+                # Зачисляем всегда серверную сумму (topup.amount), не из webhook.
+                # Расхождение — только аудит-лог (формат суммы Platega уточняется
+                # на боевом тесте; после подтверждения можно ужесточить до reject).
+                if not self._amounts_match(payload.get("amount"), topup.amount):
+                    logger.error(
+                        "Platega topup amount mismatch: webhook=%s expected=%s ext=%s",
+                        payload.get("amount"), topup.amount, external_id,
                     )
+                await self._credit_balance_topup(
+                    topup.user_id, topup.amount, "platega", external_id
+                )
+                topup.status = "credited"
+                topup.credited_at = datetime.now(timezone.utc)
+            elif status in ("CANCELED", "CHARGEBACKED"):
+                topup.status = "failed"
             return True
 
+        # ── Оплата заказа ─────────────────────────────────────────────────────
+        # FOR UPDATE сериализует параллельные ретраи webhook'а от Platega.
         result = await self.db.execute(
-            select(Payment).where(Payment.external_id == external_id)
+            select(Payment).where(Payment.external_id == external_id).with_for_update()
         )
         payment = result.scalar_one_or_none()
         if not payment:
@@ -336,11 +391,19 @@ class PaymentService:
         payment.raw_response = payload
 
         if status == "CONFIRMED":
+            # Расхождение суммы — аудит-лог (формат суммы Platega уточняется на
+            # боевом тесте). Заказ оплачивается на фикс. серверную сумму заказа.
+            if not self._amounts_match(payload.get("amount"), payment.amount):
+                logger.error(
+                    "Platega order amount mismatch: webhook=%s expected=%s ext=%s",
+                    payload.get("amount"), payment.amount, external_id,
+                )
+
             payment.status = PaymentStatus.succeeded
             payment.paid_at = datetime.now(timezone.utc)
 
             order_result = await self.db.execute(
-                select(Order).where(Order.id == payment.order_id)
+                select(Order).where(Order.id == payment.order_id).with_for_update()
             )
             order = order_result.scalar_one_or_none()
             if order and order.status == OrderStatus.pending_payment:
@@ -402,9 +465,11 @@ class PaymentService:
     ) -> dict:
         """Создаёт транзакцию Platega для пополнения баланса.
 
-        Зачисление — в handle_platega_webhook по payload.type == 'balance_topup'.
-        Payment-строка не создаётся (как и в topup_yukassa); идемпотентность
-        зачисления обеспечивает _credit_balance_topup по (provider, external_id).
+        Заводит якорную запись BalanceTopup (сумма/пользователь фиксируются
+        сервером). Зачисление — в handle_platega_webhook: находит запись по
+        external_id и зачисляет ИМЕННО её сумму (не доверяя телу webhook).
+        Идемпотентность — статус записи + unique (provider, external_payment_id)
+        в _credit_balance_topup.
         """
         if not settings.PLATEGA_MERCHANT_ID or not settings.PLATEGA_SECRET:
             raise ValueError("Platega не настроена")
@@ -422,11 +487,7 @@ class PaymentService:
             "description": f"Пополнение баланса — {settings.SHOP_NAME}",
             "returnUrl": f"{miniapp}?topup=success",
             "failedUrl": f"{miniapp}?topup=failed",
-            "payload": {
-                "type": "balance_topup",
-                "user_id": str(user.id),
-                "amount_rub": f"{amount_rub:.2f}",
-            },
+            "payload": {"type": "balance_topup", "user_id": str(user.id)},
         }
 
         async with httpx.AsyncClient() as client:
@@ -439,11 +500,23 @@ class PaymentService:
 
         data = response.json() if response.content else {}
         redirect = data.get("redirect")
-        if response.status_code not in (200, 201) or not redirect:
+        external_id = str(data.get("id")) if data.get("id") else None
+        if response.status_code not in (200, 201) or not redirect or not external_id:
             reason = data.get("message") or data.get("error") or f"HTTP {response.status_code}"
-            raise ValueError(f"Ошибка Platega: {reason}")
+            logger.warning("Platega topup error for user %s: %s", user.id, reason)
+            raise ValueError("Не удалось создать платёж, попробуйте позже")
 
-        return {"redirect_url": redirect, "payment_id": data.get("id")}
+        # Якорь: source of truth по сумме/пользователю для webhook-зачисления.
+        self.db.add(BalanceTopup(
+            user_id=user.id,
+            amount=amount_rub,
+            provider="platega",
+            external_id=external_id,
+            status="pending",
+        ))
+        await self.db.flush()
+
+        return {"redirect_url": redirect, "payment_id": external_id}
 
     async def _credit_balance_topup(
         self,

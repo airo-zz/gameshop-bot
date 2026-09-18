@@ -12,6 +12,7 @@ from .user import (
     LoyaltyLevel,
     User,
     BalanceTransaction,
+    BalanceTopup,
     ReferralReward,
     ShopSettings,
 )
@@ -73,7 +74,7 @@ __all__ = [
     # Base
     "Base", "TimestampMixin", "UUIDMixin",
     # User
-    "LoyaltyLevel", "User", "BalanceTransaction", "ReferralReward", "ShopSettings",
+    "LoyaltyLevel", "User", "BalanceTransaction", "BalanceTopup", "ReferralReward", "ShopSettings",
     # Catalog
     "DeliveryType", "Game", "Category", "Product",
     "ProductKey", "UserFavorite", "UserViewedProduct", "Review",

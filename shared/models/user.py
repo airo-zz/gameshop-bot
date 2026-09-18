@@ -185,6 +185,42 @@ class BalanceTransaction(Base, UUIDMixin):
     user: Mapped[User] = relationship("User", back_populates="balance_transactions")
 
 
+class BalanceTopup(Base, UUIDMixin):
+    """
+    Якорная запись инициированного пополнения баланса через внешний шлюз.
+
+    Создаётся при инициации топапа с зафиксированными СЕРВЕРОМ user_id и суммой.
+    Webhook находит запись по (provider, external_id) и зачисляет именно эту
+    сумму этому пользователю — не доверяя телу webhook'а. Отсутствие записи =
+    неизвестная транзакция → зачисление отклоняется.
+    """
+    __tablename__ = "balance_topups"
+    __table_args__ = (
+        Index(
+            "uq_balance_topups_external",
+            "provider",
+            "external_id",
+            unique=True,
+            postgresql_where=sa.text("external_id IS NOT NULL"),
+        ),
+    )
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    provider: Mapped[str] = mapped_column(String(32), nullable=False)
+    external_id: Mapped[str | None] = mapped_column(String(128), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    # pending | credited | failed
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    credited_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    user: Mapped[User] = relationship("User")
+
+
 class ShopSettings(Base):
     """
     Хранилище настроек магазина в формате ключ-значение.
