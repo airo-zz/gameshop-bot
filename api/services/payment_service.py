@@ -251,8 +251,10 @@ class PaymentService:
 
         data = response.json() if response.content else {}
         payment.raw_response = data
-        # Пустой id не пишем ('' сломал бы UNIQUE-индекс external_id) — только реальный.
-        payment.external_id = str(data.get("id")) if data.get("id") else None
+        # Platega возвращает id транзакции в поле "transactionId" (не "id").
+        # Пустой id не пишем ('' сломал бы UNIQUE-индекс external_id).
+        txid = data.get("transactionId") or data.get("id")
+        payment.external_id = str(txid) if txid else None
 
         # v1 отдаёт ссылку в "redirect", v2 — в "url".
         redirect = data.get("redirect") or data.get("url")
@@ -354,7 +356,9 @@ class PaymentService:
         Тело: {Id, amount, currency, status, paymentMethod, payload}.
         status ∈ CONFIRMED | CANCELED | PENDING | CHARGEBACKED.
         """
-        external_id = str(payload.get("Id") or payload.get("id") or "")
+        external_id = str(
+            payload.get("Id") or payload.get("id") or payload.get("transactionId") or ""
+        )
         status = payload.get("status")
         logger.info(
             "Platega webhook in: external_id=%s status=%s keys=%s",
@@ -526,7 +530,8 @@ class PaymentService:
 
         data = response.json() if response.content else {}
         redirect = data.get("redirect") or data.get("url")
-        external_id = str(data.get("id")) if data.get("id") else None
+        txid = data.get("transactionId") or data.get("id")
+        external_id = str(txid) if txid else None
         if response.status_code not in (200, 201) or not redirect or not external_id:
             logger.warning(
                 "Platega topup error user=%s HTTP=%s body=%s req=%s",
