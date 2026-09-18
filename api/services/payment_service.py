@@ -213,16 +213,13 @@ class PaymentService:
 
         miniapp = settings.MINIAPP_URL.rstrip("/")
         payload = {
-            "amount": float(order.total_amount),
-            "currency": "RUB",
             "paymentMethod": code,
+            "paymentDetails": {"amount": float(order.total_amount), "currency": "RUB"},
             "description": f"Заказ {order.order_number} — {settings.SHOP_NAME}",
-            "returnUrl": f"{miniapp}/orders/{order.id}?success=1",
+            "return": f"{miniapp}/orders/{order.id}?success=1",
             "failedUrl": f"{miniapp}/orders/{order.id}",
-            "payload": {
-                "order_id": str(order.id),
-                "payment_record_id": str(payment.id),
-            },
+            "payload": str(order.id),
+            "metadata": {"userId": str(user.telegram_id)},
         }
 
         async with httpx.AsyncClient() as client:
@@ -238,13 +235,14 @@ class PaymentService:
         # Пустой id не пишем ('' сломал бы UNIQUE-индекс external_id) — только реальный.
         payment.external_id = str(data.get("id")) if data.get("id") else None
 
-        redirect = data.get("redirect")
+        # v1 отдаёт ссылку в "redirect", v2 — в "url".
+        redirect = data.get("redirect") or data.get("url")
         if response.status_code not in (200, 201) or not redirect:
             payment.status = PaymentStatus.failed
             logger.warning(
                 "Platega pay error order=%s HTTP=%s body=%s req=%s",
                 order.id, response.status_code, response.text[:2000],
-                {"amount": payload["amount"], "currency": payload["currency"],
+                {"paymentDetails": payload["paymentDetails"],
                  "paymentMethod": payload["paymentMethod"]},
             )
             raise ValueError("Не удалось создать платёж, попробуйте позже")
@@ -339,27 +337,22 @@ class PaymentService:
         """
         external_id = str(payload.get("Id") or payload.get("id") or "")
         status = payload.get("status")
-        meta = payload.get("payload") or {}
         if not external_id:
             return False
 
         # ── Пополнение баланса ────────────────────────────────────────────────
-        # Источник истины — якорная запись BalanceTopup (сумма/пользователь
-        # зафиксированы сервером при инициации). Тело webhook НЕ доверенное.
-        if isinstance(meta, dict) and meta.get("type") == "balance_topup":
-            topup_result = await self.db.execute(
-                select(BalanceTopup)
-                .where(
-                    BalanceTopup.provider == "platega",
-                    BalanceTopup.external_id == external_id,
-                )
-                .with_for_update()
+        # Маршрутизация строго по external_id (тело payload — просто строка, не
+        # доверяем ей). Якорь BalanceTopup — источник истины по сумме/пользователю.
+        topup_result = await self.db.execute(
+            select(BalanceTopup)
+            .where(
+                BalanceTopup.provider == "platega",
+                BalanceTopup.external_id == external_id,
             )
-            topup = topup_result.scalar_one_or_none()
-            if topup is None:
-                # Неизвестная транзакция (форж или гонка «webhook раньше коммита»).
-                logger.warning("Platega webhook: неизвестный topup external_id=%s", external_id)
-                return False
+            .with_for_update()
+        )
+        topup = topup_result.scalar_one_or_none()
+        if topup is not None:
             if topup.status == "credited":
                 return True  # Идемпотентность
             if status == "CONFIRMED":
@@ -485,13 +478,13 @@ class PaymentService:
 
         miniapp = settings.MINIAPP_URL.rstrip("/")
         payload = {
-            "amount": float(amount_rub),
-            "currency": "RUB",
             "paymentMethod": code,
+            "paymentDetails": {"amount": float(amount_rub), "currency": "RUB"},
             "description": f"Пополнение баланса — {settings.SHOP_NAME}",
-            "returnUrl": f"{miniapp}?topup=success",
+            "return": f"{miniapp}?topup=success",
             "failedUrl": f"{miniapp}?topup=failed",
-            "payload": {"type": "balance_topup", "user_id": str(user.id)},
+            "payload": f"topup:{user.id}",
+            "metadata": {"userId": str(user.telegram_id)},
         }
 
         async with httpx.AsyncClient() as client:
@@ -503,13 +496,13 @@ class PaymentService:
             )
 
         data = response.json() if response.content else {}
-        redirect = data.get("redirect")
+        redirect = data.get("redirect") or data.get("url")
         external_id = str(data.get("id")) if data.get("id") else None
         if response.status_code not in (200, 201) or not redirect or not external_id:
             logger.warning(
                 "Platega topup error user=%s HTTP=%s body=%s req=%s",
                 user.id, response.status_code, response.text[:2000],
-                {"amount": payload["amount"], "currency": payload["currency"],
+                {"paymentDetails": payload["paymentDetails"],
                  "paymentMethod": payload["paymentMethod"]},
             )
             raise ValueError("Не удалось создать платёж, попробуйте позже")
