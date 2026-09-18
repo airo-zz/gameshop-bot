@@ -123,7 +123,10 @@ class OrderService:
         # Наценка способа оплаты (если метод уже выбран — miniapp/web).
         # base_total посчитан по крипто-наценке; приводим к наценке метода.
         total = base_total
-        order_meta: dict = {}
+        # from_cart: корзину чистим ПОСЛЕ успешной инициации оплаты
+        # (initiate_payment / бот), не при создании заказа — иначе при ошибке
+        # оплаты корзина терялась бы.
+        order_meta: dict = {"from_cart": True}
         if payment_method:
             markups = await get_all_markups(self.db)
             grp = method_group(payment_method)
@@ -208,10 +211,8 @@ class OrderService:
             changed_by_type="system",
         ))
 
-        # Очищаем корзину
-        for item, _ in items_with_products:
-            await self.db.delete(item)
-
+        # Корзину НЕ чистим здесь — очистка после успешной инициации оплаты
+        # (см. from_cart в meta). При ошибке оплаты корзина сохраняется.
         return order
 
     async def create_custom_order(

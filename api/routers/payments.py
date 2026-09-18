@@ -156,11 +156,21 @@ async def initiate_payment(
     svc = PaymentService(db)
     method = order.payment_method.value
 
+    async def _clear_cart_if_from_cart() -> None:
+        # Корзину чистим только ПОСЛЕ успешной инициации оплаты и только для
+        # заказов из корзины (спец-лоты не трогают корзину).
+        if (order.meta or {}).get("from_cart"):
+            from api.services.cart_service import CartService
+            cart_svc = CartService(db)
+            cart = await cart_svc.get_or_create_cart(user)
+            await cart_svc.clear_cart(cart)
+
     if method == "balance":
         try:
             data = await svc.pay_balance(order, user)
         except ValueError as e:
             raise HTTPException(400, str(e))
+        await _clear_cart_if_from_cart()
         return PaymentInitResponse(
             method="balance", status="succeeded",
             success=data.get("success", True),
@@ -173,6 +183,7 @@ async def initiate_payment(
             data = await svc.pay_platega(order, user, method)
         except ValueError as e:
             raise HTTPException(400, str(e))
+        await _clear_cart_if_from_cart()
         return PaymentInitResponse(method=method, status="pending", **data)
 
     raise HTTPException(400, "Неподдерживаемый метод оплаты")

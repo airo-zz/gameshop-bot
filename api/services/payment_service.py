@@ -211,10 +211,16 @@ class PaymentService:
             order, user, PaymentMethod(method_value)
         )
 
+        # В Platega уходит БАЗОВАЯ цена магазина (subtotal − скидка), БЕЗ нашей
+        # наценки метода: комиссию за способ Platega добавляет клиенту сама.
+        # Иначе комиссия бралась бы дважды (наша наценка + комиссия Platega).
+        base_amount = order.subtotal - order.discount_amount
+        payment.amount = base_amount
+
         miniapp = settings.MINIAPP_URL.rstrip("/")
         payload = {
             "paymentMethod": code,
-            "paymentDetails": {"amount": float(order.total_amount), "currency": "RUB"},
+            "paymentDetails": {"amount": float(base_amount), "currency": "RUB"},
             "description": f"Заказ {order.order_number} — {settings.SHOP_NAME}",
             "return": f"{miniapp}/orders/{order.id}?success=1",
             "failedUrl": f"{miniapp}/orders/{order.id}",

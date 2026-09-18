@@ -326,6 +326,9 @@ async def cb_pay_balance(
     payment_svc = PaymentService(db)
     try:
         await payment_svc.pay_balance(order, user)
+        # Успех — теперь можно очистить корзину (при ошибке ниже она сохраняется)
+        cart = await CartService(db).get_or_create_cart(user)
+        await CartService(db).clear_cart(cart)
         await state.clear()
 
         await safe_edit(
@@ -385,6 +388,10 @@ async def cb_pay_platega(
     if not redirect_url:
         await call.answer("Не удалось создать платёж", show_alert=True)
         return
+
+    # Платёж успешно инициирован — очищаем корзину (при ошибке выше — сохранена)
+    cart = await CartService(db).get_or_create_cart(user)
+    await CartService(db).clear_cart(cart)
 
     await state.set_state(CheckoutFSM.waiting_external)
 
