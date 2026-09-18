@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import { ordersApi, profileApi } from '@/api'
 import { fmtPrice } from '@/utils/format'
 import { useTelegram } from '@/hooks/useTelegram'
+import { PAY_SOURCE } from '@/config/appTarget'
 
 const PAYMENT_METHODS = [
   { id: 'balance', label: 'Баланс бота', icon: <Wallet size={20} />, description: 'Мгновенно' },
@@ -70,7 +71,7 @@ export default function PayOrderPage() {
     setPaying(true)
     haptic.impact('medium')
     try {
-      const payment = await ordersApi.pay(order.id, { payment_method: method })
+      const payment = await ordersApi.pay(order.id, { payment_method: method, source: PAY_SOURCE })
       if (payment.success) {
         haptic.success()
         navigate(`/chat?order_id=${order.id}`, { replace: true })

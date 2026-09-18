@@ -39,6 +39,17 @@ PLATEGA_METHOD_CODES: dict[str, int] = {
 }
 
 
+def _app_base(source: str) -> str:
+    """Базовый URL фронта по источнику: сайт — корень, miniapp — /app.
+
+    Обе сборки живут на FRONTEND_URL (redonate.su): сайт в корне, Mini App
+    под /app (vite base '/app/'). Возврат после оплаты должен вести туда же,
+    откуда платили.
+    """
+    base = settings.FRONTEND_URL.rstrip("/")
+    return base if source == "web" else f"{base}/app"
+
+
 class PaymentService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -195,11 +206,13 @@ class PaymentService:
         order: Order,
         user: User,
         method_value: str = "card",
+        source: str = "miniapp",
     ) -> dict:
         """
         Создаёт транзакцию в Platega (POST /transaction/process) и возвращает
         ссылку на оплату. Подтверждение приходит через webhook (status=CONFIRMED).
-        method_value — 'sbp' | 'card' | 'crypto'.
+        method_value — 'sbp' | 'card' | 'crypto'. source — 'web' | 'miniapp'
+        (куда вернуть после оплаты).
         """
         if not settings.PLATEGA_MERCHANT_ID or not settings.PLATEGA_SECRET:
             raise ValueError("Platega не настроена")
@@ -217,13 +230,13 @@ class PaymentService:
         base_amount = order.subtotal - order.discount_amount
         payment.amount = base_amount
 
-        miniapp = settings.MINIAPP_URL.rstrip("/")
+        app_base = _app_base(source)
         payload = {
             "paymentMethod": code,
             "paymentDetails": {"amount": float(base_amount), "currency": "RUB"},
             "description": f"Заказ {order.order_number} — {settings.SHOP_NAME}",
-            "return": f"{miniapp}/orders/{order.id}?success=1",
-            "failedUrl": f"{miniapp}/orders/{order.id}",
+            "return": f"{app_base}/orders/{order.id}?success=1",
+            "failedUrl": f"{app_base}/orders/{order.id}",
             "payload": str(order.id),
             "metadata": {"userId": str(user.telegram_id)},
         }
@@ -464,7 +477,8 @@ class PaymentService:
         return {"redirect_url": confirm_url, "payment_id": data.get("id")}
 
     async def topup_platega(
-        self, user: User, amount_rub: Decimal, method_value: str = "card"
+        self, user: User, amount_rub: Decimal, method_value: str = "card",
+        source: str = "miniapp",
     ) -> dict:
         """Создаёт транзакцию Platega для пополнения баланса.
 
@@ -482,13 +496,13 @@ class PaymentService:
         if amount_rub < Decimal("10"):
             raise ValueError("Минимальная сумма пополнения: 10 ₽")
 
-        miniapp = settings.MINIAPP_URL.rstrip("/")
+        app_base = _app_base(source)
         payload = {
             "paymentMethod": code,
             "paymentDetails": {"amount": float(amount_rub), "currency": "RUB"},
             "description": f"Пополнение баланса — {settings.SHOP_NAME}",
-            "return": f"{miniapp}?topup=success",
-            "failedUrl": f"{miniapp}?topup=failed",
+            "return": f"{app_base}?topup=success",
+            "failedUrl": f"{app_base}?topup=failed",
             "payload": f"topup:{user.id}",
             "metadata": {"userId": str(user.telegram_id)},
         }

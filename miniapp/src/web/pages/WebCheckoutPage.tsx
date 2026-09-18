@@ -11,6 +11,7 @@ import { Wallet, Bitcoin, CreditCard, CheckCircle, AlertCircle, Smartphone } fro
 import toast from 'react-hot-toast'
 import { ordersApi, profileApi, cartApi } from '@/api'
 import { useWebCart } from '@/web/cart/useWebCart'
+import { PAY_SOURCE } from '@/config/appTarget'
 
 function money(v: number) {
   return Number(v).toLocaleString('ru-RU') + ' ₽'
@@ -71,8 +72,8 @@ export default function WebCheckoutPage() {
         payment_method: method,
         ...(checkoutFields.length > 0 ? { input_data: fieldValues } : {}),
       })
-      const payment = await ordersApi.pay(order.id)
-      await refresh() // корзина очищена на сервере при создании заказа
+      const payment = await ordersApi.pay(order.id, { source: PAY_SOURCE })
+      await refresh() // корзина очищается на сервере после успешной инициации оплаты
 
       if (payment.success) {
         navigate(`/orders/${order.id}?success=1`, { replace: true })

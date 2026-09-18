@@ -116,6 +116,8 @@ class PayOrderIn(BaseModel):
     # Необязательные — для оплаты заранее созданного заказа (напр. индивидуальный
     # лот), когда покупатель выбирает способ оплаты в момент оплаты.
     payment_method: str | None = Field(None, pattern="^(balance|sbp|card|crypto)$")
+    # Откуда платят — определяет URL возврата после оплаты (сайт vs Mini App).
+    source: str = Field("miniapp", pattern="^(web|miniapp)$")
 
 
 @router.post("/orders/{order_id}/pay", response_model=PaymentInitResponse)
@@ -179,8 +181,9 @@ async def initiate_payment(
 
     # Внешний шлюз Platega: СБП / карта / крипта.
     if method in ("sbp", "card", "crypto"):
+        source = body.source if body else "miniapp"
         try:
-            data = await svc.pay_platega(order, user, method)
+            data = await svc.pay_platega(order, user, method, source)
         except ValueError as e:
             raise HTTPException(400, str(e))
         await _clear_cart_if_from_cart()
@@ -192,6 +195,7 @@ async def initiate_payment(
 class BalanceTopupRequest(BaseModel):
     amount: Decimal = Field(..., ge=10, le=100000, description="Сумма в рублях")
     method: str = Field(..., pattern="^(sbp|card|crypto)$")
+    source: str = Field("miniapp", pattern="^(web|miniapp)$")
 
 
 @router.post("/balance/topup")
@@ -199,7 +203,7 @@ class BalanceTopupRequest(BaseModel):
 async def topup_balance(request: Request, body: BalanceTopupRequest, db: DbSession, user: CurrentUser):
     svc = PaymentService(db)
     try:
-        data = await svc.topup_platega(user, body.amount, body.method)
+        data = await svc.topup_platega(user, body.amount, body.method, body.source)
     except ValueError as e:
         raise HTTPException(400, str(e))
     return data

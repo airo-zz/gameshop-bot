@@ -286,7 +286,7 @@ export const ordersApi = {
       `/orders/${orderId}/pay-quote`,
     ).then(r => r.data),
 
-  pay: (orderId: string, body?: { payment_method?: string }) =>
+  pay: (orderId: string, body?: { payment_method?: string; source?: 'web' | 'miniapp' }) =>
     apiClient.post<{
       payment_id: string
       method: string
@@ -335,10 +335,10 @@ export const profileApi = {
 // ── Payments API ──────────────────────────────────────────────────────────────
 
 export const paymentsApi = {
-  topupBalance: (amount: number, method: 'sbp' | 'card' | 'crypto') =>
+  topupBalance: (amount: number, method: 'sbp' | 'card' | 'crypto', source?: 'web' | 'miniapp') =>
     apiClient.post<{ redirect_url?: string; payment_id?: string }>(
       '/payments/balance/topup',
-      { amount, method }
+      { amount, method, source }
     ).then(r => r.data),
 }
 

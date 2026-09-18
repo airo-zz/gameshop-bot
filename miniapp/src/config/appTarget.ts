@@ -16,6 +16,9 @@ export const APP_TARGET: AppTarget =
 export const isWeb = APP_TARGET === 'web'
 export const isTelegram = APP_TARGET === 'telegram'
 
+/** Источник оплаты для бэкенда — определяет URL возврата после оплаты. */
+export const PAY_SOURCE: 'web' | 'miniapp' = isWeb ? 'web' : 'miniapp'
+
 /** basename роутера: сайт живёт в корне, miniapp — в /app. */
 export const ROUTER_BASENAME = isWeb ? '/' : '/app'
 

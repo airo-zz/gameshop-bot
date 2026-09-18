@@ -9,6 +9,7 @@ import { LOYALTY_LEVELS, LOYALTY_DISCOUNTS } from '@/utils/loyalty'
 import { fmtPrice } from '@/utils/format'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
+import { PAY_SOURCE } from '@/config/appTarget'
 
 const PAYMENT_METHODS = [
   { id: 'balance', label: 'Баланс бота',      icon: <Wallet size={20} />,     description: 'Мгновенно' },
@@ -65,7 +66,7 @@ export default function CheckoutPage() {
         payment_method: selectedMethod,
         ...(checkoutFields.length > 0 ? { input_data: fieldValues } : {}),
       })
-      const payment = await ordersApi.pay(order.id)
+      const payment = await ordersApi.pay(order.id, { source: PAY_SOURCE })
 
       if (payment.success) {
         setItemsCount(0)

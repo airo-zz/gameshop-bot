@@ -7,6 +7,7 @@ import { ArrowLeft, Wallet, TrendingUp, TrendingDown } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { profileApi, paymentsApi, type BalanceTransaction } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
+import { PAY_SOURCE } from '@/config/appTarget'
 
 const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'redonate_bot'
 
@@ -65,7 +66,7 @@ export default function BalancePage() {
     haptic.impact('medium')
     setLoading(true)
     try {
-      const res = await paymentsApi.topupBalance(numericAmount, method)
+      const res = await paymentsApi.topupBalance(numericAmount, method, PAY_SOURCE)
       if (res.redirect_url) {
         toast.success('Переход к оплате...')
         tg?.openLink(res.redirect_url)
