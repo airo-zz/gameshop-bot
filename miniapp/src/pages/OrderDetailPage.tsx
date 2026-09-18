@@ -64,6 +64,47 @@ export default function OrderDetailPage() {
     toast.success('Скопировано!')
   }
 
+  // ── Оплата: ручная проверка (кулдаун) + повторный переход к оплате ──────────
+  const isUnpaid = order?.status === 'new' || order?.status === 'pending_payment'
+  const openedAtRef = React.useRef(Date.now())
+  const [now, setNow] = React.useState(() => Date.now())
+  const [cooldown, setCooldown] = React.useState(0)
+
+  React.useEffect(() => {
+    if (order?.status !== 'pending_payment') return
+    const t = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(t)
+  }, [order?.status])
+
+  React.useEffect(() => {
+    if (cooldown <= 0) return
+    const t = setTimeout(() => setCooldown((c) => Math.max(0, c - 1)), 1000)
+    return () => clearTimeout(t)
+  }, [cooldown])
+
+  // Кнопка «Проверить оплату» — если за минуту (на странице или с момента
+  // создания заказа) оплата не подтвердилась автоматически (webhook + опрос).
+  const pendingSecs = Math.floor((now - openedAtRef.current) / 1000)
+  const orderAgeSecs = order ? Math.floor((now - new Date(order.created_at).getTime()) / 1000) : 0
+  const showCheckBtn = order?.status === 'pending_payment' && (pendingSecs >= 60 || orderAgeSecs >= 60)
+
+  async function checkPayment() {
+    if (cooldown > 0) return
+    setCooldown(10)
+    haptic.impact('light')
+    try {
+      const fresh = await queryClient.fetchQuery({ queryKey: ['order', id], queryFn: () => ordersApi.get(id!) })
+      if (['paid', 'processing', 'completed'].includes(fresh.status)) {
+        haptic.success()
+        toast.success('Оплата получена!')
+      } else {
+        toast('Оплата ещё не поступила')
+      }
+    } catch {
+      toast.error('Не удалось проверить статус')
+    }
+  }
+
   if (!order) return (
     <div className="flex flex-col items-center py-20 gap-4 px-4">
       <p className="font-semibold" style={{ color: 'var(--text)' }}>Заказ не найден</p>
@@ -140,6 +181,36 @@ export default function OrderDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* Оплата неоплаченного заказа: вернуться к оплате + ручная проверка */}
+      {isUnpaid && (
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => { haptic.impact('medium'); navigate(`/pay/${order.id}`) }}
+            className="btn-primary"
+          >
+            Перейти к оплате
+          </button>
+          {showCheckBtn && (
+            <button
+              type="button"
+              onClick={checkPayment}
+              disabled={cooldown > 0}
+              className="w-full py-3 rounded-2xl font-semibold text-sm transition-all active:scale-95"
+              style={{
+                background: 'rgba(45,88,173,0.14)',
+                border: '1px solid rgba(45,88,173,0.32)',
+                color: '#6b9de8',
+                opacity: cooldown > 0 ? 0.6 : 1,
+                cursor: cooldown > 0 ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {cooldown > 0 ? `Проверить оплату (${cooldown}с)` : 'Проверить оплату'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Позиции */}
       <div className="card space-y-4">

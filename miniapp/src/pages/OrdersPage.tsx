@@ -147,6 +147,16 @@ export default function OrdersPage() {
                     return <span style={{ marginLeft: 6 }}>&middot; {n} {n === 1 ? 'позиция' : n < 5 ? 'позиции' : 'позиций'}</span>
                   })()}
                 </p>
+                {(order.status === 'new' || order.status === 'pending_payment') && (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); navigate(`/pay/${order.id}`) }}
+                    className="mt-2 px-3 py-1.5 rounded-xl text-xs font-semibold active:scale-95 transition-transform"
+                    style={{ background: 'rgba(45,88,173,0.9)', color: '#fff', border: 'none', cursor: 'pointer' }}
+                  >
+                    Оплатить
+                  </button>
+                )}
               </div>
               <ChevronRight size={16} style={{ color: 'var(--hint)' }} />
             </div>

@@ -94,16 +94,19 @@ export default function PayOrderPage() {
   return (
     <div style={{ padding: '16px', maxWidth: 520, margin: '0 auto' }}>
       <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>
-        Оплата лота
+        Оплата заказа
       </h1>
 
-      {/* Лот */}
+      {/* Состав заказа */}
       <div style={{ background: 'var(--bg2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '14px 16px', marginBottom: 16 }}>
-        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: lot?.instruction ? 6 : 0, wordBreak: 'break-word' }}>
-          {lot?.product_name ?? 'Индивидуальный лот'}
-        </p>
+        <p style={{ fontSize: 12, color: 'var(--hint)', marginBottom: 8 }}>Заказ {order.order_number}</p>
+        {order.items.map(it => (
+          <p key={it.id} style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', wordBreak: 'break-word', marginBottom: 4 }}>
+            {it.product_name}{it.quantity > 1 ? ` × ${it.quantity}` : ''}
+          </p>
+        ))}
         {lot?.instruction && (
-          <p style={{ fontSize: 13, color: 'var(--hint)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{lot.instruction}</p>
+          <p style={{ fontSize: 13, color: 'var(--hint)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginTop: 6 }}>{lot.instruction}</p>
         )}
       </div>
 
