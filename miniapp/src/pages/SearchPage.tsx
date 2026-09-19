@@ -72,6 +72,7 @@ function GameCard({ game }: { game: Game }) {
 }
 
 export default function SearchPage() {
+  const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const debouncedQ = useDebounce(query, 350)
   const isSearching = debouncedQ.length >= 2
@@ -179,7 +180,15 @@ export default function SearchPage() {
                 <Search size={24} style={{ color: 'var(--hint)' }} />
               </div>
               <p className="font-semibold mb-1" style={{ color: 'var(--text)' }}>Ничего не найдено</p>
-              <p className="text-sm" style={{ color: 'var(--hint)' }}>Попробуй другой запрос</p>
+              <p className="text-sm mb-5" style={{ color: 'var(--hint)' }}>Попробуй другой запрос</p>
+              <button
+                type="button"
+                onClick={() => navigate('/custom-order?type=missing_game')}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
+                style={{ background: 'rgba(45,88,173,0.16)', border: '1px solid rgba(45,88,173,0.38)', color: '#6b9de8' }}
+              >
+                Не нашли свою игру? Напишите нам
+              </button>
             </div>
           )}
         </>

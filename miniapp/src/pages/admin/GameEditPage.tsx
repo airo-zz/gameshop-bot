@@ -93,6 +93,7 @@ interface FormState {
   description: string
   is_active: boolean
   is_featured: boolean
+  custom_order_enabled: boolean
   type: GameType
   input_fields: Record<string, unknown>[]
 }
@@ -104,6 +105,7 @@ const EMPTY_FORM: FormState = {
   description: '',
   is_active: true,
   is_featured: false,
+  custom_order_enabled: false,
   type: 'game',
   input_fields: [],
 }
@@ -154,6 +156,7 @@ export default function GameEditPage() {
           description: game.description ?? '',
           is_active:   game.is_active,
           is_featured: game.is_featured,
+          custom_order_enabled: game.custom_order_enabled ?? false,
           type:        (game.type ?? 'game') as GameType,
           input_fields: (game.input_fields ?? []) as Record<string, unknown>[],
         })
@@ -213,6 +216,7 @@ export default function GameEditPage() {
         description: form.description.trim() || undefined,
         is_active:   form.is_active,
         is_featured: form.is_featured,
+        custom_order_enabled: form.custom_order_enabled,
         type:        form.type,
         input_fields: form.input_fields,
       }
@@ -431,6 +435,17 @@ export default function GameEditPage() {
               <span className="text-sm text-white/70">В подборке</span>
               <Toggle value={form.is_featured} onChange={(v) => set('is_featured', v)} />
             </div>
+          </div>
+
+          {/* Индивидуальный заказ */}
+          <div className="flex items-center justify-between bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5">
+            <span className="text-sm text-white/70 pr-3">
+              Кнопка «Индивидуальный заказ»
+              <span className="block text-[11px] text-white/30 mt-0.5">
+                Показывать на странице для заявок на спец-лот в чат
+              </span>
+            </span>
+            <Toggle value={form.custom_order_enabled} onChange={(v) => set('custom_order_enabled', v)} />
           </div>
 
           {/* Данные от покупателя (поля на уровне игры) */}

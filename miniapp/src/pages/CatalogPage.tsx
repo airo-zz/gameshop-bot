@@ -189,7 +189,15 @@ export default function CatalogPage() {
           ) : (
             <div className="text-center py-12">
               <p className="text-4xl mb-3">🔍</p>
-              <p style={{ color: 'var(--hint)', fontSize: 14 }}>Нет игр по запросу «{debouncedQuery}»</p>
+              <p style={{ color: 'var(--hint)', fontSize: 14, marginBottom: 16 }}>Нет игр по запросу «{debouncedQuery}»</p>
+              <button
+                type="button"
+                onClick={() => navigate('/custom-order?type=missing_game')}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
+                style={{ background: 'rgba(45,88,173,0.16)', border: '1px solid rgba(45,88,173,0.38)', color: '#6b9de8' }}
+              >
+                Не нашли свою игру? Напишите нам
+              </button>
             </div>
           )}
         </div>
@@ -241,6 +249,26 @@ export default function CatalogPage() {
             {activeType === 'game' ? 'Игры скоро появятся' : 'Сервисы скоро появятся'}
           </p>
         </div>
+      )}
+
+      {/* «Не нашли свою игру?» — заявка в чат */}
+      {!isSearching && (
+        <button
+          type="button"
+          onClick={() => navigate('/custom-order?type=missing_game')}
+          className="w-full flex items-center gap-3 p-3 rounded-2xl text-left transition-all active:scale-[0.98]"
+          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', marginTop: 8 }}
+        >
+          <span style={{ flex: 1 }}>
+            <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+              Не нашли свою игру?
+            </span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--hint)', marginTop: 2 }}>
+              Напишите нам — договоримся и соберём индивидуально
+            </span>
+          </span>
+          <ChevronRight size={16} style={{ color: 'var(--hint)' }} />
+        </button>
       )}
     </motion.div>
   )

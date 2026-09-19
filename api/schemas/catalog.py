@@ -25,6 +25,7 @@ class GameOut(BaseModel):
     tags: list[str]
     type: str
     input_fields: list[dict] = []
+    custom_order_enabled: bool = False
 
 
 class CategoryOut(BaseModel):

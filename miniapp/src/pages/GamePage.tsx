@@ -1,9 +1,9 @@
 // src/pages/GamePage.tsx
 import { useState, useRef, useEffect } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, Clock, Plus, Minus, Info, Check } from 'lucide-react'
+import { Zap, Clock, Plus, Minus, Info, Check, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { catalogApi, cartApi, type Category, type Product, type InputField } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -227,6 +227,7 @@ function ProductRow({ product, cartQty, onAdd, onRemove, singleAdd }: ProductRow
 export default function GamePage() {
   const { slug } = useParams<{ slug: string }>()
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null)
   const catFromUrlApplied = useRef(false)
   const switchingCat = useRef(false)
@@ -599,6 +600,34 @@ export default function GamePage() {
           </div>
         )}
       </div>
+
+      {/* Индивидуальный заказ — заявка в чат (оператор соберёт спец-лот) */}
+      {gameFromApi?.custom_order_enabled && (
+        <div className="px-4 pb-6">
+          <button
+            type="button"
+            onClick={() => {
+              haptic.impact('light')
+              navigate(`/custom-order?type=custom_order&game=${encodeURIComponent(gameName)}`)
+            }}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+              padding: '14px 16px', borderRadius: 16, cursor: 'pointer', textAlign: 'left',
+              background: 'rgba(45,88,173,0.10)', border: '1px solid rgba(45,88,173,0.30)',
+            }}
+          >
+            <Sparkles size={20} style={{ color: '#6b9de8', flexShrink: 0 }} />
+            <span style={{ flex: 1 }}>
+              <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+                Индивидуальный заказ
+              </span>
+              <span style={{ display: 'block', fontSize: 12, color: 'var(--hint)', marginTop: 2 }}>
+                Не нашли нужное? Опишите — оператор соберёт лот
+              </span>
+            </span>
+          </button>
+        </div>
+      )}
     </motion.div>
   )
 }

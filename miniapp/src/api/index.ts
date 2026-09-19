@@ -21,6 +21,7 @@ export interface Game {
   tags: string[]
   type: 'game' | 'service'
   input_fields?: InputField[]
+  custom_order_enabled?: boolean
 }
 
 export interface Category {

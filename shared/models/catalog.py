@@ -59,6 +59,11 @@ class Game(Base, UUIDMixin, TimestampMixin):
     # "game" | "service"
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # Показывать на странице игры кнопку «Индивидуальный заказ» (заявка на спец-лот
+    # в чат: покупатель описывает/шлёт скрины, оператор собирает лот).
+    custom_order_enabled: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     tags: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     meta: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)

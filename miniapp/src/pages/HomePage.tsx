@@ -898,6 +898,27 @@ export default function HomePage() {
           </Link>
         </div>
 
+        {/* ── «Не нашли свою игру?» — заявка в чат ──────────────────────── */}
+        <Link
+          to="/custom-order?type=missing_game"
+          style={{
+            display: 'flex', alignItems: 'center', gap: 12, marginTop: 12,
+            padding: '12px 14px', borderRadius: 14, textDecoration: 'none',
+            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+          }}
+        >
+          <span style={{ color: '#6b9de8', display: 'flex', flexShrink: 0 }}><IconSparkle /></span>
+          <span style={{ flex: 1 }}>
+            <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
+              Не нашли свою игру?
+            </span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--hint)', marginTop: 2 }}>
+              Напишите нам — договоримся и соберём индивидуально
+            </span>
+          </span>
+          <span style={{ color: 'rgba(107,157,232,0.7)', display: 'flex' }}><IconChevronRight /></span>
+        </Link>
+
       </div>
     </div>
   )

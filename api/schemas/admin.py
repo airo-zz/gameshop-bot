@@ -149,6 +149,7 @@ class GameCreateIn(BaseModel):
     sort_order: int = 0
     type: str = Field("game", pattern="^(game|service)$")
     input_fields: list[Any] = []
+    custom_order_enabled: bool = False
 
 
 class GameUpdateIn(BaseModel):
@@ -161,6 +162,7 @@ class GameUpdateIn(BaseModel):
     sort_order: int | None = None
     type: str | None = Field(None, pattern="^(game|service)$")
     input_fields: list[Any] | None = None
+    custom_order_enabled: bool | None = None
 
 
 class GameOut(BaseModel):
@@ -176,6 +178,7 @@ class GameOut(BaseModel):
     sort_order: int
     type: str
     input_fields: list[Any]
+    custom_order_enabled: bool = False
     created_at: datetime
 
 

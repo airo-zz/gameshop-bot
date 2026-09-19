@@ -119,6 +119,7 @@ async def create_game(
         sort_order=body.sort_order,
         type=body.type,
         input_fields=body.input_fields,
+        custom_order_enabled=body.custom_order_enabled,
     )
     db.add(game)
     await db.flush()
