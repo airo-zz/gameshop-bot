@@ -168,7 +168,8 @@ class CartService:
         if discount_result.promo_code:
             rule_id = discount_result.promo_code.discount_rule_id
             promo_discount = sum(
-                (a.amount for a in discount_result.applied if a.rule.id == rule_id),
+                (a.amount for a in discount_result.applied
+                 if a.rule is not None and a.rule.id == rule_id),
                 Decimal("0"),
             )
 

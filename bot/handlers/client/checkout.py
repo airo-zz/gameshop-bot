@@ -148,6 +148,51 @@ async def cb_checkout_start(
     await call.answer()
 
 
+# ── Оплата заранее созданного заказа (индивидуальный лот) ─────────────────────
+
+@router.callback_query(F.data.startswith("paylot:"))
+async def cb_pay_custom_lot(
+    call: CallbackQuery,
+    user: User,
+    db: AsyncSession,
+    state: FSMContext,
+) -> None:
+    """Покупатель нажал «Оплатить» в уведомлении об индивидуальном лоте.
+
+    Заказ уже создан оператором (без товара из каталога). Переиспользуем
+    выбор способа оплаты — тот же, что и для заказа из корзины
+    (CheckoutFSM.selecting_method → checkout:pay:*).
+    """
+    try:
+        order_id = uuid.UUID(call.data.split(":", 1)[1])
+    except (IndexError, ValueError):
+        await call.answer("Некорректная ссылка", show_alert=True)
+        return
+
+    order = await db.get(Order, order_id)
+    if not order or order.user_id != user.id:
+        await call.answer("Заказ не найден", show_alert=True)
+        return
+    if order.status not in (OrderStatus.new, OrderStatus.pending_payment):
+        await call.answer("Заказ уже оплачен или обрабатывается", show_alert=True)
+        return
+
+    await state.set_state(CheckoutFSM.selecting_method)
+    await state.update_data(order_id=str(order.id))
+
+    text = texts.checkout_select_method(
+        order_number=order.order_number,
+        total=float(order.total_amount),
+        balance=float(user.balance),
+    )
+    await call.message.answer(
+        text,
+        reply_markup=_payment_methods_keyboard(float(user.balance)),
+        parse_mode="HTML",
+    )
+    await call.answer()
+
+
 # ── Сбор данных покупателя на уровне игры ─────────────────────────────────────
 
 async def _cart_field_queue(db: AsyncSession, cart) -> list[dict]:
@@ -326,9 +371,11 @@ async def cb_pay_balance(
     payment_svc = PaymentService(db)
     try:
         await payment_svc.pay_balance(order, user)
-        # Успех — теперь можно очистить корзину (при ошибке ниже она сохраняется)
-        cart = await CartService(db).get_or_create_cart(user)
-        await CartService(db).clear_cart(cart)
+        # Успех — очищаем корзину только для заказов ИЗ корзины (при ошибке ниже
+        # она сохраняется). Индивидуальный лот (custom_lot) корзину не трогает.
+        if (order.meta or {}).get("from_cart"):
+            cart = await CartService(db).get_or_create_cart(user)
+            await CartService(db).clear_cart(cart)
         await state.clear()
 
         await safe_edit(
@@ -389,9 +436,11 @@ async def cb_pay_platega(
         await call.answer("Не удалось создать платёж", show_alert=True)
         return
 
-    # Платёж успешно инициирован — очищаем корзину (при ошибке выше — сохранена)
-    cart = await CartService(db).get_or_create_cart(user)
-    await CartService(db).clear_cart(cart)
+    # Платёж успешно инициирован — очищаем корзину только для заказов ИЗ корзины
+    # (при ошибке выше — сохранена). Индивидуальный лот корзину не трогает.
+    if (order.meta or {}).get("from_cart"):
+        cart = await CartService(db).get_or_create_cart(user)
+        await CartService(db).clear_cart(cart)
 
     await state.set_state(CheckoutFSM.waiting_external)
 

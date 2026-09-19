@@ -174,6 +174,15 @@ class BotTexts:
             text += f"|oid={order_id}"
         return text
 
+    def custom_lot_created(self, title: str, price: float) -> str:
+        price_str = f"{int(price):,} ₽".replace(",", " ")
+        return (
+            f"🧾 <b>Вам выставлен индивидуальный лот</b>\n\n"
+            f"{escape(title)}\n"
+            f"Сумма: <b>{price_str}</b>\n\n"
+            f"Откройте чат, чтобы оплатить."
+        )
+
     def chat_order_instruction(self, product_name: str, instruction: str) -> str:
         return (
             f"Инструкция по получению ({escape(product_name)}):\n"

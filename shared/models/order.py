@@ -119,7 +119,8 @@ class Order(Base, UUIDMixin, TimestampMixin):
         Numeric(12, 2), nullable=False, default=Decimal("0")
     )
     total_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
-    # total_amount = subtotal - discount_amount
+    # total_amount = (subtotal - discount_amount) с наценкой выбранного способа
+    # оплаты (см. OrderService.apply_payment_method / method_total)
 
     # Оплата
     payment_method: Mapped[PaymentMethod | None] = mapped_column(
