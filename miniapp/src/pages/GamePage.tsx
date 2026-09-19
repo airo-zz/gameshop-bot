@@ -437,11 +437,57 @@ export default function GamePage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
     >
-      {/* Header */}
-      <div className="px-4 pt-5 pb-4" style={{ borderBottom: '1px solid var(--border)' }}>
-        <h1 className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--text)' }}>
+      {/* Header — название слева; справа сверху кнопка инд. заказа и бейдж выдачи */}
+      <div
+        className="px-4 pt-5 pb-4"
+        style={{ borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: 10 }}
+      >
+        <h1 className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--text)', flex: 1, minWidth: 0 }}>
           {gameName}
         </h1>
+        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
+          {/* Индивидуальный заказ — заявка в чат (оператор соберёт спец-лот) */}
+          {gameFromApi?.custom_order_enabled && (
+            <button
+              type="button"
+              onClick={() => {
+                haptic.impact('light')
+                navigate(`/custom-order?type=custom_order&game=${encodeURIComponent(gameName)}`)
+              }}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 5, cursor: 'pointer',
+                fontSize: 12, fontWeight: 600, padding: '5px 10px', borderRadius: 20,
+                background: 'rgba(45,88,173,0.14)', color: '#93b8f0', border: '1px solid rgba(45,88,173,0.36)',
+              }}
+            >
+              <Sparkles size={13} />Инд. заказ
+            </button>
+          )}
+          {(() => {
+            const activeCat = categories.find(c => c.id === activeCatId)
+              ?? categories.flatMap(c => c.children ?? []).find(c => c.id === activeCatId)
+            const dt = activeCat?.delivery_type
+            if (!dt || dt === 'mixed') return null
+            const isAuto = dt === 'auto'
+            return isAuto ? (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
+                background: 'rgba(16,185,129,0.12)', color: '#34d399', border: '1px solid rgba(16,185,129,0.25)',
+              }}>
+                <Zap size={10} fill="#34d399" stroke="none" />Автовыдача
+              </span>
+            ) : (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: 4,
+                fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 20,
+                background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)',
+              }}>
+                <Clock size={10} />Вручную
+              </span>
+            )
+          })()}
+        </div>
       </div>
 
       {/* Category tabs */}
@@ -493,36 +539,6 @@ export default function GamePage() {
           <p className="px-4 pt-2 text-sm" style={{ color: 'var(--hint)', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
             {desc}
           </p>
-        )
-      })()}
-
-      {/* Delivery type badge for active category */}
-      {activeCatId && (() => {
-        const activeCat = categories.find(c => c.id === activeCatId)
-          ?? categories.flatMap(c => c.children ?? []).find(c => c.id === activeCatId)
-        const dt = activeCat?.delivery_type
-        if (!dt || dt === 'mixed') return null
-        const isAuto = dt === 'auto'
-        return (
-          <div className="px-4 pb-1" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            {isAuto ? (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 20,
-                background: 'rgba(16,185,129,0.12)', color: '#34d399', border: '1px solid rgba(16,185,129,0.25)',
-              }}>
-                <Zap size={10} fill="#34d399" stroke="none" />Автовыдача
-              </span>
-            ) : (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                fontSize: 11, fontWeight: 500, padding: '3px 8px', borderRadius: 20,
-                background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.4)', border: '1px solid rgba(255,255,255,0.08)',
-              }}>
-                <Clock size={10} />Вручную
-              </span>
-            )}
-          </div>
         )
       })()}
 
@@ -601,33 +617,6 @@ export default function GamePage() {
         )}
       </div>
 
-      {/* Индивидуальный заказ — заявка в чат (оператор соберёт спец-лот) */}
-      {gameFromApi?.custom_order_enabled && (
-        <div className="px-4 pb-6">
-          <button
-            type="button"
-            onClick={() => {
-              haptic.impact('light')
-              navigate(`/custom-order?type=custom_order&game=${encodeURIComponent(gameName)}`)
-            }}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-              padding: '14px 16px', borderRadius: 16, cursor: 'pointer', textAlign: 'left',
-              background: 'rgba(45,88,173,0.10)', border: '1px solid rgba(45,88,173,0.30)',
-            }}
-          >
-            <Sparkles size={20} style={{ color: '#6b9de8', flexShrink: 0 }} />
-            <span style={{ flex: 1 }}>
-              <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
-                Индивидуальный заказ
-              </span>
-              <span style={{ display: 'block', fontSize: 12, color: 'var(--hint)', marginTop: 2 }}>
-                Не нашли нужное? Опишите — оператор соберёт лот
-              </span>
-            </span>
-          </button>
-        </div>
-      )}
     </motion.div>
   )
 }

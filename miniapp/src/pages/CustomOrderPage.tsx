@@ -10,7 +10,7 @@ import { chatApi } from '@/api'
 import { compressImage } from '@/utils/image'
 import { useTelegram } from '@/hooks/useTelegram'
 
-const MAX_FILES = 5
+const MAX_FILES = 10
 
 type Mode = 'custom_order' | 'missing_game'
 
@@ -27,10 +27,8 @@ const COPY: Record<Mode, { title: string; intro: string; placeholder: string; he
   missing_game: {
     title: 'Не нашли свою игру?',
     intro:
-      'Если нужной игры или сервиса нет в каталоге — напишите нам. Опишите, что ищете, ' +
-      'и приложите скриншоты. Оператор подскажет, сможем ли помочь, и соберёт ' +
-      'индивидуальный лот с ценой.',
-    placeholder: 'Какая игра или сервис вам нужны? Опишите и приложите скриншоты…',
+      'Не нашли свою игру? Напишите нам в чат — договоримся и соберём индивидуальный заказ.',
+    placeholder: 'Какая игра или сервис вам нужны? Напишите название и приложите скриншот при необходимости.',
     header: 'Не нашёл игру в каталоге',
   },
 }

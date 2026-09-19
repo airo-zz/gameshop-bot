@@ -58,6 +58,25 @@ def resolve_field_sources(products: list) -> dict[str, dict]:
     return sources
 
 
+def _is_keyless_auto(product) -> bool:
+    """Товар с автовыдачей БЕЗ пула ключей.
+
+    Два источника «безключевой» выдачи:
+      1. Движок Fragment на категории (telegram_stars / telegram_premium) —
+         выдача в воркере.
+      2. Явная пометка meta.auto_source == 'external' — внешняя выдача/API
+         (напр. пополнение по ID). Ключи для таких товаров не нужны, и заказ
+         не должен блокироваться проверкой «нет ключей».
+    """
+    if product is None:
+        return False
+    cat = getattr(product, "category", None)
+    if getattr(cat, "auto_engine", None) in ("telegram_stars", "telegram_premium"):
+        return True
+    meta = getattr(product, "meta", None) or {}
+    return meta.get("auto_source") == "external"
+
+
 class OrderService:
 
     def __init__(self, db: AsyncSession):
@@ -87,19 +106,13 @@ class OrderService:
         # Загружаем товары
         items_with_products = await self._load_cart_items(cart)
 
-        def _has_engine(product) -> bool:
-            cat = getattr(product, "category", None)
-            return getattr(cat, "auto_engine", None) in (
-                "telegram_stars", "telegram_premium"
-            )
-
         # Проверяем наличие и ключи ДО создания заказа
         for item, product in items_with_products:
             if product.is_out_of_stock:
                 raise ValueError(f"Товар '{product.name}' недоступен (нет в наличии)")
             if product.stock is not None and product.stock < item.quantity:
                 raise ValueError(f"Товар '{product.name}' недоступен в нужном количестве")
-            if not _has_engine(product) and product.delivery_type.value in ("auto", "mixed"):
+            if not _is_keyless_auto(product) and product.delivery_type.value in ("auto", "mixed"):
                 available = await self._count_available_keys(product.id)
                 if available < item.quantity:
                     raise ValueError(
@@ -179,8 +192,8 @@ class OrderService:
             )
             self.db.add(order_item)
 
-            # Резервируем ключи для auto-выдачи (движковые позиции — без ключей)
-            if not _has_engine(product) and product.delivery_type.value in ("auto", "mixed"):
+            # Резервируем ключи для auto-выдачи (движковые/внешние позиции — без ключей)
+            if not _is_keyless_auto(product) and product.delivery_type.value in ("auto", "mixed"):
                 await self._reserve_keys(product.id, item.quantity)
                 remaining = await self._count_available_keys(product.id)
                 if remaining == 0 and product.delivery_type.value == "auto":
@@ -466,12 +479,13 @@ class OrderService:
                 "telegram_stars", "telegram_premium"
             )
 
-        # Фильтруем позиции с ключевой авто-выдачей (движковые — только через воркер;
-        # кастомные позиции без товара (product_id=None) — всегда ручные)
+        # Фильтруем позиции с ключевой авто-выдачей (движковые Fragment — только через
+        # воркер; внешние безключевые (meta.auto_source='external') — без ключей, их
+        # завершит движок/оператор; кастомные позиции без товара — всегда ручные)
         auto_items = [
             item for item in items
             if item.product is not None
-            and not _is_engine_item(item)
+            and not _is_keyless_auto(item.product)
             and item.product.delivery_type.value in ("auto", "mixed")
         ]
 

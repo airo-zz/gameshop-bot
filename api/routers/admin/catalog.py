@@ -570,6 +570,7 @@ async def create_product(
         images=body.images,
         is_active=body.is_active,
         sort_order=body.sort_order,
+        meta=body.meta,
     )
     db.add(product)
     await db.flush()

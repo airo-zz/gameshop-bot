@@ -250,6 +250,10 @@ class ProductCreateIn(BaseModel):
     images: list[str] = []
     is_active: bool = True
     sort_order: int = 0
+    # Произвольные метаданные товара. Для автовыдачи используется
+    # meta.auto_source: "external" = выдача через движок/API (Stars, пополнение
+    # по ID) — пул ключей не нужен; отсутствие = обычная выдача по ключам.
+    meta: dict[str, Any] = {}
 
 
 class ProductUpdateIn(BaseModel):
@@ -270,6 +274,7 @@ class ProductUpdateIn(BaseModel):
     images: list[str] | None = None
     is_active: bool | None = None
     sort_order: int | None = None
+    meta: dict[str, Any] | None = None
 
 
 class ProductOut(BaseModel):
@@ -294,6 +299,7 @@ class ProductOut(BaseModel):
     is_active: bool
     sort_order: int
     created_at: datetime
+    meta: dict[str, Any] = {}
 
 
 class ProductListItem(BaseModel):

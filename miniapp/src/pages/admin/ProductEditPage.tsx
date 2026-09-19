@@ -119,7 +119,10 @@ interface FormState {
   badge: string
   is_out_of_stock: boolean
   stock: string
-  delivery_type: 'manual' | 'auto' | 'mixed'
+  // 'auto' — автовыдача по пулу ключей; 'auto_external' — выдача через движок/API
+  // (Stars, пополнение по ID), пул ключей не нужен. На бэкенд оба уходят как 'auto',
+  // 'auto_external' дополнительно проставляет meta.auto_source = 'external'.
+  delivery_type: 'manual' | 'auto' | 'auto_external' | 'mixed'
   is_active: boolean
   instruction: string
   input_fields: InputFieldForm[]
@@ -143,10 +146,16 @@ const EMPTY_FORM: FormState = {
 }
 
 const DELIVERY_OPTIONS: { value: FormState['delivery_type']; label: string }[] = [
-  { value: 'manual', label: 'Вручную' },
-  { value: 'auto',   label: 'Автоматически' },
-  { value: 'mixed',  label: 'Смешанный' },
+  { value: 'manual',        label: 'Вручную' },
+  { value: 'auto',          label: 'Автоматически (ключи)' },
+  { value: 'auto_external', label: 'Автоматически (без ключей)' },
+  { value: 'mixed',         label: 'Смешанный' },
 ]
+
+/** Тип доставки, работающий на пуле ключей (нужна секция «Ключи автовыдачи»). */
+function isKeyBased(dt: FormState['delivery_type']): boolean {
+  return dt === 'auto' || dt === 'mixed'
+}
 
 // ── Validation ────────────────────────────────────────────────────────────────
 
@@ -205,6 +214,8 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
   const [initError, setInitError] = useState(false)
   const [saving, setSaving] = useState(false)
   const [pricing, setPricing] = useState<PricingSettings | null>(null)
+  // Прочие meta товара — сохраняем как есть, меняя только auto_source при submit.
+  const [existingMeta, setExistingMeta] = useState<Record<string, unknown>>({})
 
   useEffect(() => {
     adminApi.getPricing().then(setPricing).catch(() => {})
@@ -276,12 +287,19 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
   }, [isNew, id])
 
   useEffect(() => {
-    if (form.delivery_type !== 'manual' && !isNew) {
+    if (isKeyBased(form.delivery_type) && !isNew) {
       loadKeyStats()
     }
   }, [form.delivery_type, isNew, loadKeyStats])
 
   function prefillForm(product: AdminProductDetail, gameId: string) {
+    const meta = (product.meta ?? {}) as Record<string, unknown>
+    setExistingMeta(meta)
+    // 'auto' + meta.auto_source==='external' → в UI это «Автоматически (без ключей)».
+    const deliveryUi: FormState['delivery_type'] =
+      product.delivery_type === 'auto' && meta.auto_source === 'external'
+        ? 'auto_external'
+        : (product.delivery_type as FormState['delivery_type']) ?? 'manual'
     setForm({
       game_id: gameId,
       category_id: product.category_id,
@@ -295,7 +313,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
       badge: product.badge ?? '',
       is_out_of_stock: product.is_out_of_stock ?? false,
       stock: product.stock !== null && product.stock !== undefined ? String(product.stock) : '',
-      delivery_type: (product.delivery_type as FormState['delivery_type']) ?? 'manual',
+      delivery_type: deliveryUi,
       is_active: product.is_active,
       instruction: product.instruction ?? '',
       input_fields: (product.input_fields ?? []).map(normalizeInputField),
@@ -389,6 +407,12 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
       return
     }
 
+    // «Автоматически (без ключей)» → бэкенд delivery_type='auto' + meta.auto_source='external'.
+    const isExternalAuto = form.delivery_type === 'auto_external'
+    const meta: Record<string, unknown> = { ...existingMeta }
+    if (isExternalAuto) meta.auto_source = 'external'
+    else delete meta.auto_source
+
     const payload: Record<string, unknown> = {
       category_id: form.category_id,
       name: form.name.trim(),
@@ -399,7 +423,8 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
       badge: form.badge.trim() || null,
       is_out_of_stock: form.is_out_of_stock,
       stock: form.stock !== '' ? Number(form.stock) : null,
-      delivery_type: form.delivery_type,
+      delivery_type: isExternalAuto ? 'auto' : form.delivery_type,
+      meta,
       instruction: form.instruction.trim() || null,
       is_active: form.is_active,
       input_fields: serializeInputFields(form.input_fields),
@@ -713,11 +738,17 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
               </option>
             ))}
           </select>
+          {form.delivery_type === 'auto_external' && (
+            <p className="text-xs text-emerald-400/80 mt-1.5">
+              Внешняя выдача — пул ключей не нужен. Товар выдаётся через движок/API
+              (напр. Telegram Stars или пополнение по ID), настроенный на уровне категории/интеграции.
+            </p>
+          )}
         </div>
       </div>
 
       {/* Section: Ключи автовыдачи */}
-      {form.delivery_type !== 'manual' && !isNew && (
+      {isKeyBased(form.delivery_type) && !isNew && (
         <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Ключи автовыдачи</h2>

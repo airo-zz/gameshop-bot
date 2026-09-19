@@ -262,6 +262,7 @@ export interface AdminProductDetail {
   is_active: boolean
   sort_order: number
   created_at: string
+  meta?: Record<string, unknown> | null
 }
 
 export interface AdminCategory {
