@@ -36,7 +36,10 @@ class SupportAuthMiddleware(BaseMiddleware):
             user = result.scalar_one_or_none()
 
             if user is None:
-                # Незарегистрированный юзер
+                # Незарегистрированный юзер. В группах молчим — там пишут
+                # операторы и бот не должен отвечать на чужие сообщения.
+                if isinstance(event, Message) and event.chat.type != "private":
+                    return
                 if isinstance(event, Message):
                     await event.answer(texts.no_account)
                 elif isinstance(event, CallbackQuery):

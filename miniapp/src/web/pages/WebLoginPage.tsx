@@ -51,7 +51,10 @@ export default function WebLoginPage() {
         </div>
 
         <p className="text-xs text-white/30 mt-6">
-          Нажимая «Войти», вы соглашаетесь с условиями использования сервиса.
+          Нажимая «Войти», вы соглашаетесь с{' '}
+          <a href="/app/legal/terms.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/60">условиями сервиса</a>
+          {' '}и{' '}
+          <a href="/app/legal/privacy.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/60">политикой конфиденциальности</a>.
         </p>
       </div>
     </div>

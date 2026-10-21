@@ -16,6 +16,10 @@ from shared.content import render_default
 
 S = settings  # Короткий псевдоним
 
+# Лимиты пополнения баланса (совпадают с API: BalanceTopupRequest и UI)
+TOPUP_MIN = 100
+TOPUP_MAX = 100_000
+
 
 class BotTexts:
     """Фабрика текстов. Все методы — property или функции с параметрами."""
@@ -277,6 +281,38 @@ class BotTexts:
             f"Сумма: <b>{amount:.0f} ₽</b>\n\n"
             f"Нажми кнопку ниже для оплаты. После оплаты нажми «✅ Я оплатил»."
         )
+
+    # ── Пополнение баланса (Platega) ──────────────────────────────────────────
+    @property
+    def topup_choose_amount(self) -> str:
+        return "💳 <b>Пополнение баланса</b>\n\nВыбери сумму или укажи свою:"
+
+    @property
+    def topup_enter_amount(self) -> str:
+        return f"✏️ <b>Введи сумму пополнения</b> в рублях (от {TOPUP_MIN} до {TOPUP_MAX:,} ₽):".replace(",", " ")
+
+    @property
+    def topup_bad_amount(self) -> str:
+        return f"❌ Нужна целая сумма от {TOPUP_MIN} до {TOPUP_MAX:,} ₽. Попробуй ещё раз:".replace(",", " ")
+
+    def topup_choose_method(self, amount: int) -> str:
+        return (
+            f"💳 <b>Пополнение на {amount:,} ₽</b>\n\n".replace(",", " ")
+            + "Выбери способ оплаты. Комиссия платёжной системы будет показана "
+            "на странице оплаты."
+        )
+
+    def topup_waiting(self, amount: int, method: str) -> str:
+        method_names = {"sbp": "🏦 СБП", "card": "💳 карта", "crypto": "🪙 криптовалюта"}
+        return (
+            f"💳 <b>Пополнение на {amount:,} ₽</b> · {method_names.get(method, method)}\n\n".replace(",", " ")
+            + "Нажми «Оплатить» и заверши оплату на странице платёжной системы.\n"
+            "Деньги зачислятся автоматически — бот пришлёт сообщение."
+        )
+
+    @property
+    def topup_failed(self) -> str:
+        return "Не удалось создать платёж. Попробуй другой способ или позже."
 
     # ── Инпут-поля (FSM) ──────────────────────────────────────────────────────
     def input_field_prompt(self, label: str, placeholder: str = "") -> str:

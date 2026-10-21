@@ -1,5 +1,5 @@
 // src/pages/BalancePage.tsx
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
@@ -9,7 +9,6 @@ import { profileApi, paymentsApi, type BalanceTransaction } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import { PAY_SOURCE } from '@/config/appTarget'
 
-const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'redonate_bot'
 
 const PRESET_AMOUNTS = [200, 500, 1000, 5000, 10000]
 type PaymentMethod = 'sbp' | 'card' | 'crypto'
@@ -45,18 +44,42 @@ export default function BalancePage() {
   const [amount, setAmount] = useState<string>('')
   const [method, setMethod] = useState<PaymentMethod>(ENABLED_METHODS[0])
   const [loading, setLoading] = useState(false)
+  // После перехода к оплате ждём webhook: 3 минуты опрашиваем баланс и историю
+  // (оплата открывается во внешнем браузере, пользователь возвращается сам).
+  const [awaitingUntil, setAwaitingUntil] = useState(0)
+  const awaiting = awaitingUntil > Date.now()
+  const balanceBefore = useRef<number | null>(null)
 
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: profileApi.get,
     staleTime: 5 * 60 * 1000,
+    refetchInterval: awaiting ? 4000 : false,
+    refetchOnWindowFocus: true,
   })
 
   const { data: history = [] } = useQuery<BalanceTransaction[]>({
     queryKey: ['balance-history'],
     queryFn: profileApi.getBalanceHistory,
     staleTime: 60_000,
+    refetchInterval: awaiting ? 4000 : false,
+    refetchOnWindowFocus: true,
   })
+
+  useEffect(() => {
+    if (!awaiting || !profile || balanceBefore.current === null) return
+    if (Number(profile.balance) > balanceBefore.current) {
+      haptic.success()
+      toast.success(`Баланс пополнен: ${Number(profile.balance).toLocaleString('ru')} ₽`)
+      setAwaitingUntil(0)
+    }
+  }, [awaiting, profile, haptic])
+
+  useEffect(() => {
+    if (!awaitingUntil) return
+    const t = setTimeout(() => setAwaitingUntil(0), Math.max(0, awaitingUntil - Date.now()))
+    return () => clearTimeout(t)
+  }, [awaitingUntil])
 
   const numericAmount = Number(amount)
   const canSubmit = numericAmount >= 100 && !loading
@@ -68,8 +91,11 @@ export default function BalancePage() {
     try {
       const res = await paymentsApi.topupBalance(numericAmount, method, PAY_SOURCE)
       if (res.redirect_url) {
-        toast.success('Переход к оплате...')
-        tg?.openLink(res.redirect_url)
+        balanceBefore.current = Number(profile?.balance ?? 0)
+        setAwaitingUntil(Date.now() + 3 * 60_000)
+        toast.success('Оплатите на открывшейся странице — баланс обновится сам')
+        if (tg?.openLink) tg.openLink(res.redirect_url)
+        else window.open(res.redirect_url, '_blank')
       }
     } catch (err: unknown) {
       const message =
@@ -200,17 +226,8 @@ export default function BalancePage() {
           {loading ? 'Обработка...' : 'Пополнить'}
         </button>
 
-        {/* Bot fallback */}
         <p className="text-center text-xs" style={{ color: 'var(--hint)' }}>
-          или через{' '}
-          <a
-            href={`https://t.me/${BOT_USERNAME}`}
-            target="_blank"
-            rel="noreferrer"
-            style={{ color: '#6b9de8' }}
-          >
-            @{BOT_USERNAME}
-          </a>
+          Зачисление автоматическое сразу после оплаты. Комиссия платёжной системы видна на странице оплаты.
         </p>
       </div>
 

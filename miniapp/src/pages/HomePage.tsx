@@ -9,7 +9,7 @@ import { catalogApi, profileApi } from '@/api'
 import { useUIStore } from '@/store'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useDragScroll } from '@/hooks/useDragScroll'
-import logoFullSrc from '@/assets/logo-full.svg'
+import logoFullSrc from '@/assets/logo-full.png'
 import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 
@@ -548,7 +548,7 @@ export default function HomePage() {
           <img
             src={logoFullSrc}
             alt="reDonate"
-            style={{ height: 32, width: 'auto', display: 'block', flexShrink: 0 }}
+            style={{ height: 26, width: 'auto', display: 'block', flexShrink: 0 }}
           />
 
           {/* Right actions — поиск + меню */}

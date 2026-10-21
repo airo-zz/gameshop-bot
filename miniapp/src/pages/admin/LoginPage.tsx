@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Shield, Loader2 } from 'lucide-react'
 import axios from 'axios'
 
-const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'redonate_bot'
+const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'reDonate_robot'
 const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1'
 
 // Глобальный callback вне React — гарантированно доступен для виджета

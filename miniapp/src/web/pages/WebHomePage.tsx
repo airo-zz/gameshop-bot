@@ -6,8 +6,9 @@
  */
 
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Zap, ShieldCheck, Headphones, BadgePercent, Send, ChevronDown } from 'lucide-react'
+import { Zap, ShieldCheck, Headphones, BadgePercent, Send, ChevronDown, ShoppingBag } from 'lucide-react'
 import { catalogApi } from '@/api'
 import { MINIAPP_URL, SHOP_NAME } from '@/config/appTarget'
 import GameCard from '@/web/components/GameCard'
@@ -28,7 +29,7 @@ function Hero() {
       <div className="web-container relative pt-20 pb-16 md:pt-28 md:pb-24 text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-xs text-white/60 mb-6">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          Моментальная доставка · оплата картой и криптой
+          Моментальная выдача · СБП, карта, крипта
         </div>
 
         <h1 className="text-4xl md:text-6xl font-extrabold text-white leading-[1.05] tracking-tight">
@@ -47,23 +48,25 @@ function Hero() {
         </p>
 
         <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            to="/catalog"
+            className="inline-flex items-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.97] hover:brightness-110 w-full sm:w-auto justify-center"
+            style={{ background: 'var(--gradient-primary)' }}
+          >
+            <ShoppingBag size={17} />
+            Перейти в каталог
+          </Link>
           <a
             href={MINIAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.97] hover:brightness-110 w-full sm:w-auto justify-center"
-            style={{ background: 'var(--gradient-primary)' }}
+            className="inline-flex items-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold text-white/80 border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-all active:scale-[0.97] w-full sm:w-auto justify-center"
           >
             <Send size={17} />
             Открыть в Telegram
           </a>
-          <a
-            href="#catalog"
-            className="inline-flex items-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold text-white/80 border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-all active:scale-[0.97] w-full sm:w-auto justify-center"
-          >
-            Смотреть каталог
-          </a>
         </div>
+        <p className="mt-5 text-xs text-white/35">Оплата через СБП, банковской картой или криптовалютой</p>
       </div>
     </section>
   )
@@ -105,19 +108,36 @@ function Features() {
 // ── Витрина игр ─────────────────────────────────────────────────────────────
 
 function Catalog() {
-  const { data: games, isLoading, isError } = useQuery({
-    queryKey: ['web', 'games', 'game'],
-    queryFn: () => catalogApi.getGames('game'),
+  const [tab, setTab] = useState<'game' | 'service'>('game')
+  const { data: all, isLoading, isError } = useQuery({
+    queryKey: ['web', 'games', 'all'],
+    queryFn: () => catalogApi.getGames(),
     staleTime: 5 * 60_000,
   })
+  const hasServices = (all ?? []).some((g) => g.type === 'service')
+  const games = (all ?? []).filter((g) => (tab === 'service' ? g.type === 'service' : g.type !== 'service'))
 
   return (
     <section id="catalog" className="web-container py-12 md:py-16 scroll-mt-20">
-      <div className="flex items-end justify-between mb-7">
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-7">
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-white">Каталог игр</h2>
-          <p className="text-sm text-white/45 mt-1.5">Выберите игру — оформление в Telegram за пару минут.</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-white">Каталог</h2>
+          <p className="text-sm text-white/45 mt-1.5">Выберите игру или сервис — оформление на сайте за пару минут.</p>
         </div>
+        {hasServices && (
+          <div className="inline-flex rounded-xl border border-white/10 bg-white/[0.03] p-1">
+            {(['game', 'service'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={'px-4 py-2 rounded-lg text-sm font-semibold transition-colors ' + (tab === t ? 'text-white' : 'text-white/50 hover:text-white/80')}
+                style={tab === t ? { background: 'rgba(45,88,173,0.35)' } : {}}
+              >
+                {t === 'game' ? 'Игры' : 'Сервисы'}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {isLoading ? (
@@ -151,7 +171,7 @@ function Catalog() {
 
 const STEPS = [
   { n: '01', title: 'Выберите игру', text: 'Найдите нужную игру и товар в каталоге.' },
-  { n: '02', title: 'Оплатите удобно', text: 'Картой или криптовалютой — как удобнее.' },
+  { n: '02', title: 'Оплатите удобно', text: 'СБП, картой, криптовалютой или с баланса — как удобнее.' },
   { n: '03', title: 'Получите сразу', text: 'Автовыдача или помощь оператора без задержек.' },
 ]
 
@@ -176,7 +196,8 @@ function HowItWorks() {
 
 const FAQ = [
   { q: 'Как быстро приходит товар?', a: 'Товары с автовыдачей приходят моментально после оплаты. В остальных случаях оператор обрабатывает заказ в кратчайшие сроки.' },
-  { q: 'Какие способы оплаты доступны?', a: 'Оплата банковской картой и криптовалютой (USDT, TON, BTC, ETH).' },
+  { q: 'Какие способы оплаты доступны?', a: 'СБП, банковские карты (Visa, Mastercard, МИР), криптовалюта (USDT, TON, BTC и др.) и внутренний баланс — его можно пополнить в личном кабинете.' },
+  { q: 'Нужна ли регистрация?', a: 'Вход — в один клик через Telegram. Заказы, баланс и бонусы общие для сайта и Telegram-бота.' },
   { q: 'Это безопасно?', a: 'Да. Мы используем проверенные платёжные системы, а все транзакции защищены.' },
   { q: 'Что делать, если возникла проблема?', a: 'Напишите в поддержку — операторы на связи 24/7 и помогут решить любой вопрос.' },
 ]
@@ -224,17 +245,26 @@ function CtaBanner() {
       >
         <h2 className="text-2xl md:text-3xl font-bold text-white">Готовы пополнить игру?</h2>
         <p className="text-white/80 mt-2.5 max-w-xl mx-auto">
-          Откройте {SHOP_NAME} в Telegram и оформите заказ за пару минут.
+          Оформите заказ на сайте или в Telegram-боте {SHOP_NAME} — за пару минут.
         </p>
-        <a
-          href={MINIAPP_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-[#0a1428] mt-7 transition-all active:scale-[0.97] hover:bg-white/90"
-        >
-          <Send size={17} />
-          Открыть в Telegram
-        </a>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
+          <Link
+            to="/catalog"
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-[#0a1428] transition-all active:scale-[0.97] hover:bg-white/90"
+          >
+            <ShoppingBag size={17} />
+            Выбрать товар
+          </Link>
+          <a
+            href={MINIAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold text-white border border-white/30 hover:bg-white/10 transition-all active:scale-[0.97]"
+          >
+            <Send size={17} />
+            Открыть в Telegram
+          </a>
+        </div>
       </div>
     </section>
   )

@@ -137,7 +137,7 @@ function LoyaltyProgressBar({ totalSpent, discountPercent, loyaltyColorHex, leve
   )
 }
 
-const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'redonate_bot'
+const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'reDonate_robot'
 
 const MENU_ITEMS = [
   { to: '/orders',    icon: <Package size={18} />,       label: 'Мои заказы' },

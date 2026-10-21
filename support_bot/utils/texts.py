@@ -103,5 +103,34 @@ class SupportBotTexts:
     def unknown_command(self) -> str:
         return "Напишите /start для возврата в меню."
 
+    # ── Группа уведомлений персонала ─────────────────────────────────────────
+
+    def group_bound(self, title: str) -> str:
+        return (
+            f"✅ Группа <b>{title}</b> привязана.\n\n"
+            "Сюда будут приходить уведомления о новых заказах, обращениях "
+            "и сообщениях покупателей.\n"
+            "Отвязать: /unbindgroup · Проверить: /testnotify"
+        )
+
+    @property
+    def group_unbound(self) -> str:
+        return (
+            "Группа отвязана. Уведомления будут приходить администраторам "
+            "в личные сообщения."
+        )
+
+    @property
+    def group_not_admin(self) -> str:
+        return "Команда доступна только владельцу и администраторам магазина."
+
+    @property
+    def group_test(self) -> str:
+        return "🔔 <b>Тестовое уведомление</b>\nУведомления персоналу работают."
+
+    @property
+    def group_test_failed(self) -> str:
+        return "Не удалось доставить тестовое уведомление — проверьте логи worker/api."
+
 
 texts = SupportBotTexts()

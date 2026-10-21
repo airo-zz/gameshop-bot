@@ -7,28 +7,17 @@
 import { useSearchParams, useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2, Clock, Loader2, XCircle, RotateCcw } from 'lucide-react'
+import { useState } from 'react'
+import toast from 'react-hot-toast'
 import { ordersApi } from '@/api'
-import { SUPPORT_BOT_URL } from '@/config/appTarget'
-
-function money(v: number) {
-  return Number(v).toLocaleString('ru-RU') + ' ₽'
-}
-
-const STATUS: Record<string, { label: string; color: string; bg: string }> = {
-  new: { label: 'Ожидает оплаты', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-  pending_payment: { label: 'Ожидает оплаты', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-  paid: { label: 'Оплачен', color: '#6b9de8', bg: 'rgba(45,88,173,0.15)' },
-  processing: { label: 'В обработке', color: '#6b9de8', bg: 'rgba(45,88,173,0.15)' },
-  clarification: { label: 'Требуется уточнение', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-  completed: { label: 'Выполнен', color: '#34d399', bg: 'rgba(16,185,129,0.12)' },
-  cancelled: { label: 'Отменён', color: '#f87171', bg: 'rgba(239,68,68,0.12)' },
-  refunded: { label: 'Возврат', color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
-}
+import { SUPPORT_BOT_URL, PAY_SOURCE } from '@/config/appTarget'
+import { money, orderStatus, isAwaitingPayment, apiError } from '@/web/format'
 
 export default function WebOrderPage() {
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
   const justPaid = searchParams.get('success') === '1'
+  const [repaying, setRepaying] = useState(false)
 
   const { data: order, isLoading, isError } = useQuery({
     queryKey: ['web', 'order', id],
@@ -40,6 +29,27 @@ export default function WebOrderPage() {
       return s === 'new' || s === 'pending_payment' ? 4000 : false
     },
   })
+
+  async function repay() {
+    if (!id || repaying) return
+    setRepaying(true)
+    try {
+      const p = await ordersApi.pay(id, { source: PAY_SOURCE })
+      if (p.success) {
+        window.location.reload()
+        return
+      }
+      if (p.redirect_url) {
+        window.location.href = p.redirect_url
+        return
+      }
+      toast.error('Не удалось открыть оплату')
+    } catch (e) {
+      toast.error(apiError(e, 'Не удалось открыть оплату'))
+    } finally {
+      setRepaying(false)
+    }
+  }
 
   if (isLoading) {
     return <div className="web-container py-24 text-center text-sm text-white/40">Загрузка заказа...</div>
@@ -54,17 +64,28 @@ export default function WebOrderPage() {
     )
   }
 
-  const st = STATUS[order.status] ?? { label: order.status, color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' }
-  const awaitingPayment = order.status === 'new' || order.status === 'pending_payment'
+  const st = orderStatus(order.status)
+  const awaitingPayment = isAwaitingPayment(order.status)
 
   return (
     <div className="web-container py-8 md:py-12 max-w-2xl">
-      {justPaid && (
+      {justPaid && !awaitingPayment && order.status !== 'cancelled' && (
         <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)' }}>
           <CheckCircle2 size={22} style={{ color: '#34d399' }} />
           <div>
             <p className="text-sm font-semibold text-white">Оплата прошла</p>
-            <p className="text-xs text-white/50">Заказ принят в обработку.</p>
+            <p className="text-xs text-white/50">
+              {order.status === 'completed' ? 'Заказ выполнен — данные ниже.' : 'Заказ принят в обработку. Уведомление придёт в Telegram.'}
+            </p>
+          </div>
+        </div>
+      )}
+      {justPaid && awaitingPayment && (
+        <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: 'rgba(45,88,173,0.12)', border: '1px solid rgba(45,88,173,0.3)' }}>
+          <Loader2 size={22} className="animate-spin" style={{ color: 'var(--link)' }} />
+          <div>
+            <p className="text-sm font-semibold text-white">Проверяем оплату</p>
+            <p className="text-xs text-white/50">Обычно это занимает до минуты — статус обновится сам.</p>
           </div>
         </div>
       )}
@@ -113,17 +134,18 @@ export default function WebOrderPage() {
           <div className="flex-1">
             <p className="text-sm text-amber-200">Ожидаем подтверждение оплаты. Статус обновится автоматически.</p>
             <button
-              onClick={() => ordersApi.pay(order.id).then((p) => p.redirect_url && window.open(p.redirect_url, '_blank', 'noopener'))}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold mt-2.5 text-amber-300 hover:text-amber-200"
+              onClick={repay}
+              disabled={repaying}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold mt-2.5 text-amber-300 hover:text-amber-200 disabled:opacity-50"
             >
-              <RotateCcw size={13} /> Оплатить ещё раз
+              <RotateCcw size={13} /> {repaying ? 'Открываем оплату...' : 'Перейти к оплате'}
             </button>
           </div>
         </div>
       )}
 
       <div className="mt-6 flex items-center justify-between text-sm">
-        <Link to="/catalog" style={{ color: 'var(--link)' }}>← В каталог</Link>
+        <Link to="/orders" style={{ color: 'var(--link)' }}>← Мои заказы</Link>
         <a href={SUPPORT_BOT_URL} target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-white transition-colors">
           Нужна помощь?
         </a>

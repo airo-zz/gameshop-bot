@@ -58,6 +58,7 @@ jobs:
               - 'miniapp/**'
             backend:
               - 'bot/**'
+              - 'support_bot/**'
               - 'api/**'
               - 'worker/**'
               - 'shared/**'

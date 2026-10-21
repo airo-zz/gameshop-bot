@@ -10,6 +10,7 @@ import { cartApi, catalogApi, profileApi } from '@/api'
 
 import Layout from '@/components/layout/Layout'
 import TelegramBackButton from '@/components/TelegramBackButton'
+import StartParamRedirect from '@/components/StartParamRedirect'
 import LoadingScreen from '@/components/ui/LoadingScreen'
 import ErrorScreen from '@/components/ui/ErrorScreen'
 
@@ -172,6 +173,7 @@ export default function App() {
   return (
     <BrowserRouter basename="/app">
       <TelegramBackButton />
+      <StartParamRedirect />
       <Toaster
         position="top-center"
         containerStyle={{

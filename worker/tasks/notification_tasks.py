@@ -1,5 +1,4 @@
 """worker/tasks/notification_tasks.py — отправка уведомлений"""
-import json
 import logging
 import httpx
 from worker.main import celery_app
@@ -74,12 +73,12 @@ def notify_support_user(self, telegram_id: int, text: str, ticket_id: str | None
         return
 
     # Краткое уведомление с кнопкой перехода в чат
-    preview = text[:120] + ("..." if len(text) > 120 else "")
+    import html as _html
+    preview = _html.escape(text[:120]) + ("..." if len(text) > 120 else "")
     formatted = f"💬 <b>Новый ответ в поддержке</b>\n<i>{preview}</i>"
 
     reply_markup = None
-    if ticket_id and settings.MINIAPP_URL:
-        miniapp_url = settings.MINIAPP_URL.rstrip("/")
+    if ticket_id:
         reply_markup = {
             "inline_keyboard": [[{
                 "text": "Открыть чат",
@@ -106,54 +105,27 @@ def notify_support_user(self, telegram_id: int, text: str, ticket_id: str | None
                 )
                 if resp.status_code == 200:
                     return
-                if resp.status_code == 403:
+                if resp.status_code in (400, 403):
+                    # 400 chat not found / 403 blocked — юзер не открывал этот
+                    # бот; пробуем следующий. Ретрай тут не поможет.
                     continue
                 raise Exception(f"Telegram API error: {resp.text}")
-            raise Exception(f"All tokens failed for user {telegram_id}")
+        logger.info("notify_support_user: user %s недоступен ни в одном боте", telegram_id)
     except Exception as exc:
         raise self.retry(exc=exc)
 
 
 def _send_group_message(text: str, ticket_id: str) -> None:
-    """
-    Отправляет сообщение в группу операторов.
-    Пробует support bot, при 403/400 — fallback на основной бот.
-    """
-    chat_id = settings.SUPPORT_NOTIFY_CHAT_ID
-    if not chat_id:
-        return
+    """Уведомление персоналу о тикете (группа или личка админов, см. shared.staff_notify)."""
+    from shared.staff_notify import send_staff_sync
 
-    markup = json.dumps({
-        "inline_keyboard": [[
-            {
-                "text": "Открыть в операторской панели",
-                "url": f"{settings.FRONTEND_URL}/app/admin/support?ticket={ticket_id}",
-            }
-        ]]
-    })
-    payload = {"chat_id": chat_id, "text": text, "parse_mode": "HTML", "reply_markup": markup}
-
-    tokens = []
-    if settings.SUPPORT_BOT_TOKEN and settings.SUPPORT_BOT_TOKEN != settings.BOT_TOKEN:
-        tokens.append(settings.SUPPORT_BOT_TOKEN)
-    tokens.append(settings.BOT_TOKEN)
-
-    with httpx.Client(timeout=10.0) as client:
-        for token in tokens:
-            resp = client.post(
-                f"https://api.telegram.org/bot{token}/sendMessage",
-                json=payload,
-            )
-            if resp.status_code == 200:
-                return
-            logger.error(
-                "Group notify failed token=%s... status=%s body=%s",
-                token[:10], resp.status_code, resp.text,
-            )
-            if resp.status_code in (400, 403):
-                continue
-            raise Exception(f"Telegram API error: {resp.text}")
-        raise Exception(f"All tokens failed for group chat {chat_id}")
+    markup = {
+        "inline_keyboard": [[{
+            "text": "Открыть обращение",
+            "url": f"https://t.me/{settings.BOT_USERNAME}?startapp=admin_ticket_{ticket_id}",
+        }]]
+    }
+    send_staff_sync(text, markup)
 
 
 @celery_app.task(
@@ -163,14 +135,13 @@ def _send_group_message(text: str, ticket_id: str) -> None:
     default_retry_delay=60,
 )
 def notify_operators_new_ticket(self, ticket_id: str, subject: str, message_preview: str, user_name: str = "") -> None:
-    """Уведомление в группу операторов о новом тикете."""
-    if not settings.SUPPORT_NOTIFY_CHAT_ID:
-        return
+    """Уведомление персоналу о новом тикете."""
+    import html as _html
 
     text = (
-        f"<b>Новое обращение</b>\n"
-        f"От: {user_name}\n"
-        f"{message_preview}"
+        f"🆘 <b>Новое обращение</b>\n"
+        f"От: {_html.escape(user_name or '—')}\n"
+        f"<i>{_html.escape(message_preview or '')}</i>"
     )
 
     try:
@@ -186,15 +157,15 @@ def notify_operators_new_ticket(self, ticket_id: str, subject: str, message_prev
     default_retry_delay=60,
 )
 def notify_operators_new_message(self, ticket_id: str, user_name: str, message_preview: str) -> None:
-    """Уведомление в группу операторов о новом сообщении в существующем тикете."""
-    if not settings.SUPPORT_NOTIFY_CHAT_ID:
-        return
+    """Уведомление персоналу о новом сообщении в существующем тикете."""
+
+    import html as _html
 
     ticket_id_short = ticket_id[:8]
     text = (
         f"<b>Сообщение в обращении #{ticket_id_short}</b>\n"
-        f"От: {user_name}\n"
-        f"{message_preview}"
+        f"От: {_html.escape(user_name or '—')}\n"
+        f"<i>{_html.escape(message_preview or '')}</i>"
     )
 
     try:

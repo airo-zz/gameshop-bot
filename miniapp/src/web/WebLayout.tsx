@@ -6,10 +6,12 @@
 
 import { useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { Menu, X, Send, LogOut, ShoppingCart } from 'lucide-react'
+import { Menu, X, Send, LogOut, ShoppingCart, Wallet } from 'lucide-react'
 import { SHOP_NAME, MINIAPP_URL, SUPPORT_BOT_URL, SITE_URL } from '@/config/appTarget'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { useWebCart } from '@/web/cart/useWebCart'
+import { money } from '@/web/format'
+import logoFull from '@/assets/logo-full.png'
 
 interface NavItem {
   label: string
@@ -26,13 +28,8 @@ const NAV: NavItem[] = [
 
 function Logo() {
   return (
-    <Link to="/" className="flex items-center gap-2 shrink-0">
-      <span
-        className="text-xl font-extrabold tracking-tight"
-        style={{ background: 'var(--gradient-gaming)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
-      >
-        {SHOP_NAME}
-      </span>
+    <Link to="/" className="flex items-center shrink-0" aria-label={SHOP_NAME}>
+      <img src={logoFull} alt={SHOP_NAME} className="h-7 w-auto" />
     </Link>
   )
 }
@@ -86,14 +83,25 @@ function AuthArea({ onNavigate }: { onNavigate?: () => void }) {
   if (isAuthenticated && user) {
     return (
       <div className="flex items-center gap-2.5">
-        {user.photo_url ? (
-          <img src={user.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-        ) : (
-          <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'var(--gradient-primary)' }}>
-            {(user.first_name || '?').charAt(0).toUpperCase()}
-          </div>
-        )}
-        <span className="text-sm text-white/80 max-w-[120px] truncate">{user.first_name}</span>
+        <Link
+          to="/balance"
+          onClick={onNavigate}
+          title="Баланс"
+          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-white/85 border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] transition-colors"
+        >
+          <Wallet size={15} style={{ color: 'var(--link)' }} />
+          {money(user.balance)}
+        </Link>
+        <Link to="/profile" onClick={onNavigate} className="flex items-center gap-2.5 rounded-xl px-1.5 py-1 hover:bg-white/[0.05] transition-colors">
+          {user.photo_url ? (
+            <img src={user.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+          ) : (
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white" style={{ background: 'var(--gradient-primary)' }}>
+              {(user.first_name || '?').charAt(0).toUpperCase()}
+            </div>
+          )}
+          <span className="text-sm text-white/80 max-w-[120px] truncate">{user.first_name}</span>
+        </Link>
         <button
           onClick={() => { logout(); onNavigate?.() }}
           title="Выйти"
@@ -121,6 +129,7 @@ function AuthArea({ onNavigate }: { onNavigate?: () => void }) {
 export default function WebLayout() {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
+  const { isAuthenticated } = useWebAuth()
 
   // Ссылка навигации: якоря работают на главной, внешние — открываются в новой вкладке.
   function renderNavLink(item: NavItem, onClick?: () => void) {
@@ -170,14 +179,17 @@ export default function WebLayout() {
             <AuthArea />
           </div>
 
-          {/* Mobile burger */}
+          {/* Mobile: корзина + бургер */}
+          <div className="md:hidden flex items-center gap-1">
+            <CartButton />
           <button
-            className="md:hidden p-2 rounded-lg text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="p-2 rounded-lg text-white/70 hover:bg-white/[0.06] transition-colors"
             onClick={() => setMenuOpen((v) => !v)}
             aria-label="Меню"
           >
             {menuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
+          </div>
         </div>
 
         {/* Mobile dropdown */}
@@ -185,9 +197,13 @@ export default function WebLayout() {
           <div className="md:hidden border-t border-white/[0.06]" style={{ background: 'var(--bg)' }}>
             <div className="web-container py-4 flex flex-col gap-4">
               {NAV.map((item) => renderNavLink(item, () => setMenuOpen(false)))}
-              <Link to="/cart" onClick={() => setMenuOpen(false)} className="text-sm text-white/60 hover:text-white transition-colors">
-                Корзина
-              </Link>
+              {isAuthenticated && (
+                <>
+                  <Link to="/profile" onClick={() => setMenuOpen(false)} className="text-sm text-white/60 hover:text-white transition-colors">Профиль</Link>
+                  <Link to="/orders" onClick={() => setMenuOpen(false)} className="text-sm text-white/60 hover:text-white transition-colors">Мои заказы</Link>
+                  <Link to="/cart" onClick={() => setMenuOpen(false)} className="text-sm text-white/60 hover:text-white transition-colors">Корзина</Link>
+                </>
+              )}
               <AuthArea onNavigate={() => setMenuOpen(false)} />
             </div>
           </div>

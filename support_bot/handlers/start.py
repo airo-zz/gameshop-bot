@@ -27,6 +27,8 @@ from api.services.support_service import SupportService
 from support_bot.utils.texts import texts
 
 router = Router(name="support:start")
+router.message.filter(F.chat.type == "private")
+router.callback_query.filter(F.message.chat.type == "private")
 
 
 # ── FSM States ────────────────────────────────────────────────────────────────

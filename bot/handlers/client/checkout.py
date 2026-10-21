@@ -24,7 +24,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from shared.config import settings
 from shared.models import CartItem, Order, OrderStatus, PaymentMethod, Product, User
 from api.services.cart_service import CartService
 from api.services.order_service import OrderService
@@ -64,16 +63,9 @@ def _insufficient_balance_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🪙 Криптовалюта", callback_data="checkout:pay:crypto")],
         [InlineKeyboardButton(text="❌ Отменить заказ", callback_data="checkout:cancel")],
     ]
-    if settings.MINIAPP_URL:
-        buttons.insert(
-            0,
-            [
-                InlineKeyboardButton(
-                    text="💰 Пополнить баланс",
-                    url=settings.MINIAPP_URL,
-                )
-            ],
-        )
+    # Пополнение прямо в боте (Platega) — заказ остаётся, к нему можно вернуться
+    # из «Мои заказы» после зачисления.
+    buttons.insert(0, [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="balance:fill")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -426,7 +418,7 @@ async def cb_pay_platega(
 
     payment_svc = PaymentService(db)
     try:
-        result = await payment_svc.pay_platega(order, user, method_value)
+        result = await payment_svc.pay_platega(order, user, method_value, source="bot")
     except ValueError as exc:
         await call.answer(str(exc), show_alert=True)
         return

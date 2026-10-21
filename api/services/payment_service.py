@@ -50,6 +50,19 @@ def _app_base(source: str) -> str:
     return base if source == "web" else f"{base}/app"
 
 
+def _return_urls(source: str, path: str, success_query: str, fail_query: str) -> tuple[str, str]:
+    """URL возврата из Platega (успех, неудача).
+
+    source='bot' — оплата начата в чате бота: возвращаем в Telegram (t.me),
+    итог придёт сообщением от бота. Иначе — на экран сайта/Mini App.
+    """
+    if source == "bot":
+        bot_url = f"https://t.me/{settings.BOT_USERNAME}"
+        return bot_url, bot_url
+    app_base = _app_base(source)
+    return f"{app_base}{path}?{success_query}", f"{app_base}{path}{fail_query and '?' + fail_query}"
+
+
 class PaymentService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -211,7 +224,7 @@ class PaymentService:
         """
         Создаёт транзакцию в Platega (POST /transaction/process) и возвращает
         ссылку на оплату. Подтверждение приходит через webhook (status=CONFIRMED).
-        method_value — 'sbp' | 'card' | 'crypto'. source — 'web' | 'miniapp'
+        method_value — 'sbp' | 'card' | 'crypto'. source — 'web' | 'miniapp' | 'bot'
         (куда вернуть после оплаты).
         """
         if not settings.PLATEGA_MERCHANT_ID or not settings.PLATEGA_SECRET:
@@ -230,13 +243,13 @@ class PaymentService:
         base_amount = order.subtotal - order.discount_amount
         payment.amount = base_amount
 
-        app_base = _app_base(source)
+        return_url, failed_url = _return_urls(source, f"/orders/{order.id}", "success=1", "")
         payload = {
             "paymentMethod": code,
             "paymentDetails": {"amount": float(base_amount), "currency": "RUB"},
             "description": f"Заказ {order.order_number} — {settings.SHOP_NAME}",
-            "return": f"{app_base}/orders/{order.id}?success=1",
-            "failedUrl": f"{app_base}/orders/{order.id}",
+            "return": return_url,
+            "failedUrl": failed_url,
             "payload": str(order.id),
             "metadata": {"userId": str(user.telegram_id)},
         }
@@ -509,13 +522,15 @@ class PaymentService:
         if amount_rub < Decimal("10"):
             raise ValueError("Минимальная сумма пополнения: 10 ₽")
 
-        app_base = _app_base(source)
+        # Возврат на экран баланса той сборки, откуда пополняли
+        # (сайт: /balance, miniapp: /app/balance, бот: чат бота).
+        return_url, failed_url = _return_urls(source, "/balance", "topup=success", "topup=failed")
         payload = {
             "paymentMethod": code,
             "paymentDetails": {"amount": float(amount_rub), "currency": "RUB"},
             "description": f"Пополнение баланса — {settings.SHOP_NAME}",
-            "return": f"{app_base}?topup=success",
-            "failedUrl": f"{app_base}?topup=failed",
+            "return": return_url,
+            "failedUrl": failed_url,
             "payload": f"topup:{user.id}",
             "metadata": {"userId": str(user.telegram_id)},
         }

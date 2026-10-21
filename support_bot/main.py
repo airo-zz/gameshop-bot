@@ -22,7 +22,7 @@ from aiohttp import web
 from shared.config import settings
 from shared.database.session import engine
 from support_bot.middlewares.auth import SupportAuthMiddleware
-from support_bot.handlers import start, chat
+from support_bot.handlers import start, chat, group
 from support_bot.utils.texts import texts
 
 # ── Логирование ──────────────────────────────────────────────────────────────
@@ -88,7 +88,10 @@ def create_dispatcher() -> Dispatcher:
         except Exception:
             pass
 
-    # ── Routers (порядок важен: start перед chat) ────────────────────────────
+    # ── Routers (порядок важен: group → start → chat) ────────────────────────
+    # group — команды привязки группы уведомлений и игнор переписки в группах;
+    # start/chat работают только в личке.
+    dp.include_router(group.router)
     dp.include_router(start.router)
     dp.include_router(chat.router)
 

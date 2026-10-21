@@ -715,79 +715,58 @@ class OrderService:
 
     async def _notify_admins_new_order(self, order: Order) -> None:
         """
-        Уведомляет группу операторов (SUPPORT_NOTIFY_CHAT_ID) о новом
-        оплаченном заказе. Отправка идёт через support-бот (он уже
-        добавлен в группу для уведомлений о тикетах); при 400/403 —
-        fallback на основной бот.
+        Уведомляет персонал о новом оплаченном заказе (группа операторов,
+        а если она не привязана — личка админов; см. shared.staff_notify).
 
-        Оформление намеренно отличается от тикетных уведомлений
-        ("Новое обращение" / "Сообщение в обращении") — шапка с
-        эмодзи 🛒 и разделителем, чтобы оператор сразу видел, что
-        это заказ, а не support-тикет.
+        Оформление намеренно отличается от тикетных уведомлений — шапка с
+        эмодзи 🛒 и разделителем, чтобы оператор сразу видел, что это заказ.
         """
         try:
             import html as _html
-            import httpx
             from shared.config import settings
-
-            chat_id = settings.SUPPORT_NOTIFY_CHAT_ID
-            if not chat_id:
-                return
+            from shared.staff_notify import send_staff_async
 
             result = await self.db.execute(
                 select(Order)
-                .options(selectinload(Order.user))
+                .options(selectinload(Order.user), selectinload(Order.items))
                 .where(Order.id == order.id)
             )
             order_full = result.scalar_one_or_none()
             if not order_full:
                 return
 
-            buyer_name = _html.escape(order_full.user.display_name)
-            amount_str = f"{int(order.total_amount):,}".replace(",", " ")
-            order_number = _html.escape(str(order.order_number))
+            buyer = order_full.user
+            buyer_name = _html.escape(buyer.display_name)
+            if buyer.username:
+                buyer_name += f" (@{_html.escape(buyer.username)})"
+            amount_str = f"{int(order_full.total_amount):,}".replace(",", " ")
+            order_number = _html.escape(str(order_full.order_number))
+            method = order_full.payment_method.value if order_full.payment_method else "—"
+
+            lines = []
+            for item in order_full.items[:10]:
+                name = f"{item.game_name} · {item.product_name}" if item.game_name else item.product_name
+                lines.append(f"• {_html.escape(name)} × {item.quantity}")
+                for k, v in (item.input_data or {}).items():
+                    lines.append(f"   {_html.escape(str(k))}: <code>{_html.escape(str(v))[:100]}</code>")
+            if len(order_full.items) > 10:
+                lines.append(f"… и ещё {len(order_full.items) - 10}")
 
             text = (
                 "🛒 <b>НОВЫЙ ЗАКАЗ</b>\n"
                 "━━━━━━━━━━━━━━━\n"
                 f"№ {order_number}\n"
-                f"Сумма: <b>{amount_str} ₽</b>\n"
-                f"Покупатель: {buyer_name}"
+                f"Сумма: <b>{amount_str} ₽</b> ({_html.escape(method)})\n"
+                f"Покупатель: {buyer_name}\n\n"
+                + "\n".join(lines)
             )
-            miniapp_url = (
-                f"https://t.me/{settings.BOT_USERNAME}"
-                f"?startapp=admin_order_{order.id}"
-            )
-            payload = {
-                "chat_id": chat_id,
-                "text": text,
-                "parse_mode": "HTML",
-                "reply_markup": {
-                    "inline_keyboard": [[
-                        {"text": "Открыть заказ", "url": miniapp_url}
-                    ]]
-                },
+            reply_markup = {
+                "inline_keyboard": [[{
+                    "text": "Открыть заказ",
+                    "url": f"https://t.me/{settings.BOT_USERNAME}?startapp=admin_order_{order_full.id}",
+                }]]
             }
-
-            tokens: list[str] = []
-            if settings.SUPPORT_BOT_TOKEN and settings.SUPPORT_BOT_TOKEN != settings.BOT_TOKEN:
-                tokens.append(settings.SUPPORT_BOT_TOKEN)
-            tokens.append(settings.BOT_TOKEN)
-
-            async with httpx.AsyncClient(timeout=10) as client:
-                for token in tokens:
-                    try:
-                        resp = await client.post(
-                            f"https://api.telegram.org/bot{token}/sendMessage",
-                            json=payload,
-                        )
-                    except Exception:
-                        continue
-                    if resp.status_code == 200:
-                        return
-                    if resp.status_code in (400, 403):
-                        continue
-                    return
+            await send_staff_async(self.db, text[:4000], reply_markup)
         except Exception as exc:
             import logging
             logging.getLogger(__name__).warning("_notify_admins_new_order error: %s", exc)

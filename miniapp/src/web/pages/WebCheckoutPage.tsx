@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Wallet, Bitcoin, CreditCard, CheckCircle, AlertCircle, Smartphone } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -80,10 +80,9 @@ export default function WebCheckoutPage() {
         return
       }
       if (payment.redirect_url) {
-        // Platega — открываем оплату в новой вкладке,
-        // текущую уводим на страницу заказа (статус уточнит webhook).
-        window.open(payment.redirect_url, '_blank', 'noopener')
-        navigate(`/orders/${order.id}`, { replace: true })
+        // Platega — переходим в этой же вкладке: window.open после await
+        // блокируется браузерами. Platega вернёт на /orders/{id}?success=1.
+        window.location.href = payment.redirect_url
         return
       }
       toast.error('Не удалось инициализировать оплату')
@@ -201,7 +200,10 @@ export default function WebCheckoutPage() {
       {insufficientBalance && (
         <div className="flex items-start gap-2 p-3 rounded-2xl mt-4" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}>
           <AlertCircle size={15} className="shrink-0 mt-0.5" style={{ color: '#f87171' }} />
-          <p className="text-sm" style={{ color: '#f87171' }}>Недостаточно средств. Выберите другой способ оплаты.</p>
+          <p className="text-sm" style={{ color: '#f87171' }}>
+            Недостаточно средств.{' '}
+            <Link to="/balance" className="underline font-semibold">Пополнить баланс</Link> или выберите другой способ оплаты.
+          </p>
         </div>
       )}
 
@@ -213,6 +215,12 @@ export default function WebCheckoutPage() {
       >
         {placing ? 'Оформляем...' : `Оплатить ${money(payTotal)}`}
       </button>
+      <p className="text-xs text-white/35 text-center mt-3">
+        Нажимая «Оплатить», вы принимаете{' '}
+        <a href="/app/legal/terms.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/60">условия сервиса</a>
+        {' '}и{' '}
+        <a href="/app/legal/privacy.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/60">политику конфиденциальности</a>.
+      </p>
     </div>
   )
 }

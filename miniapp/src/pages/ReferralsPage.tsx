@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 import { profileApi, type ReferralStats } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 
-const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'redonate_bot'
+const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'reDonate_robot'
 
 export default function ReferralsPage() {
   const navigate = useNavigate()

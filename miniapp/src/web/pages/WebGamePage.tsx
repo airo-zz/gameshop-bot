@@ -4,19 +4,17 @@
  * Покупка требует авторизации (Telegram Login Widget). Оформление — на /checkout.
  */
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Zap, Clock, Plus, Minus, ShoppingCart } from 'lucide-react'
+import { ChevronLeft, Zap, Clock, Plus, Minus, ShoppingCart, Sparkles } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { catalogApi } from '@/api'
 import type { Category, Product, InputField } from '@/api'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { useWebCart } from '@/web/cart/useWebCart'
-
-function money(v: number) {
-  return Number(v).toLocaleString('ru-RU') + ' ₽'
-}
+import { money } from '@/web/format'
+import { MINIAPP_URL } from '@/config/appTarget'
 
 // ── Карточка товара ───────────────────────────────────────────────────────────
 
@@ -27,9 +25,10 @@ interface ProductCardProps {
   onAdd: (product: Product, inputData?: Record<string, string>) => void
   onDec: (product: Product) => void
   onRequireLogin: () => void
+  singleAdd?: boolean // Telegram Premium — максимум 1 шт
 }
 
-function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLogin }: ProductCardProps) {
+function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLogin, singleAdd }: ProductCardProps) {
   const hasDiscount = !!product.original_price && Number(product.original_price) > Number(product.price)
   const discountPct = hasDiscount
     ? Math.round((1 - Number(product.price) / Number(product.original_price!)) * 100)
@@ -118,7 +117,12 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
               <Minus size={16} />
             </button>
             <span className="text-sm font-bold text-white">{qty}</span>
-            <button onClick={() => onAdd(product, hasInputs ? inputData : undefined)} className="p-1.5 rounded-lg text-white/70 hover:bg-white/[0.06]" aria-label="Добавить">
+            <button
+              onClick={() => onAdd(product, hasInputs ? inputData : undefined)}
+              disabled={singleAdd}
+              className="p-1.5 rounded-lg text-white/70 hover:bg-white/[0.06] disabled:opacity-25 disabled:hover:bg-transparent"
+              aria-label="Добавить"
+            >
               <Plus size={16} />
             </button>
           </div>
@@ -179,9 +183,34 @@ export default function WebGamePage() {
 
   const requireLogin = () => navigate('/login', { state: { from: location.pathname } })
 
+  // Telegram-подраздел (Stars/Premium, автовыдача): данные получателя (@username)
+  // вводятся здесь и прикрепляются к позиции корзины — на чекауте их не спрашивают.
+  const isTgAuto = !!currentCat?.auto_engine
+  const isPremium = currentCat?.auto_engine === 'telegram_premium'
+  const tgFieldDefs: InputField[] = isTgAuto
+    ? ((currentCat?.input_fields?.length ? currentCat.input_fields : game?.input_fields) ?? [])
+    : []
+  const [tgFields, setTgFields] = useState<Record<string, string>>({})
+  useEffect(() => { setTgFields({}) }, [currentCatId])
+
   const handleAdd = async (product: Product, inputData?: Record<string, string>) => {
+    if (isPremium && products.some((p) => p.id !== product.id && (qtyByProduct.get(p.id) ?? 0) > 0)) {
+      toast.error('В корзине уже есть вариант Telegram Premium — сначала удалите его')
+      return
+    }
+    let data = inputData
+    if (isTgAuto && tgFieldDefs.length) {
+      const missing = tgFieldDefs.find((f) => f.required && !(tgFields[f.key] ?? '').trim())
+      if (missing) {
+        toast.error(`Заполните: ${missing.label}`)
+        document.getElementById('tg-recipient')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        return
+      }
+      data = { ...tgFields, ...(inputData ?? {}) }
+    }
     try {
-      await add(product.id, inputData)
+      await add(product.id, data)
+      toast.success('Добавлено в корзину')
     } catch (e: any) {
       toast.error(e?.response?.data?.detail ?? 'Не удалось добавить')
     }
@@ -208,7 +237,19 @@ export default function WebGamePage() {
         {game?.image_url && (
           <img src={game.image_url} alt={gameName} className="w-16 h-16 rounded-2xl object-cover border border-white/10" />
         )}
-        <h1 className="text-2xl md:text-4xl font-extrabold text-white">{gameName}</h1>
+        <h1 className="text-2xl md:text-4xl font-extrabold text-white flex-1 min-w-0">{gameName}</h1>
+        {game?.custom_order_enabled && (
+          <a
+            href={MINIAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            title="Индивидуальный заказ оформляется в Telegram — оператор соберёт лот под вас"
+            className="hidden sm:inline-flex items-center gap-1.5 shrink-0 text-sm font-semibold px-3.5 py-2 rounded-xl"
+            style={{ background: 'rgba(45,88,173,0.14)', color: '#93b8f0', border: '1px solid rgba(45,88,173,0.36)' }}
+          >
+            <Sparkles size={15} /> Индивидуальный заказ
+          </a>
+        )}
       </div>
 
       {catsError ? (
@@ -241,7 +282,11 @@ export default function WebGamePage() {
                 <button
                   key={sub.id}
                   onClick={() => setActiveCatId(sub.id)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium text-white/55 bg-white/[0.03] border border-white/[0.06] hover:text-white/80 transition-all"
+                  className={
+                    'px-3 py-1.5 rounded-lg text-xs font-medium transition-all ' +
+                    (currentCatId === sub.id ? 'text-white' : 'text-white/55 bg-white/[0.03] border border-white/[0.06] hover:text-white/80')
+                  }
+                  style={currentCatId === sub.id ? { background: 'rgba(45,88,173,0.22)', border: '1px solid rgba(45,88,173,0.5)' } : {}}
                 >
                   {sub.name}
                 </button>
@@ -272,6 +317,38 @@ export default function WebGamePage() {
           ) : products.length === 0 ? (
             <p className="text-sm text-white/40 py-16 text-center">Товары скоро появятся</p>
           ) : (
+            <>
+            {isTgAuto && tgFieldDefs.length > 0 && (
+              <div id="tg-recipient" className="rounded-2xl p-4 mb-4 max-w-xl" style={{ background: 'var(--bg2)', border: '1px solid rgba(45,88,173,0.35)' }}>
+                <p className="text-sm font-semibold mb-3" style={{ color: 'var(--link)' }}>Данные получателя</p>
+                <div className="space-y-3">
+                  {tgFieldDefs.map((f) => (
+                    <div key={f.key}>
+                      <label className="block text-xs text-white/50 mb-1.5">
+                        {f.label}{f.required && <span className="text-amber-400"> *</span>}
+                      </label>
+                      {f.type === 'select' ? (
+                        <select
+                          value={tgFields[f.key] ?? ''}
+                          onChange={(e) => setTgFields((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                          className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/20"
+                        >
+                          <option value="">Выберите...</option>
+                          {(f.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
+                        </select>
+                      ) : (
+                        <input
+                          value={tgFields[f.key] ?? ''}
+                          onChange={(e) => setTgFields((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                          placeholder={f.placeholder || f.label}
+                          className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-white/20"
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {products.map((p) => (
                 <ProductCard
@@ -282,9 +359,11 @@ export default function WebGamePage() {
                   onAdd={handleAdd}
                   onDec={handleDec}
                   onRequireLogin={requireLogin}
+                  singleAdd={isPremium}
                 />
               ))}
             </div>
+            </>
           )}
         </>
       )}

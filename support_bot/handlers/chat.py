@@ -20,6 +20,8 @@ from api.services.support_service import SupportService
 from support_bot.handlers.start import SupportStates, _show_main_menu
 
 router = Router(name="support:chat")
+router.message.filter(F.chat.type == "private")
+router.callback_query.filter(F.message.chat.type == "private")
 
 
 # ── Приём сообщений в чате ────────────────────────────────────────────────────

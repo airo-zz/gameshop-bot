@@ -43,7 +43,7 @@ class ShopSettings(BaseSettings):
 
 class TelegramSettings(BaseSettings):
     BOT_TOKEN: str
-    BOT_USERNAME: str = "redonate_bot"  # username бота без @
+    BOT_USERNAME: str = "reDonate_robot"  # username бота без @
     ADMIN_BOT_TOKEN: str = ""           # если нет отдельного — используем BOT_TOKEN
     SUPPORT_BOT_TOKEN: str = ""         # токен бота поддержки
     SUPPORT_NOTIFY_CHAT_ID: int = 0     # chat_id группы операторов для уведомлений

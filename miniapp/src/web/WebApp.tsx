@@ -20,6 +20,9 @@ const WebLoginPage = lazy(() => import('./pages/WebLoginPage'))
 const WebCartPage = lazy(() => import('./pages/WebCartPage'))
 const WebCheckoutPage = lazy(() => import('./pages/WebCheckoutPage'))
 const WebOrderPage = lazy(() => import('./pages/WebOrderPage'))
+const WebOrdersPage = lazy(() => import('./pages/WebOrdersPage'))
+const WebBalancePage = lazy(() => import('./pages/WebBalancePage'))
+const WebProfilePage = lazy(() => import('./pages/WebProfilePage'))
 
 export default function WebApp() {
   return (
@@ -47,7 +50,11 @@ export default function WebApp() {
           <Route path="login" element={<Suspense fallback={null}><WebLoginPage /></Suspense>} />
           <Route path="cart" element={<RequireWebAuth><Suspense fallback={null}><WebCartPage /></Suspense></RequireWebAuth>} />
           <Route path="checkout" element={<RequireWebAuth><Suspense fallback={null}><WebCheckoutPage /></Suspense></RequireWebAuth>} />
+          <Route path="orders" element={<RequireWebAuth><Suspense fallback={null}><WebOrdersPage /></Suspense></RequireWebAuth>} />
           <Route path="orders/:id" element={<RequireWebAuth><Suspense fallback={null}><WebOrderPage /></Suspense></RequireWebAuth>} />
+          <Route path="balance" element={<RequireWebAuth><Suspense fallback={null}><WebBalancePage /></Suspense></RequireWebAuth>} />
+          <Route path="profile" element={<RequireWebAuth><Suspense fallback={null}><WebProfilePage /></Suspense></RequireWebAuth>} />
+          <Route path="referrals" element={<Navigate to="/profile" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>

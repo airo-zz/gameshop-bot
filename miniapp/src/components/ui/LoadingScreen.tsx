@@ -1,7 +1,7 @@
 // src/components/ui/LoadingScreen.tsx
 import { motion } from 'framer-motion'
-import logoSrc from '@/assets/logo.svg'
-import logoTextSrc from '@/assets/logo-text.svg'
+import logoSrc from '@/assets/logo-icon.png'
+import logoTextSrc from '@/assets/logo-full.png'
 
 interface LoadingScreenProps {
   exiting?: boolean
@@ -38,7 +38,7 @@ export default function LoadingScreen({ exiting = false }: LoadingScreenProps) {
         <img
           src={logoSrc}
           alt="reDonate"
-          style={{ width: '100%', height: '100%', display: 'block' }}
+          style={{ width: '100%', height: '100%', display: 'block', borderRadius: 24 }}
         />
       </motion.div>
 
@@ -49,7 +49,7 @@ export default function LoadingScreen({ exiting = false }: LoadingScreenProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.25, duration: 0.45, ease: 'easeOut' }}
-        style={{ height: 36, width: 'auto', display: 'block', background: 'none' }}
+        style={{ height: 34, width: 'auto', display: 'block', background: 'none' }}
       />
 
       {/* Subtle glow line */}

@@ -27,7 +27,7 @@ export const SHOP_NAME = (import.meta.env.VITE_SHOP_NAME as string) || 'reDonate
 export const SITE_URL = 'https://redonate.su'
 // Username бота берётся из сборочной переменной (в CI = redonate_robot),
 // как и в остальных местах приложения; фолбэк на дефолт из settings.py.
-export const BOT_USERNAME = (import.meta.env.VITE_BOT_USERNAME as string) || 'redonate_bot'
+export const BOT_USERNAME = (import.meta.env.VITE_BOT_USERNAME as string) || 'reDonate_robot'
 export const BOT_URL = `https://t.me/${BOT_USERNAME}`
 export const MINIAPP_URL = `https://t.me/${BOT_USERNAME}?startapp`
 export const SUPPORT_BOT_URL = 'https://t.me/reDonateSupport_bot'
