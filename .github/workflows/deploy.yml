@@ -273,6 +273,8 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           password: ${{ secrets.VPS_PASSWORD }}
           timeout:  300s
+          # Сборка на 1 CPU без кэша занимает >10 мин (дефолт command_timeout)
+          command_timeout: 30m
           script: |
             set -e
             cd "${{ secrets.VPS_APP_DIR }}"
@@ -284,12 +286,20 @@ jobs:
             # Каталоги статики должны существовать до старта nginx (bind mount)
             mkdir -p miniapp/dist miniapp/dist-web
 
-            # Пересобираем backend + nginx. Для nginx `up -d` пересоздаёт контейнер
-            # только если изменилось его определение (напр. новый volume dist-web);
-            # иначе это no-op. db, redis, certbot не трогаем.
-            DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1 \
-              docker compose up -d --build --remove-orphans \
+            # Собираем ДВА образа последовательно: gameshop-app (api/worker/beat/
+            # flower/migrations) и gameshop-botimg (bot/support_bot). Параллельная
+            # сборка 7 образов на 1 CPU / 2 GB уводила сервер в своп.
+            export DOCKER_BUILDKIT=1 COMPOSE_DOCKER_CLI_BUILD=1
+            docker compose build api
+            docker compose build bot
+
+            # Перезапуск на свежих образах. Для nginx `up -d` пересоздаёт контейнер
+            # только если изменилось его определение; db, redis, certbot не трогаем.
+            docker compose up -d --no-build --remove-orphans \
               migrations api bot support_bot worker beat flower nginx
+
+            # Убираем старые образы gameshop-<service> (до перехода на общие образы)
+            docker image prune -f >/dev/null || true
 
             # Ждём стабилизации контейнеров
             echo "Waiting for containers..."
