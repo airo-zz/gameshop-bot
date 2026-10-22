@@ -74,9 +74,10 @@ class ChatService:
         after_id: uuid.UUID | None = None,
     ) -> list[ChatMessage]:
         """
-        Возвращает сообщения чата.
-        after_id — если передан, возвращает только сообщения новее этого ID
-        (по created_at).
+        Возвращает сообщения чата в хронологическом порядке.
+        after_id — если передан, возвращает первые `limit` сообщений новее этого ID
+        (по created_at). Без after_id — ПОСЛЕДНИЕ `limit` сообщений, иначе в длинном
+        чате новые ответы не попадали бы в выдачу.
         """
         query = select(ChatMessage).where(ChatMessage.chat_id == chat_id)
 
@@ -88,10 +89,13 @@ class ChatService:
             pivot_ts = pivot_result.scalar_one_or_none()
             if pivot_ts is not None:
                 query = query.where(ChatMessage.created_at > pivot_ts)
+            query = query.order_by(ChatMessage.created_at.asc()).limit(limit)
+            result = await self.db.execute(query)
+            return list(result.scalars().all())
 
-        query = query.order_by(ChatMessage.created_at.asc()).limit(limit)
+        query = query.order_by(ChatMessage.created_at.desc()).limit(limit)
         result = await self.db.execute(query)
-        return list(result.scalars().all())
+        return list(reversed(result.scalars().all()))
 
     async def send_message(
         self,
@@ -142,7 +146,9 @@ class ChatService:
             if sender_type == "user":
                 notify_seller_if_unread.apply_async(args=[chat_id], countdown=30)
             elif sender_type == "admin":
-                notify_user_if_unread.apply_async(args=[chat_id], countdown=600)
+                # Почти сразу: если клиент держит чат открытым, polling успеет
+                # пометить его прочитанным и лишнего пуша не будет
+                notify_user_if_unread.apply_async(args=[chat_id], countdown=15)
         except Exception as e:
             # Celery может быть недоступен — не блокируем основной флоу
             logger.warning("chat notify enqueue failed (celery?): %s", e)

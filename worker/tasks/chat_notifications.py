@@ -107,7 +107,7 @@ def notify_seller_if_unread(self, chat_id: str) -> None:
 )
 def notify_user_if_unread(self, chat_id: str) -> None:
     """
-    Вызывается через 10 минут после сообщения admin'а.
+    Вызывается через ~15 секунд после сообщения admin'а.
     Если пользователь НЕ прочитал (last_user_read_at < last_message_at или NULL) —
     отправляет уведомление в Telegram.
     """
@@ -165,7 +165,14 @@ def notify_user_if_unread(self, chat_id: str) -> None:
                     f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
                     json=payload,
                 )
-                if resp.status_code not in (200, 403):
+                if resp.status_code == 403:
+                    # Клиент заблокировал бота или ни разу его не запускал —
+                    # ретраи бессмысленны, но фиксируем, чтобы было видно в логах
+                    logger.warning(
+                        "chat notify: бот не может написать user %s (chat %s): %s",
+                        user_id, chat_id, resp.text,
+                    )
+                elif resp.status_code != 200:
                     raise Exception(f"Telegram API error: {resp.text}")
         finally:
             session.close()
