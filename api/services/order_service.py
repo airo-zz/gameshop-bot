@@ -377,6 +377,7 @@ class OrderService:
         elif new_status == OrderStatus.cancelled:
             order.cancelled_at = now
             await self._release_reserved_keys(order)
+            await self.release_balance_hold(order, "заказ отменён")
             from bot.utils.texts import texts as _texts
             await self._notify_user(order, _texts.order_cancelled(order.order_number))
 
@@ -401,6 +402,67 @@ class OrderService:
 
         return order
 
+    # ── Доплата с баланса (холд) ──────────────────────────────────────────────
+    # Часть заказа списывается с баланса заранее и хранится в order.meta
+    # ["balance_hold"]; остальное клиент платит через Platega. Если заказ так и
+    # не оплачен (отмена платежа / отмена или истечение заказа) — холд
+    # возвращается на баланс. После оплаты холд просто остаётся списанием.
+
+    @staticmethod
+    def balance_hold(order: Order) -> Decimal:
+        return Decimal(str((order.meta or {}).get("balance_hold") or "0"))
+
+    async def hold_balance(self, order: Order, user: User) -> Decimal:
+        """Списывает с баланса до полной суммы заказа (без наценки метода).
+        Повторный вызов не списывает второй раз. Возвращает размер холда."""
+        existing = self.balance_hold(order)
+        if existing > 0:
+            return existing
+        locked = (await self.db.execute(
+            select(User).where(User.id == user.id).with_for_update()
+        )).scalar_one()
+        base = order.subtotal - order.discount_amount
+        hold = min(locked.balance, base).quantize(Decimal("0.01"))
+        if hold <= 0:
+            return Decimal("0")
+        balance_before = locked.balance
+        locked.balance -= hold
+        self.db.add(BalanceTransaction(
+            user_id=locked.id,
+            amount=-hold,
+            balance_before=balance_before,
+            balance_after=locked.balance,
+            type="order_payment",
+            description=f"Частичная оплата заказа {order.order_number} с баланса",
+            reference_id=order.id,
+        ))
+        order.meta = {**(order.meta or {}), "balance_hold": str(hold)}
+        return hold
+
+    async def release_balance_hold(self, order: Order, reason: str) -> Decimal:
+        """Возвращает холд на баланс, если заказ не оплачен. Идемпотентно."""
+        hold = self.balance_hold(order)
+        if hold <= 0 or order.paid_at is not None:
+            return Decimal("0")
+        locked = (await self.db.execute(
+            select(User).where(User.id == order.user_id).with_for_update()
+        )).scalar_one()
+        balance_before = locked.balance
+        locked.balance += hold
+        self.db.add(BalanceTransaction(
+            user_id=locked.id,
+            amount=hold,
+            balance_before=balance_before,
+            balance_after=locked.balance,
+            type="order_refund",
+            description=f"Возврат на баланс по заказу {order.order_number}: {reason}",
+            reference_id=order.id,
+        ))
+        meta = dict(order.meta or {})
+        meta.pop("balance_hold", None)
+        order.meta = meta
+        return hold
+
     # ── Оплата балансом ───────────────────────────────────────────────────────
 
     async def pay_with_balance(self, order: Order, user: User) -> Order:
@@ -409,6 +471,10 @@ class OrderService:
         Блокирует строку User через SELECT FOR UPDATE, чтобы параллельные
         запросы не могли одновременно пройти проверку баланса (double-spend).
         """
+        # Если раньше пробовали доплату (холд) — сначала вернуть его, иначе
+        # часть суммы списалась бы дважды
+        await self.release_balance_hold(order, "оплата балансом целиком")
+
         # Перечитываем user с блокировкой строки — гарантирует актуальный баланс
         locked_result = await self.db.execute(
             select(User).where(User.id == user.id).with_for_update()

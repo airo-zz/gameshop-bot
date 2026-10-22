@@ -1,5 +1,4 @@
 @import '@fontsource-variable/onest';
-@import '@fontsource-variable/unbounded';
 @import './theme.css';
 
 @tailwind base;
@@ -37,11 +36,11 @@ html, body, #root {
 
 button { user-select: none; font-family: inherit; }
 
-/* Заголовки, цены, название уровня — широкий Unbounded. Всё остальное — Onest. */
+/* Один шрифт — Onest. Заголовки и цифры выделяются весом и плотным трекингом. */
 h1, .font-display {
   font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-weight: 650;
+  letter-spacing: -0.02em;
 }
 .num { font-variant-numeric: tabular-nums; }
 

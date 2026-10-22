@@ -17,6 +17,7 @@ from sqlalchemy.orm import joinedload
 
 from api.deps import DbSession
 from api.deps_admin import CurrentAdmin, require_permission
+from api.routers.avatar import avatar_url
 from api.schemas.admin import BalanceAdjustIn, PaginatedResponse, UserUpdateIn
 from api.utils.admin_log import log_admin_action
 from api.utils.search import escape_like
@@ -93,7 +94,7 @@ def _user_list_item(user: User) -> dict[str, Any]:
         "username": user.username,
         "first_name": user.first_name,
         "last_name": user.last_name,
-        "photo_url": user.photo_url,
+        "photo_url": avatar_url(user.telegram_id),
         "balance": float(user.balance),
         "total_spent": float(user.total_spent),
         "orders_count": user.orders_count,
@@ -156,7 +157,7 @@ async def get_user(
         "last_name": user.last_name,
         "language_code": user.language_code,
         "phone": user.phone,
-        "photo_url": user.photo_url,
+        "photo_url": avatar_url(user.telegram_id),
         "referral_code": user.referral_code,
         "referred_by_id": user.referred_by_id,
         "balance": float(user.balance),

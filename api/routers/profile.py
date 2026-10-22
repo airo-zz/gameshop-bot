@@ -10,7 +10,7 @@ from api.services.loyalty_service import (
     REFERRAL_BONUS_KEY, REFERRAL_DISCOUNT_KEY, REFERRAL_THRESHOLD_KEY, LoyaltyService,
 )
 from shared.models import Order, OrderStatus, ReferralReward, User
-from shared.utils import build_telegram_photo_url
+from api.routers.avatar import avatar_url
 
 router = APIRouter()
 
@@ -34,7 +34,7 @@ async def get_profile(db: DbSession, user: CurrentUser):
         telegram_id=user_full.telegram_id,
         username=user_full.username,
         first_name=user_full.first_name,
-        photo_url=build_telegram_photo_url(user_full.photo_url),
+        photo_url=avatar_url(user_full.telegram_id),
         balance=user_full.balance,
         orders_count=user_full.orders_count,
         total_spent=user_full.total_spent,

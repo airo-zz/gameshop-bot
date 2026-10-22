@@ -24,7 +24,7 @@ export default {
       },
       fontFamily: {
         sans:    ['Onest Variable', 'system-ui', 'sans-serif'],
-        display: ['Unbounded Variable', 'Onest Variable', 'sans-serif'],
+        display: ['Onest Variable', 'system-ui', 'sans-serif'],
       },
       scale: {
         '98': '0.98',

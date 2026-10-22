@@ -118,6 +118,8 @@ class PayOrderIn(BaseModel):
     payment_method: str | None = Field(None, pattern="^(balance|sbp|card|crypto)$")
     # Откуда платят — определяет URL возврата после оплаты (сайт vs Mini App).
     source: str = Field("miniapp", pattern="^(web|miniapp)$")
+    # Доплата: списать доступный баланс, остаток оплатить через шлюз.
+    use_balance: bool = False
 
 
 @router.post("/orders/{order_id}/pay", response_model=PaymentInitResponse)
@@ -182,8 +184,9 @@ async def initiate_payment(
     # Внешний шлюз Platega: СБП / карта / крипта.
     if method in ("sbp", "card", "crypto"):
         source = body.source if body else "miniapp"
+        use_balance = bool(body and body.use_balance)
         try:
-            data = await svc.pay_platega(order, user, method, source)
+            data = await svc.pay_platega(order, user, method, source, use_balance)
         except ValueError as e:
             raise HTTPException(400, str(e))
         await _clear_cart_if_from_cart()

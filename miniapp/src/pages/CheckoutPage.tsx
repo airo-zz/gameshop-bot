@@ -1,5 +1,5 @@
 // src/pages/CheckoutPage.tsx
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle, Wallet, Bitcoin, AlertCircle, CreditCard, Smartphone } from '@/components/ui/icons'
@@ -9,6 +9,7 @@ import { fmtPrice } from '@/utils/format'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
 import { PAY_SOURCE } from '@/config/appTarget'
+import BalanceSplitToggle, { splitPayment } from '@/components/ui/BalanceSplit'
 
 const PAYMENT_METHODS = [
   { id: 'balance', label: 'Баланс бота',      icon: <Wallet size={20} />,     description: 'Мгновенно' },
@@ -36,7 +37,22 @@ export default function CheckoutPage() {
 
   const methodGroup = (m: string): QuoteKey =>
     m === 'card' ? 'card' : m === 'sbp' ? 'sbp' : m === 'crypto' ? 'crypto' : 'balance'
-  const payTotal = quote ? quote[methodGroup(selectedMethod)] : Number(cart?.total ?? 0)
+  const methodTotal = quote ? quote[methodGroup(selectedMethod)] : Number(cart?.total ?? 0)
+
+  // Доплата: баланса не хватает на весь заказ — часть с баланса, остаток шлюзом
+  const [useBalance, setUseBalance] = useState(true)
+  const balanceNum = Number(profile?.balance ?? 0)
+  const baseTotal = Number(quote?.balance ?? cart?.total ?? 0)
+  const split = splitPayment(balanceNum, baseTotal, methodTotal, useBalance && selectedMethod !== 'balance')
+  const payTotal = selectedMethod === 'balance' ? methodTotal : split.rest
+
+  // Баланса не хватает — сразу предлагаем СБП с доплатой (один раз, при загрузке)
+  const autoPicked = useRef(false)
+  useEffect(() => {
+    if (autoPicked.current || !profile || !quote) return
+    autoPicked.current = true
+    if (Number(profile.balance) < Number(quote.balance)) setSelectedMethod('sbp')
+  }, [profile, quote])
 
   const setFieldValue = (gameId: string, key: string, value: string) =>
     setFieldValues(prev => ({ ...prev, [gameId]: { ...(prev[gameId] ?? {}), [key]: value } }))
@@ -65,7 +81,7 @@ export default function CheckoutPage() {
         payment_method: selectedMethod,
         ...(checkoutFields.length > 0 ? { input_data: fieldValues } : {}),
       })
-      const payment = await ordersApi.pay(order.id, { source: PAY_SOURCE })
+      const payment = await ordersApi.pay(order.id, { source: PAY_SOURCE, use_balance: split.hold > 0 })
 
       if (payment.success) {
         setItemsCount(0)
@@ -236,6 +252,18 @@ export default function CheckoutPage() {
           })}
         </div>
 
+        {selectedMethod !== 'balance' && split.can && (
+          <div className="mt-2">
+            <BalanceSplitToggle
+              balance={balanceNum}
+              rest={split.rest}
+              methodLabel={PAYMENT_METHODS.find(m => m.id === selectedMethod)?.label ?? ''}
+              checked={useBalance}
+              onChange={v => { haptic.select(); setUseBalance(v) }}
+            />
+          </div>
+        )}
+
         {selectedMethod === 'crypto' && (
           <p className="text-[11px] mt-2.5 text-center" style={{ color: 'var(--hint)' }}>
             Монета и сеть выбираются на странице оплаты
@@ -251,7 +279,7 @@ export default function CheckoutPage() {
         >
           <AlertCircle size={15} className="flex-shrink-0 mt-0.5" style={{ color: '#f87171' }} />
           <p className="text-sm" style={{ color: '#f87171' }}>
-            Недостаточно средств. Пополни баланс или выбери другой способ.
+            Баланса не хватает. Выберите СБП, карту или крипту — доступный баланс спишем, а остаток оплатите.
           </p>
         </div>
       )}

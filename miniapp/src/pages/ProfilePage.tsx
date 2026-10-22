@@ -2,7 +2,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
-import { Heart, Package, Share2, MessageCircle, Wallet, ShoppingBag, Users, Gift, Settings, FileText, ChevronDown, Copy } from '@/components/ui/icons'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Heart, Package, Share2, MessageCircle, Wallet, ShoppingBag, Users, Gift, Settings, FileText, ChevronDown, Copy, Info } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { profileApi, ordersApi, catalogApi, supportApi, type LoyaltyLevelEntry, type Profile } from '@/api'
 import { adminApi, type AdminMe } from '@/api/admin'
@@ -18,10 +19,11 @@ const MONTHS_PREP = ['январе', 'феврале', 'марте', 'апрел
 const rub = (n: number | string) => `${Number(n).toLocaleString('ru', { maximumFractionDigits: 2 })} ₽`
 const pct = (n: number | string) => `${Number(n).toLocaleString('ru', { maximumFractionDigits: 2 })}%`
 
-function LoyaltyCard({ profile, onToggleLevels, levelsOpen }: {
+function LoyaltyCard({ profile, onToggleLevels, levelsOpen, onInfo }: {
   profile: Profile
   onToggleLevels: () => void
   levelsOpen: boolean
+  onInfo: () => void
 }) {
   const color = profile.loyalty_color_hex
   const spent = Number(profile.loyalty_month_spent)
@@ -90,18 +92,122 @@ function LoyaltyCard({ profile, onToggleLevels, levelsOpen }: {
         </p>
       </div>
 
-      <button
-        type="button"
-        onClick={onToggleLevels}
-        style={{
-          marginTop: 12, padding: 0, background: 'none', border: 'none', cursor: 'pointer',
-          fontSize: 13, fontWeight: 500, color: 'var(--link)', display: 'flex', alignItems: 'center', gap: 4,
-        }}
-      >
-        {levelsOpen ? 'Скрыть уровни' : `Все уровни (${profile.loyalty_levels.length})`}
-        <ChevronDown size={14} style={{ transform: levelsOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
-      </button>
+      {/* Действия: все уровни + как это работает */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+        <button
+          type="button"
+          onClick={onToggleLevels}
+          aria-expanded={levelsOpen}
+          className="active:opacity-80"
+          style={{
+            flex: 1, height: 44, padding: '0 14px', borderRadius: 'var(--r-control)',
+            background: 'var(--bg3)', border: 'none', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', gap: 10, color: 'var(--text)',
+            fontSize: 14, fontWeight: 500,
+          }}
+        >
+          <span style={{ display: 'flex', gap: 3 }} aria-hidden>
+            {profile.loyalty_levels.slice(0, 5).map(lv => (
+              <span key={lv.name} style={{ width: 6, height: 14, borderRadius: 2, background: lv.color_hex }} />
+            ))}
+          </span>
+          <span style={{ flex: 1, textAlign: 'left' }}>{levelsOpen ? 'Скрыть уровни' : 'Все уровни'}</span>
+          <span className="num" style={{ fontSize: 12, color: 'var(--hint)' }}>{profile.loyalty_levels.length}</span>
+          <ChevronDown
+            size={16}
+            style={{
+              color: 'var(--hint)',
+              transform: levelsOpen ? 'rotate(180deg)' : 'none',
+              transition: 'transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)',
+            }}
+          />
+        </button>
+        <button
+          type="button"
+          onClick={onInfo}
+          aria-label="Как работает программа лояльности"
+          className="active:opacity-80"
+          style={{
+            width: 44, height: 44, borderRadius: 'var(--r-control)', background: 'var(--bg3)',
+            border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--text-2)',
+          }}
+        >
+          <Info size={20} />
+        </button>
+      </div>
     </div>
+  )
+}
+
+// ── Шторка «Как работает программа» ──────────────────────────────────────────
+
+function LoyaltyInfoSheet({ open, onClose, profile }: { open: boolean; onClose: () => void; profile: Profile }) {
+  const first = profile.loyalty_levels[0]
+  const last = profile.loyalty_levels[profile.loyalty_levels.length - 1]
+  const points: { title: string; text: string }[] = [
+    {
+      title: 'Уровень — по тратам за месяц',
+      text: 'Считаем все оплаченные заказы с 1-го по последнее число месяца. Чем больше траты, тем выше уровень и процент кэшбэка.',
+    },
+    {
+      title: 'Уровень держится ещё месяц',
+      text: 'Дошли до уровня — он сохраняется и весь следующий месяц. Если в нём не набрать ту же сумму, с 1-го числа уровень опустится до достигнутого.',
+    },
+    {
+      title: 'Кэшбэк — на баланс',
+      text: `Начисляется, когда заказ выполнен: от ${first ? pct(first.cashback_percent) : '1%'} до ${last ? pct(last.cashback_percent) : '6%'}. Балансом можно оплатить следующие заказы целиком или частично.`,
+    },
+    {
+      title: 'Лимит кэшбэка в месяц',
+      text: 'У каждого уровня свой потолок. Когда он набран, кэшбэк за этот месяц больше не начисляется — с нового месяца лимит обнуляется.',
+    },
+  ]
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            key="bg"
+            onClick={onClose}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200 }}
+          />
+          <motion.div
+            key="sheet"
+            role="dialog"
+            aria-label="Как работает программа лояльности"
+            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+            transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+            drag="y" dragConstraints={{ top: 0, bottom: 0 }} dragElastic={{ top: 0, bottom: 0.6 }}
+            onDragEnd={(_, info) => { if (info.offset.y > 80) onClose() }}
+            style={{
+              position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 201,
+              background: 'var(--bg2)', borderRadius: 'var(--r-sheet) var(--r-sheet) 0 0',
+              padding: '10px 20px calc(env(safe-area-inset-bottom, 0px) + 24px)',
+              maxHeight: '85vh', overflowY: 'auto',
+            }}
+          >
+            <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(220,235,255,0.16)', margin: '0 auto 16px' }} />
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 650, letterSpacing: '-0.02em', color: 'var(--text)' }}>
+              Как работает кэшбэк
+            </h2>
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
+              {points.map(pt => (
+                <div key={pt.title}>
+                  <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text)' }}>{pt.title}</p>
+                  <p style={{ margin: '3px 0 0', fontSize: 14, color: 'var(--text-2)', lineHeight: 1.5 }}>{pt.text}</p>
+                </div>
+              ))}
+            </div>
+            <button type="button" onClick={onClose} className="btn-primary" style={{ marginTop: 22 }}>
+              Понятно
+            </button>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   )
 }
 
@@ -257,6 +363,7 @@ export default function ProfilePage() {
   const navigating = useRef(false)
   const [avatarError, setAvatarError] = useState(false)
   const [showLevels, setShowLevels] = useState(false)
+  const [showInfo, setShowInfo] = useState(false)
   const [showDocs, setShowDocs] = useState(false)
 
   async function handleStatClick(to: string) {
@@ -359,10 +466,27 @@ export default function ProfilePage() {
       </div>
 
       {/* ── Лояльность ── */}
-      <LoyaltyCard profile={profile} levelsOpen={showLevels} onToggleLevels={() => setShowLevels(v => !v)} />
-      {showLevels && (
-        <LevelsTable levels={loyaltyLevels} currentIndex={profile.loyalty_level_index} />
-      )}
+      <LoyaltyCard
+        profile={profile}
+        levelsOpen={showLevels}
+        onToggleLevels={() => { haptic.select(); setShowLevels(v => !v) }}
+        onInfo={() => { haptic.impact('light'); setShowInfo(true) }}
+      />
+      <AnimatePresence initial={false}>
+        {showLevels && (
+          <motion.div
+            key="levels"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
+            style={{ overflow: 'hidden' }}
+          >
+            <LevelsTable levels={loyaltyLevels} currentIndex={profile.loyalty_level_index} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <LoyaltyInfoSheet open={showInfo} onClose={() => setShowInfo(false)} profile={profile} />
 
       {/* ── Статистика ── */}
       <div className="grid grid-cols-3 gap-2">

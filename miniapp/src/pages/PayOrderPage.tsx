@@ -10,6 +10,7 @@ import { ordersApi, profileApi } from '@/api'
 import { fmtPrice } from '@/utils/format'
 import { useTelegram } from '@/hooks/useTelegram'
 import { PAY_SOURCE } from '@/config/appTarget'
+import BalanceSplitToggle, { splitPayment } from '@/components/ui/BalanceSplit'
 
 const PAYMENT_METHODS = [
   { id: 'balance', label: 'Баланс бота', icon: <Wallet size={20} />, description: 'Мгновенно' },
@@ -27,6 +28,7 @@ export default function PayOrderPage() {
 
   const [method, setMethod] = useState('balance')
   const [paying, setPaying] = useState(false)
+  const [useBalance, setUseBalance] = useState(true)
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['order', orderId],
@@ -42,7 +44,11 @@ export default function PayOrderPage() {
 
   const group = (m: string): QuoteKey =>
     m === 'card' ? 'card' : m === 'sbp' ? 'sbp' : m === 'crypto' ? 'crypto' : 'balance'
-  const payTotal = quote ? quote[group(method)] : Number(order?.total_amount ?? 0)
+  const methodTotal = quote ? quote[group(method)] : Number(order?.total_amount ?? 0)
+  // Доплата: часть с баланса, остаток выбранным способом
+  const balanceNum = Number(profile?.balance ?? 0)
+  const split = splitPayment(balanceNum, Number(quote?.balance ?? order?.total_amount ?? 0), methodTotal, useBalance && method !== 'balance')
+  const payTotal = method === 'balance' ? methodTotal : split.rest
   const insufficient = method === 'balance' && profile && quote && Number(profile.balance) < Number(quote.balance)
 
   if (isLoading) return <p style={{ textAlign: 'center', padding: 40, color: 'var(--hint)' }}>Загрузка…</p>
@@ -71,7 +77,7 @@ export default function PayOrderPage() {
     setPaying(true)
     haptic.impact('medium')
     try {
-      const payment = await ordersApi.pay(order.id, { payment_method: method, source: PAY_SOURCE })
+      const payment = await ordersApi.pay(order.id, { payment_method: method, source: PAY_SOURCE, use_balance: split.hold > 0 })
       if (payment.success) {
         haptic.success()
         navigate(`/chat?order_id=${order.id}`, { replace: true })
@@ -137,6 +143,18 @@ export default function PayOrderPage() {
           )
         })}
       </div>
+
+      {method !== 'balance' && split.can && (
+        <div style={{ marginBottom: 16 }}>
+          <BalanceSplitToggle
+            balance={balanceNum}
+            rest={split.rest}
+            methodLabel={PAYMENT_METHODS.find(m => m.id === method)?.label ?? ''}
+            checked={useBalance}
+            onChange={setUseBalance}
+          />
+        </div>
+      )}
 
       {method === 'crypto' && (
         <p style={{ fontSize: 11, color: 'var(--hint)', textAlign: 'center', marginBottom: 16 }}>

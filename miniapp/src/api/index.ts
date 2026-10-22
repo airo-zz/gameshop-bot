@@ -301,7 +301,7 @@ export const ordersApi = {
       `/orders/${orderId}/pay-quote`,
     ).then(r => r.data),
 
-  pay: (orderId: string, body?: { payment_method?: string; source?: 'web' | 'miniapp' }) =>
+  pay: (orderId: string, body?: { payment_method?: string; source?: 'web' | 'miniapp'; use_balance?: boolean }) =>
     apiClient.post<{
       payment_id: string
       method: string

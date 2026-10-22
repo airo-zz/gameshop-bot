@@ -41,7 +41,7 @@
 
   /* ── Шрифты ──────────────────────────────────────────────────────── */
   --font-body:    'Onest Variable', system-ui, sans-serif;
-  --font-display: 'Unbounded Variable', 'Onest Variable', system-ui, sans-serif;
+  --font-display: 'Onest Variable', system-ui, sans-serif;
 
   /* ── Совместимость со старыми именами ────────────────────────────── */
   --glass-bg:     #15171C;

@@ -220,6 +220,7 @@ class PaymentService:
         user: User,
         method_value: str = "card",
         source: str = "miniapp",
+        use_balance: bool = False,
     ) -> dict:
         """
         Создаёт транзакцию в Platega (POST /transaction/process) и возвращает
@@ -240,7 +241,15 @@ class PaymentService:
         # В Platega уходит БАЗОВАЯ цена магазина (subtotal − скидка), БЕЗ нашей
         # наценки метода: комиссию за способ Platega добавляет клиенту сама.
         # Иначе комиссия бралась бы дважды (наша наценка + комиссия Platega).
-        base_amount = order.subtotal - order.discount_amount
+        # Доплата: при use_balance часть суммы списывается с баланса (холд),
+        # в Platega уходит только остаток.
+        if use_balance:
+            await self.order_svc.hold_balance(order, user)
+        else:
+            await self.order_svc.release_balance_hold(order, "оплата без баланса")
+        base_amount = order.subtotal - order.discount_amount - self.order_svc.balance_hold(order)
+        if base_amount <= 0:
+            raise ValueError("Баланса хватает на весь заказ — выберите оплату балансом")
         payment.amount = base_amount
 
         return_url, failed_url = _return_urls(source, f"/orders/{order.id}", "success=1", "")
@@ -459,6 +468,12 @@ class PaymentService:
 
         elif status in ("CANCELED", "CHARGEBACKED"):
             payment.status = PaymentStatus.cancelled
+            # Платёж не прошёл — возвращаем часть, списанную с баланса (если была).
+            order = (await self.db.execute(
+                select(Order).where(Order.id == payment.order_id).with_for_update()
+            )).scalar_one_or_none()
+            if order and order.status in (OrderStatus.new, OrderStatus.pending_payment):
+                await self.order_svc.release_balance_hold(order, "платёж отменён")
 
         return True
 
