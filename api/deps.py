@@ -266,3 +266,77 @@ async def get_optional_user(
 
 
 OptionalUser = Annotated[User | None, Depends(get_optional_user)]
+
+
+# ── Гостевой чат сайта и объединение аккаунтов ───────────────────────────────
+
+GUEST_TOKEN_DAYS = 90
+MERGE_TICKET_MINUTES = 10
+
+
+def create_guest_token(telegram_id: int) -> str:
+    """Токен гостя: даёт доступ только к чату (см. get_chat_user)."""
+    expire = datetime.now(timezone.utc) + timedelta(days=GUEST_TOKEN_DAYS)
+    payload = {"sub": str(telegram_id), "exp": expire, "type": "guest"}
+    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def guest_telegram_id(token: str | None) -> int | None:
+    """telegram_id гостя из его токена; None — токена нет или он невалиден."""
+    if not token:
+        return None
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+    except PyJWTError:
+        return None
+    if payload.get("type") != "guest":
+        return None
+    return int(payload["sub"])
+
+
+def create_merge_ticket(current_id, other_id, verified_email: str | None) -> str:
+    """
+    Одобрение объединения: выдаётся после того, как пользователь подтвердил
+    второй способ входа (код из письма / подпись Telegram). Живёт 10 минут.
+    """
+    expire = datetime.now(timezone.utc) + timedelta(minutes=MERGE_TICKET_MINUTES)
+    payload = {
+        "type": "merge", "cur": str(current_id), "oth": str(other_id),
+        "em": verified_email, "exp": expire,
+    }
+    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def decode_merge_ticket(ticket: str) -> dict:
+    payload = decode_token(ticket)
+    if payload.get("type") != "merge":
+        raise HTTPException(status_code=400, detail="Неверный запрос на объединение")
+    return payload
+
+
+async def get_chat_user(
+    db: DbSession,
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None, Depends(security)
+    ] = None,
+    x_telegram_init_data: Annotated[str | None, Header()] = None,
+) -> User:
+    """Пользователь чата: обычная авторизация или токен гостя сайта."""
+    if credentials and credentials.credentials:
+        payload = decode_token(credentials.credentials)
+        if payload.get("type") == "guest":
+            result = await db.execute(
+                select(User).where(
+                    User.telegram_id == int(payload["sub"]), User.is_guest.is_(True)
+                )
+            )
+            user = result.scalar_one_or_none()
+            if not user:
+                raise HTTPException(status_code=401, detail="Гостевой чат не найден")
+            if user.is_blocked:
+                raise HTTPException(status_code=403, detail="Аккаунт заблокирован")
+            return user
+    return await get_current_user(db, credentials, x_telegram_init_data)
+
+
+ChatUser = Annotated[User, Depends(get_chat_user)]

@@ -22,7 +22,7 @@ import {
   UsersIcon, WalletIcon, WarningCircleIcon, WifiSlashIcon, XCircleIcon, XIcon,
 } from '@phosphor-icons/react'
 import {
-  ArrowSquareOutIcon, BellIcon, ChatCenteredIcon, CloudArrowUpIcon, EnvelopeSimpleIcon, CurrencyDollarIcon, FloppyDiskIcon, FolderOpenIcon, ImageBrokenIcon, ImageIcon, MinusCircleIcon, PencilSimpleIcon, PlusCircleIcon, PushPinIcon, ShieldSlashIcon, ShieldWarningIcon, ToggleLeftIcon, ToggleRightIcon, UploadSimpleIcon, UserCheckIcon, UserIcon, UserMinusIcon, WarningIcon,
+  ArrowSquareOutIcon, ArrowsInSimpleIcon, ArrowsOutSimpleIcon, BellIcon, ChatCenteredIcon, CloudArrowUpIcon, EnvelopeSimpleIcon, CurrencyDollarIcon, FloppyDiskIcon, FolderOpenIcon, ImageBrokenIcon, ImageIcon, MinusCircleIcon, PencilSimpleIcon, PlusCircleIcon, PushPinIcon, ShieldSlashIcon, ShieldWarningIcon, ToggleLeftIcon, ToggleRightIcon, UploadSimpleIcon, UserCheckIcon, UserIcon, UserMinusIcon, WarningIcon,
 } from '@phosphor-icons/react'
 
 export interface IconProps {
@@ -117,6 +117,8 @@ export const Image = wrap(ImageIcon)
 export const ImageOff = wrap(ImageBrokenIcon)
 export const MessageSquare = wrap(ChatCenteredIcon)
 export const Mail = wrap(EnvelopeSimpleIcon)
+export const Maximize2 = wrap(ArrowsOutSimpleIcon)
+export const Minimize2 = wrap(ArrowsInSimpleIcon)
 export const MinusCircle = wrap(MinusCircleIcon)
 export const Pencil = wrap(PencilSimpleIcon)
 export const PercentSquare = wrap(PercentIcon)

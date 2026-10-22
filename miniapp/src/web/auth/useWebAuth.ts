@@ -34,10 +34,12 @@ export function useWebAuth() {
     qc.setQueryData(PROFILE_KEY, profile)
   }
 
-  async function loginWithEmail(email: string, code: string): Promise<void> {
-    await authenticateWithEmail(email, code)
+  /** Возвращает true, если аккаунт создан только что. */
+  async function loginWithEmail(email: string, code: string): Promise<boolean> {
+    const isNew = await authenticateWithEmail(email, code)
     const profile = await profileApi.get()
     qc.setQueryData(PROFILE_KEY, profile)
+    return isNew
   }
 
   /** Перечитать профиль (после привязки почты/Telegram). */

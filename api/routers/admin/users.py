@@ -44,6 +44,7 @@ async def list_users(
     base_q = (
         select(User)
         .options(joinedload(User.loyalty_level))
+        .where(User.is_guest.is_(False))  # гости чата сайта — не покупатели
         .order_by(User.created_at.desc())
     )
 

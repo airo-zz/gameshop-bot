@@ -7,10 +7,10 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { Menu, X, LogOut, ShoppingCart, Wallet, MessageCircle, User } from '@/components/ui/icons'
-import { useQuery } from '@tanstack/react-query'
+import { Menu, X, LogOut, ShoppingCart, Wallet, User } from '@/components/ui/icons'
 import { SHOP_NAME, MINIAPP_URL, SITE_URL } from '@/config/appTarget'
-import { chatApi } from '@/api'
+import ChatWidget from '@/web/chat/ChatWidget'
+import { openChat } from '@/web/chat/chatStore'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { useWebCart } from '@/web/cart/useWebCart'
 import { money } from '@/web/format'
@@ -93,38 +93,6 @@ function CartButton({ onNavigate }: { onNavigate?: () => void }) {
   )
 }
 
-/** Чат с оператором; бейдж — непрочитанные ответы (опрос раз в 30 с). */
-function ChatButton({ onNavigate }: { onNavigate?: () => void }) {
-  const { isAuthenticated } = useWebAuth()
-  const { data: unread = 0 } = useQuery({
-    queryKey: ['web', 'chat-unread'],
-    queryFn: chatApi.getUnreadCount,
-    enabled: isAuthenticated,
-    refetchInterval: 30_000,
-    staleTime: 15_000,
-  })
-  if (!isAuthenticated) return null
-  return (
-    <Link
-      to="/chat"
-      onClick={onNavigate}
-      className="relative w-10 h-10 flex items-center justify-center rounded-xl text-[var(--text-2)] hover:text-[var(--text)] hover:bg-[var(--bg2)] transition-colors"
-      aria-label="Чат с оператором"
-      title="Чат с оператором"
-    >
-      <MessageCircle size={21} />
-      {unread > 0 && (
-        <span
-          className="absolute top-1 right-1 min-w-[16px] h-4 px-1 rounded-full text-[10px] font-semibold text-white flex items-center justify-center"
-          style={{ background: 'var(--accent)', boxShadow: '0 0 0 2px var(--bg)' }}
-        >
-          {unread}
-        </span>
-      )}
-    </Link>
-  )
-}
-
 function AuthArea({ onNavigate }: { onNavigate?: () => void }) {
   const { user, isAuthenticated, logout, ready } = useWebAuth()
   if (!ready) return null
@@ -196,13 +164,11 @@ export default function WebLayout() {
 
           <div className="hidden md:flex items-center gap-2 ml-auto">
             <GameSearch className="hidden lg:block w-52 xl:w-60" />
-            <ChatButton />
             <CartButton />
             <AuthArea />
           </div>
 
           <div className="md:hidden flex items-center gap-1 ml-auto">
-            <ChatButton />
             <CartButton />
             <button
               className="w-10 h-10 flex items-center justify-center rounded-xl text-[var(--text-2)] hover:bg-[var(--bg2)] transition-colors"
@@ -232,7 +198,6 @@ export default function WebLayout() {
                   <>
                     <Link to="/profile" className="text-sm text-[var(--text-2)]">Профиль</Link>
                     <Link to="/orders" className="text-sm text-[var(--text-2)]">Мои заказы</Link>
-                    <Link to="/chat" className="text-sm text-[var(--text-2)]">Чат с оператором</Link>
                   </>
                 )}
                 <AuthArea onNavigate={() => setMenuOpen(false)} />
@@ -252,6 +217,8 @@ export default function WebLayout() {
       >
         <Outlet />
       </motion.main>
+
+      <ChatWidget />
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <footer className="border-t border-[var(--border)] mt-24">
@@ -290,9 +257,9 @@ export default function WebLayout() {
             <p className="text-sm font-medium text-[var(--text)] mb-3">Связь</p>
             <ul className="space-y-2.5">
               <li>
-                <Link to="/chat" className="text-sm text-[var(--text-2)] hover:text-[var(--text)] transition-colors">
+                <button type="button" onClick={() => openChat()} className="text-sm text-[var(--text-2)] hover:text-[var(--text)] transition-colors">
                   Чат с оператором
-                </Link>
+                </button>
               </li>
               <li>
                 <a href={MINIAPP_URL} target="_blank" rel="noopener noreferrer" className="text-sm text-[var(--text-2)] hover:text-[var(--text)] transition-colors">

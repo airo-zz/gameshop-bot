@@ -14,6 +14,7 @@ import { useWebAuth } from '@/web/auth/useWebAuth'
 import { getAuthMethods, requestEmailCode, type TelegramWidgetUser } from '@/api/client'
 import { SHOP_NAME } from '@/config/appTarget'
 import logoMark from '@/assets/logo-mark.png'
+import { openChat } from '@/web/chat/chatStore'
 
 export default function WebLoginPage() {
   const { login, loginWithEmail, isAuthenticated, ready } = useWebAuth()
@@ -43,8 +44,12 @@ export default function WebLoginPage() {
   }
 
   const handleEmail = async (email: string, code: string) => {
-    await loginWithEmail(email, code)
-    toast.success('Вы вошли')
+    const isNew = await loginWithEmail(email, code)
+    if (isNew) {
+      toast.success('Аккаунт создан. Покупали в нашем Telegram-боте? Привяжите Telegram в профиле — заказы и баланс объединятся.', { duration: 7000 })
+    } else {
+      toast.success('Вы вошли')
+    }
     navigate(redirectTo, { replace: true })
   }
 
@@ -73,6 +78,13 @@ export default function WebLoginPage() {
         <div className="flex justify-center">
           <TelegramLoginButton onAuth={handleTelegram} />
         </div>
+
+        {emailEnabled && (
+          <p className="text-xs text-[var(--hint)] mt-5 leading-relaxed">
+            Нет доступа к почте? Войдите через Telegram, если он привязан к аккаунту, или{' '}
+            <button type="button" onClick={() => openChat()} className="underline hover:text-[var(--text-2)]">напишите в чат</button>.
+          </p>
+        )}
 
         <p className="text-xs text-[var(--hint)] mt-6">
           Входя на сайт, вы соглашаетесь с{' '}

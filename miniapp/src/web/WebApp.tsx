@@ -11,6 +11,7 @@ import { Toaster } from 'react-hot-toast'
 import { ROUTER_BASENAME } from '@/config/appTarget'
 import WebLayout from './WebLayout'
 import RequireWebAuth from './auth/RequireWebAuth'
+import ChatRoute from './chat/ChatRoute'
 import './web.css'
 
 const WebHomePage = lazy(() => import('./pages/WebHomePage'))
@@ -25,7 +26,6 @@ const WebOrderPage = lazy(() => import('./pages/WebOrderPage'))
 const WebOrdersPage = lazy(() => import('./pages/WebOrdersPage'))
 const WebBalancePage = lazy(() => import('./pages/WebBalancePage'))
 const WebProfilePage = lazy(() => import('./pages/WebProfilePage'))
-const WebChatPage = lazy(() => import('./pages/WebChatPage'))
 
 export default function WebApp() {
   return (
@@ -58,7 +58,7 @@ export default function WebApp() {
           <Route path="orders" element={<RequireWebAuth><Suspense fallback={null}><WebOrdersPage /></Suspense></RequireWebAuth>} />
           <Route path="orders/:id" element={<RequireWebAuth><Suspense fallback={null}><WebOrderPage /></Suspense></RequireWebAuth>} />
           <Route path="balance" element={<RequireWebAuth><Suspense fallback={null}><WebBalancePage /></Suspense></RequireWebAuth>} />
-          <Route path="chat" element={<RequireWebAuth><Suspense fallback={null}><WebChatPage /></Suspense></RequireWebAuth>} />
+          <Route path="chat" element={<ChatRoute />} />
           <Route path="profile" element={<RequireWebAuth><Suspense fallback={null}><WebProfilePage /></Suspense></RequireWebAuth>} />
           <Route path="referrals" element={<Navigate to="/profile" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -15,7 +15,7 @@ import axios, {
   AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig
 } from 'axios'
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1'
+export const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1'
 
 // ── Хранилище токенов ────────────────────────────────────────────────────────
 // В MiniApp — только в памяти. В браузере — дополнительно в localStorage.
@@ -146,8 +146,26 @@ export interface TelegramWidgetUser {
 }
 
 export async function authenticateWithTelegramWidget(user: TelegramWidgetUser): Promise<void> {
-  const res = await axios.post(`${BASE_URL}/payments/auth/telegram-widget`, user)
+  const res = await axios.post(`${BASE_URL}/payments/auth/telegram-widget`, { ...user, guest_token: getGuestToken() })
   setTokens(res.data.access_token, res.data.refresh_token)
+  clearGuestToken()
+}
+
+// ── Гостевой чат сайта (без входа) ──────────────────────────────────────────
+// Токен гостя даёт доступ только к чату. При входе передаётся на сервер —
+// переписка гостя переходит в аккаунт, после чего токен удаляется.
+const GUEST_KEY = 'guest_chat_token'
+
+export function getGuestToken(): string | null {
+  try { return localStorage.getItem(GUEST_KEY) } catch { return null }
+}
+
+export function setGuestToken(token: string): void {
+  try { localStorage.setItem(GUEST_KEY, token) } catch { /* приватный режим */ }
+}
+
+export function clearGuestToken(): void {
+  try { localStorage.removeItem(GUEST_KEY) } catch { /* приватный режим */ }
 }
 
 // ── Вход на сайте по коду из письма ──────────────────────────────────────────
@@ -155,9 +173,12 @@ export async function requestEmailCode(email: string): Promise<void> {
   await axios.post(`${BASE_URL}/payments/auth/email/request`, { email })
 }
 
-export async function authenticateWithEmail(email: string, code: string): Promise<void> {
-  const res = await axios.post(`${BASE_URL}/payments/auth/email/verify`, { email, code })
+/** Возвращает true, если аккаунт создан только что. */
+export async function authenticateWithEmail(email: string, code: string): Promise<boolean> {
+  const res = await axios.post(`${BASE_URL}/payments/auth/email/verify`, { email, code, guest_token: getGuestToken() })
   setTokens(res.data.access_token, res.data.refresh_token)
+  clearGuestToken()
+  return !!res.data.is_new
 }
 
 /** Способы входа на сайте (почта доступна, когда подключена отправка писем). */

@@ -6,12 +6,13 @@
  *   /request?type=missing_game|custom_order&game=<название>
  */
 import { useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { ImagePlus, X, Send } from '@/components/ui/icons'
 import { chatApi } from '@/api'
 import { compressImage } from '@/utils/image'
 import { usePageMeta } from '@/web/seo'
+import { openChat } from '@/web/chat/chatStore'
 
 const MAX_FILES = 10
 
@@ -42,7 +43,6 @@ export default function WebRequestPage() {
   const [text, setText] = useState(mode === 'missing_game' && gameName ? `${gameName} — ` : '')
   const [files, setFiles] = useState<File[]>([])
   const [sending, setSending] = useState(false)
-  const navigate = useNavigate()
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files ?? [])
@@ -72,7 +72,9 @@ export default function WebRequestPage() {
       const header = [copy.header, mode === 'custom_order' && gameName ? `(${gameName})` : '', '— с сайта'].filter(Boolean).join(' ')
       await chatApi.sendMessage(`${header}${trimmed ? `\n\n${trimmed}` : ''}`, urls)
       toast.success('Заявка отправлена — оператор ответит в чате')
-      navigate('/chat', { replace: true })
+      setText('')
+      setFiles([])
+      openChat()
     } catch (e: any) {
       toast.error(e?.response?.data?.detail ?? 'Не удалось отправить заявку — попробуйте ещё раз')
     } finally {

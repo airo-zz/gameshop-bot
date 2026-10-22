@@ -146,6 +146,8 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    # Вход по почте: аккаунт создан только что (сайт предложит привязать Telegram)
+    is_new: bool = False
 
 
 # ════════════════════════════════════════════════════════════════════════════

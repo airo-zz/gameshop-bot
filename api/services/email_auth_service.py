@@ -23,13 +23,13 @@ import secrets
 from datetime import datetime, timezone
 
 import redis.asyncio as aioredis
-from sqlalchemy import select, text, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from shared.config import settings
 from shared.mailer import code_email, send_email
-from shared.models import EMAIL_USER_ID_BASE, Chat, LoyaltyLevel, User
+from shared.models import Chat, LoyaltyLevel, User
 
 CODE_TTL = 600            # код действует 10 минут
 MAX_ATTEMPTS = 5          # попыток ввода на один код
@@ -128,13 +128,15 @@ async def _load_user(db: AsyncSession, *where) -> User | None:
     ).scalar_one_or_none()
 
 
-async def get_or_create_email_user(db: AsyncSession, email: str) -> User:
+async def get_or_create_email_user(db: AsyncSession, email: str) -> tuple[User, bool]:
+    """(пользователь, создан_сейчас)."""
+    from api.services.account_service import new_service_id
+
     user = await _load_user(db, User.email == email)
     if user:
         user.last_active_at = datetime.now(timezone.utc)
-        return user
+        return user, False
 
-    seq = (await db.execute(text("SELECT nextval('email_user_id_seq')"))).scalar_one()
     start_level = (
         await db.execute(
             select(LoyaltyLevel)
@@ -144,7 +146,7 @@ async def get_or_create_email_user(db: AsyncSession, email: str) -> User:
         )
     ).scalar_one_or_none()
     user = User(
-        telegram_id=-(EMAIL_USER_ID_BASE + int(seq)),
+        telegram_id=await new_service_id(db),
         email=email,
         first_name=email.split("@", 1)[0][:128],
         loyalty_level_id=start_level.id if start_level else None,
@@ -152,36 +154,39 @@ async def get_or_create_email_user(db: AsyncSession, email: str) -> User:
     )
     db.add(user)
     await db.flush()
-    return await _load_user(db, User.id == user.id)  # type: ignore[return-value]
+    return await _load_user(db, User.id == user.id), True  # type: ignore[return-value]
 
 
-async def attach_email(db: AsyncSession, user: User, email: str) -> None:
-    """Привязывает подтверждённую почту к текущему аккаунту."""
+async def attach_email(db: AsyncSession, user: User, email: str) -> User | None:
+    """
+    Привязывает (или меняет) подтверждённую почту. Если она уже у другого
+    аккаунта — ничего не меняет и возвращает его (предложим объединить).
+    """
     other = await _load_user(db, User.email == email)
     if other and other.id != user.id:
-        raise EmailAuthError(
-            "Эта почта уже используется другим аккаунтом", 409,
-        )
+        return other
     user.email = email
+    return None
 
 
-async def link_telegram(db: AsyncSession, user: User, tg: dict) -> None:
+async def link_telegram(db: AsyncSession, user: User, tg: dict) -> User | None:
     """
-    Привязывает Telegram (данные уже проверенного Login Widget) к аккаунту,
-    созданному по почте: служебный ID заменяется настоящим, чат переезжает.
+    Привязывает Telegram (данные уже проверенного Login Widget) к аккаунту без
+    него: служебный ID заменяется настоящим, чат переезжает. Если этот
+    Telegram уже есть в магазине — возвращает тот аккаунт (предложим объединить).
     """
     if user.has_telegram:
         raise EmailAuthError("Telegram уже привязан к аккаунту", 409)
     new_id = int(tg["id"])
-    if await _load_user(db, User.telegram_id == new_id):
-        raise EmailAuthError(
-            "Этот Telegram уже зарегистрирован в магазине. Войдите через Telegram "
-            "и привяжите почту в профиле", 409,
-        )
+    other = await _load_user(db, User.telegram_id == new_id)
+    if other:
+        return other
     old_id = user.telegram_id
     await db.execute(update(Chat).where(Chat.user_id == old_id).values(user_id=new_id))
     user.telegram_id = new_id
+    user.is_guest = False
     user.username = tg.get("username") or user.username
     if tg.get("first_name"):
         user.first_name = tg["first_name"]
     user.last_name = tg.get("last_name") or user.last_name
+    return None

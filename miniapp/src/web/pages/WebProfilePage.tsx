@@ -9,18 +9,17 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Wallet, Package, Copy, MessageCircle, LogOut, ChevronRight, CheckCircle, Mail, Send } from '@/components/ui/icons'
+import { Wallet, Package, Copy, MessageCircle, LogOut, ChevronRight, CheckCircle } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { profileApi } from '@/api'
-import { getAuthMethods, setTokens, type TelegramWidgetUser } from '@/api/client'
 import { BOT_USERNAME } from '@/config/appTarget'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { money } from '@/web/format'
 import Avatar from '@/web/components/Avatar'
 import { LevelsTable, LoyaltyCard, LoyaltyInfoSheet, rub } from '@/components/loyalty/Loyalty'
 import { Reveal } from '@/web/components/Motion'
-import EmailCodeForm from '@/web/components/EmailCodeForm'
-import TelegramLoginButton from '@/web/components/TelegramLoginButton'
+import SignInMethods from '@/web/components/SignInMethods'
+import { openChat } from '@/web/chat/chatStore'
 
 export default function WebProfilePage() {
   const { user, logout } = useWebAuth()
@@ -112,14 +111,14 @@ export default function WebProfilePage() {
                 </span>
                 <ChevronRight size={18} className="text-[var(--hint)]" />
               </Link>
-              <Link to="/chat" className="flex items-center gap-3 px-5 py-4 border-t border-[var(--border)] hover:bg-[var(--bg3)] transition-colors">
+              <button type="button" onClick={() => openChat()} className="w-full text-left flex items-center gap-3 px-5 py-4 border-t border-[var(--border)] hover:bg-[var(--bg3)] transition-colors">
                 <MessageCircle size={22} className="text-[var(--hint)]" />
                 <span className="flex-1">
                   <span className="block text-sm font-medium text-[var(--text)]">Чат с оператором</span>
                   <span className="block text-xs text-[var(--hint)] mt-0.5">Вопросы по заказу и оплате</span>
                 </span>
                 <ChevronRight size={18} className="text-[var(--hint)]" />
-              </Link>
+              </button>
             </div>
           </Reveal>
 
@@ -196,83 +195,6 @@ export default function WebProfilePage() {
       </button>
 
       <LoyaltyInfoSheet open={info} onClose={() => setInfo(false)} levels={user.loyalty_levels} />
-    </div>
-  )
-}
-
-/** Способы входа: почта (вход по коду) и Telegram — показываем и даём привязать недостающий. */
-function SignInMethods() {
-  const { user, refresh } = useWebAuth()
-  const [open, setOpen] = useState<'email' | 'telegram' | null>(null)
-  const { data: methods } = useQuery({
-    queryKey: ['web', 'auth-methods'],
-    queryFn: getAuthMethods,
-    staleTime: 10 * 60_000,
-  })
-  if (!user) return null
-  const canEmail = !!methods?.email
-
-  const linkEmailDone = async (email: string, code: string) => {
-    await profileApi.verifyEmailLink(email, code)
-    await refresh()
-    setOpen(null)
-    toast.success('Почта привязана')
-  }
-
-  const linkTelegram = async (tg: TelegramWidgetUser) => {
-    try {
-      const t = await profileApi.linkTelegram(tg)
-      setTokens(t.access_token, t.refresh_token)
-      await refresh()
-      setOpen(null)
-      toast.success('Telegram привязан')
-    } catch (e) {
-      const detail = (e as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
-      toast.error(typeof detail === 'string' ? detail : 'Не удалось привязать Telegram')
-    }
-  }
-
-  const row = 'flex items-center gap-3 px-5 py-4'
-  return (
-    <div className="rounded-2xl bg-[var(--bg2)] overflow-hidden">
-      <p className="px-5 pt-4 text-xs text-[var(--hint)]">Способы входа</p>
-
-      <div className={row}>
-        <Mail size={22} className="text-[var(--hint)]" />
-        <span className="flex-1 min-w-0">
-          <span className="block text-sm font-medium text-[var(--text)]">Почта</span>
-          <span className="block text-xs text-[var(--hint)] mt-0.5 truncate">{user.email ?? 'Не привязана'}</span>
-        </span>
-        {!user.email && canEmail && open !== 'email' && (
-          <button onClick={() => setOpen('email')} className="text-sm font-medium text-[var(--link)] hover:text-[var(--text)]">Привязать</button>
-        )}
-      </div>
-      {open === 'email' && (
-        <div className="px-5 pb-5">
-          <EmailCodeForm onRequest={profileApi.requestEmailLink} onVerify={linkEmailDone} submitLabel="Привязать почту" />
-        </div>
-      )}
-
-      <div className={row + ' border-t border-[var(--border)]'}>
-        <Send size={22} className="text-[var(--hint)]" />
-        <span className="flex-1 min-w-0">
-          <span className="block text-sm font-medium text-[var(--text)]">Telegram</span>
-          <span className="block text-xs text-[var(--hint)] mt-0.5 truncate">
-            {user.has_telegram ? (user.username ? `@${user.username}` : 'Подключён') : 'Не привязан'}
-          </span>
-        </span>
-        {!user.has_telegram && open !== 'telegram' && (
-          <button onClick={() => setOpen('telegram')} className="text-sm font-medium text-[var(--link)] hover:text-[var(--text)]">Привязать</button>
-        )}
-      </div>
-      {open === 'telegram' && (
-        <div className="px-5 pb-5">
-          <p className="text-xs text-[var(--hint)] mb-3">
-            Заказы, баланс и кэшбэк станут общими с Telegram-ботом магазина.
-          </p>
-          <TelegramLoginButton onAuth={linkTelegram} size="medium" />
-        </div>
-      )}
     </div>
   )
 }

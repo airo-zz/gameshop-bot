@@ -353,6 +353,15 @@ export interface ReferralStats {
   earned_total: number
 }
 
+/** Результат привязки способа входа: привязан или нужен вопрос «Объединить?» */
+export interface LinkResult {
+  status: 'linked' | 'merge_required'
+  access_token?: string
+  refresh_token?: string
+  ticket?: string
+  other?: { name: string; email: string | null; has_telegram: boolean; orders_count: number; balance: number }
+}
+
 export const profileApi = {
   get: () =>
     apiClient.get<Profile>('/profile').then(r => r.data),
@@ -362,11 +371,20 @@ export const profileApi = {
     apiClient.post('/profile/email/request', { email }).then(() => undefined),
 
   verifyEmailLink: (email: string, code: string) =>
-    apiClient.post('/profile/email/verify', { email, code }).then(() => undefined),
+    apiClient.post<LinkResult>('/profile/email/verify', { email, code }).then(r => r.data),
 
-  /** Привязка Telegram к аккаунту по почте — возвращает новые токены */
+  /** Привязка Telegram к аккаунту без него */
   linkTelegram: (data: TelegramWidgetUser) =>
-    apiClient.post<{ access_token: string; refresh_token: string }>('/profile/link-telegram', data).then(r => r.data),
+    apiClient.post<LinkResult>('/profile/link-telegram', data).then(r => r.data),
+
+  /** Объединить с аккаунтом из ticket (после merge_required) — новые токены */
+  merge: (ticket: string) =>
+    apiClient.post<{ access_token: string; refresh_token: string }>('/profile/merge', { ticket }).then(r => r.data),
+
+  unlinkEmail: () => apiClient.delete('/profile/email').then(() => undefined),
+
+  unlinkTelegram: () =>
+    apiClient.delete<{ access_token: string; refresh_token: string }>('/profile/telegram').then(r => r.data),
 
   getBalanceHistory: () =>
     apiClient.get<BalanceTransaction[]>('/profile/balance-history').then(r => r.data),

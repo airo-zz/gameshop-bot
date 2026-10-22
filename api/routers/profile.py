@@ -5,7 +5,10 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import select, func
 
-from api.deps import CurrentUser, DbSession, create_access_token, create_refresh_token
+from api.deps import (
+    CurrentUser, DbSession, create_access_token, create_merge_ticket, create_refresh_token,
+    decode_merge_ticket,
+)
 from api.rate_limit import limiter
 from api.routers.payments import TelegramWidgetAuthIn, verify_widget_body
 from api.schemas.cart import ProfileOut, TokenResponse
@@ -176,32 +179,125 @@ async def link_email_request(request: Request, body: LinkEmailRequestIn, user: C
         raise HTTPException(e.status, e.message)
 
 
-@router.post("/email/verify", status_code=204)
+class LinkResult(BaseModel):
+    """
+    linked — способ входа привязан (токены — для текущего аккаунта);
+    merge_required — он у другого аккаунта: показать other и спросить
+    «Объединить?», затем POST /profile/merge с ticket.
+    """
+    status: str
+    access_token: str | None = None
+    refresh_token: str | None = None
+    ticket: str | None = None
+    other: dict | None = None
+
+
+def _linked(user: User) -> LinkResult:
+    return LinkResult(
+        status="linked",
+        access_token=create_access_token(user.telegram_id),
+        refresh_token=create_refresh_token(user.telegram_id),
+    )
+
+
+def _merge_offer(user: User, other: User, verified_email: str | None) -> LinkResult:
+    from api.services.account_service import AccountError, merge_summary, pick_target
+
+    if other.is_blocked:
+        raise HTTPException(403, "Этот способ входа принадлежит заблокированному аккаунту")
+    try:
+        pick_target(user, other)  # проверяем, что объединение возможно
+    except AccountError as e:
+        raise HTTPException(e.status, e.message)
+    return LinkResult(
+        status="merge_required",
+        ticket=create_merge_ticket(user.id, other.id, verified_email),
+        other=merge_summary(other),
+    )
+
+
+@router.post("/email/verify", response_model=LinkResult)
 @limiter.limit("10/minute")
 async def link_email_verify(request: Request, body: LinkEmailVerifyIn, db: DbSession, user: CurrentUser):
+    """Привязка или смена почты. Если почта у другого аккаунта — предложим объединить."""
     from api.services import email_auth_service as eas
 
     try:
         email = eas.normalize_email(body.email)
         await eas.check_code(email, body.code, "link")
-        await eas.attach_email(db, user, email)
+        other = await eas.attach_email(db, user, email)
     except eas.EmailAuthError as e:
         raise HTTPException(e.status, e.message)
+    if other:
+        return _merge_offer(user, other, email)
+    return _linked(user)
 
 
-@router.post("/link-telegram", response_model=TokenResponse)
+@router.post("/link-telegram", response_model=LinkResult)
 @limiter.limit("5/minute")
 async def link_telegram(request: Request, body: TelegramWidgetAuthIn, db: DbSession, user: CurrentUser):
     """
-    Привязка Telegram к аккаунту, созданному по почте. ID пользователя в токенах
-    меняется на настоящий Telegram ID — возвращаем новые токены.
+    Привязка Telegram к аккаунту без него. ID пользователя в токенах меняется на
+    настоящий Telegram ID — возвращаем новые токены. Если этот Telegram уже
+    есть в магазине — предложим объединить.
     """
     from api.services import email_auth_service as eas
 
     verify_widget_body(body)
     try:
-        await eas.link_telegram(db, user, body.model_dump())
+        other = await eas.link_telegram(db, user, body.model_dump())
     except eas.EmailAuthError as e:
+        raise HTTPException(e.status, e.message)
+    if other:
+        return _merge_offer(user, other, None)
+    return _linked(user)
+
+
+class MergeIn(BaseModel):
+    ticket: str = Field(..., max_length=2048)
+
+
+@router.post("/merge", response_model=TokenResponse)
+@limiter.limit("5/minute")
+async def merge_accounts(request: Request, body: MergeIn, db: DbSession, user: CurrentUser):
+    """Объединяет текущий аккаунт с подтверждённым (ticket из link-эндпоинтов)."""
+    import uuid as _uuid
+    from api.services.account_service import AccountError, merge_users
+
+    t = decode_merge_ticket(body.ticket)
+    if t.get("cur") != str(user.id):
+        raise HTTPException(403, "Запрос на объединение выдан для другого аккаунта")
+    other = (await db.execute(select(User).where(User.id == _uuid.UUID(t["oth"])))).scalar_one_or_none()
+    if not other:
+        raise HTTPException(404, "Аккаунт для объединения не найден")
+    try:
+        final = await merge_users(db, user, other, verified_email=t.get("em"))
+    except AccountError as e:
+        raise HTTPException(e.status, e.message)
+    return TokenResponse(
+        access_token=create_access_token(final.telegram_id),
+        refresh_token=create_refresh_token(final.telegram_id),
+    )
+
+
+@router.delete("/email", status_code=204)
+async def unlink_email(db: DbSession, user: CurrentUser):
+    from api.services.account_service import AccountError, unlink_email as _unlink
+
+    try:
+        await _unlink(db, user)
+    except AccountError as e:
+        raise HTTPException(e.status, e.message)
+
+
+@router.delete("/telegram", response_model=TokenResponse)
+async def unlink_telegram(db: DbSession, user: CurrentUser):
+    """ID в токенах меняется на служебный — возвращаем новые токены."""
+    from api.services.account_service import AccountError, unlink_telegram as _unlink
+
+    try:
+        await _unlink(db, user)
+    except AccountError as e:
         raise HTTPException(e.status, e.message)
     return TokenResponse(
         access_token=create_access_token(user.telegram_id),

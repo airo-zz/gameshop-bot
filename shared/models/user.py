@@ -91,6 +91,10 @@ class User(Base, UUIDMixin, TimestampMixin):
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # Почта (вход на сайте по коду). Хранится в нижнем регистре.
     email: Mapped[str | None] = mapped_column(String(254), nullable=True, unique=True, index=True)
+    # Аноним из гостевого чата сайта (до входа); при входе объединяется с аккаунтом
+    is_guest: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=sa.false()
+    )
     photo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     # Финансы

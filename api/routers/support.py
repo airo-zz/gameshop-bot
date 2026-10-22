@@ -11,7 +11,7 @@ from pathlib import Path
 import aiofiles
 from fastapi import APIRouter, HTTPException, Query, UploadFile, status
 
-from api.deps import CurrentUser, DbSession
+from api.deps import ChatUser, CurrentUser, DbSession
 from api.schemas.support import (
     CreateTicketRequest,
     ReplyTicketRequest,
@@ -33,7 +33,7 @@ MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
 @router.post("/upload")
-async def upload_attachment(file: UploadFile, user: CurrentUser) -> dict:
+async def upload_attachment(file: UploadFile, user: ChatUser) -> dict:
     """Загрузка вложения к тикету. Только изображения, макс 5 МБ."""
     content_type = (file.content_type or "").lower()
     ext = ALLOWED_TYPES.get(content_type)

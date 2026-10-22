@@ -43,6 +43,8 @@ class TelegramWidgetAuthIn(BaseModel):
     photo_url: str | None = None
     auth_date: int
     hash: str
+    # Токен гостевого чата сайта: переписка гостя переходит в аккаунт
+    guest_token: str | None = None
 
 
 def verify_widget_body(body: TelegramWidgetAuthIn) -> None:
@@ -93,6 +95,7 @@ async def auth_telegram_widget(
     )
     if user.is_blocked:
         raise HTTPException(status_code=403, detail="Аккаунт заблокирован")
+    await _absorb_guest(db, user, body.guest_token)
 
     return TokenResponse(
         access_token=create_access_token(user.telegram_id),
@@ -110,6 +113,23 @@ class EmailCodeRequestIn(BaseModel):
 class EmailCodeVerifyIn(BaseModel):
     email: str = Field(..., max_length=254)
     code: str = Field(..., max_length=12)
+    guest_token: str | None = None
+
+
+async def _absorb_guest(db, user: User, guest_token: str | None) -> None:
+    """Переписка гостевого чата переходит в аккаунт; сбой не мешает входу."""
+    from api.deps import guest_telegram_id
+    from api.services.account_service import absorb_guest
+
+    gid = guest_telegram_id(guest_token)
+    if gid is None:
+        return
+    try:
+        async with db.begin_nested():
+            await absorb_guest(db, user, gid)
+    except Exception as exc:  # переписка гостя не критична для входа
+        import logging
+        logging.getLogger(__name__).warning("absorb_guest failed user=%s: %s", user.id, exc)
 
 
 @router.get("/auth/methods")
@@ -142,12 +162,14 @@ async def auth_email_verify(request: Request, body: EmailCodeVerifyIn, db: DbSes
     except eas.EmailAuthError as e:
         raise HTTPException(e.status, e.message)
 
-    user = await eas.get_or_create_email_user(db, email)
+    user, is_new = await eas.get_or_create_email_user(db, email)
     if user.is_blocked:
         raise HTTPException(status_code=403, detail="Аккаунт заблокирован")
+    await _absorb_guest(db, user, body.guest_token)
     return TokenResponse(
         access_token=create_access_token(user.telegram_id),
         refresh_token=create_refresh_token(user.telegram_id),
+        is_new=is_new,
     )
 
 

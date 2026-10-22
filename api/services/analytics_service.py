@@ -200,7 +200,7 @@ class AnalyticsService:
     async def _get_users_stats(self) -> UsersStats:
         now = datetime.now(timezone.utc)
 
-        total_result = await self.db.execute(select(func.count(User.id)))
+        total_result = await self.db.execute(select(func.count(User.id)).where(User.is_guest.is_(False)))
         total = total_result.scalar_one()
 
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -208,7 +208,7 @@ class AnalyticsService:
         month_start = now - timedelta(days=30)
 
         async def count_since(col, since: datetime) -> int:
-            r = await self.db.execute(select(func.count(User.id)).where(col >= since))
+            r = await self.db.execute(select(func.count(User.id)).where(User.is_guest.is_(False)).where(col >= since))
             return r.scalar_one()
 
         today_new = await count_since(User.created_at, today_start)
@@ -217,7 +217,7 @@ class AnalyticsService:
         active_week = await count_since(User.last_active_at, week_start)
 
         buyers_result = await self.db.execute(
-            select(func.count(User.id)).where(User.orders_count > 0)
+            select(func.count(User.id)).where(User.is_guest.is_(False)).where(User.orders_count > 0)
         )
         with_orders = buyers_result.scalar_one()
 
@@ -307,7 +307,7 @@ class AnalyticsService:
                 )
             )
             users_result = await self.db.execute(
-                select(func.count(User.id)).where(
+                select(func.count(User.id)).where(User.is_guest.is_(False)).where(
                     User.created_at >= day_start,
                     User.created_at < day_end,
                 )
@@ -338,13 +338,13 @@ class AnalyticsService:
         """
         Конверсия = пользователи с хотя бы 1 заказом / всего пользователей.
         """
-        total_result = await self.db.execute(select(func.count(User.id)))
+        total_result = await self.db.execute(select(func.count(User.id)).where(User.is_guest.is_(False)))
         total = total_result.scalar_one()
         if total == 0:
             return 0.0
 
         buyers_result = await self.db.execute(
-            select(func.count(User.id)).where(User.orders_count > 0)
+            select(func.count(User.id)).where(User.is_guest.is_(False)).where(User.orders_count > 0)
         )
         buyers = buyers_result.scalar_one()
         return round(buyers / total * 100, 1)

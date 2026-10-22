@@ -11,6 +11,7 @@ import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { ordersApi } from '@/api'
 import { PAY_SOURCE } from '@/config/appTarget'
+import { openChat } from '@/web/chat/chatStore'
 import { money, orderStatus, isAwaitingPayment, apiError } from '@/web/format'
 
 export default function WebOrderPage() {
@@ -147,9 +148,13 @@ export default function WebOrderPage() {
 
       <div className="mt-6 flex items-center justify-between text-sm">
         <Link to="/orders" style={{ color: 'var(--link)' }}>← Мои заказы</Link>
-        <Link to={`/chat?order_id=${order.id}`} className="text-[var(--hint)] hover:text-[var(--text)] transition-colors">
+        <button
+          type="button"
+          onClick={() => openChat({ prefill: `Вопрос по заказу ${order.order_number}: ` })}
+          className="text-[var(--hint)] hover:text-[var(--text)] transition-colors"
+        >
           Написать оператору
-        </Link>
+        </button>
       </div>
     </div>
   )
