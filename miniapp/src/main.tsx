@@ -4,7 +4,6 @@ import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 import { isWeb } from '@/config/appTarget'
-import App from './App'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -46,24 +45,18 @@ if (!isWeb) {
   }
 }
 
-// Корневой компонент выбирается по цели сборки. Web-версия изолирована от
-// Telegram-инициализации (App.tsx), чтобы не влиять на /app.
-function Root() {
-  if (isWeb) {
-    const WebApp = React.lazy(() => import('@/web/WebApp'))
-    return (
-      <React.Suspense fallback={null}>
-        <WebApp />
-      </React.Suspense>
-    )
-  }
-  return <App />
-}
+// Корневой компонент выбирается по цели сборки и грузится отдельным чанком:
+// сайт не тянет каркас Mini App/админки, Mini App — код сайта.
+// Рендерим только ПОСЛЕ загрузки чанка: до этого в #root остаётся готовый HTML
+// с сервера (SEO-версия страницы) или сплэш — без мигания пустым экраном.
+const loadRoot = isWeb ? import('@/web/WebApp') : import('./App')
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <Root />
-    </QueryClientProvider>
-  </React.StrictMode>
-)
+loadRoot.then(({ default: RootApp }) => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <RootApp />
+      </QueryClientProvider>
+    </React.StrictMode>
+  )
+})

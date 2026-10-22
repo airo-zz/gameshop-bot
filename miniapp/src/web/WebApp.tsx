@@ -16,6 +16,7 @@ import './web.css'
 const WebHomePage = lazy(() => import('./pages/WebHomePage'))
 const WebCatalogPage = lazy(() => import('./pages/WebCatalogPage'))
 const WebCashbackPage = lazy(() => import('./pages/WebCashbackPage'))
+const WebRequestPage = lazy(() => import('./pages/WebRequestPage'))
 const WebGamePage = lazy(() => import('./pages/WebGamePage'))
 const WebLoginPage = lazy(() => import('./pages/WebLoginPage'))
 const WebCartPage = lazy(() => import('./pages/WebCartPage'))
@@ -48,6 +49,7 @@ export default function WebApp() {
           <Route index element={<Suspense fallback={null}><WebHomePage /></Suspense>} />
           <Route path="catalog" element={<Suspense fallback={null}><WebCatalogPage /></Suspense>} />
           <Route path="cashback" element={<Suspense fallback={null}><WebCashbackPage /></Suspense>} />
+          <Route path="request" element={<RequireWebAuth><Suspense fallback={null}><WebRequestPage /></Suspense></RequireWebAuth>} />
           <Route path="game/:slug" element={<Suspense fallback={null}><WebGamePage /></Suspense>} />
           <Route path="login" element={<Suspense fallback={null}><WebLoginPage /></Suspense>} />
           <Route path="cart" element={<RequireWebAuth><Suspense fallback={null}><WebCartPage /></Suspense></RequireWebAuth>} />

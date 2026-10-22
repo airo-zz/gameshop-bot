@@ -396,6 +396,7 @@ Disallow: /orders
 Disallow: /balance
 Disallow: /profile
 Disallow: /login
+Disallow: /request
 Disallow: /app/
 Disallow: /api/
 Disallow: /webhooks/
@@ -408,6 +409,7 @@ Disallow: /orders
 Disallow: /balance
 Disallow: /profile
 Disallow: /login
+Disallow: /request
 Disallow: /app/
 Disallow: /api/
 Disallow: /webhooks/

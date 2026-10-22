@@ -5,11 +5,12 @@
  */
 import { useId, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Search } from '@/components/ui/icons'
 import { catalogApi } from '@/api'
 import { normalizeImageUrl } from '@/utils/imageUrl'
+import { prefetchGame } from '@/web/prefetch'
 
 export default function GameSearch({ size = 'md', placeholder = 'Найти игру', className = '' }: {
   size?: 'md' | 'lg'
@@ -17,6 +18,7 @@ export default function GameSearch({ size = 'md', placeholder = 'Найти иг
   className?: string
 }) {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const listId = useId()
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)
@@ -29,14 +31,31 @@ export default function GameSearch({ size = 'md', placeholder = 'Найти иг
     staleTime: 5 * 60_000,
   })
 
+  const { data: trending = [] } = useQuery({
+    queryKey: ['web', 'trending-categories'],
+    queryFn: catalogApi.getTrendingCategories,
+    staleTime: 5 * 60_000,
+  })
+
+  // Пустой запрос — «популярное»: игры из трендов, рекомендованные, затем по порядку каталога
+  const popular = useMemo(() => {
+    const bySlug = new Map(games.map((g) => [g.slug, g]))
+    const out: typeof games = []
+    const push = (g?: (typeof games)[number]) => { if (g && !out.includes(g)) out.push(g) }
+    trending.forEach((t) => push(bySlug.get(t.game_slug)))
+    games.filter((g) => g.is_featured).forEach(push)
+    games.forEach((g) => out.length < 6 && push(g))
+    return out.slice(0, 6)
+  }, [games, trending])
+
   const matches = useMemo(() => {
     const s = q.trim().toLowerCase()
-    if (!s) return []
+    if (!s) return popular
     return games
       .filter((g) => g.name.toLowerCase().includes(s))
       .sort((a, b) => Number(!a.name.toLowerCase().startsWith(s)) - Number(!b.name.toLowerCase().startsWith(s)))
       .slice(0, 6)
-  }, [games, q])
+  }, [games, q, popular])
 
   const go = (slug?: string) => {
     setOpen(false)
@@ -45,7 +64,7 @@ export default function GameSearch({ size = 'md', placeholder = 'Найти иг
   }
 
   const lg = size === 'lg'
-  const showList = open && q.trim().length > 0
+  const showList = open && (q.trim().length > 0 || popular.length > 0)
 
   return (
     <div className={'relative ' + className}>
@@ -95,8 +114,19 @@ export default function GameSearch({ size = 'md', placeholder = 'Найти иг
             className="absolute left-0 right-0 top-full mt-2 z-50 rounded-2xl bg-[var(--bg2)] p-1.5 border border-[var(--border)]"
             style={{ boxShadow: '0 12px 32px rgba(0,0,0,0.45)' }}
           >
+            {!q.trim() && <li className="px-3 pt-2 pb-1 text-xs text-[var(--hint)]">Популярное</li>}
             {matches.length === 0 ? (
-              <li className="px-3 py-3 text-sm text-[var(--hint)]">Ничего не нашлось</li>
+              <li className="px-3 py-3 text-sm text-[var(--hint)]">
+                Такой игры пока нет.{' '}
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => { setOpen(false); navigate(`/request?type=missing_game&game=${encodeURIComponent(q.trim())}`) }}
+                  className="text-[var(--link)] hover:text-[var(--text)]"
+                >
+                  Оставить заявку
+                </button>
+              </li>
             ) : matches.map((g, i) => {
               const img = g.image_url ? normalizeImageUrl(g.image_url) ?? g.image_url : null
               return (
@@ -104,7 +134,7 @@ export default function GameSearch({ size = 'md', placeholder = 'Найти иг
                   <button
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
-                    onMouseEnter={() => setActive(i)}
+                    onMouseEnter={() => { setActive(i); prefetchGame(qc, g.slug) }}
                     onClick={() => go(g.slug)}
                     className={'w-full flex items-center gap-3 px-2 py-2 rounded-xl text-left transition-colors ' + (i === active ? 'bg-[var(--bg3)]' : '')}
                   >

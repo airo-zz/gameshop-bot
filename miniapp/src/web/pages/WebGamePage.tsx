@@ -16,7 +16,6 @@ import type { Category, Product, InputField } from '@/api'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { useWebCart } from '@/web/cart/useWebCart'
 import { money } from '@/web/format'
-import { MINIAPP_URL } from '@/config/appTarget'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { EASE, Stagger, StaggerItem } from '@/web/components/Motion'
 import { usePageMeta } from '@/web/seo'
@@ -302,15 +301,13 @@ export default function WebGamePage() {
               </span>
             )}
             {game?.custom_order_enabled && (
-              <a
-                href={MINIAPP_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Индивидуальный заказ оформляется в Telegram — оператор соберёт набор под ваш запрос"
+              <Link
+                to={`/request?type=custom_order&game=${encodeURIComponent(gameName)}`}
+                title="Оператор соберёт набор под ваш запрос"
                 className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium text-[var(--text-2)] bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors"
               >
                 <MessageSquarePlus size={14} /> Индивидуальный заказ
-              </a>
+              </Link>
             )}
           </div>
           {description && <p className="mt-3 text-sm text-[var(--text-2)] leading-relaxed max-w-2xl whitespace-pre-line">{description}</p>}

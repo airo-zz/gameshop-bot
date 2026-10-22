@@ -41,7 +41,7 @@ export default defineConfig({
           vendor: ['react', 'react-dom', 'react-router-dom'],
           query: ['@tanstack/react-query'],
           motion: ['framer-motion'],
-          ui: ['@phosphor-icons/react'],
+          // Иконки Phosphor не собираем в один чанк: каждая страница грузит только свои
         },
       },
     },

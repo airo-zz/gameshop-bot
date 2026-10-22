@@ -4,13 +4,14 @@
  */
 
 import { useQuery } from '@tanstack/react-query'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Search, X } from '@/components/ui/icons'
 import { catalogApi } from '@/api'
 import type { Game } from '@/api'
 import GameCard from '@/web/components/GameCard'
 import { Reveal, Stagger, StaggerItem } from '@/web/components/Motion'
 import { usePageMeta } from '@/web/seo'
+import RequestCta from '@/web/components/RequestCta'
 
 const GRID = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4'
 
@@ -43,6 +44,17 @@ export default function WebCatalogPage() {
     staleTime: 5 * 60_000,
   })
 
+  const { data: trending = [] } = useQuery({
+    queryKey: ['web', 'trending-categories'],
+    queryFn: catalogApi.getTrendingCategories,
+    staleTime: 5 * 60_000,
+  })
+  // Популярные запросы: игры из трендов + рекомендованные (без повторов)
+  const popular = [...new Map(
+    [...trending.map((t) => [t.game_slug, t.game_name] as const),
+     ...(all ?? []).filter((g) => g.is_featured).map((g) => [g.slug, g.name] as const)],
+  ).entries()].slice(0, 8)
+
   const match = (g: Game) => !q || g.name.toLowerCase().includes(q.trim().toLowerCase())
   const games = (all ?? []).filter((g) => g.type !== 'service' && match(g))
   const services = (all ?? []).filter((g) => g.type === 'service' && match(g))
@@ -73,6 +85,17 @@ export default function WebCatalogPage() {
         </label>
       </div>
 
+      {!q && popular.length > 0 && (
+        <div className="-mt-4 mb-10 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-[var(--hint)] mr-1">Часто ищут:</span>
+          {popular.map(([slug, name]) => (
+            <Link key={slug} to={`/game/${slug}`} className="h-8 px-3 inline-flex items-center rounded-lg text-sm text-[var(--text-2)] bg-[var(--bg2)] hover:bg-[var(--bg3)] hover:text-[var(--text)] transition-colors">
+              {name}
+            </Link>
+          ))}
+        </div>
+      )}
+
       {isLoading ? (
         <div className={GRID}>
           {Array.from({ length: 10 }).map((_, i) => (
@@ -85,13 +108,17 @@ export default function WebCatalogPage() {
       ) : isError ? (
         <p className="text-sm text-[var(--hint)] py-16 text-center">Не удалось загрузить каталог — обновите страницу</p>
       ) : (games.length + services.length) === 0 ? (
-        <p className="text-sm text-[var(--hint)] py-16 text-center">
-          {q ? `По запросу «${q}» ничего не нашлось — проверьте написание или напишите в поддержку` : 'Каталог пока пуст'}
-        </p>
+        <div className="py-12">
+          <p className="text-base text-[var(--text-2)] text-center mb-8">
+            {q ? `По запросу «${q}» ничего не нашлось. Проверьте написание или оставьте заявку — добавим игру.` : 'Каталог пока пуст'}
+          </p>
+          <RequestCta query={q} />
+        </div>
       ) : (
         <>
           <Grid title="Игры" items={games} />
           <Grid title="Сервисы" items={services} />
+          <RequestCta query={q} />
         </>
       )}
     </div>

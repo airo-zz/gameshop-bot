@@ -6,7 +6,7 @@
 
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
   ChevronDown, ChevronRight, Smartphone, CreditCard, Bitcoin, Wallet, Zap, ShieldCheck, Headphones,
@@ -15,14 +15,17 @@ import { catalogApi, type Game } from '@/api'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import GameCard from '@/web/components/GameCard'
 import GameSearch from '@/web/components/GameSearch'
+import RequestCta from '@/web/components/RequestCta'
 import { EASE, Reveal, Stagger, StaggerItem } from '@/web/components/Motion'
 import { usePageMeta } from '@/web/seo'
+import { prefetchGame } from '@/web/prefetch'
 
 const cover = (g: Game) => (g.image_url ? normalizeImageUrl(g.image_url) ?? g.image_url : null)
 
 // ── Первый экран ──────────────────────────────────────────────────────────────
 
 function Hero({ games }: { games: Game[] }) {
+  const qc = useQueryClient()
   const reduce = useReducedMotion()
   const covers = games.filter(cover).slice(0, 6)
 
@@ -68,6 +71,7 @@ function Hero({ games }: { games: Game[] }) {
               >
                 <Link
                   to={`/game/${g.slug}`}
+                  onMouseEnter={() => prefetchGame(qc, g.slug)}
                   className="group block aspect-[3/4] rounded-2xl overflow-hidden bg-[var(--bg2)]"
                   style={{ boxShadow: 'inset 0 0 0 1px var(--border)' }}
                 >
@@ -89,6 +93,7 @@ function Hero({ games }: { games: Game[] }) {
 // ── Популярное ────────────────────────────────────────────────────────────────
 
 function Popular() {
+  const qc = useQueryClient()
   const { data: trending = [] } = useQuery({
     queryKey: ['web', 'trending-categories'],
     queryFn: catalogApi.getTrendingCategories,
@@ -107,6 +112,7 @@ function Popular() {
             <StaggerItem key={c.id}>
               <Link
                 to={`/game/${c.game_slug}?cat=${c.id}`}
+                onMouseEnter={() => prefetchGame(qc, c.game_slug)}
                 className="group flex items-center gap-3 p-3 rounded-2xl bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors"
               >
                 <div className="w-14 h-14 rounded-xl overflow-hidden bg-[var(--bg3)] shrink-0">
@@ -174,6 +180,7 @@ function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean;
           ))}
         </Stagger>
       )}
+      <Reveal className="mt-6"><RequestCta /></Reveal>
     </section>
   )
 }

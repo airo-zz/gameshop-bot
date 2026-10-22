@@ -5,15 +5,22 @@
  */
 
 import { Link } from 'react-router-dom'
+import { useQueryClient } from '@tanstack/react-query'
+import { prefetchGame } from '@/web/prefetch'
 import { Gamepad2, ChevronRight } from '@/components/ui/icons'
 import type { Game } from '@/api'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 
 export default function GameCard({ game }: { game: Game }) {
   const img = game.image_url ? normalizeImageUrl(game.image_url) ?? game.image_url : null
+  const qc = useQueryClient()
+  const warm = () => prefetchGame(qc, game.slug)
   return (
     <Link
       to={`/game/${game.slug}`}
+      onMouseEnter={warm}
+      onFocus={warm}
+      onTouchStart={warm}
       className="group flex flex-col h-full p-2.5 rounded-2xl bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors duration-200"
     >
       <div
@@ -25,6 +32,9 @@ export default function GameCard({ game }: { game: Game }) {
             src={img}
             alt={game.name}
             loading="lazy"
+            decoding="async"
+            width={240}
+            height={240}
             className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
           />
         ) : (

@@ -16,6 +16,7 @@ import Avatar from '@/web/components/Avatar'
 import GameSearch from '@/web/components/GameSearch'
 import logoFull from '@/assets/logo-full.png'
 import { initMetrika, useMetrikaPageViews } from '@/web/seo'
+import { preloadRoutesWhenIdle } from '@/web/prefetch'
 
 interface NavItem {
   label: string
@@ -139,7 +140,7 @@ export default function WebLayout() {
   const location = useLocation()
   const { isAuthenticated } = useWebAuth()
   const reduce = useReducedMotion()
-  useEffect(() => { initMetrika() }, [])
+  useEffect(() => { initMetrika(); preloadRoutesWhenIdle() }, [])
   useMetrikaPageViews()
 
   // Новая страница — наверх (кроме якорей вида /#faq)
