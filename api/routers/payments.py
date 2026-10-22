@@ -45,6 +45,9 @@ class TelegramWidgetAuthIn(BaseModel):
     hash: str
     # Токен гостевого чата сайта: переписка гостя переходит в аккаунт
     guest_token: str | None = None
+    # Галочки на странице входа сайта
+    pd_consent: bool = False
+    marketing_consent: bool = False
 
 
 def verify_widget_body(body: TelegramWidgetAuthIn) -> None:
@@ -95,6 +98,7 @@ async def auth_telegram_widget(
     )
     if user.is_blocked:
         raise HTTPException(status_code=403, detail="Аккаунт заблокирован")
+    _apply_consents(user, body.pd_consent, body.marketing_consent)
     await _absorb_guest(db, user, body.guest_token)
 
     return TokenResponse(
@@ -114,6 +118,17 @@ class EmailCodeVerifyIn(BaseModel):
     email: str = Field(..., max_length=254)
     code: str = Field(..., max_length=12)
     guest_token: str | None = None
+    pd_consent: bool = False
+    marketing_consent: bool = False
+
+
+def _apply_consents(user: User, pd_consent: bool, marketing_consent: bool) -> None:
+    from api.services.account_service import AccountError, apply_login_consents
+
+    try:
+        apply_login_consents(user, pd_consent, marketing_consent)
+    except AccountError as e:
+        raise HTTPException(e.status, e.message)
 
 
 async def _absorb_guest(db, user: User, guest_token: str | None) -> None:
@@ -165,6 +180,7 @@ async def auth_email_verify(request: Request, body: EmailCodeVerifyIn, db: DbSes
     user, is_new = await eas.get_or_create_email_user(db, email)
     if user.is_blocked:
         raise HTTPException(status_code=403, detail="Аккаунт заблокирован")
+    _apply_consents(user, body.pd_consent, body.marketing_consent)
     await _absorb_guest(db, user, body.guest_token)
     return TokenResponse(
         access_token=create_access_token(user.telegram_id),

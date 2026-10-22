@@ -10,6 +10,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Menu, X, LogOut, ShoppingCart, Wallet, User } from '@/components/ui/icons'
 import { SHOP_NAME, MINIAPP_URL, SITE_URL } from '@/config/appTarget'
 import ChatWidget from '@/web/chat/ChatWidget'
+import CookieBanner from '@/web/components/CookieBanner'
 import { openChat } from '@/web/chat/chatStore'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { useWebCart } from '@/web/cart/useWebCart'
@@ -221,6 +222,7 @@ export default function WebLayout() {
       </motion.main>
 
       <ChatWidget />
+      <CookieBanner />
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <footer className="border-t border-[var(--border)] mt-24">
@@ -250,6 +252,11 @@ export default function WebLayout() {
               <li>
                 <a href={`${SITE_URL}/app/legal/privacy.html`} target="_blank" rel="noopener noreferrer" className="text-sm text-[var(--text-2)] hover:text-[var(--text)] transition-colors">
                   Политика конфиденциальности
+                </a>
+              </li>
+              <li>
+                <a href={`${SITE_URL}/app/legal/consent.html`} target="_blank" rel="noopener noreferrer" className="text-sm text-[var(--text-2)] hover:text-[var(--text)] transition-colors">
+                  Согласие на обработку данных
                 </a>
               </li>
             </ul>

@@ -1,5 +1,4 @@
 """api/routers/profile.py"""
-from decimal import Decimal
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
@@ -43,6 +42,7 @@ async def get_profile(db: DbSession, user: CurrentUser):
         photo_url=avatar_url(user_full.telegram_id),
         email=user_full.email,
         has_telegram=user_full.has_telegram,
+        marketing_consent=user_full.marketing_consent,
         balance=user_full.balance,
         orders_count=user_full.orders_count,
         total_spent=user_full.total_spent,
@@ -310,3 +310,48 @@ async def unlink_telegram(db: DbSession, user: CurrentUser):
         access_token=create_access_token(user.telegram_id),
         refresh_token=create_refresh_token(user.telegram_id),
     )
+
+
+# ── Рассылка ─────────────────────────────────────────────────────────────────
+
+
+class MarketingIn(BaseModel):
+    marketing_consent: bool
+
+
+@router.put("/marketing", status_code=204)
+async def set_marketing(body: MarketingIn, db: DbSession, user: CurrentUser):
+    """Согласие на рекламные письма: дать или отозвать."""
+    from api.services.account_service import set_marketing_consent
+
+    set_marketing_consent(user, body.marketing_consent)
+
+
+@router.get("/unsubscribe", include_in_schema=False)
+async def unsubscribe(t: str, db: DbSession):
+    """Ссылка «Отписаться» из письма — без входа, по подписанному токену."""
+    import uuid as _uuid
+
+    from fastapi.responses import HTMLResponse
+
+    from shared.mailer import unsubscribe_user_id
+    from api.services.account_service import set_marketing_consent
+
+    uid = unsubscribe_user_id(t)
+    target = None
+    if uid:
+        target = (await db.execute(select(User).where(User.id == _uuid.UUID(uid)))).scalar_one_or_none()
+    if target:
+        set_marketing_consent(target, False)
+        msg = "Вы отписались от рассылки reDonate. Письма о заказах и коды входа продолжат приходить."
+    else:
+        msg = "Ссылка недействительна. Отписаться можно в профиле на сайте redonate.gg."
+    page = (
+        '<!doctype html><html lang="ru"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width"><title>Рассылка — reDonate</title></head>'
+        '<body style="font-family:Arial,sans-serif;background:#0B0C0F;color:#DCEBFF;display:flex;'
+        'align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px">'
+        f'<div style="max-width:420px;text-align:center"><p style="font-size:17px;line-height:1.5">{msg}</p>'
+        '<p><a href="https://redonate.gg" style="color:#7FA6F5">Перейти на сайт</a></p></div></body></html>'
+    )
+    return HTMLResponse(page)

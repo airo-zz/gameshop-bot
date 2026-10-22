@@ -145,8 +145,14 @@ export interface TelegramWidgetUser {
   hash: string
 }
 
-export async function authenticateWithTelegramWidget(user: TelegramWidgetUser): Promise<void> {
-  const res = await axios.post(`${BASE_URL}/payments/auth/telegram-widget`, { ...user, guest_token: getGuestToken() })
+/** Галочки на странице входа сайта (согласие на обработку ПДн обязательно) */
+export interface LoginConsents {
+  pd_consent: boolean
+  marketing_consent: boolean
+}
+
+export async function authenticateWithTelegramWidget(user: TelegramWidgetUser, consents: LoginConsents): Promise<void> {
+  const res = await axios.post(`${BASE_URL}/payments/auth/telegram-widget`, { ...user, ...consents, guest_token: getGuestToken() })
   setTokens(res.data.access_token, res.data.refresh_token)
   clearGuestToken()
 }
@@ -174,8 +180,8 @@ export async function requestEmailCode(email: string): Promise<void> {
 }
 
 /** Возвращает true, если аккаунт создан только что. */
-export async function authenticateWithEmail(email: string, code: string): Promise<boolean> {
-  const res = await axios.post(`${BASE_URL}/payments/auth/email/verify`, { email, code, guest_token: getGuestToken() })
+export async function authenticateWithEmail(email: string, code: string, consents: LoginConsents): Promise<boolean> {
+  const res = await axios.post(`${BASE_URL}/payments/auth/email/verify`, { email, code, ...consents, guest_token: getGuestToken() })
   setTokens(res.data.access_token, res.data.refresh_token)
   clearGuestToken()
   return !!res.data.is_new

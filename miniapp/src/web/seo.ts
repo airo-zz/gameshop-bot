@@ -45,8 +45,26 @@ declare global {
   interface Window { ym?: (...args: unknown[]) => void }
 }
 
+// ── Согласие на cookie ────────────────────────────────────────────────────────
+// 'all' — можно аналитику (Метрика), 'necessary' — только необходимые для работы.
+const COOKIE_KEY = 'cookie_consent'
+export type CookieConsent = 'all' | 'necessary'
+
+export function getCookieConsent(): CookieConsent | null {
+  try {
+    const v = localStorage.getItem(COOKIE_KEY)
+    return v === 'all' || v === 'necessary' ? v : null
+  } catch { return null }
+}
+
+export function setCookieConsent(v: CookieConsent) {
+  try { localStorage.setItem(COOKIE_KEY, v) } catch { /* приватный режим */ }
+  if (v === 'all') initMetrika()
+}
+
+/** Метрика ставит cookie — запускаем только после согласия «Принять». */
 export function initMetrika() {
-  if (!YM_ID || window.ym) return
+  if (!YM_ID || window.ym || getCookieConsent() !== 'all') return
   // Официальный сниппет Метрики (тег), без noscript-пикселя
   const w = window as any
   w.ym = w.ym || function (...a: unknown[]) { (w.ym.a = w.ym.a || []).push(a) }

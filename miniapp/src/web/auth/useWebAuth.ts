@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   authenticateWithEmail,
   authenticateWithTelegramWidget,
+  type LoginConsents,
   clearTokens,
   hasStoredToken,
   type TelegramWidgetUser,
@@ -28,15 +29,15 @@ export function useWebAuth() {
     staleTime: 5 * 60_000,
   })
 
-  async function login(widgetUser: TelegramWidgetUser): Promise<void> {
-    await authenticateWithTelegramWidget(widgetUser)
+  async function login(widgetUser: TelegramWidgetUser, consents: LoginConsents): Promise<void> {
+    await authenticateWithTelegramWidget(widgetUser, consents)
     const profile = await profileApi.get()
     qc.setQueryData(PROFILE_KEY, profile)
   }
 
   /** Возвращает true, если аккаунт создан только что. */
-  async function loginWithEmail(email: string, code: string): Promise<boolean> {
-    const isNew = await authenticateWithEmail(email, code)
+  async function loginWithEmail(email: string, code: string, consents: LoginConsents): Promise<boolean> {
+    const isNew = await authenticateWithEmail(email, code, consents)
     const profile = await profileApi.get()
     qc.setQueryData(PROFILE_KEY, profile)
     return isNew

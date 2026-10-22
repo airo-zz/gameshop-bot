@@ -340,3 +340,4 @@ async def get_chat_user(
 
 
 ChatUser = Annotated[User, Depends(get_chat_user)]
+

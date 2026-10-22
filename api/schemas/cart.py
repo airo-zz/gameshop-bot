@@ -164,6 +164,7 @@ class ProfileOut(BaseModel):
     # Вход на сайте по почте: email (если привязан) и есть ли Telegram
     email: str | None = None
     has_telegram: bool = True
+    marketing_consent: bool = False
     balance: Decimal
     orders_count: int
     total_spent: Decimal

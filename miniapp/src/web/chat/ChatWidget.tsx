@@ -468,6 +468,8 @@ export default function ChatWidget() {
                   Войдите
                 </Link>
                 , чтобы получить уведомление об ответе на почту или в Telegram — переписка сохранится.
+                {' '}Отправляя сообщение, вы соглашаетесь с{' '}
+                <a href="/app/legal/privacy.html" target="_blank" rel="noopener noreferrer" className="underline">политикой конфиденциальности</a>.
               </div>
             )}
 

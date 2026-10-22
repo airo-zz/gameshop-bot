@@ -182,6 +182,11 @@ async def merge_users(
         target.referred_by_id = source.referred_by_id
     if not target.loyalty_level_id:
         target.loyalty_level_id = source.loyalty_level_id
+    if source.pd_consent_at and (not target.pd_consent_at or source.pd_consent_at < target.pd_consent_at):
+        target.pd_consent_at = source.pd_consent_at
+    if source.marketing_consent and not target.marketing_consent:
+        target.marketing_consent = True
+        target.marketing_consent_at = source.marketing_consent_at
 
     # 5. Способы входа: освобождаем уникальные значения у source, затем отдаём target
     final_tg = source.telegram_id if is_telegram_id(source.telegram_id) else target.telegram_id
@@ -243,3 +248,27 @@ async def unlink_telegram(db: AsyncSession, user: User) -> None:
     user.telegram_id = new
     user.username = None
     user.photo_url = None
+
+
+# ── Согласия (сайт) ───────────────────────────────────────────────────────────
+
+
+def apply_login_consents(user: User, pd_consent: bool, marketing_consent: bool) -> None:
+    """
+    Вход на сайте: без согласия на обработку ПДн не пускаем (если оно не дано
+    раньше). Согласие на рассылку при входе можно только дать — отзывается
+    в профиле или ссылкой «Отписаться» в письме.
+    """
+    now = datetime.now(timezone.utc)
+    if not user.pd_consent_at:
+        if not pd_consent:
+            raise AccountError("Подтвердите согласие на обработку персональных данных", 400)
+        user.pd_consent_at = now
+    if marketing_consent and not user.marketing_consent:
+        set_marketing_consent(user, True)
+
+
+def set_marketing_consent(user: User, value: bool) -> None:
+    if user.marketing_consent != value:
+        user.marketing_consent = value
+        user.marketing_consent_at = datetime.now(timezone.utc)

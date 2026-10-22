@@ -91,6 +91,13 @@ class User(Base, UUIDMixin, TimestampMixin):
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     # Почта (вход на сайте по коду). Хранится в нижнем регистре.
     email: Mapped[str | None] = mapped_column(String(254), nullable=True, unique=True, index=True)
+    # Согласия на сайте (миграция 036): обработка ПДн — обязательное при входе,
+    # рекламные письма — необязательное, отзывается в профиле или ссылкой в письме
+    pd_consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    marketing_consent: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=sa.false()
+    )
+    marketing_consent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     # Аноним из гостевого чата сайта (до входа); при входе объединяется с аккаунтом
     is_guest: Mapped[bool] = mapped_column(
         Boolean, nullable=False, default=False, server_default=sa.false()

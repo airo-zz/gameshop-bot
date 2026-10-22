@@ -213,6 +213,31 @@ export default function SignInMethods() {
         </div>
       )}
 
+      {/* Рассылка — только если есть почта */}
+      {user.email && (
+        <label className={row + ' border-t border-[var(--border)] cursor-pointer'}>
+          <span className="flex-1 min-w-0">
+            <span className="block text-sm font-medium text-[var(--text)]">Письма об акциях и скидках</span>
+            <span className="block text-xs text-[var(--hint)] mt-0.5">Письма о заказах и коды входа приходят всегда</span>
+          </span>
+          <input
+            type="checkbox"
+            checked={user.marketing_consent}
+            onChange={async (e) => {
+              const v = e.target.checked
+              try {
+                await profileApi.setMarketing(v)
+                await refresh()
+                toast.success(v ? 'Подписка включена' : 'Вы отписались от рассылки')
+              } catch {
+                toast.error('Не удалось сохранить')
+              }
+            }}
+            className="w-5 h-5 accent-[var(--accent)] cursor-pointer"
+          />
+        </label>
+      )}
+
       {offer && <MergeDialog offer={offer} onDone={merged} onCancel={() => setOffer(null)} />}
     </div>
   )

@@ -93,6 +93,26 @@ async def _check_abandoned_carts_async():
                 abandoned.second_reminder_sent = True
 
 
+def _email_cart_reminder(user_id: str, text: str) -> None:
+    """Напоминание о корзине письмом (реклама: согласие + ссылка «Отписаться»)."""
+    from sqlalchemy import create_engine, text as sa_text
+    from sqlalchemy.orm import Session
+    from shared.mailer import promo_email, send_email_sync
+
+    engine = create_engine(settings.DATABASE_URL.replace("+asyncpg", "+psycopg2"), pool_pre_ping=True)
+    try:
+        with Session(engine) as s:
+            row = s.execute(
+                sa_text("SELECT email, marketing_consent FROM users WHERE id = :id"), {"id": user_id}
+            ).fetchone()
+    finally:
+        engine.dispose()
+    if not row or not row[0] or not row[1]:
+        return
+    subject, html_body, plain = promo_email("Вы оставили товары в корзине", text, "/cart", "Открыть корзину", user_id)
+    send_email_sync(row[0], subject, html_body, plain)
+
+
 @celery_app.task(
     name="worker.tasks.cart_tasks.send_abandoned_cart_reminder",
     bind=True,
@@ -111,14 +131,16 @@ def send_abandoned_cart_reminder(
     import httpx
     from shared.models import is_telegram_id
 
-    # Почтовым пользователям сайта рекламные напоминания не шлём
-    if not is_telegram_id(telegram_id):
-        return
     from bot.utils.texts import texts
 
     text = texts.abandoned_cart_reminder(items_count, total)
     if reminder_num == 2:
         text = "⏰ Последнее напоминание!\n\n" + text
+
+    # Пользователь сайта без Telegram: письмо — только с согласием на рассылку
+    if not is_telegram_id(telegram_id):
+        _email_cart_reminder(user_id, text)
+        return
 
     try:
         with httpx.Client(timeout=5.0) as client:

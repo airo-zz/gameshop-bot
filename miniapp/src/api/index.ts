@@ -186,6 +186,8 @@ export interface Profile {
   /** Почта (вход на сайте по коду); у пользователей без Telegram has_telegram=false */
   email: string | null
   has_telegram: boolean
+  /** Согласие на рекламные письма */
+  marketing_consent: boolean
   balance: number
   orders_count: number
   total_spent: number
@@ -397,6 +399,9 @@ export const profileApi = {
     apiClient.post<{ access_token: string; refresh_token: string }>('/profile/merge', { ticket }).then(r => r.data),
 
   unlinkEmail: () => apiClient.delete('/profile/email').then(() => undefined),
+
+  setMarketing: (value: boolean) =>
+    apiClient.put('/profile/marketing', { marketing_consent: value }).then(() => undefined),
 
   unlinkTelegram: () =>
     apiClient.delete<{ access_token: string; refresh_token: string }>('/profile/telegram').then(r => r.data),

@@ -35,8 +35,9 @@ _BTN = (
 )
 
 
-def _layout(body_html: str) -> str:
+def _layout(body_html: str, footer_html: str = "") -> str:
     site = settings.FRONTEND_URL.rstrip("/")
+    extra = f'<p style="font-size:12px;color:#7D8799;margin:12px 0 0">{footer_html}</p>' if footer_html else ""
     return f"""<!doctype html>
 <html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
 <body style="margin:0;padding:0;background:#F3F5F9;font-family:Arial,Helvetica,sans-serif;color:#101C36">
@@ -49,7 +50,7 @@ def _layout(body_html: str) -> str:
 <p style="font-size:12px;color:#7D8799;margin:16px 0 0">
 Письмо отправлено автоматически, отвечать на него не нужно.<br>
 <a href="{site}" style="color:#7D8799">{html.escape(site.split("//")[-1])}</a>
-</p>
+</p>{extra}
 </td></tr></table>
 </body></html>"""
 
@@ -81,6 +82,43 @@ def notice_email(subject: str, tg_html: str, path: str = "/", button: str = "О�
     body_html = f'<p style="margin:0 0 24px">{body}</p>' + _BTN.format(url=url, label=html.escape(button))
     text = _strip_tags(tg_html) + f"\n\n{url}"
     return subject, _layout(body_html), text
+
+
+# ── Рекламные письма: ссылка «Отписаться» (38-ФЗ «О рекламе») ───────────────
+
+
+def unsubscribe_url(user_id) -> str:
+    """Подписанная ссылка отписки: работает без входа, живёт год."""
+    from datetime import datetime, timedelta, timezone
+
+    import jwt
+
+    payload = {"type": "unsub", "sub": str(user_id),
+               "exp": datetime.now(timezone.utc) + timedelta(days=365)}
+    token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return f"{settings.FRONTEND_URL.rstrip('/')}/api/v1/profile/unsubscribe?t={token}"
+
+
+def unsubscribe_user_id(token: str) -> str | None:
+    import jwt
+
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+    except jwt.PyJWTError:
+        return None
+    return payload.get("sub") if payload.get("type") == "unsub" else None
+
+
+def promo_email(subject: str, tg_html: str, path: str, button: str, user_id) -> tuple[str, str, str]:
+    """Рекламное письмо: как уведомление, плюс ссылка «Отписаться»."""
+    unsub = unsubscribe_url(user_id)
+    url = settings.FRONTEND_URL.rstrip("/") + path
+    body = tg_html.strip().replace("\n", "<br>")
+    body_html = f'<p style="margin:0 0 24px">{body}</p>' + _BTN.format(url=url, label=html.escape(button))
+    footer = ('Вы получили письмо, потому что согласились на рассылку reDonate. '
+              f'<a href="{unsub}" style="color:#7D8799">Отписаться</a>')
+    text = _strip_tags(tg_html) + f"\n\n{url}\n\nОтписаться: {unsub}"
+    return subject, _layout(body_html, footer), text
 
 
 # ── Отправка ─────────────────────────────────────────────────────────────────
