@@ -522,16 +522,30 @@ async def notify_user(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Заказ не найден")
 
     from shared.config import settings
+    from shared.models import is_telegram_id
     tg_url = f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage"
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.post(tg_url, json={
-                "chat_id": order.user.telegram_id,
-                "text": texts.order_status_changed(order.order_number, order.status.value),
-                "parse_mode": "HTML",
-            })
-        if not resp.json().get("ok"):
-            raise RuntimeError(resp.json().get("description", "Telegram error"))
+        if not is_telegram_id(order.user.telegram_id):
+            # Пользователь сайта, вошедший по почте — письмо вместо бота
+            from shared.mailer import notice_email, send_email
+            if not order.user.email:
+                raise RuntimeError("у пользователя нет ни Telegram, ни почты")
+            subject, html_body, plain = notice_email(
+                f"Заказ {order.order_number}",
+                texts.order_status_changed(order.order_number, order.status.value),
+                f"/orders/{order.id}", "Открыть заказ",
+            )
+            if not await send_email(order.user.email, subject, html_body, plain):
+                raise RuntimeError("почтовый сервис не принял письмо")
+        else:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.post(tg_url, json={
+                    "chat_id": order.user.telegram_id,
+                    "text": texts.order_status_changed(order.order_number, order.status.value),
+                    "parse_mode": "HTML",
+                })
+            if not resp.json().get("ok"):
+                raise RuntimeError(resp.json().get("description", "Telegram error"))
     except Exception as exc:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,

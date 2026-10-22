@@ -2,16 +2,15 @@
  * src/web/pages/WebRequestPage.tsx
  * Заявка с сайта (как CustomOrderPage в Mini App): «Не нашли свою игру?» или
  * «Индивидуальный заказ». Описание + скриншоты уходят оператору в тот же чат
- * (chatApi), ответ приходит покупателю в Telegram-бот.
+ * (chatApi), после отправки покупатель попадает в чат на сайте.
  *   /request?type=missing_game|custom_order&game=<название>
  */
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { ImagePlus, X, Send, CheckCircle } from '@/components/ui/icons'
+import { ImagePlus, X, Send } from '@/components/ui/icons'
 import { chatApi } from '@/api'
 import { compressImage } from '@/utils/image'
-import { MINIAPP_URL } from '@/config/appTarget'
 import { usePageMeta } from '@/web/seo'
 
 const MAX_FILES = 10
@@ -43,7 +42,7 @@ export default function WebRequestPage() {
   const [text, setText] = useState(mode === 'missing_game' && gameName ? `${gameName} — ` : '')
   const [files, setFiles] = useState<File[]>([])
   const [sending, setSending] = useState(false)
-  const [sent, setSent] = useState(false)
+  const navigate = useNavigate()
 
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files ?? [])
@@ -72,33 +71,13 @@ export default function WebRequestPage() {
       }
       const header = [copy.header, mode === 'custom_order' && gameName ? `(${gameName})` : '', '— с сайта'].filter(Boolean).join(' ')
       await chatApi.sendMessage(`${header}${trimmed ? `\n\n${trimmed}` : ''}`, urls)
-      setSent(true)
+      toast.success('Заявка отправлена — оператор ответит в чате')
+      navigate('/chat', { replace: true })
     } catch (e: any) {
       toast.error(e?.response?.data?.detail ?? 'Не удалось отправить заявку — попробуйте ещё раз')
     } finally {
       setSending(false)
     }
-  }
-
-  if (sent) {
-    return (
-      <div className="web-container py-16 md:py-24 text-center"><div className="max-w-xl mx-auto">
-        <CheckCircle size={44} className="mx-auto text-[#34d399]" />
-        <h1 className="mt-5 text-2xl md:text-3xl text-[var(--text)]" style={{ margin: '20px 0 0' }}>Заявка отправлена</h1>
-        <p className="mt-3 text-[var(--text-2)] leading-relaxed">
-          Оператор ответит в чате магазина — уведомление придёт в Telegram от нашего бота.
-        </p>
-        <div className="mt-8 flex flex-col sm:flex-row gap-2 justify-center">
-          <a href={`${MINIAPP_URL}=chat`} target="_blank" rel="noopener noreferrer"
-             className="inline-flex items-center justify-center h-11 px-5 rounded-xl text-sm font-semibold text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors">
-            Открыть чат в Telegram
-          </a>
-          <Link to="/catalog" className="inline-flex items-center justify-center h-11 px-5 rounded-xl text-sm text-[var(--text-2)] bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors">
-            Вернуться в каталог
-          </Link>
-        </div>
-      </div></div>
-    )
   }
 
   return (
@@ -152,7 +131,7 @@ export default function WebRequestPage() {
       >
         <Send size={18} /> {sending ? 'Отправляем…' : 'Отправить заявку'}
       </button>
-      <p className="mt-3 text-xs text-[var(--hint)]">Ответ придёт в Telegram от бота магазина.</p>
+      <p className="mt-3 text-xs text-[var(--hint)]">Оператор ответит в чате на сайте.</p>
       </div>
     </div>
   )

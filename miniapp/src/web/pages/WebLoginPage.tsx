@@ -1,28 +1,38 @@
 /**
  * src/web/pages/WebLoginPage.tsx
- * Вход на сайт через Telegram Login Widget.
+ * Вход на сайт: по коду из письма (регистрация — тем же шагом) или через
+ * Telegram Login Widget. Почта показывается, когда подключена отправка писем.
  */
 
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
-import { Send } from '@/components/ui/icons'
 import TelegramLoginButton from '@/web/components/TelegramLoginButton'
+import EmailCodeForm from '@/web/components/EmailCodeForm'
 import { useWebAuth } from '@/web/auth/useWebAuth'
-import type { TelegramWidgetUser } from '@/api/client'
+import { getAuthMethods, requestEmailCode, type TelegramWidgetUser } from '@/api/client'
 import { SHOP_NAME } from '@/config/appTarget'
+import logoMark from '@/assets/logo-mark.png'
 
 export default function WebLoginPage() {
-  const { login, isAuthenticated, ready } = useWebAuth()
+  const { login, loginWithEmail, isAuthenticated, ready } = useWebAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const redirectTo = (location.state as { from?: string } | null)?.from ?? '/'
+
+  const { data: methods } = useQuery({
+    queryKey: ['web', 'auth-methods'],
+    queryFn: getAuthMethods,
+    staleTime: 10 * 60_000,
+  })
+  const emailEnabled = !!methods?.email
 
   useEffect(() => {
     if (ready && isAuthenticated) navigate(redirectTo, { replace: true })
   }, [ready, isAuthenticated, navigate, redirectTo])
 
-  const handleAuth = async (user: TelegramWidgetUser) => {
+  const handleTelegram = async (user: TelegramWidgetUser) => {
     try {
       await login(user)
       toast.success('Вы вошли')
@@ -32,26 +42,40 @@ export default function WebLoginPage() {
     }
   }
 
+  const handleEmail = async (email: string, code: string) => {
+    await loginWithEmail(email, code)
+    toast.success('Вы вошли')
+    navigate(redirectTo, { replace: true })
+  }
+
   return (
-    <div className="web-container flex items-center justify-center py-24">
-      <div className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--bg2)] p-8 text-center">
-        <div
-          className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
-          style={{ background: 'rgba(37,99,235,0.15)', color: 'var(--link)' }}
-        >
-          <Send size={24} />
-        </div>
-        <h1 className="text-2xl font-semibold text-[var(--text)]">Вход в {SHOP_NAME}</h1>
+    <div className="web-container flex items-center justify-center py-16 md:py-24">
+      <div className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--bg2)] p-7 md:p-8 text-center">
+        <img src={logoMark} alt="" className="w-12 h-12 mx-auto mb-5 object-contain" />
+        <h1 className="text-2xl text-[var(--text)]" style={{ margin: 0 }}>Вход в {SHOP_NAME}</h1>
         <p className="text-sm text-[var(--hint)] mt-2 mb-7">
-          Войдите через Telegram, чтобы оформлять заказы и следить за ними.
+          {emailEnabled
+            ? 'Введите почту — пришлём код. Если аккаунта ещё нет, он создастся автоматически.'
+            : 'Войдите через Telegram, чтобы оформлять заказы и следить за ними.'}
         </p>
 
+        {emailEnabled && (
+          <>
+            <EmailCodeForm onRequest={requestEmailCode} onVerify={handleEmail} />
+            <div className="flex items-center gap-3 my-6 text-xs text-[var(--hint)]">
+              <span className="flex-1 h-px bg-[var(--border)]" />
+              или
+              <span className="flex-1 h-px bg-[var(--border)]" />
+            </div>
+          </>
+        )}
+
         <div className="flex justify-center">
-          <TelegramLoginButton onAuth={handleAuth} />
+          <TelegramLoginButton onAuth={handleTelegram} />
         </div>
 
         <p className="text-xs text-[var(--hint)] mt-6">
-          Нажимая «Войти», вы соглашаетесь с{' '}
+          Входя на сайт, вы соглашаетесь с{' '}
           <a href="/app/legal/terms.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--text-2)]">условиями сервиса</a>
           {' '}и{' '}
           <a href="/app/legal/privacy.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--text-2)]">политикой конфиденциальности</a>.

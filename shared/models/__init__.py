@@ -15,6 +15,8 @@ from .user import (
     BalanceTopup,
     ReferralReward,
     ShopSettings,
+    EMAIL_USER_ID_BASE,
+    is_telegram_id,
 )
 
 from .catalog import (
@@ -73,6 +75,7 @@ from .chat import (
 __all__ = [
     # Base
     "Base", "TimestampMixin", "UUIDMixin",
+    "EMAIL_USER_ID_BASE", "is_telegram_id",
     # User
     "LoyaltyLevel", "User", "BalanceTransaction", "BalanceTopup", "ReferralReward", "ShopSettings",
     # Catalog

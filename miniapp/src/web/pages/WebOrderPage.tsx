@@ -10,7 +10,7 @@ import { CheckCircle2, Clock, Loader2, XCircle, RotateCcw } from '@/components/u
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { ordersApi } from '@/api'
-import { SUPPORT_BOT_URL, PAY_SOURCE } from '@/config/appTarget'
+import { PAY_SOURCE } from '@/config/appTarget'
 import { money, orderStatus, isAwaitingPayment, apiError } from '@/web/format'
 
 export default function WebOrderPage() {
@@ -76,7 +76,7 @@ export default function WebOrderPage() {
           <div>
             <p className="text-sm font-semibold text-[var(--text)]">Оплата прошла</p>
             <p className="text-xs text-[var(--hint)]">
-              {order.status === 'completed' ? 'Заказ выполнен — данные ниже.' : 'Заказ принят в обработку. Уведомление придёт в Telegram.'}
+              {order.status === 'completed' ? 'Заказ выполнен — данные ниже.' : 'Заказ принят в обработку. Статус обновится на этой странице, вопросы — в чате с оператором.'}
             </p>
           </div>
         </div>
@@ -147,9 +147,9 @@ export default function WebOrderPage() {
 
       <div className="mt-6 flex items-center justify-between text-sm">
         <Link to="/orders" style={{ color: 'var(--link)' }}>← Мои заказы</Link>
-        <a href={SUPPORT_BOT_URL} target="_blank" rel="noopener noreferrer" className="text-[var(--hint)] hover:text-[var(--text)] transition-colors">
-          Нужна помощь?
-        </a>
+        <Link to={`/chat?order_id=${order.id}`} className="text-[var(--hint)] hover:text-[var(--text)] transition-colors">
+          Написать оператору
+        </Link>
       </div>
     </div>
   )

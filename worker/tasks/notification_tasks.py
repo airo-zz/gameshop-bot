@@ -21,6 +21,11 @@ def send_notification(self, telegram_id: int, text: str, reply_markup: dict | No
     Пример:
         send_notification.delay(123456789, "✅ Ваш заказ выполнен!")
     """
+    from shared.models import is_telegram_id
+
+    if not is_telegram_id(telegram_id):
+        return  # пользователь сайта без Telegram
+
     payload = {
         "chat_id": telegram_id,
         "text": text,
@@ -69,7 +74,9 @@ def notify_support_user(self, telegram_id: int, text: str, ticket_id: str | None
     Используется когда оператор отвечает на тикет или закрывает его.
     При 403 от support bot (пользователь не писал в него) — fallback на основной бот.
     """
-    if not telegram_id:
+    from shared.models import is_telegram_id
+
+    if not is_telegram_id(telegram_id):
         return
 
     # Краткое уведомление с кнопкой перехода в чат

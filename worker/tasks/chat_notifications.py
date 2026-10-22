@@ -17,6 +17,24 @@ def _get_db_session():
     return Session(engine), engine
 
 
+def _email_chat_notice(session, user_id: int) -> None:
+    from sqlalchemy import text as sa_text
+    from shared.mailer import notice_email, send_email_sync
+
+    email = session.execute(
+        sa_text("SELECT email FROM users WHERE telegram_id = :tg"), {"tg": user_id}
+    ).scalar()
+    if not email:
+        return
+    subject, html_body, plain = notice_email(
+        "Новое сообщение от оператора",
+        "<b>Оператор ответил вам в чате.</b>\nОткройте чат на сайте, чтобы прочитать сообщение и ответить.",
+        "/chat",
+        "Открыть чат",
+    )
+    send_email_sync(email, subject, html_body, plain)
+
+
 @celery_app.task(
     name="worker.tasks.chat_notifications.notify_seller_if_unread",
     bind=True,
@@ -135,6 +153,13 @@ def notify_user_if_unread(self, chat_id: str) -> None:
             if last_message_at is None:
                 return
             if last_user_read_at is not None and last_user_read_at >= last_message_at:
+                return
+
+            from shared.models import is_telegram_id
+
+            if not is_telegram_id(user_id):
+                # Пользователь сайта, вошедший по почте — уведомляем письмом
+                _email_chat_notice(session, user_id)
                 return
 
             text = (

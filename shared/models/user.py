@@ -61,6 +61,18 @@ class LoyaltyLevel(Base, UUIDMixin):
         return f"<LoyaltyLevel {self.name} min={self.min_spent}>"
 
 
+# Пользователи, зарегистрированные на сайте по почте, не имеют Telegram ID.
+# Им выдаётся служебный отрицательный users.telegram_id вне диапазона Telegram
+# (ID Telegram — до 52 бит, ID групп — отрицательные, но > -10^13), поэтому
+# JWT, чат и заказы работают без изменений, а уведомления уходят на почту.
+EMAIL_USER_ID_BASE = 7_000_000_000_000_000_000
+
+
+def is_telegram_id(telegram_id: int | None) -> bool:
+    """True — настоящий Telegram ID (в него можно писать ботом)."""
+    return bool(telegram_id) and telegram_id > 0
+
+
 class User(Base, UUIDMixin, TimestampMixin):
     """
     Основная таблица пользователей.
@@ -77,6 +89,8 @@ class User(Base, UUIDMixin, TimestampMixin):
     last_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     language_code: Mapped[str] = mapped_column(String(8), nullable=False, default="ru")
     phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # Почта (вход на сайте по коду). Хранится в нижнем регистре.
+    email: Mapped[str | None] = mapped_column(String(254), nullable=True, unique=True, index=True)
     photo_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     # Финансы
@@ -141,10 +155,14 @@ class User(Base, UUIDMixin, TimestampMixin):
     )
 
     @property
+    def has_telegram(self) -> bool:
+        return is_telegram_id(self.telegram_id)
+
+    @property
     def display_name(self) -> str:
         if self.username:
             return f"@{self.username}"
-        return self.first_name or f"user_{self.telegram_id}"
+        return self.first_name or self.email or f"user_{self.telegram_id}"
 
     def __repr__(self) -> str:
         return f"<User tg={self.telegram_id} {self.display_name}>"

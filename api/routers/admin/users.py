@@ -63,6 +63,7 @@ async def list_users(
                 or_(
                     User.username.ilike(f"%{s}%", escape="\\"),
                     User.first_name.ilike(f"%{s}%", escape="\\"),
+                    User.email.ilike(f"%{s}%", escape="\\"),
                 )
             )
 
@@ -94,6 +95,7 @@ def _user_list_item(user: User) -> dict[str, Any]:
         "username": user.username,
         "first_name": user.first_name,
         "last_name": user.last_name,
+        "email": user.email,
         "photo_url": avatar_url(user.telegram_id),
         "balance": float(user.balance),
         "total_spent": float(user.total_spent),
@@ -157,6 +159,7 @@ async def get_user(
         "last_name": user.last_name,
         "language_code": user.language_code,
         "phone": user.phone,
+        "email": user.email,
         "photo_url": avatar_url(user.telegram_id),
         "referral_code": user.referral_code,
         "referred_by_id": user.referred_by_id,

@@ -45,18 +45,9 @@ class TelegramWidgetAuthIn(BaseModel):
     hash: str
 
 
-@router.post("/auth/telegram-widget", response_model=TokenResponse)
-@limiter.limit("5/minute")
-async def auth_telegram_widget(
-    request: Request,
-    body: TelegramWidgetAuthIn,
-    db: DbSession,
-):
-    """
-    Авторизация обычного пользователя на сайте через Telegram Login Widget.
-    Проверяет подпись, находит/создаёт пользователя, выдаёт те же JWT, что и Mini App.
-    """
-    # 1. Собираем поля для проверки подписи (только присутствующие)
+def verify_widget_body(body: TelegramWidgetAuthIn) -> None:
+    """Проверяет подпись и свежесть данных Login Widget, иначе 401."""
+    # Поля для проверки подписи (только присутствующие)
     fields: dict[str, str] = {
         "id": str(body.id),
         "first_name": body.first_name,
@@ -72,11 +63,25 @@ async def auth_telegram_widget(
     if not verify_login_widget(fields, body.hash, settings.BOT_TOKEN):
         raise HTTPException(status_code=401, detail="Невалидная подпись")
 
-    # 2. Свежесть (не старше 24 часов)
+    # Свежесть (не старше 24 часов)
     if time.time() - body.auth_date > 86400:
         raise HTTPException(status_code=401, detail="Данные авторизации устарели")
 
-    # 3. Находим/создаём пользователя (та же логика, что и в Mini App)
+
+@router.post("/auth/telegram-widget", response_model=TokenResponse)
+@limiter.limit("5/minute")
+async def auth_telegram_widget(
+    request: Request,
+    body: TelegramWidgetAuthIn,
+    db: DbSession,
+):
+    """
+    Авторизация обычного пользователя на сайте через Telegram Login Widget.
+    Проверяет подпись, находит/создаёт пользователя, выдаёт те же JWT, что и Mini App.
+    """
+    verify_widget_body(body)
+
+    # Находим/создаём пользователя (та же логика, что и в Mini App)
     user = await get_or_create_user(
         {
             "id": body.id,
@@ -89,6 +94,57 @@ async def auth_telegram_widget(
     if user.is_blocked:
         raise HTTPException(status_code=403, detail="Аккаунт заблокирован")
 
+    return TokenResponse(
+        access_token=create_access_token(user.telegram_id),
+        refresh_token=create_refresh_token(user.telegram_id),
+    )
+
+
+# ── Вход по почте (код из письма) ─────────────────────────────────────────────
+
+
+class EmailCodeRequestIn(BaseModel):
+    email: str = Field(..., max_length=254)
+
+
+class EmailCodeVerifyIn(BaseModel):
+    email: str = Field(..., max_length=254)
+    code: str = Field(..., max_length=12)
+
+
+@router.get("/auth/methods")
+async def auth_methods():
+    """Доступные способы входа на сайте (почта — только когда подключён Unisender Go)."""
+    return {"telegram": True, "email": bool(settings.UNISENDER_GO_API_KEY)}
+
+
+@router.post("/auth/email/request", status_code=204)
+@limiter.limit("5/minute")
+async def auth_email_request(request: Request, body: EmailCodeRequestIn):
+    """Отправляет код входа на почту. Новый адрес — будущая регистрация."""
+    from api.services import email_auth_service as eas
+
+    try:
+        await eas.send_code(eas.normalize_email(body.email), "login")
+    except eas.EmailAuthError as e:
+        raise HTTPException(e.status, e.message)
+
+
+@router.post("/auth/email/verify", response_model=TokenResponse)
+@limiter.limit("10/minute")
+async def auth_email_verify(request: Request, body: EmailCodeVerifyIn, db: DbSession):
+    """Проверяет код; находит или создаёт пользователя по почте и выдаёт JWT."""
+    from api.services import email_auth_service as eas
+
+    try:
+        email = eas.normalize_email(body.email)
+        await eas.check_code(email, body.code, "login")
+    except eas.EmailAuthError as e:
+        raise HTTPException(e.status, e.message)
+
+    user = await eas.get_or_create_email_user(db, email)
+    if user.is_blocked:
+        raise HTTPException(status_code=403, detail="Аккаунт заблокирован")
     return TokenResponse(
         access_token=create_access_token(user.telegram_id),
         refresh_token=create_refresh_token(user.telegram_id),

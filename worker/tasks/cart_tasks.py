@@ -109,6 +109,11 @@ def send_abandoned_cart_reminder(
 ):
     """Отправляет напоминание о брошенной корзине через Telegram Bot API."""
     import httpx
+    from shared.models import is_telegram_id
+
+    # Почтовым пользователям сайта рекламные напоминания не шлём
+    if not is_telegram_id(telegram_id):
+        return
     from bot.utils.texts import texts
 
     text = texts.abandoned_cart_reminder(items_count, total)

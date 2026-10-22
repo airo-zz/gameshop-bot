@@ -2,7 +2,7 @@
  * src/web/pages/WebGamePage.tsx
  * Страница игры на сайте: шапка игры, вкладки категорий, сетка товаров и
  * закреплённый блок корзины (десктоп) / нижняя панель (мобильный).
- * Покупка требует авторизации (Telegram Login Widget). Оформление — на /checkout.
+ * Покупка требует входа (почта или Telegram). Оформление — на /checkout.
  */
 
 import { useEffect, useMemo, useState } from 'react'
@@ -166,7 +166,7 @@ function CartSummary({ count, total }: { count: number; total: number }) {
       )}
       <ul className="mt-5 pt-5 border-t border-[var(--border)] space-y-2.5 text-sm text-[var(--text-2)]">
         <li className="flex items-center gap-2"><ShieldCheck size={18} className="text-[var(--hint)]" />Оплата через СБП, картой или криптовалютой</li>
-        <li className="flex items-center gap-2"><Headphones size={18} className="text-[var(--hint)]" />Поддержка операторов в Telegram</li>
+        <li className="flex items-center gap-2"><Headphones size={18} className="text-[var(--hint)]" />Онлайн-чат с оператором</li>
       </ul>
     </div>
   )

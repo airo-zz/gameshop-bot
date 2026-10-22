@@ -150,6 +150,16 @@ class StorageSettings(BaseSettings):
     S3_REGION: str = "us-east-1"
 
 
+class EmailSettings(BaseSettings):
+    # Unisender Go (транзакционные письма: коды входа, уведомления почтовым
+    # пользователям сайта). Без ключа письма не отправляются — пишутся в лог.
+    UNISENDER_GO_API_KEY: str = ""
+    # Хост зависит от аккаунта (go1/go2) — смотреть в кабинете Unisender Go
+    UNISENDER_GO_API_URL: str = "https://go1.unisender.ru/ru/transactional/api/v1"
+    EMAIL_FROM: str = "noreply@redonate.gg"
+    EMAIL_FROM_NAME: str = "reDonate"
+
+
 class AppSettings(BaseSettings):
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
@@ -179,6 +189,7 @@ class Settings(
     PaymentSettings,
     SecuritySettings,
     StorageSettings,
+    EmailSettings,
     AppSettings,
 ):
     """

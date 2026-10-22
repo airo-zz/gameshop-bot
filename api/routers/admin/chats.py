@@ -257,6 +257,7 @@ async def create_custom_lot(
         chat.user_id,
         _texts.custom_lot_created(body.title.strip(), body.price),
         lot_reply_markup,
+        email_path="/chat", email_button="Открыть чат",
     )
 
     log.info("admin.chat.custom_lot", chat_id=str(chat_id), admin_id=str(admin.id),
@@ -331,6 +332,18 @@ async def notify_user(
         raise HTTPException(status_code=404, detail="Чат не найден")
 
     notification_text = body.text or "У вас новое сообщение от продавца. Откройте чат для ответа."
+
+    from shared.models import is_telegram_id
+    if not is_telegram_id(chat.user_id):
+        # Пользователь сайта, вошедший по почте — письмо вместо бота
+        import html as _html
+        from api.telegram_utils import send_tg_message
+        await send_tg_message(
+            chat.user_id,
+            f"<b>Сообщение от продавца</b>\n\n{_html.escape(notification_text)}",
+            email_path="/chat", email_button="Открыть чат",
+        )
+        return
 
     payload: dict = {
         "chat_id": chat.user_id,

@@ -159,6 +159,9 @@ class ProfileOut(BaseModel):
     username: str | None
     first_name: str
     photo_url: str | None = None
+    # Вход на сайте по почте: email (если привязан) и есть ли Telegram
+    email: str | None = None
+    has_telegram: bool = True
     balance: Decimal
     orders_count: int
     total_spent: Decimal

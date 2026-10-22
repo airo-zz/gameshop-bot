@@ -84,6 +84,9 @@ async def get_avatar(telegram_id: int):
     return FileResponse(img, media_type="image/jpeg", headers={"Cache-Control": "public, max-age=3600"})
 
 
-def avatar_url(telegram_id: int) -> str:
-    """Публичный путь аватара (без токена). Работает и для сайта, и для miniapp."""
+def avatar_url(telegram_id: int) -> str | None:
+    """Публичный путь аватара (без токена). Работает и для сайта, и для miniapp.
+    У пользователей сайта без Telegram аватара нет — None."""
+    if telegram_id <= 0:
+        return None
     return f"/api/v1/avatar/{telegram_id}"

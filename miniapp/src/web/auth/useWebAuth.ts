@@ -1,12 +1,13 @@
 /**
  * src/web/auth/useWebAuth.ts
- * Авторизация пользователя на сайте (через Telegram Login Widget).
+ * Авторизация пользователя на сайте: Telegram Login Widget или код из письма.
  * Состояние = наличие профиля в кэше React Query. Токены хранит client.ts
  * (localStorage в браузерном режиме).
  */
 
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
+  authenticateWithEmail,
   authenticateWithTelegramWidget,
   clearTokens,
   hasStoredToken,
@@ -33,6 +34,17 @@ export function useWebAuth() {
     qc.setQueryData(PROFILE_KEY, profile)
   }
 
+  async function loginWithEmail(email: string, code: string): Promise<void> {
+    await authenticateWithEmail(email, code)
+    const profile = await profileApi.get()
+    qc.setQueryData(PROFILE_KEY, profile)
+  }
+
+  /** Перечитать профиль (после привязки почты/Telegram). */
+  async function refresh(): Promise<void> {
+    qc.setQueryData(PROFILE_KEY, await profileApi.get())
+  }
+
   function logout(): void {
     clearTokens()
     qc.setQueryData(PROFILE_KEY, null)
@@ -44,6 +56,8 @@ export function useWebAuth() {
     isAuthenticated: !!user,
     ready: !isLoading,
     login,
+    loginWithEmail,
+    refresh,
     logout,
   }
 }

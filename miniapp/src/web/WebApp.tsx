@@ -2,7 +2,7 @@
  * src/web/WebApp.tsx
  * Корневой компонент публичного сайта (web-сборка, base /).
  * Изолирован от Telegram-инициализации App.tsx — никакого initData/splash.
- * Каталог публичен, авторизация (Telegram Login Widget) добавится в фазе web-auth.
+ * Каталог публичен; вход — по коду из письма или через Telegram Login Widget.
  */
 
 import { lazy, Suspense } from 'react'
@@ -25,6 +25,7 @@ const WebOrderPage = lazy(() => import('./pages/WebOrderPage'))
 const WebOrdersPage = lazy(() => import('./pages/WebOrdersPage'))
 const WebBalancePage = lazy(() => import('./pages/WebBalancePage'))
 const WebProfilePage = lazy(() => import('./pages/WebProfilePage'))
+const WebChatPage = lazy(() => import('./pages/WebChatPage'))
 
 export default function WebApp() {
   return (
@@ -57,6 +58,7 @@ export default function WebApp() {
           <Route path="orders" element={<RequireWebAuth><Suspense fallback={null}><WebOrdersPage /></Suspense></RequireWebAuth>} />
           <Route path="orders/:id" element={<RequireWebAuth><Suspense fallback={null}><WebOrderPage /></Suspense></RequireWebAuth>} />
           <Route path="balance" element={<RequireWebAuth><Suspense fallback={null}><WebBalancePage /></Suspense></RequireWebAuth>} />
+          <Route path="chat" element={<RequireWebAuth><Suspense fallback={null}><WebChatPage /></Suspense></RequireWebAuth>} />
           <Route path="profile" element={<RequireWebAuth><Suspense fallback={null}><WebProfilePage /></Suspense></RequireWebAuth>} />
           <Route path="referrals" element={<Navigate to="/profile" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -808,11 +808,10 @@ class OrderService:
             logging.getLogger(__name__).warning("_notify_admins_new_order error: %s", exc)
 
     async def _notify_user(self, order: Order, text: str) -> None:
-        """Отправляет уведомление пользователю через Telegram Bot API. Не критично — не прерывает flow."""
+        """Уведомление владельцу заказа: бот, а почтовому пользователю — письмо. Не критично."""
         try:
-            import httpx
             from sqlalchemy.orm import selectinload as _sil
-            from shared.config import settings
+            from api.telegram_utils import send_tg_message
 
             result = await self.db.execute(
                 select(Order)
@@ -823,34 +822,19 @@ class OrderService:
             if not order_with_user:
                 return
 
-            telegram_id = order_with_user.user.telegram_id
-            url = f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage"
-            async with httpx.AsyncClient(timeout=10) as client:
-                await client.post(url, json={
-                    "chat_id": telegram_id,
-                    "text": text,
-                    "parse_mode": "HTML",
-                })
+            await send_tg_message(
+                order_with_user.user.telegram_id, text,
+                email_path=f"/orders/{order.id}", email_button="Открыть заказ",
+            )
         except Exception as exc:
             import logging
             logging.getLogger(__name__).warning("Не удалось отправить уведомление: %s", exc)
 
     async def _send_telegram(self, telegram_id: int, text: str) -> None:
         """Сообщение произвольному пользователю (не владельцу заказа). Не критично."""
-        try:
-            import httpx
-            from shared.config import settings
+        from api.telegram_utils import send_tg_message
 
-            url = f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage"
-            async with httpx.AsyncClient(timeout=10) as client:
-                await client.post(url, json={
-                    "chat_id": telegram_id,
-                    "text": text,
-                    "parse_mode": "HTML",
-                })
-        except Exception as exc:
-            import logging
-            logging.getLogger(__name__).warning("Не удалось отправить уведомление: %s", exc)
+        await send_tg_message(telegram_id, text)
 
     # ── Helpers ───────────────────────────────────────────────────────────────
 

@@ -1,11 +1,14 @@
 """api/routers/profile.py"""
 from decimal import Decimal
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query, Request
+from pydantic import BaseModel, Field
 from sqlalchemy import select, func
 
-from api.deps import CurrentUser, DbSession
-from api.schemas.cart import ProfileOut
+from api.deps import CurrentUser, DbSession, create_access_token, create_refresh_token
+from api.rate_limit import limiter
+from api.routers.payments import TelegramWidgetAuthIn, verify_widget_body
+from api.schemas.cart import ProfileOut, TokenResponse
 from api.services.loyalty_service import (
     REFERRAL_BONUS_KEY, REFERRAL_DISCOUNT_KEY, REFERRAL_THRESHOLD_KEY, LoyaltyService,
 )
@@ -35,6 +38,8 @@ async def get_profile(db: DbSession, user: CurrentUser):
         username=user_full.username,
         first_name=user_full.first_name,
         photo_url=avatar_url(user_full.telegram_id),
+        email=user_full.email,
+        has_telegram=user_full.has_telegram,
         balance=user_full.balance,
         orders_count=user_full.orders_count,
         total_spent=user_full.total_spent,
@@ -145,3 +150,60 @@ async def get_balance_history(
         }
         for t in transactions
     ]
+
+
+# ── Привязка почты и Telegram ────────────────────────────────────────────────
+
+
+class LinkEmailRequestIn(BaseModel):
+    email: str = Field(..., max_length=254)
+
+
+class LinkEmailVerifyIn(BaseModel):
+    email: str = Field(..., max_length=254)
+    code: str = Field(..., max_length=12)
+
+
+@router.post("/email/request", status_code=204)
+@limiter.limit("5/minute")
+async def link_email_request(request: Request, body: LinkEmailRequestIn, user: CurrentUser):
+    """Код подтверждения для привязки почты к текущему аккаунту."""
+    from api.services import email_auth_service as eas
+
+    try:
+        await eas.send_code(eas.normalize_email(body.email), "link")
+    except eas.EmailAuthError as e:
+        raise HTTPException(e.status, e.message)
+
+
+@router.post("/email/verify", status_code=204)
+@limiter.limit("10/minute")
+async def link_email_verify(request: Request, body: LinkEmailVerifyIn, db: DbSession, user: CurrentUser):
+    from api.services import email_auth_service as eas
+
+    try:
+        email = eas.normalize_email(body.email)
+        await eas.check_code(email, body.code, "link")
+        await eas.attach_email(db, user, email)
+    except eas.EmailAuthError as e:
+        raise HTTPException(e.status, e.message)
+
+
+@router.post("/link-telegram", response_model=TokenResponse)
+@limiter.limit("5/minute")
+async def link_telegram(request: Request, body: TelegramWidgetAuthIn, db: DbSession, user: CurrentUser):
+    """
+    Привязка Telegram к аккаунту, созданному по почте. ID пользователя в токенах
+    меняется на настоящий Telegram ID — возвращаем новые токены.
+    """
+    from api.services import email_auth_service as eas
+
+    verify_widget_body(body)
+    try:
+        await eas.link_telegram(db, user, body.model_dump())
+    except eas.EmailAuthError as e:
+        raise HTTPException(e.status, e.message)
+    return TokenResponse(
+        access_token=create_access_token(user.telegram_id),
+        refresh_token=create_refresh_token(user.telegram_id),
+    )

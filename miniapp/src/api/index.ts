@@ -5,7 +5,7 @@
  * ─────────────────────────────────────────────────────────────────────────
  */
 
-import { apiClient } from './client'
+import { apiClient, type TelegramWidgetUser } from './client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -183,6 +183,9 @@ export interface Profile {
   username: string | null
   first_name: string
   photo_url: string | null
+  /** Почта (вход на сайте по коду); у пользователей без Telegram has_telegram=false */
+  email: string | null
+  has_telegram: boolean
   balance: number
   orders_count: number
   total_spent: number
@@ -353,6 +356,17 @@ export interface ReferralStats {
 export const profileApi = {
   get: () =>
     apiClient.get<Profile>('/profile').then(r => r.data),
+
+  /** Привязка почты к аккаунту: код на почту → подтверждение */
+  requestEmailLink: (email: string) =>
+    apiClient.post('/profile/email/request', { email }).then(() => undefined),
+
+  verifyEmailLink: (email: string, code: string) =>
+    apiClient.post('/profile/email/verify', { email, code }).then(() => undefined),
+
+  /** Привязка Telegram к аккаунту по почте — возвращает новые токены */
+  linkTelegram: (data: TelegramWidgetUser) =>
+    apiClient.post<{ access_token: string; refresh_token: string }>('/profile/link-telegram', data).then(r => r.data),
 
   getBalanceHistory: () =>
     apiClient.get<BalanceTransaction[]>('/profile/balance-history').then(r => r.data),

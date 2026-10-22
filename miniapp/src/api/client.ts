@@ -150,6 +150,22 @@ export async function authenticateWithTelegramWidget(user: TelegramWidgetUser): 
   setTokens(res.data.access_token, res.data.refresh_token)
 }
 
+// ── Вход на сайте по коду из письма ──────────────────────────────────────────
+export async function requestEmailCode(email: string): Promise<void> {
+  await axios.post(`${BASE_URL}/payments/auth/email/request`, { email })
+}
+
+export async function authenticateWithEmail(email: string, code: string): Promise<void> {
+  const res = await axios.post(`${BASE_URL}/payments/auth/email/verify`, { email, code })
+  setTokens(res.data.access_token, res.data.refresh_token)
+}
+
+/** Способы входа на сайте (почта доступна, когда подключена отправка писем). */
+export async function getAuthMethods(): Promise<{ telegram: boolean; email: boolean }> {
+  const res = await axios.get(`${BASE_URL}/payments/auth/methods`)
+  return res.data
+}
+
 /** Есть ли сохранённый access-токен (для веб-режима — залогинен ли пользователь). */
 export function hasStoredToken(): boolean {
   return !!accessToken

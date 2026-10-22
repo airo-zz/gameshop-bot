@@ -653,6 +653,7 @@ class PaymentService:
         await send_tg_message(
             user.telegram_id,
             texts.balance_topup_success(float(amount), float(user.balance)),
+            email_path="/balance", email_button="Открыть баланс",
         )
 
     async def _notify_user_payment_success(self, order: Order) -> None:
@@ -696,6 +697,7 @@ class PaymentService:
                 telegram_id,
                 texts.order_paid(order.order_number),
                 reply_markup=reply_markup,
+                email_path=f"/orders/{order.id}", email_button="Открыть заказ",
             )
 
         # Системное сообщение в чат
