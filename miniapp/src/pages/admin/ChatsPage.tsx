@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MessageSquare } from 'lucide-react'
+import { MessageSquare } from '@/components/ui/icons'
 import { adminApi, type AdminChatListItem } from '@/api/admin'
 import { ADMIN_COLORS } from './OrdersPage'
 
@@ -104,8 +104,8 @@ export default function ChatsPage() {
               style={{
                 height: 72,
                 borderRadius: 12,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                background: 'rgba(220,235,255,0.05)',
+                border: '1px solid rgba(220,235,255,0.06)',
                 animation: 'pulse 1.5s ease infinite',
               }}
             />
@@ -122,7 +122,7 @@ export default function ChatsPage() {
         <p style={{ color: '#f87171' }}>{error}</p>
         <button
           onClick={() => fetchChats()}
-          style={{ marginTop: 12, padding: '8px 16px', borderRadius: 8, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer' }}
+          style={{ marginTop: 12, padding: '8px 16px', borderRadius: 8, background: 'rgba(220,235,255,0.1)', border: '1px solid rgba(220,235,255,0.15)', color: '#fff', cursor: 'pointer' }}
         >
           Повторить
         </button>
@@ -152,9 +152,9 @@ export default function ChatsPage() {
               cursor: 'pointer',
               transition: 'all 0.15s',
               background: filterMode === f.key
-                ? 'rgba(255,255,255,0.15)'
-                : 'rgba(255,255,255,0.05)',
-              color: filterMode === f.key ? '#fff' : 'rgba(255,255,255,0.5)',
+                ? 'rgba(220,235,255,0.15)'
+                : 'rgba(220,235,255,0.05)',
+              color: filterMode === f.key ? '#fff' : 'rgba(220,235,255,0.5)',
             }}
           >
             {f.label}
@@ -165,7 +165,7 @@ export default function ChatsPage() {
       {chats.length === 0 ? (
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
-          padding: '48px 0', gap: 12, color: 'rgba(255,255,255,0.35)',
+          padding: '48px 0', gap: 12, color: 'rgba(220,235,255,0.35)',
         }}>
           <MessageSquare size={40} style={{ opacity: 0.3 }} />
           <p style={{ margin: 0, fontSize: 14 }}>Нет чатов</p>
@@ -186,10 +186,10 @@ export default function ChatsPage() {
                   padding: '12px 14px', borderRadius: 12,
                   background: chat.admin_unread_count > 0
                     ? 'rgba(37,99,235,0.12)'
-                    : 'rgba(255,255,255,0.04)',
+                    : 'rgba(220,235,255,0.04)',
                   border: chat.admin_unread_count > 0
                     ? '1px solid rgba(96,165,250,0.2)'
-                    : '1px solid rgba(255,255,255,0.06)',
+                    : '1px solid rgba(220,235,255,0.06)',
                   cursor: 'pointer', textAlign: 'left', width: '100%',
                   transition: 'background 0.15s',
                 }}
@@ -213,7 +213,7 @@ export default function ChatsPage() {
                     }}>
                       {getUserLabel(chat.user)}
                     </span>
-                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>
+                    <span style={{ fontSize: 11, color: 'rgba(220,235,255,0.35)', flexShrink: 0 }}>
                       {formatTime(chat.last_message_at)}
                     </span>
                   </div>
@@ -230,10 +230,10 @@ export default function ChatsPage() {
                       <span style={{ fontSize: 10, color: 'rgba(147,197,253,0.9)', fontWeight: 600 }}>
                         #{chat.order.order_number}
                       </span>
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>
+                      <span style={{ fontSize: 10, color: 'rgba(220,235,255,0.4)' }}>
                         {STATUS_LABELS[chat.order.status] ?? chat.order.status}
                       </span>
-                      <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>
+                      <span style={{ fontSize: 10, color: 'rgba(220,235,255,0.5)' }}>
                         {formatMoney(chat.order.total_amount)}
                       </span>
                       {!chat.order.assigned_admin_id && (
@@ -250,7 +250,7 @@ export default function ChatsPage() {
 
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 2 }}>
                     <span style={{
-                      fontSize: 13, color: 'rgba(255,255,255,0.45)',
+                      fontSize: 13, color: 'rgba(220,235,255,0.45)',
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>
                       {chat.last_message_preview || 'Нет сообщений'}

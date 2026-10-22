@@ -422,9 +422,11 @@ class OrderService:
             select(User).where(User.id == user.id).with_for_update()
         )).scalar_one()
         base = order.subtotal - order.discount_amount
-        hold = min(locked.balance, base).quantize(Decimal("0.01"))
-        if hold <= 0:
+        # Доплата — только когда баланса НЕ хватает на весь заказ; иначе это
+        # обычная оплата балансом (отдельный способ), шлюз получает полную сумму.
+        if locked.balance <= 0 or locked.balance >= base:
             return Decimal("0")
+        hold = locked.balance.quantize(Decimal("0.01"))
         balance_before = locked.balance
         locked.balance -= hold
         self.db.add(BalanceTransaction(

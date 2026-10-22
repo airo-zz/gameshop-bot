@@ -1,158 +1,240 @@
 /**
  * src/web/pages/WebHomePage.tsx
- * Публичная главная redonate.su — лендинг + витрина игр.
- * Данные игр — реальные (catalogApi.getGames). Покупка пока ведёт в Telegram;
- * веб-чекаут появится в следующей фазе.
+ * Главная redonate.su: первый экран с обложками игр, популярное, каталог,
+ * кэшбэк, как это работает, способы оплаты, вопросы.
  */
 
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Zap, ShieldCheck, Headphones, BadgePercent, Send, ChevronDown, ShoppingBag } from '@/components/ui/icons'
-import { catalogApi } from '@/api'
-import { MINIAPP_URL, SHOP_NAME } from '@/config/appTarget'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import {
+  ChevronDown, ChevronRight, Search, Smartphone, CreditCard, Bitcoin, Wallet, Zap, ShieldCheck, Headphones,
+} from '@/components/ui/icons'
+import { catalogApi, type Game } from '@/api'
+import { normalizeImageUrl } from '@/utils/imageUrl'
 import GameCard from '@/web/components/GameCard'
+import { EASE, Reveal, Stagger, StaggerItem } from '@/web/components/Motion'
 
-// ── Hero ──────────────────────────────────────────────────────────────────────
+const cover = (g: Game) => (g.image_url ? normalizeImageUrl(g.image_url) ?? g.image_url : null)
 
-function Hero() {
-  return (
-    <section className="relative overflow-hidden">
-      <div className="web-container relative pt-20 pb-16 md:pt-28 md:pb-24 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[var(--bg2)] px-3.5 py-1.5 text-xs text-[var(--text-2)] mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          Моментальная выдача · СБП, карта, крипта
-        </div>
+// ── Первый экран ──────────────────────────────────────────────────────────────
 
-        <h1 className="text-4xl md:text-6xl font-bold text-white leading-[1.05] tracking-tight">
-          Игровой донат
-          <br />
-          <span style={{ color: 'var(--link)' }}>
-            быстро и безопасно
-          </span>
-        </h1>
+function Hero({ games }: { games: Game[] }) {
+  const navigate = useNavigate()
+  const reduce = useReducedMotion()
+  const [q, setQ] = useState('')
+  const covers = games.filter(cover).slice(0, 6)
 
-        <p className="mt-6 text-base md:text-lg text-[var(--hint)] max-w-2xl mx-auto leading-relaxed">
-          Пополняй любимые игры за пару минут. Честные цены, проверенные способы оплаты
-          и живая поддержка на каждом шаге.
-        </p>
-
-        <div className="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link
-            to="/catalog"
-            className="inline-flex items-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold text-white transition-all active:scale-[0.97] hover:brightness-110 w-full sm:w-auto justify-center"
-            style={{ background: 'var(--gradient-primary)' }}
-          >
-            <ShoppingBag size={17} />
-            Перейти в каталог
-          </Link>
-          <a
-            href={MINIAPP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold text-[var(--text-2)] border border-white/10 bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-all active:scale-[0.97] w-full sm:w-auto justify-center"
-          >
-            <Send size={17} />
-            Открыть в Telegram
-          </a>
-        </div>
-        <p className="mt-5 text-xs text-[var(--hint)]">Оплата через СБП, банковской картой или криптовалютой</p>
-      </div>
-    </section>
-  )
-}
-
-// ── Преимущества ────────────────────────────────────────────────────────────
-
-const FEATURES = [
-  { icon: Zap, title: 'Моментально', text: 'Автовыдача ключей и кодов сразу после оплаты — без ожидания.' },
-  { icon: ShieldCheck, title: 'Безопасно', text: 'Проверенные платёжные системы и защита каждой транзакции.' },
-  { icon: BadgePercent, title: 'Выгодно', text: 'Честные цены, скидки по уровням лояльности и промокоды.' },
-  { icon: Headphones, title: 'Поддержка 24/7', text: 'Живые операторы помогут с любым вопросом в любое время.' },
-]
-
-function Features() {
-  return (
-    <section className="web-container py-12 md:py-16">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {FEATURES.map((f) => (
-          <div
-            key={f.title}
-            className="rounded-2xl border border-white/[0.06] bg-[var(--bg2)] p-5 hover:bg-[var(--bg2)] transition-colors"
-          >
-            <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-              style={{ background: 'rgba(37,99,235,0.15)', color: 'var(--link)' }}
-            >
-              <f.icon size={20} />
-            </div>
-            <h3 className="text-base font-semibold text-white mb-1.5">{f.title}</h3>
-            <p className="text-sm text-[var(--hint)] leading-relaxed">{f.text}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-// ── Витрина игр ─────────────────────────────────────────────────────────────
-
-function Catalog() {
-  const [tab, setTab] = useState<'game' | 'service'>('game')
-  const { data: all, isLoading, isError } = useQuery({
-    queryKey: ['web', 'games', 'all'],
-    queryFn: () => catalogApi.getGames(),
-    staleTime: 5 * 60_000,
+  const item = (i: number) => ({
+    initial: reduce ? false : { opacity: 0, y: 16 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.6, ease: EASE, delay: 0.06 * i },
   })
-  const hasServices = (all ?? []).some((g) => g.type === 'service')
-  const games = (all ?? []).filter((g) => (tab === 'service' ? g.type === 'service' : g.type !== 'service'))
 
   return (
-    <section id="catalog" className="web-container py-12 md:py-16 scroll-mt-20">
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-7">
+    <section className="web-container pt-12 md:pt-20 pb-12 md:pb-16">
+      <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-14 items-center">
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold text-white">Каталог</h2>
-          <p className="text-sm text-[var(--hint)] mt-1.5">Выберите игру или сервис — оформление на сайте за пару минут.</p>
+          <motion.h1 {...item(0)} className="text-[2.25rem] leading-[1.08] md:text-[3.25rem] text-[var(--text)]" style={{ margin: 0 }}>
+            Донат в игры<br />за пару минут
+          </motion.h1>
+          <motion.p {...item(1)} className="mt-5 text-base md:text-lg text-[var(--text-2)] max-w-md leading-relaxed">
+            Валюта, пропуски и наборы для мобильных и PC-игр, Telegram Stars и Premium.
+            Платите СБП, картой или криптой — и получайте кэшбэк на баланс.
+          </motion.p>
+
+          <motion.form
+            {...item(2)}
+            onSubmit={(e) => { e.preventDefault(); navigate(q.trim() ? `/catalog?q=${encodeURIComponent(q.trim())}` : '/catalog') }}
+            className="mt-8 flex items-center gap-2 max-w-md h-14 pl-4 pr-2 rounded-2xl bg-[var(--bg2)] border border-transparent focus-within:border-[var(--accent)] transition-colors"
+            role="search"
+          >
+            <Search size={20} className="text-[var(--hint)] shrink-0" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Какую игру пополнить?"
+              aria-label="Какую игру пополнить?"
+              className="flex-1 min-w-0 bg-transparent outline-none text-base text-[var(--text)] placeholder:text-[var(--hint)]"
+            />
+            <button type="submit" className="h-10 px-4 rounded-xl text-sm font-semibold text-[var(--text)] bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors">
+              Найти
+            </button>
+          </motion.form>
+
+          <motion.ul {...item(3)} className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--hint)]">
+            <li className="flex items-center gap-1.5"><Zap size={16} className="text-[var(--link)]" />Автовыдача</li>
+            <li className="flex items-center gap-1.5"><ShieldCheck size={16} className="text-[var(--link)]" />Безопасная оплата</li>
+            <li className="flex items-center gap-1.5"><Headphones size={16} className="text-[var(--link)]" />Живая поддержка</li>
+          </motion.ul>
         </div>
-        {hasServices && (
-          <div className="inline-flex rounded-xl border border-white/10 bg-[var(--bg2)] p-1">
-            {(['game', 'service'] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={'px-4 py-2 rounded-lg text-sm font-semibold transition-colors ' + (tab === t ? 'text-white' : 'text-[var(--hint)] hover:text-[var(--text-2)]')}
-                style={tab === t ? { background: 'rgba(37,99,235,0.35)' } : {}}
+
+        {/* Стена обложек — реальные игры из каталога */}
+        {covers.length >= 3 && (
+          <div className="grid grid-cols-3 gap-3 md:gap-4 pb-7">
+            {covers.map((g, i) => (
+              <motion.div
+                key={g.id}
+                className={i >= 3 ? 'hidden lg:block' : ''}
+                initial={reduce ? false : { opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: i % 3 === 1 ? 28 : 0 }}
+                transition={{ duration: 0.7, ease: EASE, delay: 0.15 + 0.07 * i }}
               >
-                {t === 'game' ? 'Игры' : 'Сервисы'}
-              </button>
+                <Link
+                  to={`/game/${g.slug}`}
+                  className="group block aspect-[3/4] rounded-2xl overflow-hidden bg-[var(--bg2)]"
+                  style={{ boxShadow: 'inset 0 0 0 1px var(--border)' }}
+                >
+                  <img
+                    src={cover(g)!}
+                    alt={g.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                  />
+                </Link>
+              </motion.div>
             ))}
           </div>
         )}
       </div>
+    </section>
+  )
+}
+
+// ── Популярное ────────────────────────────────────────────────────────────────
+
+function Popular() {
+  const { data: trending = [] } = useQuery({
+    queryKey: ['web', 'trending-categories'],
+    queryFn: catalogApi.getTrendingCategories,
+    staleTime: 5 * 60_000,
+  })
+  if (!trending.length) return null
+  return (
+    <section className="web-container py-10 md:py-12">
+      <Reveal>
+        <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Популярное</h2>
+      </Reveal>
+      <Stagger className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+        {trending.slice(0, 8).map((c) => {
+          const img = normalizeImageUrl(c.game_image_url)
+          return (
+            <StaggerItem key={c.id}>
+              <Link
+                to={`/game/${c.game_slug}?cat=${c.id}`}
+                className="group flex items-center gap-3 p-3 rounded-2xl bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors"
+              >
+                <div className="w-14 h-14 rounded-xl overflow-hidden bg-[var(--bg3)] shrink-0">
+                  {img && <img src={img} alt="" className="w-full h-full object-cover" />}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-[var(--text)] truncate">{c.name}</p>
+                  <p className="text-xs text-[var(--hint)] truncate mt-0.5">{c.game_name}</p>
+                </div>
+              </Link>
+            </StaggerItem>
+          )
+        })}
+      </Stagger>
+    </section>
+  )
+}
+
+// ── Каталог ───────────────────────────────────────────────────────────────────
+
+function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean; isError: boolean }) {
+  const [tab, setTab] = useState<'game' | 'service'>('game')
+  const hasServices = all.some((g) => g.type === 'service')
+  const games = all.filter((g) => (tab === 'service' ? g.type === 'service' : g.type !== 'service'))
+
+  return (
+    <section id="catalog" className="web-container py-10 md:py-12 scroll-mt-20">
+      <Reveal className="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Каталог</h2>
+        {hasServices && (
+          <div className="inline-flex rounded-xl bg-[var(--bg2)] p-1">
+            {(['game', 'service'] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={'relative px-4 h-9 rounded-lg text-sm font-medium transition-colors ' + (tab === t ? 'text-[var(--text)]' : 'text-[var(--hint)] hover:text-[var(--text-2)]')}
+              >
+                {tab === t && (
+                  <motion.span layoutId="web-cat-tab" className="absolute inset-0 rounded-lg bg-[var(--bg3)]" transition={{ duration: 0.25, ease: EASE }} />
+                )}
+                <span className="relative">{t === 'game' ? 'Игры' : 'Сервисы'}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </Reveal>
 
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="rounded-2xl border border-white/[0.06] bg-[var(--bg2)] overflow-hidden">
-              <div className="aspect-[4/3] animate-pulse bg-[var(--bg2)]" />
-              <div className="p-3.5 space-y-2">
-                <div className="h-3.5 w-2/3 rounded animate-pulse bg-[var(--bg3)]" />
-                <div className="h-2.5 w-1/3 rounded animate-pulse bg-[var(--bg2)]" />
-              </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i}>
+              <div className="aspect-square rounded-2xl animate-pulse bg-[var(--bg2)]" />
+              <div className="h-3.5 w-2/3 rounded mt-3 animate-pulse bg-[var(--bg2)]" />
             </div>
           ))}
         </div>
       ) : isError ? (
-        <p className="text-sm text-[var(--hint)] py-10 text-center">Не удалось загрузить каталог</p>
-      ) : !games || games.length === 0 ? (
+        <p className="text-sm text-[var(--hint)] py-10 text-center">Не удалось загрузить каталог — обновите страницу</p>
+      ) : games.length === 0 ? (
         <p className="text-sm text-[var(--hint)] py-10 text-center">Скоро здесь появятся игры</p>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <Stagger key={tab} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-6">
           {games.map((g) => (
-            <GameCard key={g.id} game={g} />
+            <StaggerItem key={g.id}><GameCard game={g} /></StaggerItem>
           ))}
-        </div>
+        </Stagger>
       )}
+    </section>
+  )
+}
+
+// ── Кэшбэк ────────────────────────────────────────────────────────────────────
+
+function Cashback() {
+  const { data } = useQuery({ queryKey: ['web', 'loyalty'], queryFn: catalogApi.getLoyaltyProgram, staleTime: 10 * 60_000 })
+  const levels = data?.levels ?? []
+  if (!levels.length) return null
+  const max = levels[levels.length - 1]
+  return (
+    <section className="web-container py-10 md:py-12">
+      <Reveal>
+        <div className="rounded-3xl bg-[var(--bg2)] p-6 md:p-10 grid md:grid-cols-[1fr_1.1fr] gap-8 items-center">
+          <div>
+            <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">
+              Возвращаем до {max.cashback_percent}% кэшбэком
+            </h2>
+            <p className="mt-3 text-[var(--text-2)] leading-relaxed max-w-md">
+              {levels.length} уровней по тратам за месяц. Кэшбэк приходит на баланс после каждого выполненного
+              заказа, а достигнутый уровень держится и весь следующий месяц.
+            </p>
+            <Link to="/cashback" className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--link)] hover:text-[var(--text)] transition-colors">
+              Все уровни и условия <ChevronRight size={16} />
+            </Link>
+          </div>
+          {/* Лестница уровней: высота столбика = процент кэшбэка */}
+          <div className="flex items-end gap-1.5 md:gap-2 h-48" aria-label="Уровни кэшбэка">
+            {levels.map((lv, i) => (
+              <div key={lv.name} className="flex-1 min-w-0 flex flex-col items-center justify-end gap-2 h-full" title={`${lv.name}: от ${lv.min_spent.toLocaleString('ru')} ₽ в месяц`}>
+                <span className="text-[11px] num text-[var(--text-2)]">{lv.cashback_percent}%</span>
+                <motion.div
+                  className="w-full rounded-md"
+                  style={{ background: lv.color_hex, transformOrigin: 'bottom', height: `${(lv.cashback_percent / max.cashback_percent) * 128}px` }}
+                  initial={{ scaleY: 0 }}
+                  whileInView={{ scaleY: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.6, ease: EASE, delay: 0.05 * i }}
+                />
+                <span className="text-[10px] text-[var(--hint)] truncate max-w-full hidden sm:block">{lv.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Reveal>
     </section>
   )
 }
@@ -160,101 +242,107 @@ function Catalog() {
 // ── Как это работает ──────────────────────────────────────────────────────────
 
 const STEPS = [
-  { n: '01', title: 'Выберите игру', text: 'Найдите нужную игру и товар в каталоге.' },
-  { n: '02', title: 'Оплатите удобно', text: 'СБП, картой, криптовалютой или с баланса — как удобнее.' },
-  { n: '03', title: 'Получите сразу', text: 'Автовыдача или помощь оператора без задержек.' },
+  { title: 'Выберите игру и пакет', text: 'Найдите игру в каталоге и добавьте нужный набор в корзину.' },
+  { title: 'Оплатите удобным способом', text: 'СБП, карта, криптовалюта или баланс — можно и частично с баланса.' },
+  { title: 'Получите товар', text: 'Автовыдача приходит сразу, остальное оператор выдаёт в чате.' },
 ]
 
 function HowItWorks() {
   return (
-    <section id="how" className="web-container py-12 md:py-16 scroll-mt-20">
-      <h2 className="text-2xl md:text-3xl font-bold text-white text-center">Как это работает</h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-9">
-        {STEPS.map((s) => (
-          <div key={s.n} className="rounded-2xl border border-white/[0.06] bg-[var(--bg2)] p-6">
-            <div className="text-3xl font-bold" style={{ color: 'var(--link)', opacity: 0.9 }}>{s.n}</div>
-            <h3 className="text-lg font-semibold text-white mt-3">{s.title}</h3>
-            <p className="text-sm text-[var(--hint)] mt-1.5 leading-relaxed">{s.text}</p>
-          </div>
+    <section id="how" className="web-container py-10 md:py-12 scroll-mt-20">
+      <Reveal>
+        <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Как это работает</h2>
+      </Reveal>
+      <Stagger className="mt-6 grid md:grid-cols-3 gap-4">
+        {STEPS.map((s, i) => (
+          <StaggerItem key={s.title} className="h-full">
+            <div className="h-full rounded-2xl bg-[var(--bg2)] p-6">
+              <span className="inline-flex w-8 h-8 rounded-lg items-center justify-center text-sm font-semibold num bg-[var(--bg3)] text-[var(--text)]">
+                {i + 1}
+              </span>
+              <h3 className="mt-4 text-lg font-semibold text-[var(--text)]">{s.title}</h3>
+              <p className="mt-1.5 text-sm text-[var(--text-2)] leading-relaxed">{s.text}</p>
+            </div>
+          </StaggerItem>
         ))}
-      </div>
+      </Stagger>
+
+      {/* Способы оплаты */}
+      <Reveal className="mt-4">
+        <div className="rounded-2xl bg-[var(--bg2)] px-6 py-5 flex flex-wrap items-center gap-x-8 gap-y-3">
+          <span className="text-sm text-[var(--hint)]">Принимаем</span>
+          {[
+            { Icon: Smartphone, label: 'СБП' },
+            { Icon: CreditCard, label: 'Visa, Mastercard, МИР' },
+            { Icon: Bitcoin, label: 'USDT, TON, BTC' },
+            { Icon: Wallet, label: 'Баланс магазина' },
+          ].map(({ Icon, label }) => (
+            <span key={label} className="flex items-center gap-2 text-sm text-[var(--text)]">
+              <Icon size={20} className="text-[var(--hint)]" /> {label}
+            </span>
+          ))}
+        </div>
+      </Reveal>
     </section>
   )
 }
 
-// ── FAQ ─────────────────────────────────────────────────────────────────────
+// ── Вопросы ───────────────────────────────────────────────────────────────────
 
 const FAQ = [
-  { q: 'Как быстро приходит товар?', a: 'Товары с автовыдачей приходят моментально после оплаты. В остальных случаях оператор обрабатывает заказ в кратчайшие сроки.' },
-  { q: 'Какие способы оплаты доступны?', a: 'СБП, банковские карты (Visa, Mastercard, МИР), криптовалюта (USDT, TON, BTC и др.) и внутренний баланс — его можно пополнить в личном кабинете.' },
-  { q: 'Нужна ли регистрация?', a: 'Вход — в один клик через Telegram. Заказы, баланс и бонусы общие для сайта и Telegram-бота.' },
-  { q: 'Это безопасно?', a: 'Да. Мы используем проверенные платёжные системы, а все транзакции защищены.' },
-  { q: 'Что делать, если возникла проблема?', a: 'Напишите в поддержку — операторы на связи 24/7 и помогут решить любой вопрос.' },
+  { q: 'Как быстро приходит товар?', a: 'Товары с автовыдачей приходят сразу после оплаты. Остальные заказы оператор обрабатывает в чате, обычно за несколько минут.' },
+  { q: 'Какие способы оплаты доступны?', a: 'СБП, банковские карты (Visa, Mastercard, МИР), криптовалюта (USDT, TON, BTC и др.) и баланс магазина. Если баланса не хватает, его можно списать частично, а остаток доплатить.' },
+  { q: 'Нужна ли регистрация?', a: 'Нет — вход в один клик через Telegram. Заказы, баланс и кэшбэк общие для сайта и Telegram-бота.' },
+  { q: 'Как работает кэшбэк?', a: 'Уровень зависит от трат за календарный месяц. С каждого выполненного заказа на баланс возвращается процент вашего уровня, в пределах месячного лимита.' },
+  { q: 'Что делать, если возникла проблема?', a: 'Напишите в поддержку в Telegram — операторы ответят и помогут с заказом или оплатой.' },
 ]
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-[var(--bg2)] overflow-hidden">
+    <div className="rounded-2xl bg-[var(--bg2)] overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
+        aria-expanded={open}
+        className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left hover:bg-[var(--bg3)] transition-colors"
       >
-        <span className="text-sm md:text-base font-medium text-white">{q}</span>
+        <span className="text-base font-medium text-[var(--text)]">{q}</span>
         <ChevronDown
-          size={18}
-          className={'text-[var(--hint)] shrink-0 transition-transform duration-200 ' + (open ? 'rotate-180' : '')}
+          size={20}
+          className="text-[var(--hint)] shrink-0"
+          style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)' }}
         />
       </button>
-      {open && <p className="px-5 pb-4 text-sm text-[var(--hint)] leading-relaxed">{a}</p>}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+            className="overflow-hidden"
+          >
+            <p className="px-5 pb-5 text-sm text-[var(--text-2)] leading-relaxed max-w-2xl">{a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
 
 function FaqSection() {
   return (
-    <section id="faq" className="web-container py-12 md:py-16 scroll-mt-20">
-      <h2 className="text-2xl md:text-3xl font-bold text-white text-center mb-9">Частые вопросы</h2>
-      <div className="max-w-2xl mx-auto space-y-3">
-        {FAQ.map((item) => (
-          <FaqItem key={item.q} q={item.q} a={item.a} />
-        ))}
-      </div>
-    </section>
-  )
-}
-
-// ── CTA ───────────────────────────────────────────────────────────────────────
-
-function CtaBanner() {
-  return (
-    <section className="web-container py-12 md:py-16">
-      <div
-        className="relative overflow-hidden rounded-3xl border border-white/10 p-8 md:p-12 text-center"
-        style={{ background: 'var(--gradient-primary)' }}
-      >
-        <h2 className="text-2xl md:text-3xl font-bold text-white">Готовы пополнить игру?</h2>
-        <p className="text-[var(--text-2)] mt-2.5 max-w-xl mx-auto">
-          Оформите заказ на сайте или в Telegram-боте {SHOP_NAME} — за пару минут.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
-          <Link
-            to="/catalog"
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-[#15171C] transition-all active:scale-[0.97] hover:bg-white/90"
-          >
-            <ShoppingBag size={17} />
-            Выбрать товар
-          </Link>
-          <a
-            href={MINIAPP_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold text-white border border-white/30 hover:bg-white/10 transition-all active:scale-[0.97]"
-          >
-            <Send size={17} />
-            Открыть в Telegram
-          </a>
-        </div>
+    <section id="faq" className="web-container py-10 md:py-12 scroll-mt-20">
+      <div className="grid lg:grid-cols-[1fr_2fr] gap-8">
+        <Reveal>
+          <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Частые вопросы</h2>
+          <p className="mt-3 text-sm text-[var(--hint)] max-w-xs">Не нашли ответ — напишите в поддержку, ответим в Telegram.</p>
+        </Reveal>
+        <Stagger className="space-y-2">
+          {FAQ.map((item) => (
+            <StaggerItem key={item.q}><FaqItem q={item.q} a={item.a} /></StaggerItem>
+          ))}
+        </Stagger>
       </div>
     </section>
   )
@@ -263,14 +351,19 @@ function CtaBanner() {
 // ── Страница ──────────────────────────────────────────────────────────────────
 
 export default function WebHomePage() {
+  const { data: all = [], isLoading, isError } = useQuery({
+    queryKey: ['web', 'games', 'all'],
+    queryFn: () => catalogApi.getGames(),
+    staleTime: 5 * 60_000,
+  })
   return (
     <>
-      <Hero />
-      <Features />
-      <Catalog />
+      <Hero games={all.filter((g) => g.type !== 'service')} />
+      <Popular />
+      <Catalog all={all} isLoading={isLoading} isError={isError} />
+      <Cashback />
       <HowItWorks />
       <FaqSection />
-      <CtaBanner />
     </>
   )
 }

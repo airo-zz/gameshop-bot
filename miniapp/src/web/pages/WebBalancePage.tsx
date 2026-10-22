@@ -111,13 +111,13 @@ export default function WebBalancePage() {
 
   return (
     <div className="web-container py-8 md:py-12">
-      <h1 className="text-2xl md:text-3xl font-bold text-white mb-6">Баланс</h1>
+      <h1 className="text-2xl md:text-3xl font-semibold text-[var(--text)] mb-6">Баланс</h1>
 
       {waiting && (
         <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid transparent' }}>
           <Loader2 size={20} className="animate-spin shrink-0" style={{ color: 'var(--link)' }} />
           <div>
-            <p className="text-sm font-semibold text-white">Ожидаем подтверждение оплаты</p>
+            <p className="text-sm font-semibold text-[var(--text)]">Ожидаем подтверждение оплаты</p>
             <p className="text-xs text-[var(--hint)]">Обычно это занимает до минуты. Страницу можно не обновлять.</p>
           </div>
         </div>
@@ -130,14 +130,14 @@ export default function WebBalancePage() {
             <div className="flex items-center gap-2 text-[var(--text-2)] text-sm font-medium">
               <Wallet size={18} /> Текущий баланс
             </div>
-            <p className="text-4xl font-bold text-white mt-3">
+            <p className="text-4xl font-semibold text-[var(--text)] mt-3">
               {profile ? money(profile.balance) : '—'}
             </p>
             <p className="text-xs text-[var(--text-2)] mt-2">Оплачивайте заказы с баланса мгновенно и без комиссии.</p>
           </div>
 
-          <div className="rounded-3xl border border-white/[0.06] bg-[var(--bg2)] p-5 md:p-6 space-y-5">
-            <h2 className="text-lg font-bold text-white">Пополнить</h2>
+          <div className="rounded-3xl border border-[var(--border)] bg-[var(--bg2)] p-5 md:p-6 space-y-5">
+            <h2 className="text-lg font-semibold text-[var(--text)]">Пополнить</h2>
 
             <div>
               <label className="block text-xs text-[var(--hint)] mb-2" htmlFor="topup-amount">Сумма, ₽</label>
@@ -149,7 +149,7 @@ export default function WebBalancePage() {
                 max={MAX_AMOUNT}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))}
-                className="w-full bg-[var(--bg3)] border border-white/[0.08] rounded-xl px-4 py-3 text-lg font-semibold text-white focus:outline-none focus:border-white/25"
+                className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-lg font-semibold text-[var(--text)] focus:outline-none focus:border-[var(--border)]"
               />
               <div className="flex flex-wrap gap-2 mt-3">
                 {PRESETS.map((p) => (
@@ -189,7 +189,7 @@ export default function WebBalancePage() {
                     >
                       <m.icon size={20} style={{ color: selected ? 'var(--link)' : 'var(--hint)' }} />
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-white">{m.label}</p>
+                        <p className="text-sm font-semibold text-[var(--text)]">{m.label}</p>
                         <p className="text-xs text-[var(--hint)]">{m.hint}</p>
                       </div>
                       {selected && <CheckCircle2 size={18} style={{ color: 'var(--link)' }} />}
@@ -203,7 +203,7 @@ export default function WebBalancePage() {
               type="button"
               onClick={topup}
               disabled={!!amountError || loading}
-              className="w-full py-3.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98] hover:brightness-110 disabled:opacity-50"
+              className="w-full py-3.5 rounded-xl text-sm font-semibold text-[var(--text)] transition-all active:scale-[0.97] hover:brightness-110 disabled:opacity-50"
               style={{ background: 'var(--gradient-primary)' }}
             >
               {loading ? 'Создаём платёж...' : `Пополнить на ${amountError ? '' : money(numeric)}`}
@@ -216,8 +216,8 @@ export default function WebBalancePage() {
         </div>
 
         {/* ── Правая колонка: история ──────────────────────────────────────── */}
-        <div className="rounded-3xl border border-white/[0.06] bg-[var(--bg2)] p-5 md:p-6">
-          <h2 className="text-lg font-bold text-white mb-4">История операций</h2>
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--bg2)] p-5 md:p-6">
+          <h2 className="text-lg font-semibold text-[var(--text)] mb-4">История операций</h2>
           {historyLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 4 }).map((_, i) => (
@@ -226,7 +226,7 @@ export default function WebBalancePage() {
             </div>
           ) : history.length === 0 ? (
             <div className="flex flex-col items-center py-12 gap-3 text-center">
-              <Wallet size={32} className="text-white/20" />
+              <Wallet size={32} className="text-[var(--hint)]" />
               <p className="text-sm text-[var(--hint)]">Операций пока нет</p>
             </div>
           ) : (
@@ -234,7 +234,7 @@ export default function WebBalancePage() {
               {history.map((tx) => {
                 const credit = txIsCredit(tx.type)
                 return (
-                  <div key={tx.id} className="flex items-center gap-3 p-3.5 rounded-2xl bg-[var(--bg2)] border border-white/[0.05]">
+                  <div key={tx.id} className="flex items-center gap-3 p-3.5 rounded-2xl bg-[var(--bg2)] border border-[var(--border)]">
                     <div
                       className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                       style={{ background: credit ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)' }}
@@ -242,7 +242,7 @@ export default function WebBalancePage() {
                       {credit ? <TrendingUp size={16} style={{ color: '#34d399' }} /> : <TrendingDown size={16} style={{ color: '#f87171' }} />}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{txLabel(tx.type)}</p>
+                      <p className="text-sm font-semibold text-[var(--text)] truncate">{txLabel(tx.type)}</p>
                       <p className="text-xs text-[var(--hint)] truncate">
                         {new Date(tx.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         {tx.description ? ` · ${tx.description}` : ''}

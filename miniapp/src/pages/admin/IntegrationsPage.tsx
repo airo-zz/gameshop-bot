@@ -6,13 +6,13 @@
  */
 
 import { useEffect, useState } from 'react'
-import { Zap } from 'lucide-react'
+import { Zap } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
 import type { IntegrationsSettings } from '@/api/admin'
 
 const inputCls =
-  'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-blue-500/50'
+  'w-full bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:border-[var(--accent)]'
 
 export default function IntegrationsPage() {
   const [data, setData] = useState<IntegrationsSettings | null>(null)
@@ -71,7 +71,7 @@ export default function IntegrationsPage() {
     }
   }
 
-  if (loading) return <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
+  if (loading) return <p className="text-[var(--hint)] text-sm py-8 text-center">Загрузка...</p>
 
   return (
     <div className="space-y-4 pb-8 max-w-lg">
@@ -80,22 +80,22 @@ export default function IntegrationsPage() {
           <Zap size={20} />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-white">Интеграции</h1>
-          <p className="text-xs text-white/40">Fragment — автопополнение Telegram Stars / Premium</p>
+          <h1 className="text-lg font-bold text-[var(--text)]">Интеграции</h1>
+          <p className="text-xs text-[var(--hint)]">Fragment — автопополнение Telegram Stars / Premium</p>
         </div>
       </div>
 
-      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
+      <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-4">
         {/* Вкл/выкл */}
         <div className="flex items-center justify-between px-1">
           <div>
-            <p className="text-sm text-white">Автопополнение включено</p>
-            <p className="text-xs text-white/40 mt-0.5">Выдача Stars/Premium через Fragment</p>
+            <p className="text-sm text-[var(--text)]">Автопополнение включено</p>
+            <p className="text-xs text-[var(--hint)] mt-0.5">Выдача Stars/Premium через Fragment</p>
           </div>
           <button
             type="button" role="switch" aria-checked={enabled}
             onClick={() => setEnabled((v) => !v)}
-            className={['relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors', enabled ? 'bg-blue-600' : 'bg-white/15'].join(' ')}
+            className={['relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors', enabled ? 'bg-[var(--accent)]' : 'bg-[var(--bg3)]'].join(' ')}
           >
             <span className={['pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition', enabled ? 'translate-x-5' : 'translate-x-0'].join(' ')} />
           </button>
@@ -103,13 +103,13 @@ export default function IntegrationsPage() {
 
         {/* Fragment cookie — три отдельных значения из fragment.com */}
         <div className="space-y-3">
-          <p className="text-xs text-white/40">
+          <p className="text-xs text-[var(--hint)]">
             Три куки из fragment.com (F12 → Application → Cookies). Можно вставлять как
             само значение, так и «имя=значение» — лишнее уберётся. stel_ton_token
             обязателен (без него Fragment не проведёт оплату).
           </p>
           <div>
-            <label className="text-xs text-white/50 mb-1.5 block">
+            <label className="text-xs text-[var(--hint)] mb-1.5 block">
               stel_ssid {data?.ssid_set && <span className="text-emerald-400/70">· задано ({data.ssid_masked})</span>}
             </label>
             <input
@@ -119,7 +119,7 @@ export default function IntegrationsPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-white/50 mb-1.5 block">
+            <label className="text-xs text-[var(--hint)] mb-1.5 block">
               stel_token {data?.token_set && <span className="text-emerald-400/70">· задано ({data.token_masked})</span>}
             </label>
             <input
@@ -129,7 +129,7 @@ export default function IntegrationsPage() {
             />
           </div>
           <div>
-            <label className="text-xs text-white/50 mb-1.5 block">
+            <label className="text-xs text-[var(--hint)] mb-1.5 block">
               stel_ton_token {data?.ton_token_set && <span className="text-emerald-400/70">· задано ({data.ton_token_masked})</span>}
             </label>
             <input
@@ -142,7 +142,7 @@ export default function IntegrationsPage() {
 
         {/* TON seed */}
         <div>
-          <label className="text-xs text-white/50 mb-1.5 block">
+          <label className="text-xs text-[var(--hint)] mb-1.5 block">
             Seed TON-кошелька {data?.seed_set && <span className="text-emerald-400/70">· задано ({data.seed_masked})</span>}
           </label>
           <input
@@ -158,30 +158,30 @@ export default function IntegrationsPage() {
 
         {/* Способ оплаты Fragment */}
         <div>
-          <label className="text-xs text-white/50 mb-1.5 block">Оплата на Fragment</label>
+          <label className="text-xs text-[var(--hint)] mb-1.5 block">Оплата на Fragment</label>
           <select value={payment} onChange={(e) => setPayment(e.target.value)} className={inputCls + ' appearance-none'}>
-            <option value="ton" className="bg-[#101C36]">TON</option>
-            <option value="usdt_ton" className="bg-[#101C36]">USDT (TON)</option>
+            <option value="ton" className="bg-[var(--bg2)]">TON</option>
+            <option value="usdt_ton" className="bg-[var(--bg2)]">USDT (TON)</option>
           </select>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-white/50 mb-1.5 block">Мин. звёзд</label>
+            <label className="text-xs text-[var(--hint)] mb-1.5 block">Мин. звёзд</label>
             <input type="number" min={1} value={starsMin} onChange={(e) => setStarsMin(e.target.value)} className={inputCls} />
           </div>
           <div>
-            <label className="text-xs text-white/50 mb-1.5 block">Макс. звёзд</label>
+            <label className="text-xs text-[var(--hint)] mb-1.5 block">Макс. звёзд</label>
             <input type="number" min={1} value={starsMax} onChange={(e) => setStarsMax(e.target.value)} className={inputCls} />
           </div>
         </div>
 
         <div className="flex items-center justify-between px-1">
-          <p className="text-sm text-white/80">Показывать отправителя</p>
+          <p className="text-sm text-[var(--text-2)]">Показывать отправителя</p>
           <button
             type="button" role="switch" aria-checked={showSender}
             onClick={() => setShowSender((v) => !v)}
-            className={['relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors', showSender ? 'bg-blue-600' : 'bg-white/15'].join(' ')}
+            className={['relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors', showSender ? 'bg-[var(--accent)]' : 'bg-[var(--bg3)]'].join(' ')}
           >
             <span className={['pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg transition', showSender ? 'translate-x-5' : 'translate-x-0'].join(' ')} />
           </button>
@@ -190,13 +190,13 @@ export default function IntegrationsPage() {
         <button
           onClick={save}
           disabled={saving}
-          className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+          className="w-full py-3 rounded-xl bg-[var(--accent)] hover:bg-[var(--btn-hover)] disabled:opacity-60 text-sm font-semibold text-[var(--text)] transition-all active:scale-[0.97]"
         >
           {saving ? 'Сохранение...' : 'Сохранить'}
         </button>
       </div>
 
-      <p className="text-xs text-white/30">
+      <p className="text-xs text-[var(--hint)]">
         Движок выдачи (Fragment + TON-кошелёк) подключается отдельно. Пока это только хранение кредов.
       </p>
     </div>

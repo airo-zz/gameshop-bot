@@ -4,12 +4,12 @@
  */
 
 import { useState, useCallback, useEffect } from 'react'
-import { Plus, Pencil, Trash2, AlertCircle, X, Check, Save } from 'lucide-react'
+import { Plus, Pencil, Trash2, AlertCircle, X, Check, Save } from '@/components/ui/icons'
 import { adminApi, type LoyaltyLevel, type ReferralSettings } from '@/api/admin'
 import toast from 'react-hot-toast'
 
 const inputCls =
-  'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/20 transition-all duration-200'
+  'w-full bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:ring-1 focus:ring-[var(--border)] focus:border-[var(--border)] transition-all duration-200'
 
 // ── Toggle ────────────────────────────────────────────────────────────────────
 
@@ -19,7 +19,7 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
       onClick={() => onChange(!value)}
       className={[
         'w-10 h-6 rounded-full transition-colors flex items-center px-0.5 cursor-pointer',
-        value ? 'bg-indigo-600' : 'bg-white/10',
+        value ? 'bg-[var(--accent)]' : 'bg-[var(--bg3)]',
       ].join(' ')}
     >
       <div
@@ -84,11 +84,11 @@ function LevelForm({ initial = EMPTY_FORM, onSave, onCancel, saving }: LevelForm
   return (
     <form
       onSubmit={handleSubmit}
-      className="space-y-3 p-4 rounded-xl bg-white/[0.03] border border-white/[0.08]"
+      className="space-y-3 p-4 rounded-xl bg-[var(--bg2)] border border-[var(--border)]"
     >
       <div className="grid grid-cols-2 gap-3">
         <div className="col-span-2">
-          <label className="text-xs text-white/50 mb-1 block">Название</label>
+          <label className="text-xs text-[var(--hint)] mb-1 block">Название</label>
           <input
             className={inputCls}
             placeholder="Например: Gold"
@@ -97,7 +97,7 @@ function LevelForm({ initial = EMPTY_FORM, onSave, onCancel, saving }: LevelForm
           />
         </div>
         <div>
-          <label className="text-xs text-white/50 mb-1 block">Траты за месяц от, ₽</label>
+          <label className="text-xs text-[var(--hint)] mb-1 block">Траты за месяц от, ₽</label>
           <input
             type="number"
             min="0"
@@ -108,7 +108,7 @@ function LevelForm({ initial = EMPTY_FORM, onSave, onCancel, saving }: LevelForm
           />
         </div>
         <div>
-          <label className="text-xs text-white/50 mb-1 block">Лимит кэшбэка в месяц, ₽</label>
+          <label className="text-xs text-[var(--hint)] mb-1 block">Лимит кэшбэка в месяц, ₽</label>
           <input
             type="number"
             min="0"
@@ -120,7 +120,7 @@ function LevelForm({ initial = EMPTY_FORM, onSave, onCancel, saving }: LevelForm
           />
         </div>
         <div>
-          <label className="text-xs text-white/50 mb-1 block">Кэшбэк, %</label>
+          <label className="text-xs text-[var(--hint)] mb-1 block">Кэшбэк, %</label>
           <input
             type="number"
             min="0"
@@ -134,7 +134,7 @@ function LevelForm({ initial = EMPTY_FORM, onSave, onCancel, saving }: LevelForm
         </div>
         <div className="flex items-center gap-3 self-end pb-1">
           <Toggle value={form.is_active} onChange={v => set('is_active', v)} />
-          <span className="text-sm text-white/60">Активен</span>
+          <span className="text-sm text-[var(--text-2)]">Активен</span>
         </div>
       </div>
 
@@ -142,7 +142,7 @@ function LevelForm({ initial = EMPTY_FORM, onSave, onCancel, saving }: LevelForm
         <button
           type="submit"
           disabled={saving}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.97]"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--btn-hover)] disabled:opacity-40 text-sm font-semibold text-[var(--text)] transition-all duration-200 active:scale-[0.97]"
         >
           <Check size={15} />
           {saving ? 'Сохранение...' : 'Сохранить'}
@@ -150,7 +150,7 @@ function LevelForm({ initial = EMPTY_FORM, onSave, onCancel, saving }: LevelForm
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] text-sm text-white/60 transition-all duration-200 active:scale-[0.97]"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] text-sm text-[var(--text-2)] transition-all duration-200 active:scale-[0.97]"
         >
           <X size={15} />
           Отмена
@@ -173,24 +173,24 @@ interface LoyaltyRowProps {
 
 function LoyaltyRow({ level, onEdit, onDelete, onToggle, deleting, toggling }: LoyaltyRowProps) {
   return (
-    <div className="flex items-center gap-3 bg-[#1a1f2e] border border-white/[0.06] rounded-xl px-4 py-3.5">
+    <div className="flex items-center gap-3 bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-4 py-3.5">
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           {level.icon_emoji && (
             <span className="text-base">{level.icon_emoji}</span>
           )}
-          <span className="text-sm font-semibold text-white truncate">{level.name}</span>
+          <span className="text-sm font-semibold text-[var(--text)] truncate">{level.name}</span>
           <span
-            className={`text-xs font-medium ${level.is_active ? 'text-emerald-400' : 'text-white/30'}`}
+            className={`text-xs font-medium ${level.is_active ? 'text-emerald-400' : 'text-[var(--hint)]'}`}
           >
             {level.is_active ? 'Активен' : 'Неактивен'}
           </span>
         </div>
         <div className="flex items-center gap-3 mt-1 flex-wrap">
-          <span className="text-xs text-white/50">
+          <span className="text-xs text-[var(--hint)]">
             от {level.min_spent.toLocaleString('ru')} ₽ за месяц
           </span>
-          <span className="text-xs text-indigo-400">
+          <span className="text-xs text-[var(--link)]">
             лимит {level.monthly_cashback_cap != null ? `${level.monthly_cashback_cap.toLocaleString('ru')} ₽/мес` : 'нет'}
           </span>
           <span className="text-xs text-emerald-400/80">
@@ -203,16 +203,16 @@ function LoyaltyRow({ level, onEdit, onDelete, onToggle, deleting, toggling }: L
 
       <button
         onClick={onEdit}
-        className="p-1.5 rounded-lg hover:bg-white/[0.08] active:scale-[0.9] transition-all duration-200 shrink-0"
+        className="p-1.5 rounded-lg hover:bg-[var(--bg3)] active:scale-[0.97] transition-all duration-200 shrink-0"
         title="Редактировать"
       >
-        <Pencil size={15} className="text-white/40" />
+        <Pencil size={15} className="text-[var(--hint)]" />
       </button>
 
       <button
         onClick={onDelete}
         disabled={deleting}
-        className="p-1.5 rounded-lg hover:bg-red-500/20 active:scale-[0.9] transition-all duration-200 disabled:opacity-40 shrink-0"
+        className="p-1.5 rounded-lg hover:bg-red-500/20 active:scale-[0.97] transition-all duration-200 disabled:opacity-40 shrink-0"
         title="Удалить"
       >
         <Trash2 size={15} className="text-red-400/70" />
@@ -271,21 +271,21 @@ function ReferralSettingsBlock() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-base font-semibold text-white">Реферальная программа</h2>
-        <p className="text-xs text-white/40 mt-0.5">
+        <h2 className="text-base font-semibold text-[var(--text)]">Реферальная программа</h2>
+        <p className="text-xs text-[var(--hint)] mt-0.5">
           Пригласивший получает бонус на баланс один раз, когда сумма выполненных заказов друга
           достигнет порога. Друг получает скидку на первый заказ.
         </p>
       </div>
 
-      <div className="bg-[#1a1f2e] border border-white/[0.06] rounded-xl p-4 space-y-3">
+      <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-xl p-4 space-y-3">
         {loading ? (
-          <p className="text-white/40 text-sm">Загрузка...</p>
+          <p className="text-[var(--hint)] text-sm">Загрузка...</p>
         ) : (
           <>
             {fields.map(f => (
               <div key={f.key}>
-                <label className="text-xs text-white/50 mb-1 block">{f.label}</label>
+                <label className="text-xs text-[var(--hint)] mb-1 block">{f.label}</label>
                 <input
                   type="number"
                   min="0"
@@ -300,7 +300,7 @@ function ReferralSettingsBlock() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.97]"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--btn-hover)] disabled:opacity-40 text-sm font-semibold text-[var(--text)] transition-all duration-200 active:scale-[0.97]"
             >
               <Save size={15} />
               {saving ? 'Сохранение...' : 'Сохранить'}
@@ -408,13 +408,13 @@ export default function LoyaltySettingsPage() {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-bold text-white">Уровни лояльности</h1>
-            <p className="text-xs text-white/40 mt-0.5">Настройте скидки и кэшбэк по уровням</p>
+            <h1 className="text-xl font-bold text-[var(--text)]">Уровни лояльности</h1>
+            <p className="text-xs text-[var(--hint)] mt-0.5">Порог трат за месяц, кэшбэк и месячный лимит для каждого уровня</p>
           </div>
           {!showAddForm && (
             <button
               onClick={() => { setShowAddForm(true); setEditingId(null) }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-[0.97] text-xs font-semibold text-white transition-all duration-200"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--btn-hover)] active:scale-[0.97] text-xs font-semibold text-[var(--text)] transition-all duration-200"
             >
               <Plus size={15} />
               Добавить
@@ -433,20 +433,20 @@ export default function LoyaltySettingsPage() {
 
         {/* List */}
         {loading ? (
-          <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
+          <p className="text-[var(--hint)] text-sm py-8 text-center">Загрузка...</p>
         ) : error ? (
-          <div className="flex flex-col items-center py-16 gap-3 text-white/40">
+          <div className="flex flex-col items-center py-16 gap-3 text-[var(--hint)]">
             <AlertCircle size={36} />
             <p className="text-sm">Ошибка загрузки уровней</p>
             <button
               onClick={load}
-              className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform"
+              className="text-xs text-[var(--hint)] hover:text-[var(--text-2)] active:scale-[0.97] transition-transform"
             >
               Попробовать снова
             </button>
           </div>
         ) : levels.length === 0 && !showAddForm ? (
-          <div className="flex flex-col items-center py-16 gap-3 text-white/30">
+          <div className="flex flex-col items-center py-16 gap-3 text-[var(--hint)]">
             <p className="text-sm">Уровней лояльности ещё нет</p>
           </div>
         ) : (
@@ -477,7 +477,7 @@ export default function LoyaltySettingsPage() {
       </div>
 
       {/* Divider */}
-      <div className="border-t border-white/[0.06]" />
+      <div className="border-t border-[var(--border)]" />
 
       {/* ── Referral settings section ── */}
       <ReferralSettingsBlock />

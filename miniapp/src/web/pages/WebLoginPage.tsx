@@ -34,14 +34,14 @@ export default function WebLoginPage() {
 
   return (
     <div className="web-container flex items-center justify-center py-24">
-      <div className="w-full max-w-md rounded-3xl border border-white/[0.08] bg-[var(--bg2)] p-8 text-center">
+      <div className="w-full max-w-md rounded-3xl border border-[var(--border)] bg-[var(--bg2)] p-8 text-center">
         <div
           className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
           style={{ background: 'rgba(37,99,235,0.15)', color: 'var(--link)' }}
         >
           <Send size={24} />
         </div>
-        <h1 className="text-2xl font-bold text-white">Вход в {SHOP_NAME}</h1>
+        <h1 className="text-2xl font-semibold text-[var(--text)]">Вход в {SHOP_NAME}</h1>
         <p className="text-sm text-[var(--hint)] mt-2 mb-7">
           Войдите через Telegram, чтобы оформлять заказы и следить за ними.
         </p>

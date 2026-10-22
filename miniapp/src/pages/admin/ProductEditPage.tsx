@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, AlertCircle, Save, ExternalLink, Copy, Plus, Trash2, X } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Save, ExternalLink, Copy, Plus, Trash2, X } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
 import type { AdminGame, AdminCategory, AdminProductDetail, PricingSettings } from '@/api/admin'
@@ -456,15 +456,15 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
   // ── Loading skeleton ────────────────────────────────────────────────────────
 
   if (loadingInit) {
-    return <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
+    return <p className="text-[var(--hint)] text-sm py-8 text-center">Загрузка...</p>
   }
 
   if (initError) {
     return (
-      <div className="flex flex-col items-center py-20 gap-3 text-white/40">
+      <div className="flex flex-col items-center py-20 gap-3 text-[var(--hint)]">
         <AlertCircle size={40} />
         <p className="text-sm">Не удалось загрузить данные</p>
-        <button onClick={() => navigate(-1)} className="text-xs text-blue-400">
+        <button onClick={() => navigate(-1)} className="text-xs text-[var(--link)]">
           Назад
         </button>
       </div>
@@ -472,7 +472,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
   }
 
   const inputCls =
-    'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all duration-200'
+    'w-full bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-[var(--accent)] transition-all duration-200'
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -482,16 +482,16 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
       <div className="flex items-center gap-3">
         <button
           onClick={() => (isModal ? props.onClose?.() : navigate(-1))}
-          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+          className="p-2 rounded-xl bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors"
           title={isModal ? 'Закрыть' : 'Назад'}
         >
-          {isModal ? <X size={18} className="text-white/60" /> : <ArrowLeft size={18} className="text-white/60" />}
+          {isModal ? <X size={18} className="text-[var(--text-2)]" /> : <ArrowLeft size={18} className="text-[var(--text-2)]" />}
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg font-bold text-white">
+          <h1 className="text-lg font-bold text-[var(--text)]">
             {isNew ? 'Новый товар' : 'Редактирование товара'}
           </h1>
-          <p className="text-xs text-white/40">
+          <p className="text-xs text-[var(--hint)]">
             {isNew ? 'Заполните данные и сохраните' : 'Измените нужные поля'}
           </p>
         </div>
@@ -499,7 +499,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
           <>
             <button
               onClick={() => window.open(`${window.location.origin}/app/product/${id}`, '_blank')}
-              className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
+              className="p-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] hover:bg-[var(--bg3)] text-[var(--hint)] hover:text-[var(--text-2)] transition-colors"
               title="Открыть в магазине"
             >
               <ExternalLink size={16} />
@@ -514,7 +514,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
                   toast.error('Ошибка')
                 }
               }}
-              className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
+              className="p-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] hover:bg-[var(--bg3)] text-[var(--hint)] hover:text-[var(--text-2)] transition-colors"
               title="Дублировать"
             >
               <Copy size={16} />
@@ -525,28 +525,28 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
 
       {/* Section: Категория */}
       {presetCategoryId && form.category_id ? (
-        <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4">
-          <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Категория</h2>
-          <p className="text-sm text-white">
+        <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4">
+          <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider mb-2">Категория</h2>
+          <p className="text-sm text-[var(--text)]">
             {games.find(g => g.id === form.game_id)?.name}
             {' / '}
             {categories.find(c => c.id === form.category_id)?.name}
           </p>
         </div>
       ) : (
-        <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
-          <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Категория</h2>
+        <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-4">
+          <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider">Категория</h2>
 
           <div>
-            <label className="text-xs text-white/50 mb-1.5 block">Игра</label>
+            <label className="text-xs text-[var(--hint)] mb-1.5 block">Игра</label>
             <select
               value={form.game_id}
               onChange={(e) => handleGameChange(e.target.value)}
               className={inputCls + ' appearance-none'}
             >
-              <option value="" className="bg-[#101C36]">— Выберите игру —</option>
+              <option value="" className="bg-[var(--bg2)]">— Выберите игру —</option>
               {games.map((game) => (
-                <option key={game.id} value={game.id} className="bg-[#101C36]">
+                <option key={game.id} value={game.id} className="bg-[var(--bg2)]">
                   {game.name}
                 </option>
               ))}
@@ -554,7 +554,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
           </div>
 
           <div>
-            <label className="text-xs text-white/50 mb-1.5 block">
+            <label className="text-xs text-[var(--hint)] mb-1.5 block">
               Категория <span className="text-red-400">*</span>
             </label>
             <select
@@ -563,11 +563,11 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
               disabled={!form.game_id || loadingCats}
               className={inputCls + ' appearance-none disabled:opacity-40'}
             >
-              <option value="" className="bg-[#101C36]">
+              <option value="" className="bg-[var(--bg2)]">
                 {loadingCats ? 'Загрузка...' : '— Выберите категорию —'}
               </option>
               {categories.map((cat) => (
-                <option key={cat.id} value={cat.id} className="bg-[#101C36]">
+                <option key={cat.id} value={cat.id} className="bg-[var(--bg2)]">
                   {cat.name}
                 </option>
               ))}
@@ -580,11 +580,11 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
       )}
 
       {/* Section: Основное */}
-      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
-        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Основное</h2>
+      <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-4">
+        <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider">Основное</h2>
 
         <div>
-          <label className="text-xs text-white/50 mb-1.5 block">
+          <label className="text-xs text-[var(--hint)] mb-1.5 block">
             Название <span className="text-red-400">*</span>
           </label>
           <input
@@ -599,7 +599,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
         </div>
 
         <div>
-          <label className="text-xs text-white/50 mb-1.5 block">Описание</label>
+          <label className="text-xs text-[var(--hint)] mb-1.5 block">Описание</label>
           <textarea
             value={form.description}
             onChange={(e) => setField('description', e.target.value)}
@@ -611,12 +611,12 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
       </div>
 
       {/* Section: Цена и наличие */}
-      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
-        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Цена и наличие</h2>
+      <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-4">
+        <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider">Цена и наличие</h2>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-white/50 mb-1.5 block">
+            <label className="text-xs text-[var(--hint)] mb-1.5 block">
               Цена, $ <span className="text-red-400">*</span>
             </label>
             <input
@@ -635,16 +635,16 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
               const base = Number(form.price) * pricing.usd_rub_rate * (1 + pricing.markup_balance / 100)
               const shown = isQty ? Math.round(base * 100) / 100 : roundToNine(base)
               return (
-                <p className="text-xs text-white/40 mt-1">
+                <p className="text-xs text-[var(--hint)] mt-1">
                   ≈ {shown.toLocaleString('ru-RU')} ₽ {isQty ? 'за 1 ед. (без округления)' : '(база, без наценки)'}
-                  <span className="text-white/25"> · курс {pricing.usd_rub_rate.toFixed(2)}; на оплате +крипта {pricing.markup_crypto}% / карта {pricing.markup_card}%</span>
+                  <span className="text-[var(--hint)]"> · курс {pricing.usd_rub_rate.toFixed(2)}; на оплате +крипта {pricing.markup_crypto}% / карта {pricing.markup_card}%</span>
                 </p>
               )
             })()}
           </div>
 
           <div>
-            <label className="text-xs text-white/50 mb-1.5 block">Старая цена, ₽</label>
+            <label className="text-xs text-[var(--hint)] mb-1.5 block">Старая цена, ₽</label>
             <input
               type="number"
               value={form.original_price}
@@ -659,7 +659,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-white/50 mb-1.5 block">
+            <label className="text-xs text-[var(--hint)] mb-1.5 block">
               Количество в пакете <span className="text-red-400">*</span>
             </label>
             <input
@@ -675,7 +675,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
           </div>
 
           <div>
-            <label className="text-xs text-white/50 mb-1.5 block">Остаток</label>
+            <label className="text-xs text-[var(--hint)] mb-1.5 block">Остаток</label>
             <input
               type="number"
               value={form.stock}
@@ -689,7 +689,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
         </div>
 
         <div>
-          <label className="text-xs text-white/50 mb-1.5 block">Бейдж</label>
+          <label className="text-xs text-[var(--hint)] mb-1.5 block">Бейдж</label>
           <input
             type="text"
             value={form.badge}
@@ -701,10 +701,10 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
         </div>
 
         {/* Нет в наличии toggle */}
-        <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+        <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-[var(--bg2)] border border-[var(--border)]">
           <div>
-            <p className="text-sm text-white">Нет в наличии</p>
-            <p className="text-xs text-white/40 mt-0.5">Товар виден, но недоступен для покупки</p>
+            <p className="text-sm text-[var(--text)]">Нет в наличии</p>
+            <p className="text-xs text-[var(--hint)] mt-0.5">Товар виден, но недоступен для покупки</p>
           </div>
           <button
             type="button"
@@ -713,7 +713,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
             onClick={() => setField('is_out_of_stock', !form.is_out_of_stock)}
             className={[
               'relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none',
-              form.is_out_of_stock ? 'bg-red-600' : 'bg-white/15',
+              form.is_out_of_stock ? 'bg-red-600' : 'bg-[var(--bg3)]',
             ].join(' ')}
           >
             <span
@@ -726,14 +726,14 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
         </div>
 
         <div>
-          <label className="text-xs text-white/50 mb-1.5 block">Тип доставки</label>
+          <label className="text-xs text-[var(--hint)] mb-1.5 block">Тип доставки</label>
           <select
             value={form.delivery_type}
             onChange={(e) => setField('delivery_type', e.target.value as FormState['delivery_type'])}
             className={inputCls + ' appearance-none'}
           >
             {DELIVERY_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value} className="bg-[#101C36]">
+              <option key={opt.value} value={opt.value} className="bg-[var(--bg2)]">
                 {opt.label}
               </option>
             ))}
@@ -749,21 +749,21 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
 
       {/* Section: Ключи автовыдачи */}
       {isKeyBased(form.delivery_type) && !isNew && (
-        <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
+        <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Ключи автовыдачи</h2>
+            <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider">Ключи автовыдачи</h2>
             {keyStats && (
               <div className="flex gap-3 text-xs">
                 <span className="text-emerald-400">{keyStats.available} доступно</span>
-                <span className="text-white/30">{keyStats.used} использовано</span>
+                <span className="text-[var(--hint)]">{keyStats.used} использовано</span>
               </div>
             )}
-            {keysLoading && <span className="text-xs text-white/30">Загрузка...</span>}
+            {keysLoading && <span className="text-xs text-[var(--hint)]">Загрузка...</span>}
           </div>
 
           <div>
-            <label className="text-xs text-white/50 mb-1.5 block">
-              Новые ключи <span className="text-white/30">(по одному на строку)</span>
+            <label className="text-xs text-[var(--hint)] mb-1.5 block">
+              Новые ключи <span className="text-[var(--hint)]">(по одному на строку)</span>
             </label>
             <textarea
               value={keysInput}
@@ -773,7 +773,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
               className={inputCls + ' resize-none font-mono'}
             />
             <div className="flex items-center justify-between mt-1">
-              <span className="text-xs text-white/30">
+              <span className="text-xs text-[var(--hint)]">
                 {keysInput.split('\n').filter(l => l.trim()).length} строк
               </span>
             </div>
@@ -784,7 +784,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
               type="button"
               onClick={handleAddKeys}
               disabled={keysAdding || !keysInput.trim()}
-              className="flex-1 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white text-sm font-medium transition-all active:scale-[0.98]"
+              className="flex-1 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--btn-hover)] disabled:opacity-40 text-[var(--text)] text-sm font-medium transition-all active:scale-[0.97]"
             >
               {keysAdding ? 'Добавление...' : 'Добавить ключи'}
             </button>
@@ -793,7 +793,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
                 type="button"
                 onClick={handleClearUnused}
                 disabled={keysClearing}
-                className="px-4 py-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-red-500/10 hover:border-red-500/30 disabled:opacity-40 text-white/50 hover:text-red-400 text-sm transition-all active:scale-[0.98]"
+                className="px-4 py-2.5 rounded-xl bg-[var(--bg2)] border border-[var(--border)] hover:bg-red-500/10 hover:border-red-500/30 disabled:opacity-40 text-[var(--hint)] hover:text-red-400 text-sm transition-all active:scale-[0.97]"
               >
                 {keysClearing ? '...' : 'Очистить'}
               </button>
@@ -804,16 +804,16 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
 
       {/* Section: Поля товара (в основном — «Количество» для Stars/переменной цены).
           Обычные поля покупателя (логин/username) настраиваются на уровне игры/подраздела. */}
-      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
-        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Поля товара</h2>
-        <p className="text-xs text-white/40">
+      <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-3">
+        <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider">Поля товара</h2>
+        <p className="text-xs text-[var(--hint)]">
           Тип «Количество» — покупатель вводит число (напр. звёзд ≥ минимума), цена берётся
           за 1 единицу, итог = цена × количество. Для автовыдачи Stars задайте это поле здесь,
           а @username — в полях игры/подраздела.
         </p>
 
         {form.input_fields.map((field, idx) => (
-          <div key={idx} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 space-y-2.5">
+          <div key={idx} className="bg-[var(--bg2)] border border-[var(--border)] rounded-xl p-3 space-y-2.5">
             <div className="flex items-center gap-2">
               <input
                 value={field.label}
@@ -823,7 +823,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
               />
               <button
                 type="button" onClick={() => removeInputField(idx)} aria-label="Удалить поле"
-                className="p-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-red-500/10 hover:border-red-500/30 text-white/40 hover:text-red-400 transition-all"
+                className="p-2.5 rounded-xl bg-[var(--bg2)] border border-[var(--border)] hover:bg-red-500/10 hover:border-red-500/30 text-[var(--hint)] hover:text-red-400 transition-all"
               >
                 <Trash2 size={16} />
               </button>
@@ -838,13 +838,13 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
                   <option key={o.value} value={o.value} className="bg-neutral-900">{o.label}</option>
                 ))}
               </select>
-              <label className="flex items-center gap-2 px-3 rounded-xl bg-white/[0.05] border border-white/[0.08] cursor-pointer select-none">
+              <label className="flex items-center gap-2 px-3 rounded-xl bg-[var(--bg2)] border border-[var(--border)] cursor-pointer select-none">
                 <input
                   type="checkbox" checked={field.required}
                   onChange={(e) => updateInputField(idx, { required: e.target.checked })}
                   className="accent-blue-600"
                 />
-                <span className="text-sm text-white/70">Обязательно</span>
+                <span className="text-sm text-[var(--text-2)]">Обязательно</span>
               </label>
             </div>
             {field.type === 'select' ? (
@@ -879,15 +879,15 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
 
         <button
           type="button" onClick={addInputField}
-          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/[0.05] border border-dashed border-white/[0.15] hover:bg-white/[0.08] hover:border-white/25 text-sm text-white/60 hover:text-white/80 transition-all"
+          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[var(--bg2)] border border-dashed border-[var(--border)] hover:bg-[var(--bg3)] hover:border-[var(--border)] text-sm text-[var(--text-2)] hover:text-[var(--text-2)] transition-all"
         >
           <Plus size={16} /> Добавить поле
         </button>
       </div>
 
       {/* Section: Инструкция */}
-      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
-        <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">Инструкция</h2>
+      <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-4">
+        <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider">Инструкция</h2>
         <textarea
           value={form.instruction}
           onChange={(e) => setField('instruction', e.target.value)}
@@ -898,11 +898,11 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
       </div>
 
       {/* Section: Публикация */}
-      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4">
+      <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm font-medium text-white">Активен</p>
-            <p className="text-xs text-white/40 mt-0.5">Товар виден покупателям</p>
+            <p className="text-sm font-medium text-[var(--text)]">Активен</p>
+            <p className="text-xs text-[var(--hint)] mt-0.5">Товар виден покупателям</p>
           </div>
           <button
             type="button"
@@ -911,7 +911,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
             onClick={() => setField('is_active', !form.is_active)}
             className={[
               'relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none',
-              form.is_active ? 'bg-blue-600' : 'bg-white/15',
+              form.is_active ? 'bg-[var(--accent)]' : 'bg-[var(--bg3)]',
             ].join(' ')}
           >
             <span
@@ -928,10 +928,10 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
       <button
         onClick={handleSubmit}
         disabled={saving}
-        className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
+        className="flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--btn-hover)] disabled:opacity-60 text-sm font-semibold text-[var(--text)] transition-all duration-200 active:scale-[0.97]"
       >
         {saving ? (
-          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          <span className="w-4 h-4 border-2 border-[var(--border)] border-t-white rounded-full animate-spin" />
         ) : (
           <Save size={16} />
         )}

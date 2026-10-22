@@ -211,7 +211,15 @@ export interface Profile {
 
 // ── Catalog API ───────────────────────────────────────────────────────────────
 
+export interface LoyaltyProgram {
+  levels: { name: string; min_spent: number; cashback_percent: number; monthly_cashback_cap: number | null; color_hex: string }[]
+  referral: { bonus_amount: number; threshold_amount: number; new_user_discount_percent: number }
+}
+
 export const catalogApi = {
+  getLoyaltyProgram: () =>
+    apiClient.get<LoyaltyProgram>('/catalog/loyalty').then(r => r.data),
+
   getGames: (type?: 'game' | 'service') =>
     apiClient.get<Game[]>('/catalog/games', { params: type ? { type } : undefined }).then(r => r.data),
 

@@ -6,7 +6,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
   Plus, AlertCircle, Tag, ToggleLeft, ToggleRight, X, Check, Trash2,
-} from 'lucide-react'
+} from '@/components/ui/icons'
 import { adminApi } from '@/api/admin'
 import type { PromoCode } from '@/api/admin'
 import toast from 'react-hot-toast'
@@ -41,7 +41,7 @@ const EMPTY_FORM: CreateFormState = {
   expires_at: '',
 }
 
-const inputCls = 'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/60 transition-all duration-200'
+const inputCls = 'w-full bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-[var(--accent)] transition-all duration-200'
 
 export default function DiscountsPage() {
   const [promos, setPromos] = useState<PromoCode[]>([])
@@ -114,12 +114,12 @@ export default function DiscountsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Скидки</h1>
-          {!loading && <p className="text-sm text-white/40 mt-0.5">Промокодов: {promos.length}</p>}
+          <h1 className="text-xl font-bold text-[var(--text)]">Скидки</h1>
+          {!loading && <p className="text-sm text-[var(--hint)] mt-0.5">Промокодов: {promos.length}</p>}
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 active:scale-[0.98] text-sm font-semibold text-white transition-all duration-200"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--accent)] hover:bg-[var(--btn-hover)] active:scale-[0.97] text-sm font-semibold text-[var(--text)] transition-all duration-200"
         >
           <Plus size={16} />
           Создать
@@ -128,21 +128,21 @@ export default function DiscountsPage() {
 
       {/* Create form */}
       {showForm && (
-        <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
+        <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-white">Новый промокод</h2>
+                <h2 className="text-sm font-semibold text-[var(--text)]">Новый промокод</h2>
                 <button
                   onClick={() => { setShowForm(false); setForm(EMPTY_FORM) }}
-                  className="p-1.5 rounded-lg hover:bg-white/[0.08] transition-colors active:scale-[0.95]"
+                  className="p-1.5 rounded-lg hover:bg-[var(--bg3)] transition-colors active:scale-[0.97]"
                 >
-                  <X size={16} className="text-white/40" />
+                  <X size={16} className="text-[var(--hint)]" />
                 </button>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 {/* Код */}
                 <div className="col-span-2">
-                  <label className="text-xs text-white/50 mb-1.5 block">Код</label>
+                  <label className="text-xs text-[var(--hint)] mb-1.5 block">Код</label>
                   <input
                     type="text"
                     value={form.code}
@@ -154,17 +154,17 @@ export default function DiscountsPage() {
 
                 {/* Тип скидки */}
                 <div className="col-span-2">
-                  <label className="text-xs text-white/50 mb-1.5 block">Тип скидки</label>
+                  <label className="text-xs text-[var(--hint)] mb-1.5 block">Тип скидки</label>
                   <div className="flex gap-2">
                     {(['percent', 'fixed'] as const).map((type) => (
                       <button
                         key={type}
                         type="button"
                         onClick={() => setForm({ ...form, discount_value_type: type, max_discount_amount: '' })}
-                        className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.98] ${
+                        className={`flex-1 py-2 rounded-xl text-sm font-medium transition-all duration-200 active:scale-[0.97] ${
                           form.discount_value_type === type
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white/[0.05] text-white/50 hover:bg-white/[0.08]'
+                            ? 'bg-[var(--accent)] text-[var(--text)]'
+                            : 'bg-[var(--bg2)] text-[var(--hint)] hover:bg-[var(--bg3)]'
                         }`}
                       >
                         {type === 'percent' ? 'Процент %' : 'Фикс. сумма'}
@@ -175,7 +175,7 @@ export default function DiscountsPage() {
 
                 {/* Размер скидки */}
                 <div className={form.discount_value_type === 'percent' ? '' : 'col-span-2'}>
-                  <label className="text-xs text-white/50 mb-1.5 block">
+                  <label className="text-xs text-[var(--hint)] mb-1.5 block">
                     Размер скидки {form.discount_value_type === 'percent' ? '(%)' : '(₽)'}
                   </label>
                   <input
@@ -192,7 +192,7 @@ export default function DiscountsPage() {
                 {/* Макс. скидка (только для процентных) */}
                 {form.discount_value_type === 'percent' && (
                   <div>
-                    <label className="text-xs text-white/50 mb-1.5 block">Макс. скидка (₽)</label>
+                    <label className="text-xs text-[var(--hint)] mb-1.5 block">Макс. скидка (₽)</label>
                     <input
                       type="number"
                       value={form.max_discount_amount}
@@ -206,7 +206,7 @@ export default function DiscountsPage() {
 
                 {/* Мин. сумма заказа */}
                 <div>
-                  <label className="text-xs text-white/50 mb-1.5 block">Мин. сумма (₽)</label>
+                  <label className="text-xs text-[var(--hint)] mb-1.5 block">Мин. сумма (₽)</label>
                   <input
                     type="number"
                     value={form.min_order_amount}
@@ -219,7 +219,7 @@ export default function DiscountsPage() {
 
                 {/* Лимит на пользователя */}
                 <div>
-                  <label className="text-xs text-white/50 mb-1.5 block">Лимит / пользователь</label>
+                  <label className="text-xs text-[var(--hint)] mb-1.5 block">Лимит / пользователь</label>
                   <input
                     type="number"
                     value={form.per_user_limit}
@@ -232,17 +232,17 @@ export default function DiscountsPage() {
 
                 {/* Макс. использований */}
                 <div className="col-span-2">
-                  <label className="text-xs text-white/50 mb-1.5 block">Макс. использований</label>
+                  <label className="text-xs text-[var(--hint)] mb-1.5 block">Макс. использований</label>
                   <div className="flex gap-2 mb-2">
                     {[{ val: true, label: 'Без ограничений' }, { val: false, label: 'Указать число' }].map(({ val, label }) => (
                       <button
                         key={String(val)}
                         type="button"
                         onClick={() => setForm({ ...form, max_uses_unlimited: val, max_uses: '' })}
-                        className={`flex-1 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-[0.98] ${
+                        className={`flex-1 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
                           form.max_uses_unlimited === val
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white/[0.05] text-white/50 hover:bg-white/[0.08]'
+                            ? 'bg-[var(--accent)] text-[var(--text)]'
+                            : 'bg-[var(--bg2)] text-[var(--hint)] hover:bg-[var(--bg3)]'
                         }`}
                       >
                         {label}
@@ -263,17 +263,17 @@ export default function DiscountsPage() {
 
                 {/* Срок действия */}
                 <div className="col-span-2">
-                  <label className="text-xs text-white/50 mb-1.5 block">Срок действия</label>
+                  <label className="text-xs text-[var(--hint)] mb-1.5 block">Срок действия</label>
                   <div className="flex gap-2 mb-2">
                     {[{ val: true, label: 'Бессрочный' }, { val: false, label: 'До даты' }].map(({ val, label }) => (
                       <button
                         key={String(val)}
                         type="button"
                         onClick={() => setForm({ ...form, expires_unlimited: val, expires_at: '' })}
-                        className={`flex-1 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-[0.98] ${
+                        className={`flex-1 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 active:scale-[0.97] ${
                           form.expires_unlimited === val
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-white/[0.05] text-white/50 hover:bg-white/[0.08]'
+                            ? 'bg-[var(--accent)] text-[var(--text)]'
+                            : 'bg-[var(--bg2)] text-[var(--hint)] hover:bg-[var(--bg3)]'
                         }`}
                       >
                         {label}
@@ -294,10 +294,10 @@ export default function DiscountsPage() {
               <button
                 onClick={handleCreate}
                 disabled={!isFormValid || creating}
-                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[var(--accent)] hover:bg-[var(--btn-hover)] disabled:opacity-40 text-sm font-semibold text-[var(--text)] transition-all duration-200 active:scale-[0.97]"
               >
                 {creating ? (
-                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span className="w-4 h-4 border-2 border-[var(--border)] border-t-white rounded-full animate-spin" />
                 ) : (
                   <Check size={16} />
                 )}
@@ -308,15 +308,15 @@ export default function DiscountsPage() {
 
       {/* List */}
       {loading ? (
-        <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
+        <p className="text-[var(--hint)] text-sm py-8 text-center">Загрузка...</p>
       ) : error ? (
-        <div className="flex flex-col items-center py-16 gap-3 text-white/40">
+        <div className="flex flex-col items-center py-16 gap-3 text-[var(--hint)]">
           <AlertCircle size={36} />
           <p className="text-sm">Ошибка загрузки</p>
-          <button onClick={load} className="text-xs text-blue-400 active:scale-[0.98] transition-transform">Попробовать снова</button>
+          <button onClick={load} className="text-xs text-[var(--link)] active:scale-[0.97] transition-transform">Попробовать снова</button>
         </div>
       ) : promos.length === 0 ? (
-        <div className="flex flex-col items-center py-16 gap-3 text-white/30">
+        <div className="flex flex-col items-center py-16 gap-3 text-[var(--hint)]">
           <Tag size={36} />
           <p className="text-sm">Промокодов пока нет</p>
         </div>
@@ -325,20 +325,20 @@ export default function DiscountsPage() {
           {promos.map((promo) => (
             <div
               key={promo.id}
-              className="bg-white/[0.04] border border-white/[0.08] rounded-2xl px-4 py-3.5"
+              className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl px-4 py-3.5"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="font-mono text-sm font-bold text-white">{promo.code}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${promo.is_active ? 'bg-emerald-500/15 text-emerald-400' : 'bg-white/[0.05] text-white/30'}`}>
+                    <span className="font-mono text-sm font-bold text-[var(--text)]">{promo.code}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${promo.is_active ? 'bg-emerald-500/15 text-emerald-400' : 'bg-[var(--bg2)] text-[var(--hint)]'}`}>
                       {promo.is_active ? 'Активен' : 'Неактивен'}
                     </span>
                   </div>
-                  <div className="text-xs text-white/50 truncate">
+                  <div className="text-xs text-[var(--hint)] truncate">
                     {promo.discount_rule_name}
                   </div>
-                  <div className="text-xs text-white/30 mt-0.5">
+                  <div className="text-xs text-[var(--hint)] mt-0.5">
                     Использований: {promo.used_count}
                     {promo.max_uses != null && `/${promo.max_uses}`}
                     {promo.expires_at && ` · до ${formatDate(promo.expires_at)}`}
@@ -348,7 +348,7 @@ export default function DiscountsPage() {
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => handleToggle(promo)}
-                    className="text-white/40 hover:text-white/80 active:scale-[0.9] transition-all duration-200"
+                    className="text-[var(--hint)] hover:text-[var(--text-2)] active:scale-[0.97] transition-all duration-200"
                     title={promo.is_active ? 'Деактивировать' : 'Активировать'}
                   >
                     {promo.is_active
@@ -358,7 +358,7 @@ export default function DiscountsPage() {
                   </button>
                   <button
                     onClick={() => handleDelete(promo)}
-                    className="text-white/30 hover:text-red-400 active:scale-[0.9] transition-all duration-200"
+                    className="text-[var(--hint)] hover:text-red-400 active:scale-[0.97] transition-all duration-200"
                     title="Удалить"
                   >
                     <Trash2 size={15} />

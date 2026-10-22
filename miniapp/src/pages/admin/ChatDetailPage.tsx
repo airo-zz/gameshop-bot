@@ -9,7 +9,7 @@ import {
   type FormEvent,
 } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Send, Bell, ArrowLeft, UserCheck, UserMinus, CheckCircle, HelpCircle, XCircle } from 'lucide-react'
+import { Send, Bell, ArrowLeft, UserCheck, UserMinus, CheckCircle, HelpCircle, XCircle } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { adminApi, type AdminChatDetail, type AdminChatMessage } from '@/api/admin'
 
@@ -61,9 +61,9 @@ function MessageBubble({
     return (
       <div style={{ textAlign: 'center', padding: '4px 0', marginBottom: 8 }}>
         <span style={{
-          fontSize: 12, color: 'rgba(255,255,255,0.35)', fontStyle: 'italic',
+          fontSize: 12, color: 'rgba(220,235,255,0.35)', fontStyle: 'italic',
           display: 'inline-block', padding: '4px 12px', borderRadius: 20,
-          background: 'rgba(255,255,255,0.04)',
+          background: 'rgba(220,235,255,0.04)',
         }}>
           {msg.text}
         </span>
@@ -85,15 +85,15 @@ function MessageBubble({
         borderRadius: isAdmin ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
         background: isAdmin
           ? 'rgba(29,78,216,0.85)'
-          : 'rgba(255,255,255,0.08)',
+          : 'rgba(220,235,255,0.08)',
         border: isAdmin
           ? '1px solid rgba(96,165,250,0.2)'
-          : '1px solid rgba(255,255,255,0.08)',
+          : '1px solid rgba(220,235,255,0.08)',
         opacity: msg.optimistic ? 0.65 : 1,
         transition: 'opacity 0.2s',
       }}>
         {isUser && (
-          <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)', marginBottom: 3, margin: '0 0 3px' }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: 'rgba(220,235,255,0.4)', marginBottom: 3, margin: '0 0 3px' }}>
             Покупатель
           </p>
         )}
@@ -115,7 +115,7 @@ function MessageBubble({
                   <img
                     src={safeUrl}
                     alt=""
-                    style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', display: 'block' }}
+                    style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(220,235,255,0.1)', display: 'block' }}
                   />
                 </a>
               ) : (
@@ -124,7 +124,7 @@ function MessageBubble({
                   href={safeUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', fontSize: 11, textDecoration: 'none' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 8, background: 'rgba(220,235,255,0.08)', color: 'rgba(220,235,255,0.6)', fontSize: 11, textDecoration: 'none' }}
                 >
                   Файл {idx + 1}
                 </a>
@@ -134,7 +134,7 @@ function MessageBubble({
         )}
         <p style={{
           fontSize: 10,
-          color: isAdmin ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.25)',
+          color: isAdmin ? 'rgba(220,235,255,0.4)' : 'rgba(220,235,255,0.25)',
           marginTop: 4, marginBottom: 0, textAlign: 'right',
         }}>
           {msg.optimistic ? '...' : formatTime(msg.created_at)}
@@ -298,7 +298,7 @@ export default function ChatDetailPage() {
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300 }}>
-        <div style={{ width: 24, height: 24, border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+        <div style={{ width: 24, height: 24, border: '2px solid rgba(220,235,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
       </div>
     )
   }
@@ -309,7 +309,7 @@ export default function ChatDetailPage() {
         <p style={{ color: '#f87171' }}>{error || 'Чат не найден'}</p>
         <button
           onClick={() => navigate('/admin/chats')}
-          style={{ marginTop: 12, padding: '8px 16px', borderRadius: 8, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: '#fff', cursor: 'pointer' }}
+          style={{ marginTop: 12, padding: '8px 16px', borderRadius: 8, background: 'rgba(220,235,255,0.1)', border: '1px solid rgba(220,235,255,0.15)', color: '#fff', cursor: 'pointer' }}
         >
           Назад к чатам
         </button>
@@ -323,11 +323,11 @@ export default function ChatDetailPage() {
       {/* Header */}
       <div style={{
         flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10,
-        padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+        padding: '12px 16px', borderBottom: '1px solid rgba(220,235,255,0.06)',
       }}>
         <button
           onClick={() => navigate('/admin/chats')}
-          style={{ background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.5)', cursor: 'pointer', padding: 4, display: 'flex', borderRadius: 8 }}
+          style={{ background: 'transparent', border: 'none', color: 'rgba(220,235,255,0.5)', cursor: 'pointer', padding: 4, display: 'flex', borderRadius: 8 }}
         >
           <ArrowLeft size={20} />
         </button>
@@ -335,7 +335,7 @@ export default function ChatDetailPage() {
           <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#fff' }}>
             {getUserLabel(chat)}
           </p>
-          <p style={{ margin: 0, fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+          <p style={{ margin: 0, fontSize: 11, color: 'rgba(220,235,255,0.35)' }}>
             ID: {chat.user.telegram_id}
             {chat.user.username && ` · @${chat.user.username}`}
           </p>
@@ -351,11 +351,11 @@ export default function ChatDetailPage() {
             padding: '6px 12px', borderRadius: 10,
             background: notifySuccess
               ? 'rgba(16,185,129,0.2)'
-              : 'rgba(255,255,255,0.08)',
+              : 'rgba(220,235,255,0.08)',
             border: notifySuccess
               ? '1px solid rgba(16,185,129,0.3)'
-              : '1px solid rgba(255,255,255,0.1)',
-            color: notifySuccess ? '#34d399' : 'rgba(255,255,255,0.7)',
+              : '1px solid rgba(220,235,255,0.1)',
+            color: notifySuccess ? '#34d399' : 'rgba(220,235,255,0.7)',
             cursor: 'pointer', fontSize: 12, fontWeight: 500,
             transition: 'all 0.2s',
           }}
@@ -370,14 +370,14 @@ export default function ChatDetailPage() {
         <div style={{
           flexShrink: 0,
           padding: '10px 14px',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          borderBottom: '1px solid rgba(220,235,255,0.06)',
           background: 'rgba(30,58,138,0.12)',
           display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto',
         }}>
           <span style={{ fontSize: 11, color: 'rgba(147,197,253,0.8)', fontWeight: 600, flexShrink: 0 }}>
             #{chat.order.order_number}
           </span>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', flexShrink: 0 }}>
+          <span style={{ fontSize: 11, color: 'rgba(220,235,255,0.35)', flexShrink: 0 }}>
             {chat.order.status === 'paid' ? 'Оплачен' : chat.order.status === 'processing' ? 'В работе' : 'Уточнение'}
           </span>
 
@@ -389,7 +389,7 @@ export default function ChatDetailPage() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: 'rgba(59,130,246,0.2)', color: '#93c5fd',
+                background: 'rgba(59,130,246,0.2)', color: 'var(--link)',
                 fontSize: 11, fontWeight: 600, flexShrink: 0,
               }}
             >
@@ -404,7 +404,7 @@ export default function ChatDetailPage() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 4,
                 padding: '4px 10px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.5)',
+                background: 'rgba(220,235,255,0.08)', color: 'rgba(220,235,255,0.5)',
                 fontSize: 11, fontWeight: 600, flexShrink: 0,
               }}
             >
@@ -465,7 +465,7 @@ export default function ChatDetailPage() {
         {messages.length === 0 ? (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
-            paddingTop: 48, gap: 8, color: 'rgba(255,255,255,0.3)',
+            paddingTop: 48, gap: 8, color: 'rgba(220,235,255,0.3)',
           }}>
             <p style={{ margin: 0, fontSize: 14 }}>Нет сообщений</p>
           </div>
@@ -474,7 +474,7 @@ export default function ChatDetailPage() {
             <div key={group.dateKey}>
               {/* Date separator */}
               <div style={{ textAlign: 'center', margin: '12px 0 8px' }}>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', padding: '3px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.05)' }}>
+                <span style={{ fontSize: 11, color: 'rgba(220,235,255,0.25)', padding: '3px 10px', borderRadius: 10, background: 'rgba(220,235,255,0.05)' }}>
                   {group.label}
                 </span>
               </div>
@@ -490,15 +490,15 @@ export default function ChatDetailPage() {
       {/* Input */}
       <div style={{
         flexShrink: 0, padding: '10px 12px',
-        borderTop: '1px solid rgba(255,255,255,0.06)',
+        borderTop: '1px solid rgba(220,235,255,0.06)',
         background: 'rgba(17,24,39,0.98)',
       }}>
         <form
           onSubmit={handleSend}
           style={{
             display: 'flex', alignItems: 'flex-end', gap: 8,
-            background: 'rgba(255,255,255,0.06)',
-            border: '1px solid rgba(255,255,255,0.1)',
+            background: 'rgba(220,235,255,0.06)',
+            border: '1px solid rgba(220,235,255,0.1)',
             borderRadius: 16, padding: '6px 6px 6px 14px',
           }}
         >
@@ -524,13 +524,13 @@ export default function ChatDetailPage() {
               flexShrink: 0, width: 36, height: 36, borderRadius: 10, border: 'none',
               background: text.trim()
                 ? 'linear-gradient(135deg, #1d4ed8, #2563eb)'
-                : 'rgba(255,255,255,0.08)',
+                : 'rgba(220,235,255,0.08)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               cursor: text.trim() ? 'pointer' : 'default', transition: 'background 0.2s',
             }}
           >
             {sending
-              ? <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+              ? <div style={{ width: 16, height: 16, border: '2px solid rgba(220,235,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
               : <Send size={16} color="#fff" />
             }
           </button>

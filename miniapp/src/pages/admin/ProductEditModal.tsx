@@ -22,7 +22,7 @@ export default function ProductEditModal({ productId, categoryId, onClose, onSav
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg my-6 mx-4 h-fit rounded-2xl border border-white/[0.1] bg-[#0b1220] p-4"
+        className="w-full max-w-lg my-6 mx-4 h-fit rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-4"
         onClick={(e) => e.stopPropagation()}
       >
         <ProductEditPage

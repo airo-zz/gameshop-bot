@@ -20,7 +20,7 @@ import {
   UserCheck,
   Paperclip,
   X,
-} from 'lucide-react'
+} from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { apiClient } from '@/api/client'
 
@@ -150,19 +150,19 @@ function TicketCard({
     <button
       onClick={onClick}
       className={[
-        'w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 active:scale-[0.99]',
+        'w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 active:scale-[0.97]',
         selected
-          ? 'bg-white/10 border-white/20'
-          : 'bg-[#1a1f2e] border-white/[0.06] hover:bg-[#1f2538] hover:border-white/10',
+          ? 'bg-[var(--bg3)] border-[var(--border)]'
+          : 'bg-[var(--bg2)] border-[var(--border)] hover:bg-[var(--bg2)] hover:border-[var(--border)]',
       ].join(' ')}
     >
       <div className="flex items-start justify-between gap-2 mb-1">
-        <span className="text-sm font-medium text-white truncate leading-tight">
+        <span className="text-sm font-medium text-[var(--text)] truncate leading-tight">
           {ticket.subject}
         </span>
         <StatusBadge status={ticket.status} />
       </div>
-      <div className="flex items-center gap-2 text-xs text-white/40">
+      <div className="flex items-center gap-2 text-xs text-[var(--hint)]">
         <User size={11} />
         <span className="truncate">{displayName}</span>
         <span>·</span>
@@ -183,8 +183,8 @@ function ChatMessage({ msg }: { msg: TicketMessage }) {
         className={[
           'max-w-[78%] px-4 py-2.5',
           isAdmin
-            ? 'bg-indigo-600 text-white rounded-2xl rounded-br-md shadow-sm'
-            : 'bg-white/[0.08] border border-white/[0.08] text-white/90 rounded-2xl rounded-bl-md shadow-sm',
+            ? 'bg-[var(--accent)] text-[var(--text)] rounded-2xl rounded-br-md shadow-sm'
+            : 'bg-[var(--bg3)] border border-[var(--border)] text-[var(--text-2)] rounded-2xl rounded-bl-md shadow-sm',
         ].join(' ')}
       >
         {msg.text && <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">{msg.text}</p>}
@@ -197,7 +197,7 @@ function ChatMessage({ msg }: { msg: TicketMessage }) {
                 <a key={i} href={fullUrl} target="_blank" rel="noopener noreferrer">
                   <img
                     src={fullUrl}
-                    className="max-w-[180px] max-h-[180px] rounded-xl object-cover border border-white/10"
+                    className="max-w-[180px] max-h-[180px] rounded-xl object-cover border border-[var(--border)]"
                     loading="lazy"
                   />
                 </a>
@@ -207,7 +207,7 @@ function ChatMessage({ msg }: { msg: TicketMessage }) {
                   href={fullUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border ${isAdmin ? 'border-white/20 text-white/80' : 'border-white/10 text-white/60'}`}
+                  className={`flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg border ${isAdmin ? 'border-[var(--border)] text-[var(--text-2)]' : 'border-[var(--border)] text-[var(--text-2)]'}`}
                 >
                   <FileText size={12} />
                   {url.split('/').pop() ?? 'Файл'}
@@ -218,7 +218,7 @@ function ChatMessage({ msg }: { msg: TicketMessage }) {
         )}
         <div
           className={`flex items-center gap-1.5 mt-1.5 text-xs ${
-            isAdmin ? 'text-white/40 justify-end' : 'text-white/30'
+            isAdmin ? 'text-[var(--hint)] justify-end' : 'text-[var(--hint)]'
           }`}
         >
           {msg.is_template_response && (
@@ -264,7 +264,7 @@ function TemplateDropdown({
       <button
         type="button"
         onClick={() => setOpen((p) => !p)}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs text-white/50 hover:bg-white/[0.08] hover:text-white/70 active:scale-[0.97] transition-all duration-200"
+        className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] text-xs text-[var(--hint)] hover:bg-[var(--bg3)] hover:text-[var(--text-2)] active:scale-[0.97] transition-all duration-200"
       >
         <FileText size={13} />
         <span>Шаблоны</span>
@@ -278,7 +278,7 @@ function TemplateDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute bottom-full mb-2 left-0 w-64 bg-[#1a1f2e] border border-white/[0.1] rounded-xl shadow-xl z-20 overflow-hidden"
+            className="absolute bottom-full mb-2 left-0 w-64 bg-[var(--bg2)] border border-[var(--border)] rounded-xl shadow-xl z-20 overflow-hidden"
           >
             <div className="p-1.5 max-h-52 overflow-y-auto">
               {templates.map((t) => (
@@ -289,11 +289,11 @@ function TemplateDropdown({
                     onSelect(t.text)
                     setOpen(false)
                   }}
-                  className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-white/[0.06] transition-colors duration-150"
+                  className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-[var(--bg3)] transition-colors duration-150"
                 >
-                  <div className="text-xs font-medium text-white/80 truncate">{t.title}</div>
+                  <div className="text-xs font-medium text-[var(--text-2)] truncate">{t.title}</div>
                   {t.category && (
-                    <div className="text-xs text-white/30 mt-0.5">{t.category}</div>
+                    <div className="text-xs text-[var(--hint)] mt-0.5">{t.category}</div>
                   )}
                 </button>
               ))}
@@ -336,7 +336,7 @@ function StatusDropdown({
         type="button"
         disabled={disabled}
         onClick={() => setOpen((p) => !p)}
-        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs font-medium hover:bg-white/[0.08] active:scale-[0.97] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+        className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] text-xs font-medium hover:bg-[var(--bg3)] active:scale-[0.97] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
         style={{ color: currentInfo.color }}
       >
         <span>{currentInfo.label}</span>
@@ -350,7 +350,7 @@ function StatusDropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 4, scale: 0.97 }}
             transition={{ duration: 0.15 }}
-            className="absolute top-full mt-1 right-0 w-44 bg-[#1a1f2e] border border-white/[0.1] rounded-xl shadow-xl z-20 overflow-hidden"
+            className="absolute top-full mt-1 right-0 w-44 bg-[var(--bg2)] border border-[var(--border)] rounded-xl shadow-xl z-20 overflow-hidden"
           >
             <div className="p-1.5">
               {STATUS_OPTIONS.map((opt) => {
@@ -365,7 +365,7 @@ function StatusDropdown({
                     }}
                     className={[
                       'w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors duration-150',
-                      current === opt.key ? 'bg-white/[0.08]' : 'hover:bg-white/[0.04]',
+                      current === opt.key ? 'bg-[var(--bg3)]' : 'hover:bg-[var(--bg3)]',
                     ].join(' ')}
                     style={{ color: info.color }}
                   >
@@ -523,19 +523,19 @@ function ChatPanel({
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-white/40 text-sm">Загрузка...</p>
+        <p className="text-[var(--hint)] text-sm">Загрузка...</p>
       </div>
     )
   }
 
   if (!detail) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-3 text-white/40">
+      <div className="flex flex-col items-center justify-center h-full gap-3 text-[var(--hint)]">
         <AlertCircle size={36} />
         <p className="text-sm">Не удалось загрузить тикет</p>
         <button
           onClick={() => { setLoading(true); fetchDetail().finally(() => setLoading(false)) }}
-          className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform"
+          className="text-xs text-[var(--hint)] hover:text-[var(--text-2)] active:scale-[0.97] transition-transform"
         >
           Попробовать снова
         </button>
@@ -552,11 +552,11 @@ function ChatPanel({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-white/[0.06] shrink-0">
+      <div className="px-4 py-3 border-b border-[var(--border)] shrink-0">
         {/* Mobile back button */}
         <button
           onClick={onBack}
-          className="md:hidden flex items-center gap-2 text-sm text-white/50 hover:text-white/80 active:scale-[0.97] transition-all mb-3"
+          className="md:hidden flex items-center gap-2 text-sm text-[var(--hint)] hover:text-[var(--text-2)] active:scale-[0.97] transition-all mb-3"
         >
           <ChevronLeft size={16} />
           <span>К списку</span>
@@ -564,8 +564,8 @@ function ChatPanel({
 
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-sm font-semibold text-white truncate">{detail.subject}</h2>
-            <div className="flex items-center gap-2 mt-1 text-xs text-white/40">
+            <h2 className="text-sm font-semibold text-[var(--text)] truncate">{detail.subject}</h2>
+            <div className="flex items-center gap-2 mt-1 text-xs text-[var(--hint)]">
               <User size={11} />
               <span>{displayName}</span>
               {detail.order_id && (
@@ -588,7 +588,7 @@ function ChatPanel({
           <button
             onClick={handleAssign}
             disabled={assigning}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] text-xs text-white/60 hover:bg-white/[0.08] hover:text-white/80 active:scale-[0.97] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] text-xs text-[var(--text-2)] hover:bg-[var(--bg3)] hover:text-[var(--text-2)] active:scale-[0.97] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <UserCheck size={13} />
             <span>{assigning ? 'Назначаю...' : 'Взять'}</span>
@@ -601,7 +601,7 @@ function ChatPanel({
           />
 
           {detail.assigned_to && (
-            <span className="text-xs text-white/30 ml-auto">
+            <span className="text-xs text-[var(--hint)] ml-auto">
               Назначен: {detail.assigned_to.username
                 ? `@${detail.assigned_to.username}`
                 : detail.assigned_to.first_name}
@@ -613,7 +613,7 @@ function ChatPanel({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2.5">
         {detail.messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-2 text-white/20">
+          <div className="flex flex-col items-center justify-center h-full gap-2 text-[var(--hint)]">
             <MessageSquare size={32} />
             <p className="text-sm">Нет сообщений</p>
           </div>
@@ -628,7 +628,7 @@ function ChatPanel({
       </div>
 
       {/* Input area */}
-      <div className="px-4 py-3 border-t border-white/[0.06] shrink-0">
+      <div className="px-4 py-3 border-t border-[var(--border)] shrink-0">
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
@@ -653,12 +653,12 @@ function ChatPanel({
                 {f.type.startsWith('image/') ? (
                   <img
                     src={URL.createObjectURL(f)}
-                    className="w-14 h-14 object-cover rounded-xl border border-white/[0.1]"
+                    className="w-14 h-14 object-cover rounded-xl border border-[var(--border)]"
                   />
                 ) : (
-                  <div className="w-14 h-14 rounded-xl border border-white/[0.1] bg-white/[0.05] flex flex-col items-center justify-center gap-1 px-1">
-                    <FileText size={16} className="text-white/40 shrink-0" />
-                    <span className="text-[9px] text-white/40 truncate w-full text-center leading-tight">
+                  <div className="w-14 h-14 rounded-xl border border-[var(--border)] bg-[var(--bg2)] flex flex-col items-center justify-center gap-1 px-1">
+                    <FileText size={16} className="text-[var(--hint)] shrink-0" />
+                    <span className="text-[9px] text-[var(--hint)] truncate w-full text-center leading-tight">
                       {f.name.split('.').pop()?.toUpperCase()}
                     </span>
                   </div>
@@ -666,7 +666,7 @@ function ChatPanel({
                 <button
                   type="button"
                   onClick={() => setAttachedFiles((prev) => prev.filter((_, j) => j !== i))}
-                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center transition-colors"
+                  className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white/20 hover:bg-[var(--bg3)] flex items-center justify-center transition-colors"
                 >
                   <X size={9} color="#fff" />
                 </button>
@@ -679,7 +679,7 @@ function ChatPanel({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] text-white/40 hover:bg-white/[0.08] hover:text-white/70 active:scale-[0.95] transition-all duration-200 shrink-0 self-end"
+            className="p-2.5 rounded-xl bg-[var(--bg2)] border border-[var(--border)] text-[var(--hint)] hover:bg-[var(--bg3)] hover:text-[var(--text-2)] active:scale-[0.97] transition-all duration-200 shrink-0 self-end"
           >
             <Paperclip size={15} />
           </button>
@@ -691,13 +691,13 @@ function ChatPanel({
               onKeyDown={handleKeyDown}
               placeholder="Напишите ответ... (Enter — отправить, Shift+Enter — перенос)"
               rows={3}
-              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-2xl px-4 py-3 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/15 focus:border-white/20 resize-none leading-relaxed transition-all duration-200"
+              className="w-full bg-[var(--bg2)] border border-[var(--border)] rounded-2xl px-4 py-3 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:ring-1 focus:ring-[var(--border)] focus:border-[var(--border)] resize-none leading-relaxed transition-all duration-200"
             />
           </div>
           <button
             onClick={handleSend}
             disabled={(!replyText.trim() && attachedFiles.length === 0) || sending || uploading}
-            className="p-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.95] shrink-0 self-end"
+            className="p-3 rounded-xl bg-[var(--accent)] hover:bg-[var(--btn-hover)] text-[var(--text)] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.97] shrink-0 self-end"
           >
             {sending || uploading ? (
               <RefreshCw size={16} className="animate-spin" />
@@ -812,9 +812,9 @@ export default function AdminSupportPage() {
   return (
     <div className="flex flex-col h-full" style={{ minHeight: 'calc(100vh - 120px)' }}>
       <div className="mb-4 shrink-0">
-        <h1 className="text-xl font-bold text-white">Поддержка</h1>
+        <h1 className="text-xl font-bold text-[var(--text)]">Поддержка</h1>
         {listData && (
-          <p className="text-sm text-white/40 mt-0.5">Тикетов: {listData.total}</p>
+          <p className="text-sm text-[var(--hint)] mt-0.5">Тикетов: {listData.total}</p>
         )}
       </div>
 
@@ -831,13 +831,13 @@ export default function AdminSupportPage() {
         >
           {/* Search */}
           <div className="relative mb-3 shrink-0">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--hint)]" />
             <input
               type="text"
               placeholder="Поиск по теме, пользователю..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/20 transition-all duration-200"
+              className="w-full bg-[var(--bg2)] border border-[var(--border)] rounded-xl py-2.5 pl-9 pr-4 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:ring-1 focus:ring-[var(--border)] focus:border-[var(--border)] transition-all duration-200"
             />
           </div>
 
@@ -850,8 +850,8 @@ export default function AdminSupportPage() {
                 className={[
                   'shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 active:scale-[0.97]',
                   activeTab === tab.key
-                    ? 'bg-white/15 text-white'
-                    : 'bg-white/[0.05] text-white/50 hover:bg-white/[0.08]',
+                    ? 'bg-[var(--bg3)] text-[var(--text)]'
+                    : 'bg-[var(--bg2)] text-[var(--hint)] hover:bg-[var(--bg3)]',
                 ].join(' ')}
               >
                 {tab.label}
@@ -862,20 +862,20 @@ export default function AdminSupportPage() {
           {/* Ticket list */}
           <div className="flex-1 overflow-y-auto space-y-2 pr-0.5">
             {listLoading ? (
-              <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
+              <p className="text-[var(--hint)] text-sm py-8 text-center">Загрузка...</p>
             ) : listError ? (
-              <div className="flex flex-col items-center py-12 gap-3 text-white/40">
+              <div className="flex flex-col items-center py-12 gap-3 text-[var(--hint)]">
                 <AlertCircle size={32} />
                 <p className="text-sm">Ошибка загрузки</p>
                 <button
                   onClick={loadList}
-                  className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform"
+                  className="text-xs text-[var(--hint)] hover:text-[var(--text-2)] active:scale-[0.97] transition-transform"
                 >
                   Попробовать снова
                 </button>
               </div>
             ) : !listData?.items.length ? (
-              <div className="flex flex-col items-center py-12 gap-2 text-white/25">
+              <div className="flex flex-col items-center py-12 gap-2 text-[var(--hint)]">
                 <MessageSquare size={32} />
                 <p className="text-sm">Тикетов не найдено</p>
               </div>
@@ -893,21 +893,21 @@ export default function AdminSupportPage() {
 
           {/* Pagination */}
           {listData && listData.pages > 1 && (
-            <div className="flex items-center justify-between pt-3 shrink-0 border-t border-white/[0.06] mt-3">
+            <div className="flex items-center justify-between pt-3 shrink-0 border-t border-[var(--border)] mt-3">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => p - 1)}
-                className="px-3 py-1.5 rounded-xl bg-white/[0.05] text-xs text-white/60 disabled:opacity-30 hover:bg-white/[0.08] active:scale-[0.97] transition-all duration-200"
+                className="px-3 py-1.5 rounded-xl bg-[var(--bg2)] text-xs text-[var(--text-2)] disabled:opacity-30 hover:bg-[var(--bg3)] active:scale-[0.97] transition-all duration-200"
               >
                 Назад
               </button>
-              <span className="text-xs text-white/30">
+              <span className="text-xs text-[var(--hint)]">
                 {page} / {listData.pages}
               </span>
               <button
                 disabled={page >= listData.pages}
                 onClick={() => setPage((p) => p + 1)}
-                className="px-3 py-1.5 rounded-xl bg-white/[0.05] text-xs text-white/60 disabled:opacity-30 hover:bg-white/[0.08] active:scale-[0.97] transition-all duration-200"
+                className="px-3 py-1.5 rounded-xl bg-[var(--bg2)] text-xs text-[var(--text-2)] disabled:opacity-30 hover:bg-[var(--bg3)] active:scale-[0.97] transition-all duration-200"
               >
                 Вперёд
               </button>
@@ -918,8 +918,8 @@ export default function AdminSupportPage() {
         {/* Right panel: chat view */}
         <div
           className={[
-            'flex-1 min-w-0 rounded-xl border border-white/[0.06] overflow-hidden',
-            'bg-[#1a1f2e]',
+            'flex-1 min-w-0 rounded-xl border border-[var(--border)] overflow-hidden',
+            'bg-[var(--bg2)]',
             mobileShowChat ? 'flex' : 'hidden md:flex',
             'flex-col',
           ].join(' ')}
@@ -929,7 +929,7 @@ export default function AdminSupportPage() {
               <ChatPanel ticketId={selectedId} onBack={handleMobileBack} />
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full gap-3 text-white/20 p-8">
+            <div className="flex flex-col items-center justify-center h-full gap-3 text-[var(--hint)] p-8">
               <MessageSquare size={48} strokeWidth={1.5} />
               <p className="text-sm text-center">
                 Выберите тикет из списка слева, чтобы просмотреть переписку

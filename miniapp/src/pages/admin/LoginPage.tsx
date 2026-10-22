@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { Shield, Loader2 } from 'lucide-react'
+import { Shield, Loader2 } from '@/components/ui/icons'
 import axios from 'axios'
 
 const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'reDonate_robot'
@@ -52,18 +52,18 @@ export default function AdminLoginPage() {
       style={{ background: '#101C36' }}
     >
       {/* Card */}
-      <div className="w-full max-w-sm bg-white/[0.04] border border-white/[0.08] rounded-3xl p-8 flex flex-col items-center gap-6 shadow-[0_0_40px_rgba(0,0,0,0.4)] backdrop-blur-sm">
+      <div className="w-full max-w-sm bg-[var(--bg2)] border border-[var(--border)] rounded-3xl p-8 flex flex-col items-center gap-6 shadow-[0_0_40px_rgba(0,0,0,0.4)] backdrop-blur-sm">
         {/* Icon */}
         <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-blue-600/10 border border-blue-500/20">
-          <Shield size={32} className="text-blue-400" />
+          <Shield size={32} className="text-[var(--link)]" />
         </div>
 
         {/* Heading */}
         <div className="text-center space-y-1.5">
-          <h1 className="text-xl font-bold text-white">
+          <h1 className="text-xl font-bold text-[var(--text)]">
             Панель управления
           </h1>
-          <p className="text-sm text-white/45 leading-relaxed">
+          <p className="text-sm text-[var(--hint)] leading-relaxed">
             Войдите через Telegram для доступа к администрированию
           </p>
         </div>
@@ -74,7 +74,7 @@ export default function AdminLoginPage() {
         {/* Status */}
         <p
           id="login-status"
-          className="text-sm text-center text-white/40 min-h-[20px]"
+          className="text-sm text-center text-[var(--hint)] min-h-[20px]"
         >
           {loading && <Loader2 size={16} className="animate-spin inline mr-1" />}
         </p>

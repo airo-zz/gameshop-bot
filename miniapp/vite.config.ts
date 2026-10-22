@@ -41,7 +41,7 @@ export default defineConfig({
           vendor: ['react', 'react-dom', 'react-router-dom'],
           query: ['@tanstack/react-query'],
           motion: ['framer-motion'],
-          ui: ['lucide-react'],
+          ui: ['@phosphor-icons/react'],
         },
       },
     },

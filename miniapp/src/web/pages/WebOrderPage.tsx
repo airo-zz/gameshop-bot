@@ -34,7 +34,8 @@ export default function WebOrderPage() {
     if (!id || repaying) return
     setRepaying(true)
     try {
-      const p = await ordersApi.pay(id, { source: PAY_SOURCE })
+      // use_balance: сохраняем доплату с баланса (холд заказа), если она была
+      const p = await ordersApi.pay(id, { source: PAY_SOURCE, use_balance: true })
       if (p.success) {
         window.location.reload()
         return
@@ -73,7 +74,7 @@ export default function WebOrderPage() {
         <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid transparent' }}>
           <CheckCircle2 size={22} style={{ color: '#34d399' }} />
           <div>
-            <p className="text-sm font-semibold text-white">Оплата прошла</p>
+            <p className="text-sm font-semibold text-[var(--text)]">Оплата прошла</p>
             <p className="text-xs text-[var(--hint)]">
               {order.status === 'completed' ? 'Заказ выполнен — данные ниже.' : 'Заказ принят в обработку. Уведомление придёт в Telegram.'}
             </p>
@@ -84,7 +85,7 @@ export default function WebOrderPage() {
         <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid transparent' }}>
           <Loader2 size={22} className="animate-spin" style={{ color: 'var(--link)' }} />
           <div>
-            <p className="text-sm font-semibold text-white">Проверяем оплату</p>
+            <p className="text-sm font-semibold text-[var(--text)]">Проверяем оплату</p>
             <p className="text-xs text-[var(--hint)]">Обычно это занимает до минуты — статус обновится сам.</p>
           </div>
         </div>
@@ -92,7 +93,7 @@ export default function WebOrderPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Заказ {order.order_number}</h1>
+          <h1 className="text-2xl font-semibold text-[var(--text)]">Заказ {order.order_number}</h1>
           <p className="text-xs text-[var(--hint)] mt-1">{new Date(order.created_at).toLocaleString('ru-RU')}</p>
         </div>
         <span className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-full" style={{ background: st.bg, color: st.color }}>
@@ -102,18 +103,18 @@ export default function WebOrderPage() {
       </div>
 
       {/* Состав */}
-      <div className="rounded-2xl border border-white/[0.06] bg-[var(--bg2)] p-5 space-y-3">
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-5 space-y-3">
         {order.items?.map((item) => (
-          <div key={item.id} className="pb-3 border-b border-white/[0.05] last:border-0 last:pb-0">
+          <div key={item.id} className="pb-3 border-b border-[var(--border)] last:border-0 last:pb-0">
             <div className="flex justify-between text-sm">
-              <span className="text-white/85 flex-1 mr-3">{item.product_name} × {item.quantity}</span>
-              <span className="text-white font-medium shrink-0">{money(item.total_price)}</span>
+              <span className="text-[var(--text-2)] flex-1 mr-3">{item.product_name} × {item.quantity}</span>
+              <span className="text-[var(--text)] font-medium shrink-0">{money(item.total_price)}</span>
             </div>
             {item.instruction && (
               <p className="text-xs text-[var(--hint)] mt-2 whitespace-pre-wrap">{item.instruction}</p>
             )}
             {item.delivery_data && Object.keys(item.delivery_data).length > 0 && (
-              <div className="mt-2 rounded-lg bg-[var(--bg2)] border border-white/[0.06] p-2.5 space-y-1">
+              <div className="mt-2 rounded-lg bg-[var(--bg2)] border border-[var(--border)] p-2.5 space-y-1">
                 {Object.entries(item.delivery_data).map(([k, v]) => (
                   <div key={k} className="text-xs text-[var(--text-2)] break-all"><span className="text-[var(--hint)]">{k}:</span> {String(v)}</div>
                 ))}
@@ -123,7 +124,7 @@ export default function WebOrderPage() {
         ))}
 
         <div className="flex justify-between text-base font-bold pt-1">
-          <span className="text-white">Итого</span>
+          <span className="text-[var(--text)]">Итого</span>
           <span style={{ color: 'var(--link)' }}>{money(order.total_amount)}</span>
         </div>
       </div>
@@ -146,7 +147,7 @@ export default function WebOrderPage() {
 
       <div className="mt-6 flex items-center justify-between text-sm">
         <Link to="/orders" style={{ color: 'var(--link)' }}>← Мои заказы</Link>
-        <a href={SUPPORT_BOT_URL} target="_blank" rel="noopener noreferrer" className="text-[var(--hint)] hover:text-white transition-colors">
+        <a href={SUPPORT_BOT_URL} target="_blank" rel="noopener noreferrer" className="text-[var(--hint)] hover:text-[var(--text)] transition-colors">
           Нужна помощь?
         </a>
       </div>

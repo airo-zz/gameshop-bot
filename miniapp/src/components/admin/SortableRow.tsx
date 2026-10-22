@@ -59,11 +59,11 @@ export default function SortableRow({ id, children, style, className, disabled }
           border: 'none',
           padding: 0,
           touchAction: 'none',
-          color: 'rgba(255,255,255,0.2)',
+          color: 'rgba(220,235,255,0.2)',
           zIndex: 1,
         }}
-        onMouseEnter={e => { (e.currentTarget).style.color = 'rgba(255,255,255,0.5)' }}
-        onMouseLeave={e => { (e.currentTarget).style.color = 'rgba(255,255,255,0.2)' }}
+        onMouseEnter={e => { (e.currentTarget).style.color = 'rgba(220,235,255,0.5)' }}
+        onMouseLeave={e => { (e.currentTarget).style.color = 'rgba(220,235,255,0.2)' }}
       >
         {/* Grip icon */}
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">

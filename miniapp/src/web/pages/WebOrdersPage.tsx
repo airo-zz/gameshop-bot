@@ -23,7 +23,7 @@ export default function WebOrdersPage() {
 
   return (
     <div className="web-container py-8 md:py-12 max-w-3xl">
-      <h1 className="text-2xl md:text-3xl font-bold text-white mb-6">Мои заказы</h1>
+      <h1 className="text-2xl md:text-3xl font-semibold text-[var(--text)] mb-6">Мои заказы</h1>
 
       {isLoading ? (
         <div className="space-y-3">
@@ -38,9 +38,9 @@ export default function WebOrdersPage() {
           <div className="w-14 h-14 rounded-2xl bg-[var(--bg2)] flex items-center justify-center mx-auto mb-5 text-[var(--hint)]">
             <Package size={24} />
           </div>
-          <h2 className="text-lg font-bold text-white">Заказов пока нет</h2>
+          <h2 className="text-lg font-semibold text-[var(--text)]">Заказов пока нет</h2>
           <p className="text-sm text-[var(--hint)] mt-2 mb-6">Выберите игру в каталоге — оформление займёт пару минут.</p>
-          <Link to="/catalog" className="inline-flex rounded-xl px-5 py-3 text-sm font-semibold text-white" style={{ background: 'var(--gradient-primary)' }}>
+          <Link to="/catalog" className="inline-flex rounded-xl px-5 py-3 text-sm font-semibold text-[var(--text)]" style={{ background: 'var(--gradient-primary)' }}>
             В каталог
           </Link>
         </div>
@@ -52,11 +52,11 @@ export default function WebOrdersPage() {
               <Link
                 key={o.id}
                 to={`/orders/${o.id}`}
-                className="flex items-center gap-4 p-4 rounded-2xl border border-white/[0.06] bg-[var(--bg2)] hover:bg-[var(--bg2)] hover:border-white/10 transition-colors"
+                className="flex items-center gap-4 p-4 rounded-2xl border border-[var(--border)] bg-[var(--bg2)] hover:bg-[var(--bg2)] hover:border-[var(--border)] transition-colors"
               >
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-sm font-semibold text-white">Заказ {o.order_number}</span>
+                    <span className="text-sm font-semibold text-[var(--text)]">Заказ {o.order_number}</span>
                     <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: st.bg, color: st.color }}>
                       {st.label}
                     </span>
@@ -79,7 +79,7 @@ export default function WebOrdersPage() {
             <button
               onClick={() => fetchNextPage()}
               disabled={isFetchingNextPage}
-              className="w-full py-3 rounded-xl text-sm font-semibold text-[var(--text-2)] border border-white/10 bg-[var(--bg2)] hover:bg-[var(--bg3)] disabled:opacity-50"
+              className="w-full py-3 rounded-xl text-sm font-semibold text-[var(--text-2)] border border-[var(--border)] bg-[var(--bg2)] hover:bg-[var(--bg3)] disabled:opacity-50"
             >
               {isFetchingNextPage ? 'Загрузка...' : 'Показать ещё'}
             </button>

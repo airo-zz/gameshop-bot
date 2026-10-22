@@ -26,7 +26,7 @@ import {
   Upload,
   Check,
   Settings,
-} from 'lucide-react'
+} from '@/components/ui/icons'
 import {
   DndContext,
   closestCenter,
@@ -60,7 +60,7 @@ function formatMoney(v: number) {
   }).format(v)
 }
 
-const inputCls = 'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/20 transition-all duration-200'
+const inputCls = 'w-full bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:ring-1 focus:ring-[var(--border)] focus:border-[var(--border)] transition-all duration-200'
 
 // ── Модалка массового изменения цен ──────────────────────────────────────────
 
@@ -111,26 +111,26 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm">
-      <div className="w-full max-w-lg bg-[#1a1f2e] border border-white/[0.1] rounded-t-2xl p-5 space-y-4">
+      <div className="w-full max-w-lg bg-[var(--bg2)] border border-[var(--border)] rounded-t-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-base font-semibold text-white">Изменить цены</h3>
+          <h3 className="text-base font-semibold text-[var(--text)]">Изменить цены</h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-white/[0.08] active:scale-[0.95] transition-all"
+            className="p-1.5 rounded-lg hover:bg-[var(--bg3)] active:scale-[0.97] transition-all"
           >
-            <X size={18} className="text-white/50" />
+            <X size={18} className="text-[var(--hint)]" />
           </button>
         </div>
 
         {/* Режим */}
-        <div className="flex gap-1 bg-white/[0.05] p-1 rounded-xl">
+        <div className="flex gap-1 bg-[var(--bg2)] p-1 rounded-xl">
           {(['percent', 'fixed'] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
               className={[
-                'flex-1 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-[0.98]',
-                mode === m ? 'bg-white/[0.12] text-white' : 'text-white/40 hover:text-white/60',
+                'flex-1 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 active:scale-[0.97]',
+                mode === m ? 'bg-[var(--bg3)] text-[var(--text)]' : 'text-[var(--hint)] hover:text-[var(--text-2)]',
               ].join(' ')}
             >
               {m === 'percent' ? 'Процент' : 'Фиксированная цена'}
@@ -140,7 +140,7 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
 
         {/* Значение */}
         <div>
-          <label className="text-xs text-white/50 mb-1 block">
+          <label className="text-xs text-[var(--hint)] mb-1 block">
             {mode === 'percent' ? 'Изменение, %' : 'Новая цена, ₽'}
           </label>
           <input
@@ -153,7 +153,7 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
             className={inputCls}
           />
           {mode === 'percent' && value && !isNaN(parseFloat(value)) && (
-            <p className="text-xs text-white/40 mt-1">
+            <p className="text-xs text-[var(--hint)] mt-1">
               Цена будет умножена на коэффициент {(1 + parseFloat(value) / 100).toFixed(4)}
             </p>
           )}
@@ -162,7 +162,7 @@ function BulkPriceModal({ categoryId, onClose, onApplied }: BulkPriceModalProps)
         <button
           onClick={handleApply}
           disabled={loading || !value}
-          className="w-full py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
+          className="w-full py-3 rounded-xl bg-[var(--accent)] hover:bg-[var(--btn-hover)] disabled:opacity-40 disabled:cursor-not-allowed text-sm font-semibold text-[var(--text)] transition-all duration-200 active:scale-[0.97]"
         >
           {loading ? 'Применяем...' : 'Применить'}
         </button>
@@ -199,12 +199,12 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Каталог</h1>
-          <p className="text-xs text-white/40 mt-0.5">Выберите игру</p>
+          <h1 className="text-xl font-bold text-[var(--text)]">Каталог</h1>
+          <p className="text-xs text-[var(--hint)] mt-0.5">Выберите игру</p>
         </div>
         <button
           onClick={() => navigate('/admin/catalog/games')}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.97] text-xs font-medium text-white/60 transition-all duration-200"
+          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] hover:bg-[var(--bg3)] active:scale-[0.97] text-xs font-medium text-[var(--text-2)] transition-all duration-200"
         >
           Управление играми
           <ChevronRight size={14} />
@@ -212,15 +212,15 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
       </div>
 
       {loading ? (
-        <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
+        <p className="text-[var(--hint)] text-sm py-8 text-center">Загрузка...</p>
       ) : error ? (
-        <div className="flex flex-col items-center py-16 gap-3 text-white/40">
+        <div className="flex flex-col items-center py-16 gap-3 text-[var(--hint)]">
           <AlertCircle size={36} />
           <p className="text-sm">Ошибка загрузки игр</p>
-          <button onClick={load} className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform">Попробовать снова</button>
+          <button onClick={load} className="text-xs text-[var(--hint)] hover:text-[var(--text-2)] active:scale-[0.97] transition-transform">Попробовать снова</button>
         </div>
       ) : games.length === 0 ? (
-        <div className="flex flex-col items-center py-16 gap-3 text-white/30">
+        <div className="flex flex-col items-center py-16 gap-3 text-[var(--hint)]">
           <Gamepad2 size={36} />
           <p className="text-sm">Игр пока нет</p>
         </div>
@@ -230,9 +230,9 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
             <div
               key={game.id}
               onClick={() => onSelect(game)}
-              className="flex items-center gap-3 bg-[#1a1f2e] hover:bg-[#1f2538] border border-white/[0.06] rounded-xl px-4 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.99]"
+              className="flex items-center gap-3 bg-[var(--bg2)] hover:bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-4 py-3.5 transition-all duration-200 cursor-pointer active:scale-[0.97]"
             >
-              <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/[0.05] shrink-0 flex items-center justify-center">
+              <div className="w-12 h-12 rounded-lg overflow-hidden bg-[var(--bg2)] shrink-0 flex items-center justify-center">
                 {game.image_url ? (
                   <img
                     src={normalizeImageUrl(game.image_url) ?? game.image_url}
@@ -243,18 +243,18 @@ function GamesLevel({ onSelect }: GamesLevelProps) {
                     }}
                   />
                 ) : (
-                  <ImageOff size={18} className="text-white/20" />
+                  <ImageOff size={18} className="text-[var(--hint)]" />
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-white truncate">{game.name}</div>
-                <div className="text-xs text-white/50 mt-0.5">
-                  <span className={game.is_active ? 'text-emerald-400' : 'text-white/30'}>
+                <div className="text-sm font-medium text-[var(--text)] truncate">{game.name}</div>
+                <div className="text-xs text-[var(--hint)] mt-0.5">
+                  <span className={game.is_active ? 'text-emerald-400' : 'text-[var(--hint)]'}>
                     {game.is_active ? 'Активна' : 'Неактивна'}
                   </span>
                 </div>
               </div>
-              <ChevronRight size={16} className="text-white/30 shrink-0" />
+              <ChevronRight size={16} className="text-[var(--hint)] shrink-0" />
             </div>
           ))}
         </div>
@@ -307,15 +307,15 @@ function QuickAddRow({ categoryId, onCreated }: QuickAddRowProps) {
   const ready = name.trim() !== '' && price !== ''
 
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-dashed border-white/[0.15] bg-white/[0.02] px-2.5 py-2">
-      <Plus size={15} className="text-white/30 shrink-0" />
+    <div className="flex items-center gap-2 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg2)] px-2.5 py-2">
+      <Plus size={15} className="text-[var(--hint)] shrink-0" />
       <input
         ref={nameRef}
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={onKeyDown}
         placeholder="Название лота"
-        className="flex-1 min-w-0 bg-transparent text-sm text-white placeholder:text-white/25 focus:outline-none"
+        className="flex-1 min-w-0 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none"
       />
       <input
         type="number"
@@ -325,13 +325,13 @@ function QuickAddRow({ categoryId, onCreated }: QuickAddRowProps) {
         placeholder="$"
         min={0}
         step="0.01"
-        className="w-20 shrink-0 bg-white/[0.05] border border-white/[0.08] rounded-lg px-2 py-1.5 text-sm text-white text-right placeholder:text-white/25 focus:outline-none focus:border-white/20"
+        className="w-20 shrink-0 bg-[var(--bg2)] border border-[var(--border)] rounded-lg px-2 py-1.5 text-sm text-[var(--text)] text-right placeholder:text-[var(--hint)] focus:outline-none focus:border-[var(--border)]"
       />
       <button
         type="button"
         onClick={submit}
         disabled={!ready || saving}
-        className="shrink-0 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold text-white transition-all active:scale-[0.97]"
+        className="shrink-0 px-3 py-1.5 rounded-lg bg-[var(--accent)] hover:bg-[var(--btn-hover)] disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold text-[var(--text)] transition-all active:scale-[0.97]"
       >
         {saving ? '…' : 'Создать'}
       </button>
@@ -454,12 +454,12 @@ function CategorySection({
   }
 
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)] overflow-hidden">
       {/* Заголовок категории */}
       <div className="flex items-center gap-2 px-3 py-3">
         {editing ? (
           <>
-            <FolderOpen size={16} className="text-white/40 shrink-0" />
+            <FolderOpen size={16} className="text-[var(--hint)] shrink-0" />
             <input
               autoFocus
               value={draftName}
@@ -469,7 +469,7 @@ function CategorySection({
                 if (e.key === 'Escape') { setEditing(false); setDraftName(category.name) }
               }}
               maxLength={128}
-              className="flex-1 min-w-0 bg-white/[0.05] border border-white/[0.12] rounded-lg px-2.5 py-1.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+              className="flex-1 min-w-0 bg-[var(--bg2)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-sm text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
             />
             <button
               type="button"
@@ -483,7 +483,7 @@ function CategorySection({
             <button
               type="button"
               onClick={() => { setEditing(false); setDraftName(category.name) }}
-              className="shrink-0 p-1.5 rounded-lg text-white/40 bg-white/[0.03] border border-white/[0.08] hover:text-white/70 transition-all"
+              className="shrink-0 p-1.5 rounded-lg text-[var(--hint)] bg-[var(--bg2)] border border-[var(--border)] hover:text-[var(--text-2)] transition-all"
               title="Отмена"
             >
               <X size={13} />
@@ -493,16 +493,16 @@ function CategorySection({
           <>
             <button
               onClick={onToggleExpanded}
-              className="flex items-center gap-2 flex-1 min-w-0 text-left active:scale-[0.99] transition-transform"
+              className="flex items-center gap-2 flex-1 min-w-0 text-left active:scale-[0.97] transition-transform"
             >
               {expanded
-                ? <ChevronDown size={16} className="text-white/40 shrink-0" />
-                : <ChevronRight size={16} className="text-white/40 shrink-0" />}
-              <FolderOpen size={16} className="text-white/40 shrink-0" />
-              <span className="text-sm font-medium text-white truncate">{category.name}</span>
-              <span className="text-xs text-white/30 shrink-0">{products.length}</span>
+                ? <ChevronDown size={16} className="text-[var(--hint)] shrink-0" />
+                : <ChevronRight size={16} className="text-[var(--hint)] shrink-0" />}
+              <FolderOpen size={16} className="text-[var(--hint)] shrink-0" />
+              <span className="text-sm font-medium text-[var(--text)] truncate">{category.name}</span>
+              <span className="text-xs text-[var(--hint)] shrink-0">{products.length}</span>
               {!category.is_active && (
-                <span className="text-xs text-white/30 shrink-0">· скрыта</span>
+                <span className="text-xs text-[var(--hint)] shrink-0">· скрыта</span>
               )}
               {category.is_featured && (
                 <span className="text-xs text-amber-400 shrink-0">· на главной</span>
@@ -511,7 +511,7 @@ function CategorySection({
             <button
               type="button"
               onClick={() => { setDraftName(category.name); setEditing(true) }}
-              className="shrink-0 p-1.5 rounded-lg text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-white/60 transition-all"
+              className="shrink-0 p-1.5 rounded-lg text-[var(--hint)] bg-[var(--bg2)] border border-[var(--border)] hover:text-[var(--text-2)] transition-all"
               title="Переименовать"
             >
               <Pencil size={13} />
@@ -519,7 +519,7 @@ function CategorySection({
             <button
               type="button"
               onClick={onEditCategory}
-              className="shrink-0 p-1.5 rounded-lg text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-white/60 transition-all"
+              className="shrink-0 p-1.5 rounded-lg text-[var(--hint)] bg-[var(--bg2)] border border-[var(--border)] hover:text-[var(--text-2)] transition-all"
               title="Описание и поля подраздела"
             >
               <Settings size={13} />
@@ -530,7 +530,7 @@ function CategorySection({
               className={`shrink-0 p-1.5 rounded-lg transition-all ${
                 category.is_featured
                   ? 'text-amber-400 bg-amber-400/10 border border-amber-400/30'
-                  : 'text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-white/50'
+                  : 'text-[var(--hint)] bg-[var(--bg2)] border border-[var(--border)] hover:text-[var(--hint)]'
               }`}
               title={category.is_featured ? 'Убрать с главной' : 'Закрепить на главной'}
             >
@@ -539,7 +539,7 @@ function CategorySection({
             <button
               type="button"
               onClick={onOpenBulkPrice}
-              className="shrink-0 p-1.5 rounded-lg text-white/30 bg-white/[0.03] border border-white/[0.08] hover:text-white/60 transition-all"
+              className="shrink-0 p-1.5 rounded-lg text-[var(--hint)] bg-[var(--bg2)] border border-[var(--border)] hover:text-[var(--text-2)] transition-all"
               title="Изменить цены в категории"
             >
               <PercentSquare size={13} />
@@ -547,7 +547,7 @@ function CategorySection({
             <button
               type="button"
               onClick={onDeleteCategory}
-              className="shrink-0 p-1.5 rounded-lg text-white/20 bg-white/[0.03] border border-white/[0.08] hover:text-red-400 hover:border-red-400/30 transition-all"
+              className="shrink-0 p-1.5 rounded-lg text-[var(--hint)] bg-[var(--bg2)] border border-[var(--border)] hover:text-red-400 hover:border-red-400/30 transition-all"
               title="Удалить категорию"
             >
               <Trash2 size={13} />
@@ -565,28 +565,28 @@ function CategorySection({
                 <div className="space-y-1.5">
                   {products.map((product) => (
                     <SortableRow key={product.id} id={product.id} style={{ paddingLeft: 24 }}>
-                      <div className="flex items-center gap-2 border rounded-xl px-2.5 py-2 bg-[#1a1f2e] border-white/[0.06]">
+                      <div className="flex items-center gap-2 border rounded-xl px-2.5 py-2 bg-[var(--bg2)] border-[var(--border)]">
                         <div
                           className="flex-1 min-w-0 cursor-pointer"
                           onClick={() => onEditProduct(product.id)}
                         >
-                          <div className="text-sm text-white truncate">{product.name}</div>
-                          <div className="text-xs text-white/40">
+                          <div className="text-sm text-[var(--text)] truncate">{product.name}</div>
+                          <div className="text-xs text-[var(--hint)]">
                             {product.delivery_type}
                             {product.stock !== null && ` · склад: ${product.stock}`}
                           </div>
                         </div>
-                        <div className="text-sm font-semibold text-white shrink-0 mr-0.5">
+                        <div className="text-sm font-semibold text-[var(--text)] shrink-0 mr-0.5">
                           {formatMoney(product.price)}
                         </div>
                         <button
                           type="button"
                           onClick={() => handleToggleActive(product)}
                           disabled={togglingId === product.id}
-                          className={`shrink-0 px-2 py-1 rounded-lg text-[11px] font-medium border transition-all active:scale-[0.95] disabled:opacity-40 ${
+                          className={`shrink-0 px-2 py-1 rounded-lg text-[11px] font-medium border transition-all active:scale-[0.97] disabled:opacity-40 ${
                             product.is_active
                               ? 'text-emerald-400 bg-emerald-400/10 border-emerald-400/25'
-                              : 'text-white/40 bg-white/[0.04] border-white/[0.08]'
+                              : 'text-[var(--hint)] bg-[var(--bg2)] border-[var(--border)]'
                           }`}
                           title={product.is_active ? 'Скрыть с витрины' : 'Показать на витрине'}
                         >
@@ -594,22 +594,22 @@ function CategorySection({
                         </button>
                         <button
                           onClick={() => handleDuplicate(product.id)}
-                          className="shrink-0 p-1.5 rounded-lg bg-white/[0.05] hover:bg-white/[0.1] text-white/40 hover:text-white/80 active:scale-[0.9] transition-all"
+                          className="shrink-0 p-1.5 rounded-lg bg-[var(--bg2)] hover:bg-[var(--bg3)] text-[var(--hint)] hover:text-[var(--text-2)] active:scale-[0.97] transition-all"
                           title="Дублировать"
                         >
                           <Copy size={14} />
                         </button>
                         <button
                           onClick={() => onEditProduct(product.id)}
-                          className="shrink-0 p-1.5 rounded-lg hover:bg-white/[0.08] active:scale-[0.9] transition-all"
+                          className="shrink-0 p-1.5 rounded-lg hover:bg-[var(--bg3)] active:scale-[0.97] transition-all"
                           title="Редактировать"
                         >
-                          <Pencil size={14} className="text-white/40" />
+                          <Pencil size={14} className="text-[var(--hint)]" />
                         </button>
                         <button
                           onClick={() => handleDelete(product.id, product.name)}
                           disabled={deletingId === product.id}
-                          className="shrink-0 p-1.5 rounded-lg hover:bg-red-500/20 active:scale-[0.9] transition-all disabled:opacity-40"
+                          className="shrink-0 p-1.5 rounded-lg hover:bg-red-500/20 active:scale-[0.97] transition-all disabled:opacity-40"
                           title="Удалить"
                         >
                           <Trash2 size={14} className="text-red-400/70" />
@@ -783,17 +783,17 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
-            className="p-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.95] transition-all shrink-0"
+            className="p-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] hover:bg-[var(--bg3)] active:scale-[0.97] transition-all shrink-0"
           >
-            <ArrowLeft size={18} className="text-white/60" />
+            <ArrowLeft size={18} className="text-[var(--text-2)]" />
           </button>
           <div className="min-w-0 flex-1">
-            <div className="text-xs text-white/60 truncate">Каталог</div>
-            <h1 className="text-lg font-bold text-white leading-tight truncate">{game.name}</h1>
+            <div className="text-xs text-[var(--text-2)] truncate">Каталог</div>
+            <h1 className="text-lg font-bold text-[var(--text)] leading-tight truncate">{game.name}</h1>
           </div>
           <button
             onClick={() => setShowImport(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-white/[0.08] active:scale-[0.97] text-xs font-medium text-white/60 transition-all shrink-0"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] hover:bg-[var(--bg3)] active:scale-[0.97] text-xs font-medium text-[var(--text-2)] transition-all shrink-0"
             title="Импорт CSV из ggsel"
           >
             <Upload size={14} />
@@ -802,17 +802,17 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
         </div>
 
         {loading ? (
-          <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
+          <p className="text-[var(--hint)] text-sm py-8 text-center">Загрузка...</p>
         ) : error ? (
-          <div className="flex flex-col items-center py-16 gap-3 text-white/40">
+          <div className="flex flex-col items-center py-16 gap-3 text-[var(--hint)]">
             <AlertCircle size={36} />
             <p className="text-sm">Ошибка загрузки каталога</p>
-            <button onClick={load} className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform">Попробовать снова</button>
+            <button onClick={load} className="text-xs text-[var(--hint)] hover:text-[var(--text-2)] active:scale-[0.97] transition-transform">Попробовать снова</button>
           </div>
         ) : (
           <div className="space-y-2.5">
             {categories.length === 0 ? (
-              <div className="flex flex-col items-center py-12 gap-3 text-white/30">
+              <div className="flex flex-col items-center py-12 gap-3 text-[var(--hint)]">
                 <FolderOpen size={36} />
                 <p className="text-sm">Категорий пока нет</p>
               </div>
@@ -842,20 +842,20 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
             )}
 
             {/* Создание категории */}
-            <div className="flex items-center gap-2 rounded-2xl border border-dashed border-white/[0.15] bg-white/[0.02] px-3 py-2.5">
-              <FolderOpen size={16} className="text-white/30 shrink-0" />
+            <div className="flex items-center gap-2 rounded-2xl border border-dashed border-[var(--border)] bg-[var(--bg2)] px-3 py-2.5">
+              <FolderOpen size={16} className="text-[var(--hint)] shrink-0" />
               <input
                 value={newCatName}
                 onChange={(e) => setNewCatName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCreateCategory() } }}
                 placeholder="Новая категория"
-                className="flex-1 min-w-0 bg-transparent text-sm text-white placeholder:text-white/25 focus:outline-none"
+                className="flex-1 min-w-0 bg-transparent text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none"
               />
               <button
                 type="button"
                 onClick={handleCreateCategory}
                 disabled={!newCatName.trim() || creatingCat}
-                className="shrink-0 px-3 py-1.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.1] border border-white/[0.08] disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold text-white/70 transition-all active:scale-[0.97]"
+                className="shrink-0 px-3 py-1.5 rounded-lg bg-[var(--bg3)] hover:bg-[var(--bg3)] border border-[var(--border)] disabled:opacity-30 disabled:cursor-not-allowed text-xs font-semibold text-[var(--text-2)] transition-all active:scale-[0.97]"
               >
                 {creatingCat ? '…' : 'Добавить'}
               </button>

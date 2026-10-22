@@ -8,13 +8,13 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlertCircle, Image as ImageIcon, RotateCcw, Save, Trash2, Upload } from 'lucide-react'
+import { AlertCircle, Image as ImageIcon, RotateCcw, Save, Trash2, Upload } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { adminApi, type BotContent, type ContentPhoto, type ContentText } from '@/api/admin'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 
 const textareaCls =
-  'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/20 transition-all duration-200 font-mono leading-relaxed resize-y'
+  'w-full bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:ring-1 focus:ring-[var(--border)] focus:border-[var(--border)] transition-all duration-200 font-mono leading-relaxed resize-y'
 
 function groupBy<T extends { group: string }>(items: T[]): [string, T[]][] {
   const map = new Map<string, T[]>()
@@ -66,17 +66,17 @@ function TextCard({ item, onSaved }: { item: ContentText; onSaved: (t: ContentTe
   }
 
   return (
-    <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-3">
+    <div className="p-4 rounded-2xl bg-[var(--bg2)] border border-[var(--border)] space-y-3">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <div className="text-sm font-medium text-white/90 truncate">{item.label}</div>
+          <div className="text-sm font-medium text-[var(--text-2)] truncate">{item.label}</div>
         </div>
         {item.is_overridden ? (
-          <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-400/20">
+          <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-soft)] text-[var(--link)] border border-[var(--border)]">
             изменено
           </span>
         ) : (
-          <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] text-white/40 border border-white/10">
+          <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full bg-[var(--bg3)] text-[var(--hint)] border border-[var(--border)]">
             стандарт
           </span>
         )}
@@ -92,7 +92,7 @@ function TextCard({ item, onSaved }: { item: ContentText; onSaved: (t: ContentTe
 
       {item.variables.length > 0 && (
         <div className="space-y-1.5">
-          <div className="text-[11px] text-white/40">
+          <div className="text-[11px] text-[var(--hint)]">
             Переменные — сохраняй их в тексте, иначе значение не подставится:
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -122,7 +122,7 @@ function TextCard({ item, onSaved }: { item: ContentText; onSaved: (t: ContentTe
           type="button"
           disabled={!dirty || saving}
           onClick={save}
-          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl bg-indigo-600 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-500 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl bg-[var(--accent)] text-[var(--text)] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[var(--btn-hover)] transition-colors"
         >
           <Save size={14} /> Сохранить
         </button>
@@ -131,7 +131,7 @@ function TextCard({ item, onSaved }: { item: ContentText; onSaved: (t: ContentTe
             type="button"
             disabled={saving}
             onClick={reset}
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl bg-white/[0.06] text-white/70 hover:bg-white/10 transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl bg-[var(--bg3)] text-[var(--text-2)] hover:bg-[var(--bg3)] transition-colors disabled:opacity-40"
           >
             <RotateCcw size={14} /> Сбросить
           </button>
@@ -180,17 +180,17 @@ function PhotoCard({ item, onSaved }: { item: ContentPhoto; onSaved: (p: Content
   }
 
   return (
-    <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/[0.08] space-y-3">
+    <div className="p-4 rounded-2xl bg-[var(--bg2)] border border-[var(--border)] space-y-3">
       <div>
-        <div className="text-sm font-medium text-white/90">{item.label}</div>
-        {item.hint && <div className="text-[11px] text-white/40 mt-0.5">{item.hint}</div>}
+        <div className="text-sm font-medium text-[var(--text-2)]">{item.label}</div>
+        {item.hint && <div className="text-[11px] text-[var(--hint)] mt-0.5">{item.hint}</div>}
       </div>
 
-      <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden bg-white/[0.04] border border-white/[0.06] flex items-center justify-center">
+      <div className="relative w-full aspect-[16/9] rounded-xl overflow-hidden bg-[var(--bg2)] border border-[var(--border)] flex items-center justify-center">
         {preview ? (
           <img src={preview} alt={item.label} className="w-full h-full object-cover" />
         ) : (
-          <div className="flex flex-col items-center gap-1 text-white/25">
+          <div className="flex flex-col items-center gap-1 text-[var(--hint)]">
             <ImageIcon size={26} />
             <span className="text-[11px]">Нет картинки</span>
           </div>
@@ -210,7 +210,7 @@ function PhotoCard({ item, onSaved }: { item: ContentPhoto; onSaved: (p: Content
           type="button"
           disabled={busy}
           onClick={() => fileRef.current?.click()}
-          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500 transition-colors disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl bg-[var(--accent)] text-[var(--text)] hover:bg-[var(--btn-hover)] transition-colors disabled:opacity-40"
         >
           <Upload size={14} /> {item.is_set ? 'Заменить' : 'Загрузить'}
         </button>
@@ -219,7 +219,7 @@ function PhotoCard({ item, onSaved }: { item: ContentPhoto; onSaved: (p: Content
             type="button"
             disabled={busy}
             onClick={remove}
-            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl bg-white/[0.06] text-white/70 hover:bg-white/10 transition-colors disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 text-xs font-medium px-3 py-2 rounded-xl bg-[var(--bg3)] text-[var(--text-2)] hover:bg-[var(--bg3)] transition-colors disabled:opacity-40"
           >
             <Trash2 size={14} /> Убрать
           </button>
@@ -267,13 +267,13 @@ export default function ContentPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-lg font-semibold text-white">Контент бота</h1>
-        <p className="text-sm text-white/45 mt-0.5">
+        <h1 className="text-lg font-semibold text-[var(--text)]">Контент бота</h1>
+        <p className="text-sm text-[var(--hint)] mt-0.5">
           Тексты и картинки экранов бота. Картинки игр и сервисов задаются в товарах.
         </p>
       </div>
 
-      <div className="inline-flex p-0.5 rounded-xl bg-white/[0.05] border border-white/[0.08]">
+      <div className="inline-flex p-0.5 rounded-xl bg-[var(--bg2)] border border-[var(--border)]">
         {([['texts', 'Тексты'], ['photos', 'Фото']] as [Tab, string][]).map(([id, label]) => (
           <button
             key={id}
@@ -281,7 +281,7 @@ export default function ContentPage() {
             onClick={() => setTab(id)}
             className={[
               'px-4 py-1.5 rounded-lg text-sm font-medium transition-colors',
-              tab === id ? 'bg-white/10 text-white' : 'text-white/50 hover:text-white/80',
+              tab === id ? 'bg-[var(--bg3)] text-[var(--text)]' : 'text-[var(--hint)] hover:text-[var(--text-2)]',
             ].join(' ')}
           >
             {label}
@@ -289,7 +289,7 @@ export default function ContentPage() {
         ))}
       </div>
 
-      {loading && <div className="text-sm text-white/40 py-8">Загрузка…</div>}
+      {loading && <div className="text-sm text-[var(--hint)] py-8">Загрузка…</div>}
 
       {error && !loading && (
         <div className="flex items-center gap-2 text-sm text-red-300 bg-red-500/10 border border-red-400/20 rounded-xl px-3 py-2.5">
@@ -302,7 +302,7 @@ export default function ContentPage() {
         <div className="space-y-6">
           {textGroups.map(([group, items]) => (
             <section key={group} className="space-y-3">
-              <h2 className="text-[11px] font-semibold text-white/30 uppercase tracking-[0.14em]">{group}</h2>
+              <h2 className="text-[11px] font-semibold text-[var(--hint)] uppercase tracking-[0.14em]">{group}</h2>
               <div className="grid gap-3 md:grid-cols-2">
                 {items.map(item => (
                   <TextCard key={item.key} item={item} onSaved={onTextSaved} />
@@ -317,7 +317,7 @@ export default function ContentPage() {
         <div className="space-y-6">
           {photoGroups.map(([group, items]) => (
             <section key={group} className="space-y-3">
-              <h2 className="text-[11px] font-semibold text-white/30 uppercase tracking-[0.14em]">{group}</h2>
+              <h2 className="text-[11px] font-semibold text-[var(--hint)] uppercase tracking-[0.14em]">{group}</h2>
               <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
                 {items.map(item => (
                   <PhotoCard key={item.key} item={item} onSaved={onPhotoSaved} />

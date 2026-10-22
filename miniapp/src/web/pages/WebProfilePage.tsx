@@ -1,20 +1,27 @@
 /**
  * src/web/pages/WebProfilePage.tsx
- * Личный кабинет на сайте: профиль, баланс, уровень лояльности,
- * реферальная программа, быстрые ссылки на заказы и поддержку.
+ * Личный кабинет на сайте: профиль, уровень лояльности (как в Mini App),
+ * баланс, заказы, поддержка, реферальная программа с прогрессом друзей.
  */
 
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Wallet, Package, Users, Copy, Headphones, LogOut, ChevronRight, Award } from '@/components/ui/icons'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Wallet, Package, Copy, Headphones, LogOut, ChevronRight, CheckCircle } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { profileApi } from '@/api'
 import { BOT_USERNAME, SUPPORT_BOT_URL } from '@/config/appTarget'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { money } from '@/web/format'
+import Avatar from '@/web/components/Avatar'
+import { LevelsTable, LoyaltyCard, LoyaltyInfoSheet, rub } from '@/components/loyalty/Loyalty'
+import { Reveal } from '@/web/components/Motion'
 
 export default function WebProfilePage() {
   const { user, logout } = useWebAuth()
+  const [levelsOpen, setLevelsOpen] = useState(false)
+  const [info, setInfo] = useState(false)
   const { data: referrals } = useQuery({
     queryKey: ['web', 'referrals'],
     queryFn: profileApi.getReferralStats,
@@ -24,127 +31,163 @@ export default function WebProfilePage() {
   if (!user) return null
 
   const refLink = `https://t.me/${BOT_USERNAME}?start=REF_${user.telegram_id}`
-  // Уровень — по тратам за календарный месяц (модель Bybit), считается на бэкенде
-  const monthSpent = Number(user.loyalty_month_spent ?? 0)
-  const nextMin = user.loyalty_next_level_min_spent != null ? Number(user.loyalty_next_level_min_spent) : null
-  const next = user.loyalty_next_level_name && nextMin != null ? { name: user.loyalty_next_level_name, min_spent: nextMin } : null
-  const progress = next ? Math.min(100, (monthSpent / next.min_spent) * 100) : 100
+  const threshold = referrals?.threshold_amount ?? 0
 
   async function copyRef() {
     try {
       await navigator.clipboard.writeText(refLink)
       toast.success('Ссылка скопирована')
     } catch {
-      toast.error('Не удалось скопировать')
+      toast.error('Не удалось скопировать — выделите ссылку вручную')
     }
   }
 
   return (
-    <div className="web-container py-8 md:py-12 max-w-4xl">
+    <div className="web-container py-10 md:py-14 max-w-5xl">
       {/* Шапка профиля */}
       <div className="flex items-center gap-4 mb-8">
-        {user.photo_url ? (
-          <img src={user.photo_url} alt="" className="w-16 h-16 rounded-full object-cover" />
-        ) : (
-          <div className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white" style={{ background: 'var(--gradient-primary)' }}>
-            {(user.first_name || '?').charAt(0).toUpperCase()}
-          </div>
-        )}
+        <Avatar src={user.photo_url} name={user.first_name} size={64} />
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-bold text-white truncate">{user.first_name}</h1>
-          {user.username && <p className="text-sm text-[var(--hint)]">@{user.username}</p>}
+          <h1 className="text-2xl md:text-3xl text-[var(--text)] truncate" style={{ margin: 0 }}>{user.first_name}</h1>
+          {user.username && <p className="text-sm text-[var(--hint)] mt-1">@{user.username}</p>}
         </div>
         <button
           onClick={logout}
-          className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm text-[var(--text-2)] border border-white/10 hover:bg-[var(--bg3)] hover:text-white transition-colors"
+          className="hidden sm:inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm text-[var(--text-2)] bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors"
         >
-          <LogOut size={16} /> Выйти
+          <LogOut size={17} /> Выйти
         </button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Баланс */}
-        <Link to="/balance" className="rounded-3xl p-6 relative overflow-hidden group" style={{ background: 'var(--gradient-primary)' }}>
-          <div className="flex items-center gap-2 text-[var(--text-2)] text-sm font-medium"><Wallet size={18} /> Баланс</div>
-          <p className="text-3xl font-bold text-white mt-3">{money(user.balance)}</p>
-          <span className="inline-flex items-center gap-1 mt-4 text-sm font-semibold text-white bg-white/15 rounded-xl px-3.5 py-2 group-hover:bg-white/25 transition-colors">
-            Пополнить <ChevronRight size={16} />
-          </span>
-        </Link>
-
+      <div className="grid gap-4 lg:grid-cols-[1.25fr_1fr] items-start">
         {/* Лояльность */}
-        <div className="rounded-3xl border border-white/[0.06] bg-[var(--bg2)] p-6">
-          <div className="flex items-center gap-2 text-[var(--text-2)] text-sm font-medium"><Award size={18} /> Уровень</div>
-          <p className="text-2xl font-bold mt-3" style={{ color: user.loyalty_color_hex || 'var(--link)' }}>
-            {user.loyalty_level_name || 'Новичок'}
-          </p>
-          <p className="text-xs text-[var(--hint)] mt-1">
-            Кэшбэк {Number(user.loyalty_cashback_percent)}% на баланс
-            {user.loyalty_cashback_cap != null ? ` · до ${money(Number(user.loyalty_cashback_cap))} в месяц` : ''}
-          </p>
-          {next && (
-            <>
-              <div className="h-1.5 rounded-full bg-[var(--bg3)] mt-4 overflow-hidden">
-                <div className="h-full rounded-full" style={{ width: `${progress}%`, background: user.loyalty_color_hex || 'var(--accent)' }} />
-              </div>
-              <p className="text-xs text-[var(--hint)] mt-2">
-                Траты в этом месяце: {money(monthSpent)} · до уровня «{next.name}» {money(Math.max(0, next.min_spent - monthSpent))}
-              </p>
-            </>
-          )}
+        <div className="space-y-3">
+          <Reveal>
+            <LoyaltyCard
+              profile={user}
+              levelsOpen={levelsOpen}
+              onToggleLevels={() => setLevelsOpen((v) => !v)}
+              onInfo={() => setInfo(true)}
+            />
+          </Reveal>
+          <AnimatePresence initial={false}>
+            {levelsOpen && (
+              <motion.div
+                key="levels"
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.32, ease: [0.32, 0.72, 0, 1] }}
+                className="overflow-hidden"
+              >
+                <LevelsTable levels={user.loyalty_levels} currentIndex={user.loyalty_level_index} />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Статистика */}
-        <Link to="/orders" className="rounded-3xl border border-white/[0.06] bg-[var(--bg2)] p-6 hover:bg-[var(--bg2)] transition-colors flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.15)', color: 'var(--link)' }}>
-            <Package size={22} />
-          </div>
-          <div className="flex-1">
-            <p className="text-base font-semibold text-white">Мои заказы</p>
-            <p className="text-xs text-[var(--hint)]">{user.orders_count} заказов · потрачено {money(user.total_spent)}</p>
-          </div>
-          <ChevronRight size={18} className="text-[var(--hint)]" />
-        </Link>
+        {/* Баланс и ссылки */}
+        <div className="space-y-3">
+          <Reveal delay={0.05}>
+            <Link to="/balance" className="group block rounded-2xl bg-[var(--bg2)] p-5 hover:bg-[var(--bg3)] transition-colors">
+              <p className="flex items-center gap-2 text-sm text-[var(--hint)]"><Wallet size={18} /> Баланс</p>
+              <p className="mt-2 text-3xl font-semibold tracking-tight num text-[var(--text)]">{money(user.balance)}</p>
+              <p className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[var(--link)]">
+                Пополнить <ChevronRight size={16} className="transition-transform group-hover:translate-x-0.5" />
+              </p>
+            </Link>
+          </Reveal>
 
-        <a href={SUPPORT_BOT_URL} target="_blank" rel="noopener noreferrer" className="rounded-3xl border border-white/[0.06] bg-[var(--bg2)] p-6 hover:bg-[var(--bg2)] transition-colors flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.15)', color: 'var(--link)' }}>
-            <Headphones size={22} />
-          </div>
-          <div className="flex-1">
-            <p className="text-base font-semibold text-white">Поддержка</p>
-            <p className="text-xs text-[var(--hint)]">Ответим на вопросы по заказу и оплате</p>
-          </div>
-          <ChevronRight size={18} className="text-[var(--hint)]" />
-        </a>
+          <Reveal delay={0.1}>
+            <div className="rounded-2xl bg-[var(--bg2)] overflow-hidden">
+              <Link to="/orders" className="flex items-center gap-3 px-5 py-4 hover:bg-[var(--bg3)] transition-colors">
+                <Package size={22} className="text-[var(--hint)]" />
+                <span className="flex-1">
+                  <span className="block text-sm font-medium text-[var(--text)]">Мои заказы</span>
+                  <span className="block text-xs text-[var(--hint)] mt-0.5 num">{user.orders_count} заказов · {money(user.total_spent)}</span>
+                </span>
+                <ChevronRight size={18} className="text-[var(--hint)]" />
+              </Link>
+              <a href={SUPPORT_BOT_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 px-5 py-4 border-t border-[var(--border)] hover:bg-[var(--bg3)] transition-colors">
+                <Headphones size={22} className="text-[var(--hint)]" />
+                <span className="flex-1">
+                  <span className="block text-sm font-medium text-[var(--text)]">Поддержка</span>
+                  <span className="block text-xs text-[var(--hint)] mt-0.5">Вопросы по заказу и оплате</span>
+                </span>
+                <ChevronRight size={18} className="text-[var(--hint)]" />
+              </a>
+            </div>
+          </Reveal>
+        </div>
 
         {/* Рефералы */}
-        <div className="md:col-span-2 rounded-3xl border border-white/[0.06] bg-[var(--bg2)] p-6">
-          <div className="flex items-center gap-2 text-[var(--text-2)] text-sm font-medium"><Users size={18} /> Пригласите друзей</div>
-          <p className="text-sm text-[var(--hint)] mt-2">
-            Получайте бонус на баланс за первую оплату каждого приглашённого друга.
-            {referrals ? ` Приглашено: ${referrals.referrals_count}.` : ''}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-2 mt-4">
-            <div className="flex-1 min-w-0 bg-[var(--bg2)] border border-white/[0.08] rounded-xl px-4 py-3 text-sm text-[var(--text-2)] truncate select-all">
-              {refLink}
+        <Reveal className="lg:col-span-2">
+          <div className="rounded-2xl bg-[var(--bg2)] p-5 md:p-6">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="max-w-xl">
+                <p className="text-lg font-semibold text-[var(--text)]">Приглашайте друзей</p>
+                <p className="text-sm text-[var(--text-2)] mt-1.5 leading-relaxed">
+                  Друг получит скидку {user.referral_new_user_discount_percent}% на первый заказ, а вы — {rub(user.referral_bonus_amount)} на
+                  баланс, когда он потратит {rub(user.referral_threshold_amount)}.
+                </p>
+              </div>
+              {referrals && (
+                <div className="flex gap-6 text-right">
+                  <div><p className="text-xs text-[var(--hint)]">Приглашено</p><p className="text-xl font-semibold num">{referrals.referrals_count}</p></div>
+                  <div><p className="text-xs text-[var(--hint)]">Заработано</p><p className="text-xl font-semibold num">{rub(referrals.earned_total)}</p></div>
+                </div>
+              )}
             </div>
-            <button
-              onClick={copyRef}
-              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold text-white"
-              style={{ background: 'var(--gradient-primary)' }}
-            >
-              <Copy size={16} /> Скопировать
-            </button>
+
+            <div className="flex flex-col sm:flex-row gap-2 mt-5">
+              <div className="flex-1 min-w-0 h-12 flex items-center px-4 rounded-xl bg-[var(--bg3)] text-sm text-[var(--text-2)] truncate select-all">
+                {refLink}
+              </div>
+              <button
+                onClick={copyRef}
+                className="inline-flex items-center justify-center gap-2 h-12 px-5 rounded-xl text-sm font-semibold text-[var(--text)] bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors"
+              >
+                <Copy size={17} /> Скопировать
+              </button>
+            </div>
+
+            {referrals && referrals.referrals.length > 0 && (
+              <div className="mt-5 rounded-xl overflow-hidden border border-[var(--border)]">
+                {referrals.referrals.map((r, i) => (
+                  <div key={r.telegram_id} className={'px-4 py-3 ' + (i ? 'border-t border-[var(--border)]' : '')}>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm text-[var(--text)] truncate">
+                        {r.first_name}{r.username && <span className="text-[var(--hint)]"> @{r.username}</span>}
+                      </p>
+                      {r.rewarded ? (
+                        <span className="flex items-center gap-1 text-xs text-[#34d399] shrink-0">
+                          <CheckCircle size={14} weight="fill" /> +{rub(referrals.bonus_amount)}
+                        </span>
+                      ) : (
+                        <span className="text-xs num text-[var(--hint)] shrink-0">{rub(r.spent)} из {rub(threshold)}</span>
+                      )}
+                    </div>
+                    {!r.rewarded && (
+                      <div className="mt-2 h-1 rounded-full bg-[var(--bg3)] overflow-hidden">
+                        <div className="h-full bg-[var(--accent)]" style={{ width: `${threshold ? Math.min(100, (r.spent / threshold) * 100) : 100}%` }} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+        </Reveal>
       </div>
 
       <button
         onClick={logout}
-        className="sm:hidden mt-6 w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm text-[var(--text-2)] border border-white/10"
+        className="sm:hidden mt-6 w-full inline-flex items-center justify-center gap-2 h-12 rounded-xl text-sm text-[var(--text-2)] bg-[var(--bg2)]"
       >
-        <LogOut size={16} /> Выйти
+        <LogOut size={17} /> Выйти
       </button>
+
+      <LoyaltyInfoSheet open={info} onClose={() => setInfo(false)} levels={user.loyalty_levels} />
     </div>
   )
 }

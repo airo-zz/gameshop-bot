@@ -10,7 +10,7 @@
 import { useEffect, useState, useRef } from 'react'
 import InputFieldsEditor from '@/components/admin/InputFieldsEditor'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Save, Plus, AlertCircle, Upload, Loader2, ImageOff, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Save, Plus, AlertCircle, Upload, Loader2, ImageOff, ExternalLink } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
 import type { AdminGame, AdminCategory } from '@/api/admin'
@@ -46,7 +46,7 @@ function Toggle({ value, onChange, disabled }: ToggleProps) {
       className={[
         'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent',
         'transition-colors duration-200 focus:outline-none disabled:opacity-40',
-        value ? 'bg-blue-600' : 'bg-white/10',
+        value ? 'bg-[var(--accent)]' : 'bg-[var(--bg3)]',
       ].join(' ')}
     >
       <span
@@ -70,8 +70,8 @@ function Field({ label, hint, children }: FieldProps) {
   return (
     <div className="space-y-1.5">
       <div className="flex items-baseline justify-between">
-        <label className="text-xs text-white/50">{label}</label>
-        {hint && <span className="text-[11px] text-white/25">{hint}</span>}
+        <label className="text-xs text-[var(--hint)]">{label}</label>
+        {hint && <span className="text-[11px] text-[var(--hint)]">{hint}</span>}
       </div>
       {children}
     </div>
@@ -79,8 +79,8 @@ function Field({ label, hint, children }: FieldProps) {
 }
 
 const inputCls =
-  'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white ' +
-  'placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all duration-200'
+  'w-full bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text)] ' +
+  'placeholder:text-[var(--hint)] focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-[var(--accent)] transition-all duration-200'
 
 // ── page ──────────────────────────────────────────────────────────────────────
 
@@ -259,16 +259,16 @@ export default function GameEditPage() {
 
   // ── loading skeleton ──
   if (loadingGame) {
-    return <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
+    return <p className="text-[var(--hint)] text-sm py-8 text-center">Загрузка...</p>
   }
 
   // ── load error ──
   if (loadError) {
     return (
-      <div className="flex flex-col items-center py-20 gap-3 text-white/40">
+      <div className="flex flex-col items-center py-20 gap-3 text-[var(--hint)]">
         <AlertCircle size={40} />
         <p className="text-sm">Игра не найдена</p>
-        <button onClick={() => navigate(-1)} className="text-xs text-blue-400">
+        <button onClick={() => navigate(-1)} className="text-xs text-[var(--link)]">
           Назад
         </button>
       </div>
@@ -281,11 +281,11 @@ export default function GameEditPage() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors shrink-0"
+          className="p-2 rounded-xl bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors shrink-0"
         >
-          <ArrowLeft size={18} className="text-white/60" />
+          <ArrowLeft size={18} className="text-[var(--text-2)]" />
         </button>
-        <h1 className="text-lg font-bold text-white flex-1 min-w-0">
+        <h1 className="text-lg font-bold text-[var(--text)] flex-1 min-w-0">
           {isCreate
             ? (form.type === 'service' ? 'Новый сервис' : 'Новая игра')
             : (form.type === 'service' ? 'Редактировать сервис' : 'Редактировать игру')}
@@ -293,7 +293,7 @@ export default function GameEditPage() {
         {!isCreate && form.slug && (
           <button
             onClick={() => window.open(`${window.location.origin}/app/catalog/${form.slug}`, '_blank')}
-            className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/50 hover:text-white/80 transition-colors"
+            className="p-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] hover:bg-[var(--bg3)] text-[var(--hint)] hover:text-[var(--text-2)] transition-colors"
             title="Открыть в магазине"
           >
             <ExternalLink size={16} />
@@ -303,8 +303,8 @@ export default function GameEditPage() {
 
       {/* Game form */}
       <form onSubmit={handleSubmit}>
-        <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-4">
-          <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+        <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-4">
+          <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider">
             Основная информация
           </h2>
 
@@ -333,7 +333,7 @@ export default function GameEditPage() {
 
           {/* Type */}
           <Field label="Тип">
-            <div className="flex gap-1 bg-white/[0.06] p-1 rounded-xl">
+            <div className="flex gap-1 bg-[var(--bg3)] p-1 rounded-xl">
               {(['game', 'service'] as GameType[]).map((t) => (
                 <button
                   key={t}
@@ -342,8 +342,8 @@ export default function GameEditPage() {
                   className={[
                     'flex-1 py-1.5 rounded-lg text-sm font-medium transition-colors',
                     form.type === t
-                      ? 'bg-white/10 text-white'
-                      : 'text-white/40 hover:text-white/60',
+                      ? 'bg-[var(--bg3)] text-[var(--text)]'
+                      : 'text-[var(--hint)] hover:text-[var(--text-2)]',
                   ].join(' ')}
                 >
                   {t === 'game' ? 'Игра' : 'Сервис'}
@@ -378,11 +378,11 @@ export default function GameEditPage() {
                   type="button"
                   disabled={uploadingImage}
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 disabled:opacity-40 text-sm text-white/70 transition-colors shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-[var(--bg2)] border border-[var(--border)] hover:bg-[var(--bg3)] disabled:opacity-40 text-sm text-[var(--text-2)] transition-colors shrink-0"
                   title="Загрузить файл"
                 >
                   {uploadingImage ? (
-                    <Loader2 size={16} className="animate-spin text-blue-400" />
+                    <Loader2 size={16} className="animate-spin text-[var(--link)]" />
                   ) : (
                     <Upload size={16} />
                   )}
@@ -392,7 +392,7 @@ export default function GameEditPage() {
 
               {/* Image preview */}
               {form.image_url && (
-                <div className="relative w-full h-36 rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
+                <div className="relative w-full h-36 rounded-xl overflow-hidden bg-[var(--bg2)] border border-[var(--border)] flex items-center justify-center">
                   <img
                     src={normalizeImageUrl(form.image_url) ?? form.image_url}
                     alt="Превью"
@@ -403,7 +403,7 @@ export default function GameEditPage() {
                     }}
                   />
                   <div
-                    className="flex flex-col items-center gap-1 text-white/20"
+                    className="flex flex-col items-center gap-1 text-[var(--hint)]"
                     style={{ display: 'none' }}
                   >
                     <ImageOff size={24} />
@@ -427,21 +427,21 @@ export default function GameEditPage() {
 
           {/* Toggles */}
           <div className="grid grid-cols-2 gap-3 pt-1">
-            <div className="flex items-center justify-between bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5">
-              <span className="text-sm text-white/70">Активна</span>
+            <div className="flex items-center justify-between bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-3 py-2.5">
+              <span className="text-sm text-[var(--text-2)]">Активна</span>
               <Toggle value={form.is_active} onChange={(v) => set('is_active', v)} />
             </div>
-            <div className="flex items-center justify-between bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5">
-              <span className="text-sm text-white/70">В подборке</span>
+            <div className="flex items-center justify-between bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-3 py-2.5">
+              <span className="text-sm text-[var(--text-2)]">В подборке</span>
               <Toggle value={form.is_featured} onChange={(v) => set('is_featured', v)} />
             </div>
           </div>
 
           {/* Индивидуальный заказ */}
-          <div className="flex items-center justify-between bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2.5">
-            <span className="text-sm text-white/70 pr-3">
+          <div className="flex items-center justify-between bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-3 py-2.5">
+            <span className="text-sm text-[var(--text-2)] pr-3">
               Кнопка «Индивидуальный заказ»
-              <span className="block text-[11px] text-white/30 mt-0.5">
+              <span className="block text-[11px] text-[var(--hint)] mt-0.5">
                 Показывать на странице для заявок на спец-лот в чат
               </span>
             </span>
@@ -450,7 +450,7 @@ export default function GameEditPage() {
 
           {/* Данные от покупателя (поля на уровне игры) */}
           <div className="pt-1">
-            <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">
+            <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider mb-2">
               Данные от покупателя
             </h2>
             <InputFieldsEditor
@@ -464,7 +464,7 @@ export default function GameEditPage() {
           <button
             type="submit"
             disabled={saving || !form.name.trim()}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-sm font-semibold text-white transition-all duration-200 active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-[var(--accent)] hover:bg-[var(--btn-hover)] disabled:opacity-40 text-sm font-semibold text-[var(--text)] transition-all duration-200 active:scale-[0.97]"
           >
             <Save size={16} />
             {saving
@@ -478,22 +478,22 @@ export default function GameEditPage() {
 
       {/* Categories section — edit mode only */}
       {!isCreate && (
-        <div className="bg-white/[0.03] border border-white/5 rounded-2xl p-4 space-y-3">
-          <h2 className="text-xs font-semibold text-white/50 uppercase tracking-wider">
+        <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-3">
+          <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider">
             Категории {categories.length > 0 && `(${categories.length})`}
           </h2>
 
           {/* Category list */}
           {categories.length === 0 ? (
-            <p className="text-sm text-white/25 py-2">Категорий пока нет</p>
+            <p className="text-sm text-[var(--hint)] py-2">Категорий пока нет</p>
           ) : (
             <div className="space-y-1.5">
               {categories.map((cat) => (
                 <div
                   key={cat.id}
-                  className="flex items-center justify-between bg-white/[0.06] border border-white/[0.08] rounded-xl px-3 py-2.5"
+                  className="flex items-center justify-between bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-3 py-2.5"
                 >
-                  <span className="text-sm text-white font-medium truncate flex-1 min-w-0 pr-2">
+                  <span className="text-sm text-[var(--text)] font-medium truncate flex-1 min-w-0 pr-2">
                     {cat.name}
                   </span>
                   <span
@@ -501,7 +501,7 @@ export default function GameEditPage() {
                       'text-xs px-2 py-0.5 rounded-full shrink-0',
                       cat.is_active
                         ? 'bg-emerald-500/15 text-emerald-400'
-                        : 'bg-white/5 text-white/30',
+                        : 'bg-[var(--bg2)] text-[var(--hint)]',
                     ].join(' ')}
                   >
                     {cat.is_active ? 'Активна' : 'Неактивна'}
@@ -524,7 +524,7 @@ export default function GameEditPage() {
             <button
               type="submit"
               disabled={addingCat || !newCatName.trim()}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-sm font-semibold text-white transition-colors shrink-0"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[var(--accent)] hover:bg-[var(--btn-hover)] disabled:opacity-40 text-sm font-semibold text-[var(--text)] transition-colors shrink-0"
             >
               <Plus size={15} />
               Добавить

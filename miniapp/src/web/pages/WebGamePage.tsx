@@ -50,13 +50,13 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
   }
 
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-[var(--bg2)] p-4 flex flex-col gap-3">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-4 flex flex-col gap-3">
       <div className="flex items-start gap-2">
-        <h3 className={'text-sm font-medium flex-1 ' + (outOfStock ? 'text-[var(--hint)]' : 'text-white')}>
+        <h3 className={'text-sm font-medium flex-1 ' + (outOfStock ? 'text-[var(--hint)]' : 'text-[var(--text)]')}>
           {product.name}
         </h3>
         {product.badge && !outOfStock && (
-          <span className="shrink-0 text-[10px] font-bold text-white px-1.5 py-0.5 rounded-full" style={{ background: '#EF4444' }}>
+          <span className="shrink-0 text-[10px] font-semibold text-[var(--text)] px-1.5 py-0.5 rounded-full" style={{ background: '#EF4444' }}>
             {product.badge}
           </span>
         )}
@@ -86,7 +86,7 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
                 <select
                   value={inputData[field.key] ?? ''}
                   onChange={(e) => setInputData((p) => ({ ...p, [field.key]: e.target.value }))}
-                  className="w-full bg-[var(--bg3)] border border-white/[0.08] rounded-lg px-2.5 py-2 text-sm text-white focus:outline-none focus:border-white/20"
+                  className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-lg px-2.5 py-2 text-sm text-[var(--text)] focus:outline-none focus:border-[var(--border)]"
                 >
                   <option value="">Выберите...</option>
                   {field.options?.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -97,7 +97,7 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
                   value={inputData[field.key] ?? ''}
                   onChange={(e) => setInputData((p) => ({ ...p, [field.key]: e.target.value }))}
                   placeholder={field.placeholder ?? field.label}
-                  className="w-full bg-[var(--bg3)] border border-white/[0.08] rounded-lg px-2.5 py-2 text-sm text-white placeholder:text-[var(--hint)] focus:outline-none focus:border-white/20"
+                  className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-lg px-2.5 py-2 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:border-[var(--border)]"
                 />
               )}
             </div>
@@ -108,15 +108,15 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
       {/* Действие */}
       <div className="mt-auto">
         {outOfStock ? (
-          <div className="text-xs text-center py-2.5 rounded-xl bg-[var(--bg2)] text-[var(--hint)] border border-white/[0.06]">
+          <div className="text-xs text-center py-2.5 rounded-xl bg-[var(--bg2)] text-[var(--hint)] border border-[var(--border)]">
             Нет в наличии
           </div>
         ) : qty > 0 ? (
-          <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[var(--bg2)] px-2 py-1.5">
+          <div className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--bg2)] px-2 py-1.5">
             <button onClick={() => onDec(product)} className="p-1.5 rounded-lg text-[var(--text-2)] hover:bg-[var(--bg3)]" aria-label="Убрать">
               <Minus size={16} />
             </button>
-            <span className="text-sm font-bold text-white">{qty}</span>
+            <span className="text-sm font-semibold text-[var(--text)]">{qty}</span>
             <button
               onClick={() => onAdd(product, hasInputs ? inputData : undefined)}
               disabled={singleAdd}
@@ -129,7 +129,7 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
         ) : (
           <button
             onClick={handleBuy}
-            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98] hover:brightness-110"
+            className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-semibold text-[var(--text)] transition-all active:scale-[0.97] hover:brightness-110"
             style={{ background: 'var(--gradient-primary)' }}
           >
             <ShoppingCart size={15} />
@@ -228,16 +228,16 @@ export default function WebGamePage() {
 
   return (
     <div className="web-container py-8 md:py-12">
-      <Link to="/catalog" className="inline-flex items-center gap-1.5 text-sm text-[var(--hint)] hover:text-white transition-colors mb-6">
+      <Link to="/catalog" className="inline-flex items-center gap-1.5 text-sm text-[var(--hint)] hover:text-[var(--text)] transition-colors mb-6">
         <ChevronLeft size={16} />
         Каталог
       </Link>
 
       <div className="flex items-center gap-4 mb-8">
         {game?.image_url && (
-          <img src={game.image_url} alt={gameName} className="w-16 h-16 rounded-2xl object-cover border border-white/10" />
+          <img src={game.image_url} alt={gameName} className="w-16 h-16 rounded-2xl object-cover border border-[var(--border)]" />
         )}
-        <h1 className="text-2xl md:text-4xl font-bold text-white flex-1 min-w-0">{gameName}</h1>
+        <h1 className="text-2xl md:text-4xl font-semibold text-[var(--text)] flex-1 min-w-0">{gameName}</h1>
         {game?.custom_order_enabled && (
           <a
             href={MINIAPP_URL}
@@ -267,7 +267,7 @@ export default function WebGamePage() {
                 onClick={() => setActiveCatId(cat.id)}
                 className={
                   'px-4 py-2 rounded-xl text-sm font-medium transition-all ' +
-                  (currentCatId === cat.id ? 'text-white' : 'text-white/55 bg-[var(--bg2)] border border-white/[0.06] hover:text-[var(--text-2)]')
+                  (currentCatId === cat.id ? 'text-[var(--text)]' : 'text-[var(--hint)] bg-[var(--bg2)] border border-[var(--border)] hover:text-[var(--text-2)]')
                 }
                 style={currentCatId === cat.id ? { background: 'rgba(37,99,235,0.22)', border: '1px solid transparent' } : {}}
               >
@@ -284,7 +284,7 @@ export default function WebGamePage() {
                   onClick={() => setActiveCatId(sub.id)}
                   className={
                     'px-3 py-1.5 rounded-lg text-xs font-medium transition-all ' +
-                    (currentCatId === sub.id ? 'text-white' : 'text-white/55 bg-[var(--bg2)] border border-white/[0.06] hover:text-[var(--text-2)]')
+                    (currentCatId === sub.id ? 'text-[var(--text)]' : 'text-[var(--hint)] bg-[var(--bg2)] border border-[var(--border)] hover:text-[var(--text-2)]')
                   }
                   style={currentCatId === sub.id ? { background: 'rgba(37,99,235,0.22)', border: '1px solid transparent' } : {}}
                 >
@@ -301,7 +301,7 @@ export default function WebGamePage() {
                   <Zap size={11} fill="#34d399" stroke="none" /> Автовыдача
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full text-[var(--hint)] bg-[var(--bg2)] border border-white/[0.08]">
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full text-[var(--hint)] bg-[var(--bg2)] border border-[var(--border)]">
                   <Clock size={11} /> Вручную
                 </span>
               )}
@@ -311,7 +311,7 @@ export default function WebGamePage() {
           {prodLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-40 rounded-2xl border border-white/[0.06] bg-[var(--bg2)] animate-pulse" />
+                <div key={i} className="h-40 rounded-2xl border border-[var(--border)] bg-[var(--bg2)] animate-pulse" />
               ))}
             </div>
           ) : products.length === 0 ? (
@@ -331,7 +331,7 @@ export default function WebGamePage() {
                         <select
                           value={tgFields[f.key] ?? ''}
                           onChange={(e) => setTgFields((prev) => ({ ...prev, [f.key]: e.target.value }))}
-                          className="w-full bg-[var(--bg3)] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/20"
+                          className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:border-[var(--border)]"
                         >
                           <option value="">Выберите...</option>
                           {(f.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
@@ -341,7 +341,7 @@ export default function WebGamePage() {
                           value={tgFields[f.key] ?? ''}
                           onChange={(e) => setTgFields((prev) => ({ ...prev, [f.key]: e.target.value }))}
                           placeholder={f.placeholder || f.label}
-                          className="w-full bg-[var(--bg3)] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-[var(--hint)] focus:outline-none focus:border-white/20"
+                          className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:border-[var(--border)]"
                         />
                       )}
                     </div>

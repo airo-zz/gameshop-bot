@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, AlertCircle, Trash2, RotateCcw } from 'lucide-react'
+import { ArrowLeft, AlertCircle, Trash2, RotateCcw } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
 import type { AdminOrderListItem } from '@/api/admin'
@@ -26,8 +26,8 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   new:             'bg-slate-500/15 text-slate-400',
   pending_payment: 'bg-yellow-500/15 text-yellow-400',
-  paid:            'bg-blue-500/15 text-blue-400',
-  processing:      'bg-violet-500/15 text-violet-400',
+  paid:            'bg-[var(--accent-soft)] text-[var(--link)]',
+  processing:      'bg-[var(--accent-soft)] text-[var(--link)]',
   completed:       'bg-emerald-500/15 text-emerald-400',
   cancelled:       'bg-red-500/15 text-red-400',
   refunded:        'bg-orange-500/15 text-orange-400',
@@ -114,7 +114,7 @@ export default function OrdersTrashPage() {
       <div className="flex items-center gap-3">
         <Link
           to="/admin/orders"
-          className="flex items-center gap-1.5 text-sm text-white/50 hover:text-white/80 transition-colors duration-200 active:scale-[0.97]"
+          className="flex items-center gap-1.5 text-sm text-[var(--hint)] hover:text-[var(--text-2)] transition-colors duration-200 active:scale-[0.97]"
         >
           <ArrowLeft size={16} />
           Заказы
@@ -122,9 +122,9 @@ export default function OrdersTrashPage() {
       </div>
 
       <div>
-        <h1 className="text-xl font-bold text-white">Корзина заказов</h1>
+        <h1 className="text-xl font-bold text-[var(--text)]">Корзина заказов</h1>
         {data && (
-          <p className="text-sm text-white/40 mt-0.5">Удалено: {total}</p>
+          <p className="text-sm text-[var(--hint)] mt-0.5">Удалено: {total}</p>
         )}
       </div>
 
@@ -138,20 +138,20 @@ export default function OrdersTrashPage() {
 
       {/* List */}
       {isLoading ? (
-        <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
+        <p className="text-[var(--hint)] text-sm py-8 text-center">Загрузка...</p>
       ) : isError ? (
-        <div className="flex flex-col items-center py-16 gap-3 text-white/40">
+        <div className="flex flex-col items-center py-16 gap-3 text-[var(--hint)]">
           <AlertCircle size={36} />
           <p className="text-sm">Ошибка загрузки корзины</p>
           <button
             onClick={() => refetch()}
-            className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform"
+            className="text-xs text-[var(--hint)] hover:text-[var(--text-2)] active:scale-[0.97] transition-transform"
           >
             Попробовать снова
           </button>
         </div>
       ) : !items.length ? (
-        <div className="flex flex-col items-center py-20 gap-3 text-white/25">
+        <div className="flex flex-col items-center py-20 gap-3 text-[var(--hint)]">
           <Trash2 size={44} strokeWidth={1.5} />
           <p className="text-sm">Корзина пуста</p>
         </div>
@@ -160,24 +160,24 @@ export default function OrdersTrashPage() {
           {items.map((order) => (
             <div
               key={order.id}
-              className="bg-[#1a1f2e] border border-white/[0.06] rounded-xl px-4 py-3.5 space-y-3"
+              className="bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-4 py-3.5 space-y-3"
             >
               {/* Order info row */}
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-mono font-medium text-white">
+                    <span className="text-sm font-mono font-medium text-[var(--text)]">
                       {order.order_number}
                     </span>
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        STATUS_COLORS[order.status] ?? 'bg-white/10 text-white/50'
+                        STATUS_COLORS[order.status] ?? 'bg-[var(--bg3)] text-[var(--hint)]'
                       }`}
                     >
                       {STATUS_LABELS[order.status] ?? order.status}
                     </span>
                   </div>
-                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-white/50">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[var(--hint)]">
                     <span>
                       {order.user_first_name}
                       {order.user_username ? ` @${order.user_username}` : ''}
@@ -195,7 +195,7 @@ export default function OrdersTrashPage() {
                   </div>
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="text-sm font-semibold text-white">
+                  <div className="text-sm font-semibold text-[var(--text)]">
                     {formatMoney(order.total_amount)}
                   </div>
                 </div>
@@ -231,17 +231,17 @@ export default function OrdersTrashPage() {
           <button
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
-            className="px-4 py-2 rounded-xl bg-white/[0.05] text-sm text-white/60 disabled:opacity-30 hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-200"
+            className="px-4 py-2 rounded-xl bg-[var(--bg2)] text-sm text-[var(--text-2)] disabled:opacity-30 hover:bg-[var(--bg3)] active:scale-[0.97] transition-all duration-200"
           >
             Назад
           </button>
-          <span className="text-xs text-white/30">
+          <span className="text-xs text-[var(--hint)]">
             Страница {page}
           </span>
           <button
             disabled={page >= pages}
             onClick={() => setPage(page + 1)}
-            className="px-4 py-2 rounded-xl bg-white/[0.05] text-sm text-white/60 disabled:opacity-30 hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-200"
+            className="px-4 py-2 rounded-xl bg-[var(--bg2)] text-sm text-[var(--text-2)] disabled:opacity-30 hover:bg-[var(--bg3)] active:scale-[0.97] transition-all duration-200"
           >
             Вперёд
           </button>
@@ -256,19 +256,19 @@ export default function OrdersTrashPage() {
           onClick={() => setConfirmId(null)}
         >
           <div
-            className="w-full max-w-sm bg-[#1a1f2e] border border-white/[0.08] rounded-2xl p-5 space-y-4"
+            className="w-full max-w-sm bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-5 space-y-4"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="space-y-1">
-              <p className="text-base font-semibold text-white">Удалить навсегда?</p>
-              <p className="text-sm text-white/50">
+              <p className="text-base font-semibold text-[var(--text)]">Удалить навсегда?</p>
+              <p className="text-sm text-[var(--hint)]">
                 Это действие необратимо. Заказ будет удалён без возможности восстановления.
               </p>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => setConfirmId(null)}
-                className="flex-1 py-2.5 rounded-xl bg-white/[0.06] text-sm text-white/70 hover:bg-white/[0.09] active:scale-[0.97] transition-all duration-200"
+                className="flex-1 py-2.5 rounded-xl bg-[var(--bg3)] text-sm text-[var(--text-2)] hover:bg-[var(--bg3)] active:scale-[0.97] transition-all duration-200"
               >
                 Отмена
               </button>

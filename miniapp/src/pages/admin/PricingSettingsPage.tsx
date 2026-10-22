@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from 'react'
-import { DollarSign, RefreshCw } from 'lucide-react'
+import { DollarSign, RefreshCw } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
 import type { PricingSettings } from '@/api/admin'
@@ -56,7 +56,7 @@ export default function PricingSettingsPage() {
     }
   }
 
-  if (loading) return <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
+  if (loading) return <p className="text-[var(--hint)] text-sm py-8 text-center">Загрузка...</p>
 
   return (
     <div className="space-y-4 pb-8 max-w-lg">
@@ -65,36 +65,36 @@ export default function PricingSettingsPage() {
           <DollarSign size={20} />
         </div>
         <div>
-          <h1 className="text-lg font-bold text-white">Ценообразование</h1>
-          <p className="text-xs text-white/40">Цены задаются в USD, покупателю — ₽ по курсу RAPIRA</p>
+          <h1 className="text-lg font-bold text-[var(--text)]">Ценообразование</h1>
+          <p className="text-xs text-[var(--hint)]">Цены задаются в USD, покупателю — ₽ по курсу RAPIRA</p>
         </div>
       </div>
 
       {/* Курс */}
-      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4">
+      <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-xs text-white/50 uppercase tracking-wider mb-1">Курс USD/RUB (RAPIRA)</p>
-            <p className="text-2xl font-bold text-white">{pricing?.usd_rub_rate.toFixed(2)} ₽</p>
+            <p className="text-xs text-[var(--hint)] uppercase tracking-wider mb-1">Курс USD/RUB (RAPIRA)</p>
+            <p className="text-2xl font-bold text-[var(--text)]">{pricing?.usd_rub_rate.toFixed(2)} ₽</p>
             {pricing?.usd_rub_rate_updated_at && (
-              <p className="text-xs text-white/30 mt-1">
+              <p className="text-xs text-[var(--hint)] mt-1">
                 обновлён {new Date(pricing.usd_rub_rate_updated_at).toLocaleString('ru-RU')}
               </p>
             )}
           </div>
           <button
             onClick={load}
-            className="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-white/50 transition-colors"
+            className="p-2 rounded-xl bg-[var(--bg2)] border border-[var(--border)] hover:bg-[var(--bg3)] text-[var(--hint)] transition-colors"
             title="Обновить"
           >
             <RefreshCw size={16} />
           </button>
         </div>
-        <p className="text-xs text-white/30 mt-2">Курс обновляется автоматически 2 раза в сутки.</p>
+        <p className="text-xs text-[var(--hint)] mt-2">Курс обновляется автоматически 2 раза в сутки.</p>
       </div>
 
       {/* Наценки по методам */}
-      <div className="bg-white/[0.04] border border-white/[0.08] rounded-2xl p-4 space-y-3">
+      <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-3">
         {([
           ['Крипта, %', markupCrypto, setMarkupCrypto, 'Базовая цена в каталоге считается по этой наценке.'],
           ['Карта / SberPay, %', markupCard, setMarkupCard, ''],
@@ -102,24 +102,24 @@ export default function PricingSettingsPage() {
           ['Баланс, %', markupBalance, setMarkupBalance, 'Обычно 0 — комиссия уже оплачена при пополнении.'],
         ] as [string, string, (v: string) => void, string][]).map(([label, val, setter, hint]) => (
           <div key={label}>
-            <label className="text-xs text-white/50 mb-1.5 block">Наценка: {label}</label>
+            <label className="text-xs text-[var(--hint)] mb-1.5 block">Наценка: {label}</label>
             <input
               type="number"
               value={val}
               onChange={(e) => setter(e.target.value)}
               min={0} max={100} step="0.1"
-              className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-blue-500/50"
+              className="w-full bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
             />
-            {hint && <p className="text-xs text-white/40 mt-1.5">{hint}</p>}
+            {hint && <p className="text-xs text-[var(--hint)] mt-1.5">{hint}</p>}
           </div>
         ))}
-        <p className="text-xs text-white/40">
+        <p className="text-xs text-[var(--hint)]">
           Итог: ₽ = USD × курс × (1 + наценка метода), округление «в 9». Покупатель видит цену метода при оформлении.
         </p>
         <button
           onClick={save}
           disabled={saving}
-          className="w-full py-3 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-sm font-semibold text-white transition-all active:scale-[0.98]"
+          className="w-full py-3 rounded-xl bg-[var(--accent)] hover:bg-[var(--btn-hover)] disabled:opacity-60 text-sm font-semibold text-[var(--text)] transition-all active:scale-[0.97]"
         >
           {saving ? 'Сохранение...' : 'Сохранить'}
         </button>

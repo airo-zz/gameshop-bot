@@ -1,8 +1,8 @@
 // src/components/ui/icons.tsx
 // ─────────────────────────────────────────────────────────────────────────────
-// Единый набор иконок клиентской части — Phosphor (https://phosphoricons.com).
+// Единый набор иконок клиентской части и админки — Phosphor (https://phosphoricons.com).
 // Экспортируются под старыми lucide-именами, чтобы страницы меняли только
-// строку импорта. Админка по-прежнему на lucide-react.
+// строку импорта.
 //
 // Толщина: по умолчанию regular; мелкие (≤14px) и «жирные» (strokeWidth ≥ 2.4) —
 // bold, чтобы не терялись; fill (кроме 'none') — заливной вариант.
@@ -20,6 +20,9 @@ import {
   SealCheckIcon, ShareNetworkIcon, ShieldCheckIcon, ShieldIcon, ShoppingBagIcon,
   ShoppingCartIcon, SignOutIcon, StarIcon, TagIcon, TrashIcon, TrendDownIcon, TrendUpIcon,
   UsersIcon, WalletIcon, WarningCircleIcon, WifiSlashIcon, XCircleIcon, XIcon,
+} from '@phosphor-icons/react'
+import {
+  ArrowSquareOutIcon, BellIcon, ChatCenteredIcon, CloudArrowUpIcon, CurrencyDollarIcon, FloppyDiskIcon, FolderOpenIcon, ImageBrokenIcon, ImageIcon, MinusCircleIcon, PencilSimpleIcon, PlusCircleIcon, PushPinIcon, ShieldSlashIcon, ShieldWarningIcon, ToggleLeftIcon, ToggleRightIcon, UploadSimpleIcon, UserCheckIcon, UserIcon, UserMinusIcon, WarningIcon,
 } from '@phosphor-icons/react'
 
 export interface IconProps {
@@ -103,3 +106,28 @@ export const X = wrap(XIcon)
 export const XCircle = wrap(XCircleIcon)
 export const Zap = wrap(LightningIcon)
 export const ZoomIn = wrap(MagnifyingGlassPlusIcon)
+
+// ── Админка ──
+export const AlertTriangle = wrap(WarningIcon)
+export const Bell = wrap(BellIcon)
+export const DollarSign = wrap(CurrencyDollarIcon)
+export const ExternalLink = wrap(ArrowSquareOutIcon)
+export const FolderOpen = wrap(FolderOpenIcon)
+export const Image = wrap(ImageIcon)
+export const ImageOff = wrap(ImageBrokenIcon)
+export const MessageSquare = wrap(ChatCenteredIcon)
+export const MinusCircle = wrap(MinusCircleIcon)
+export const Pencil = wrap(PencilSimpleIcon)
+export const PercentSquare = wrap(PercentIcon)
+export const Pin = wrap(PushPinIcon)
+export const PlusCircle = wrap(PlusCircleIcon)
+export const Save = wrap(FloppyDiskIcon)
+export const ShieldAlert = wrap(ShieldWarningIcon)
+export const ShieldOff = wrap(ShieldSlashIcon)
+export const ToggleLeft = wrap(ToggleLeftIcon)
+export const ToggleRight = wrap(ToggleRightIcon)
+export const Upload = wrap(UploadSimpleIcon)
+export const UploadCloud = wrap(CloudArrowUpIcon)
+export const User = wrap(UserIcon)
+export const UserCheck = wrap(UserCheckIcon)
+export const UserMinus = wrap(UserMinusIcon)

@@ -1,50 +1,65 @@
 /**
  * src/components/admin/AdminLayout.tsx
- * Shell layout для admin-панели.
+ * Shell layout для admin-панели (графит, как клиентская часть).
  *
- * Desktop/планшет: боковая sidebar
- * Мобильный: header с кнопкой гамбургер → slide-in drawer
+ * Desktop/планшет: боковая sidebar с группами разделов
+ * Мобильный: header с кнопкой меню → slide-in drawer
  */
 
 import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import type { Icon as PhIcon } from '@phosphor-icons/react'
 import {
-  LayoutDashboard,
-  ShoppingCart,
-  Package,
-  Users,
-  Tag,
-  MessageSquare,
-  MessagesSquare,
-  Settings,
-  FileText,
-  DollarSign,
-  Zap,
-  Menu,
-  X,
-} from 'lucide-react'
+  ArrowLeftIcon, ChartLineUpIcon, ChatsCircleIcon, CurrencyRubIcon, GearSixIcon, HeadsetIcon,
+  LightningIcon, ListIcon, PackageIcon, ReceiptIcon, TagIcon, TextAaIcon, UsersIcon, XIcon,
+} from '@phosphor-icons/react'
+import logoFull from '@/assets/logo-full.png'
 
 interface NavItem {
   to: string
   label: string
-  icon: React.ReactNode
+  Icon: PhIcon
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { to: '/admin',           label: 'Dashboard',       icon: <LayoutDashboard size={20} /> },
-  { to: '/admin/orders',    label: 'Заказы',           icon: <ShoppingCart size={20} /> },
-  { to: '/admin/catalog',   label: 'Каталог',          icon: <Package size={20} /> },
-  { to: '/admin/users',     label: 'Пользователи',     icon: <Users size={20} /> },
-  { to: '/admin/discounts', label: 'Скидки',           icon: <Tag size={20} /> },
-  { to: '/admin/support',   label: 'Поддержка',        icon: <MessageSquare size={20} /> },
-  { to: '/admin/chats',    label: 'Чаты',             icon: <MessagesSquare size={20} /> },
-  { to: '/admin/settings/content', label: 'Контент',   icon: <FileText size={20} /> },
-  { to: '/admin/settings/pricing', label: 'Цены',       icon: <DollarSign size={20} /> },
-  { to: '/admin/settings/integrations', label: 'Интеграции', icon: <Zap size={20} /> },
-  { to: '/admin/settings/loyalty', label: 'Настройки', icon: <Settings size={20} /> },
+const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
+  {
+    title: 'Продажи',
+    items: [
+      { to: '/admin',         label: 'Обзор',     Icon: ChartLineUpIcon },
+      { to: '/admin/orders',  label: 'Заказы',    Icon: ReceiptIcon },
+      { to: '/admin/chats',   label: 'Чаты',      Icon: ChatsCircleIcon },
+      { to: '/admin/support', label: 'Поддержка', Icon: HeadsetIcon },
+    ],
+  },
+  {
+    title: 'Магазин',
+    items: [
+      { to: '/admin/catalog',   label: 'Каталог',      Icon: PackageIcon },
+      { to: '/admin/discounts', label: 'Скидки',       Icon: TagIcon },
+      { to: '/admin/users',     label: 'Пользователи', Icon: UsersIcon },
+    ],
+  },
+  {
+    title: 'Настройки',
+    items: [
+      { to: '/admin/settings/loyalty',      label: 'Лояльность', Icon: GearSixIcon },
+      { to: '/admin/settings/pricing',      label: 'Цены',       Icon: CurrencyRubIcon },
+      { to: '/admin/settings/content',      label: 'Контент',    Icon: TextAaIcon },
+      { to: '/admin/settings/integrations', label: 'Интеграции', Icon: LightningIcon },
+    ],
+  },
 ]
+const ALL_ITEMS = NAV_GROUPS.flatMap(g => g.items)
+
+function currentTitle(pathname: string): string {
+  const match = [...ALL_ITEMS]
+    .sort((a, b) => b.to.length - a.to.length)
+    .find(i => (i.to === '/admin' ? pathname === '/admin' || pathname === '/admin/' : pathname.startsWith(i.to)))
+  return match?.label ?? 'Админка'
+}
 
 function SidebarLink({ item, onClick }: { item: NavItem; onClick?: () => void }) {
+  const { Icon } = item
   return (
     <NavLink
       to={item.to}
@@ -52,20 +67,16 @@ function SidebarLink({ item, onClick }: { item: NavItem; onClick?: () => void })
       onClick={onClick}
       className={({ isActive }) =>
         [
-          'relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-          'hover:bg-white/10',
+          'flex items-center gap-3 px-3 h-10 rounded-xl text-sm font-medium transition-colors duration-150',
           isActive
-            ? 'bg-white/10 text-white'
-            : 'text-white/55 hover:text-white/85',
+            ? 'bg-[var(--bg3)] text-[var(--text)]'
+            : 'text-[var(--text-2)] hover:bg-[var(--bg2)] hover:text-[var(--text)]',
         ].join(' ')
       }
     >
       {({ isActive }) => (
         <>
-          {isActive && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-full bg-white/60" />
-          )}
-          <span className={isActive ? 'text-white/80' : 'text-white/35'}>{item.icon}</span>
+          <Icon size={20} weight={isActive ? 'fill' : 'regular'} className={isActive ? 'text-[var(--link)]' : ''} />
           <span className="flex-1">{item.label}</span>
         </>
       )}
@@ -73,9 +84,25 @@ function SidebarLink({ item, onClick }: { item: NavItem; onClick?: () => void })
   )
 }
 
+function NavList({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <nav className="flex flex-col gap-5">
+      {NAV_GROUPS.map(group => (
+        <div key={group.title} className="flex flex-col gap-0.5">
+          <p className="px-3 pb-1.5 text-xs font-medium text-[var(--hint)]">{group.title}</p>
+          {group.items.map(item => (
+            <SidebarLink key={item.to} item={item} onClick={onNavigate} />
+          ))}
+        </div>
+      ))}
+    </nav>
+  )
+}
+
 export default function AdminLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const location = useLocation()
+  const isChats = location.pathname.startsWith('/admin/chats')
 
   // Закрываем drawer при смене маршрута
   useEffect(() => {
@@ -84,83 +111,76 @@ export default function AdminLayout() {
 
   // Блокируем scroll страницы когда drawer открыт
   useEffect(() => {
-    if (drawerOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
-    }
+    document.body.style.overflow = drawerOpen ? 'hidden' : ''
     return () => { document.body.style.overflow = '' }
   }, [drawerOpen])
 
   return (
     <div
-      className="flex min-h-screen bg-[#111827] text-white"
+      className="flex min-h-screen bg-[var(--bg)] text-[var(--text)]"
       style={{
         paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))',
       }}
     >
       {/* ── Sidebar (md+) ── */}
-      <aside className="hidden md:flex flex-col w-56 shrink-0 border-r border-white/[0.06] p-4 gap-1">
-        <div className="px-3 py-3 mb-2">
-          <span className="text-[10px] font-semibold text-white/25 uppercase tracking-[0.15em]">Panel</span>
-        </div>
-        {NAV_ITEMS.map(item => (
-          <SidebarLink key={item.to} item={item} />
-        ))}
+      <aside className="hidden md:flex flex-col w-60 shrink-0 border-r border-[var(--border)] px-3 py-5 gap-6 sticky top-0 h-screen overflow-y-auto">
+        <img src={logoFull} alt="reDonate" className="h-6 w-auto self-start ml-3" />
+        <NavList />
+        <NavLink
+          to="/"
+          className="mt-auto flex items-center gap-2 px-3 h-10 rounded-xl text-sm text-[var(--hint)] hover:text-[var(--text)] hover:bg-[var(--bg2)] transition-colors"
+        >
+          <ArrowLeftIcon size={18} /> В магазин
+        </NavLink>
       </aside>
 
       {/* ── Mobile Drawer overlay ── */}
-      {drawerOpen && (
-        <div
-          className="md:hidden fixed inset-0 bg-black/60 backdrop-blur-sm"
-          style={{ zIndex: 200 }}
-          onClick={() => setDrawerOpen(false)}
-        />
-      )}
+      <div
+        className="md:hidden fixed inset-0 bg-black/60 transition-opacity duration-200"
+        style={{ zIndex: 200, opacity: drawerOpen ? 1 : 0, pointerEvents: drawerOpen ? 'auto' : 'none' }}
+        onClick={() => setDrawerOpen(false)}
+      />
 
       {/* ── Mobile Drawer ── */}
       <div
-        className="md:hidden fixed top-0 left-0 bottom-0 flex flex-col bg-[#111827] border-r border-white/[0.06] transition-transform duration-300"
+        className="md:hidden fixed top-0 left-0 bottom-0 flex flex-col bg-[var(--bg2)] border-r border-[var(--border)]"
         style={{
           zIndex: 201,
-          width: 240,
+          width: 260,
           transform: drawerOpen ? 'translateX(0)' : 'translateX(-100%)',
-          paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px) + 56px)',
+          transition: 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)',
+          paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px) + 64px)',
           paddingBottom: 'env(safe-area-inset-bottom, 0px)',
         }}
       >
-        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
-          {NAV_ITEMS.map(item => (
-            <SidebarLink key={item.to} item={item} onClick={() => setDrawerOpen(false)} />
-          ))}
+        <div className="flex-1 overflow-y-auto px-3 py-2">
+          <NavList onNavigate={() => setDrawerOpen(false)} />
         </div>
+        <NavLink
+          to="/"
+          className="flex items-center gap-2 mx-3 mb-4 px-3 h-10 rounded-xl text-sm text-[var(--hint)] hover:bg-[var(--bg3)]"
+        >
+          <ArrowLeftIcon size={18} /> В магазин
+        </NavLink>
       </div>
 
       {/* ── Main content ── */}
       <div className="flex flex-col flex-1 min-w-0">
-        {/* Top bar */}
-        <header className="flex items-center h-14 px-4 border-b border-white/[0.06] shrink-0 gap-3">
-          {/* Hamburger — mobile only */}
+        <header className="flex items-center h-14 px-4 md:px-6 border-b border-[var(--border)] shrink-0 gap-3 bg-[var(--bg)]" style={{ position: 'relative', zIndex: 202 }}>
           <button
             type="button"
-            className="md:hidden flex items-center justify-center w-9 h-9 rounded-xl transition-colors active:scale-95"
-            style={{ background: drawerOpen ? 'rgba(255,255,255,0.1)' : 'transparent' }}
+            aria-label={drawerOpen ? 'Закрыть меню' : 'Меню'}
+            className="md:hidden flex items-center justify-center w-10 h-10 -ml-2 rounded-xl text-[var(--text-2)] active:opacity-70"
+            style={{ background: drawerOpen ? 'var(--bg3)' : 'transparent' }}
             onClick={() => setDrawerOpen(v => !v)}
           >
-            {drawerOpen
-              ? <X size={20} style={{ color: 'rgba(255,255,255,0.7)' }} />
-              : <Menu size={20} style={{ color: 'rgba(255,255,255,0.5)' }} />
-            }
+            {drawerOpen ? <XIcon size={22} /> : <ListIcon size={22} />}
           </button>
-
-          <NavLink to="/" className="text-xs text-white/35 hover:text-white/65 transition-colors">
-            ← Магазин
-          </NavLink>
+          <h1 className="text-base" style={{ margin: 0 }}>{currentTitle(location.pathname)}</h1>
         </header>
 
-        {/* Page */}
-        <main className={location.pathname.startsWith('/admin/chats') ? 'flex-1 overflow-hidden flex flex-col' : 'flex-1 overflow-y-auto'}>
-          {location.pathname.startsWith('/admin/chats')
+        <main className={isChats ? 'flex-1 overflow-hidden flex flex-col' : 'flex-1 overflow-y-auto'}>
+          {isChats
             ? <Outlet />
             : <div className="p-4 md:p-6 max-w-6xl mx-auto pb-8"><Outlet /></div>
           }

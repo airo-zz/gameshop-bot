@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from '@/components/ui/icons'
 
 interface FieldForm {
   key: string
@@ -65,7 +65,7 @@ function serialize(fields: FieldForm[]): Record<string, unknown>[] {
 }
 
 const inputCls =
-  'w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-blue-500/50 transition-all'
+  'w-full bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:border-[var(--accent)] transition-all'
 
 interface Props {
   value: unknown[]
@@ -88,13 +88,13 @@ export default function InputFieldsEditor({ value, onChange }: Props) {
 
   return (
     <div className="space-y-3">
-      <p className="text-xs text-white/40">
+      <p className="text-xs text-[var(--hint)]">
         Поля, которые покупатель заполнит один раз при оформлении заказа этой игры
         (логин, почта, ID, выбор ОС и т.п.).
       </p>
 
       {fields.map((field, idx) => (
-        <div key={idx} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 space-y-2.5">
+        <div key={idx} className="bg-[var(--bg2)] border border-[var(--border)] rounded-xl p-3 space-y-2.5">
           <div className="flex items-center gap-2">
             <input
               value={field.label}
@@ -106,7 +106,7 @@ export default function InputFieldsEditor({ value, onChange }: Props) {
               type="button"
               onClick={() => remove(idx)}
               aria-label="Удалить поле"
-              className="p-2.5 rounded-xl bg-white/[0.05] border border-white/[0.08] hover:bg-red-500/10 hover:border-red-500/30 text-white/40 hover:text-red-400 transition-all"
+              className="p-2.5 rounded-xl bg-[var(--bg2)] border border-[var(--border)] hover:bg-red-500/10 hover:border-red-500/30 text-[var(--hint)] hover:text-red-400 transition-all"
             >
               <Trash2 size={16} />
             </button>
@@ -122,14 +122,14 @@ export default function InputFieldsEditor({ value, onChange }: Props) {
                 <option key={o.value} value={o.value} className="bg-neutral-900">{o.label}</option>
               ))}
             </select>
-            <label className="flex items-center gap-2 px-3 rounded-xl bg-white/[0.05] border border-white/[0.08] cursor-pointer select-none">
+            <label className="flex items-center gap-2 px-3 rounded-xl bg-[var(--bg2)] border border-[var(--border)] cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={field.required}
                 onChange={(e) => update(idx, { required: e.target.checked })}
                 className="accent-blue-600"
               />
-              <span className="text-sm text-white/70">Обязательно</span>
+              <span className="text-sm text-[var(--text-2)]">Обязательно</span>
             </label>
           </div>
 
@@ -155,7 +155,7 @@ export default function InputFieldsEditor({ value, onChange }: Props) {
       <button
         type="button"
         onClick={add}
-        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-white/[0.05] border border-dashed border-white/[0.15] hover:bg-white/[0.08] hover:border-white/25 text-sm text-white/60 hover:text-white/80 transition-all"
+        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-[var(--bg2)] border border-dashed border-[var(--border)] hover:bg-[var(--bg3)] hover:border-[var(--border)] text-sm text-[var(--text-2)] hover:text-[var(--text-2)] transition-all"
       >
         <Plus size={16} /> Добавить поле
       </button>

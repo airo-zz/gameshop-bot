@@ -6,7 +6,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
-import { Search, AlertCircle, Trash2, UserCheck } from 'lucide-react'
+import { Search, AlertCircle, Trash2, UserCheck } from '@/components/ui/icons'
 import { useQuery } from '@tanstack/react-query'
 import { adminApi } from '@/api/admin'
 import type { AdminOrderListItem, PaginatedResponse } from '@/api/admin'
@@ -15,7 +15,7 @@ import toast from 'react-hot-toast'
 
 // Палитра цветов администраторов — зеркало ADMIN_COLORS из shared/models/order.py
 export const ADMIN_COLORS = [
-  '#3b82f6', // 0 blue
+  'var(--accent)', // 0 blue
   '#8b5cf6', // 1 violet
   '#10b981', // 2 emerald
   '#f59e0b', // 3 amber
@@ -41,8 +41,8 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_COLORS: Record<string, string> = {
   new:             'bg-slate-500/15 text-slate-400',
   pending_payment: 'bg-yellow-500/15 text-yellow-400',
-  paid:            'bg-blue-500/15 text-blue-400',
-  processing:      'bg-violet-500/15 text-violet-400',
+  paid:            'bg-[var(--accent-soft)] text-[var(--link)]',
+  processing:      'bg-[var(--accent-soft)] text-[var(--link)]',
   clarification:   'bg-amber-500/15 text-amber-400',
   completed:       'bg-emerald-500/15 text-emerald-400',
   cancelled:       'bg-red-500/15 text-red-400',
@@ -154,14 +154,14 @@ export default function OrdersPage() {
     <div className="space-y-4">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Заказы</h1>
+          <h1 className="text-xl font-bold text-[var(--text)]">Заказы</h1>
           {data && (
-            <p className="text-sm text-white/40 mt-0.5">Всего: {data.total}</p>
+            <p className="text-sm text-[var(--hint)] mt-0.5">Всего: {data.total}</p>
           )}
         </div>
         <Link
           to="/admin/orders/trash"
-          className="flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors duration-200 mt-1"
+          className="flex items-center gap-1.5 text-xs text-[var(--hint)] hover:text-[var(--text-2)] transition-colors duration-200 mt-1"
         >
           <Trash2 size={13} />
           Корзина
@@ -176,13 +176,13 @@ export default function OrdersPage() {
       {/* Filters */}
       <div className="space-y-3">
         <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--hint)]" />
           <input
             type="text"
             placeholder="Поиск по номеру заказа, пользователю..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-white/20 transition-all duration-200"
+            className="w-full bg-[var(--bg2)] border border-[var(--border)] rounded-xl py-2.5 pl-9 pr-4 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:ring-1 focus:ring-[var(--border)] focus:border-[var(--border)] transition-all duration-200"
           />
         </div>
 
@@ -192,10 +192,10 @@ export default function OrdersPage() {
               key={key}
               onClick={() => setStatus(key)}
               className={[
-                'shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 active:scale-[0.98]',
+                'shrink-0 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 active:scale-[0.97]',
                 status === key
-                  ? 'bg-white/15 text-white'
-                  : 'bg-white/[0.05] text-white/50 hover:bg-white/[0.08]',
+                  ? 'bg-[var(--bg3)] text-[var(--text)]'
+                  : 'bg-[var(--bg2)] text-[var(--hint)] hover:bg-[var(--bg3)]',
               ].join(' ')}
             >
               {STATUS_LABELS[key] ?? key}
@@ -206,17 +206,17 @@ export default function OrdersPage() {
 
       {/* List */}
       {loading ? (
-        <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
+        <p className="text-[var(--hint)] text-sm py-8 text-center">Загрузка...</p>
       ) : error ? (
-        <div className="flex flex-col items-center py-16 gap-3 text-white/40">
+        <div className="flex flex-col items-center py-16 gap-3 text-[var(--hint)]">
           <AlertCircle size={36} />
           <p className="text-sm">Ошибка загрузки заказов</p>
-          <button onClick={load} className="text-xs text-white/50 hover:text-white/70 active:scale-[0.98] transition-transform">
+          <button onClick={load} className="text-xs text-[var(--hint)] hover:text-[var(--text-2)] active:scale-[0.97] transition-transform">
             Попробовать снова
           </button>
         </div>
       ) : !data?.items.length ? (
-        <div className="text-center py-16 text-white/30 text-sm">
+        <div className="text-center py-16 text-[var(--hint)] text-sm">
           Заказов не найдено
         </div>
       ) : (
@@ -225,21 +225,21 @@ export default function OrdersPage() {
             <Link
               key={order.id}
               to={`/admin/orders/${order.id}`}
-              className="flex items-center gap-3 bg-[#1a1f2e] hover:bg-[#1f2538] border border-white/[0.06] rounded-xl px-4 py-3.5 transition-all duration-200 active:scale-[0.99]"
+              className="flex items-center gap-3 bg-[var(--bg2)] hover:bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-4 py-3.5 transition-all duration-200 active:scale-[0.97]"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <span className="text-sm font-mono font-medium text-white">
+                  <span className="text-sm font-mono font-medium text-[var(--text)]">
                     {order.order_number}
                   </span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[order.status] ?? 'bg-white/10 text-white/50'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[order.status] ?? 'bg-[var(--bg3)] text-[var(--hint)]'}`}>
                     {STATUS_LABELS[order.status] ?? order.status}
                   </span>
                   {order.assigned_admin && (
                     <AdminBadge admin={order.assigned_admin} />
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-xs text-white/50">
+                <div className="flex items-center gap-2 text-xs text-[var(--hint)]">
                   <span>
                     {order.user_first_name}
                     {order.user_username ? ` @${order.user_username}` : ''}
@@ -251,14 +251,14 @@ export default function OrdersPage() {
                 </div>
               </div>
               <div className="flex flex-col items-end gap-2 shrink-0">
-                <div className="text-sm font-semibold text-white">
+                <div className="text-sm font-semibold text-[var(--text)]">
                   {formatMoney(order.total_amount)}
                 </div>
                 {order.status === 'paid' && !order.assigned_admin && (
                   <button
                     onClick={(e) => handleClaim(e, order.id)}
                     disabled={claimingId === order.id}
-                    className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-blue-500/15 text-blue-400 border border-blue-500/25 hover:bg-blue-500/25 active:scale-[0.96] transition-all duration-200 disabled:opacity-50"
+                    className="text-[10px] font-semibold px-2 py-1 rounded-lg bg-[var(--accent-soft)] text-[var(--link)] border border-blue-500/25 hover:bg-blue-500/25 active:scale-[0.97] transition-all duration-200 disabled:opacity-50"
                   >
                     {claimingId === order.id ? '...' : 'Взять'}
                   </button>
@@ -275,17 +275,17 @@ export default function OrdersPage() {
           <button
             disabled={page === 1}
             onClick={() => setPage(page - 1)}
-            className="px-4 py-2 rounded-xl bg-white/[0.05] text-sm text-white/60 disabled:opacity-30 hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-200"
+            className="px-4 py-2 rounded-xl bg-[var(--bg2)] text-sm text-[var(--text-2)] disabled:opacity-30 hover:bg-[var(--bg3)] active:scale-[0.97] transition-all duration-200"
           >
             Назад
           </button>
-          <span className="text-xs text-white/30">
+          <span className="text-xs text-[var(--hint)]">
             Страница {page}
           </span>
           <button
             disabled={page >= data.pages}
             onClick={() => setPage(page + 1)}
-            className="px-4 py-2 rounded-xl bg-white/[0.05] text-sm text-white/60 disabled:opacity-30 hover:bg-white/[0.08] active:scale-[0.98] transition-all duration-200"
+            className="px-4 py-2 rounded-xl bg-[var(--bg2)] text-sm text-[var(--text-2)] disabled:opacity-30 hover:bg-[var(--bg3)] active:scale-[0.97] transition-all duration-200"
           >
             Вперёд
           </button>

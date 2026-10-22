@@ -12,7 +12,7 @@ import {
   Package,
   Clock,
   AlertCircle,
-} from 'lucide-react'
+} from '@/components/ui/icons'
 import { adminApi } from '@/api/admin'
 import type { DashboardStats } from '@/api/admin'
 
@@ -34,20 +34,20 @@ function StatCard({
   const inner = (
     <>
       <div className="flex items-start justify-between mb-3">
-        <span className="text-xs font-medium text-white/50">{label}</span>
-        <span className="text-white/30">{icon}</span>
+        <span className="text-xs font-medium text-[var(--hint)]">{label}</span>
+        <span className="text-[var(--hint)]">{icon}</span>
       </div>
-      <div className="text-2xl font-bold text-white">{value}</div>
-      {sub && <div className="text-xs text-white/50 mt-1">{sub}</div>}
+      <div className="text-2xl font-bold text-[var(--text)]">{value}</div>
+      {sub && <div className="text-xs text-[var(--hint)] mt-1">{sub}</div>}
     </>
   )
 
   return (
     <div
-      className="relative rounded-xl border bg-[#1a1f2e] border-white/[0.06] p-4 transition-all duration-200 hover:bg-[#1f2538]"
+      className="relative rounded-xl border bg-[var(--bg2)] border-[var(--border)] p-4 transition-all duration-200 hover:bg-[var(--bg2)]"
     >
       {to ? (
-        <Link to={to} className={`block${to ? ' active:scale-[0.98] transition-transform' : ''}`}>
+        <Link to={to} className={`block${to ? ' active:scale-[0.97] transition-transform' : ''}`}>
           {inner}
         </Link>
       ) : inner}
@@ -72,12 +72,12 @@ export default function DashboardPage() {
   }, [])
 
   if (loading) {
-    return <p className="text-white/40 text-sm py-8 text-center">Загрузка...</p>
+    return <p className="text-[var(--hint)] text-sm py-8 text-center">Загрузка...</p>
   }
 
   if (error || !stats) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3 text-white/40">
+      <div className="flex flex-col items-center justify-center py-20 gap-3 text-[var(--hint)]">
         <AlertCircle size={40} />
         <p className="text-sm">Не удалось загрузить статистику</p>
       </div>
@@ -87,8 +87,8 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-white">Dashboard</h1>
-        <p className="text-sm text-white/40 mt-0.5">Общая статистика магазина</p>
+        <h1 className="text-xl font-bold text-[var(--text)]">Dashboard</h1>
+        <p className="text-sm text-[var(--hint)] mt-0.5">Общая статистика магазина</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">

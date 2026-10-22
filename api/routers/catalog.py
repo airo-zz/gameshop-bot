@@ -168,3 +168,35 @@ async def get_recently_viewed(db: DbSession, user: CurrentUser):
     svc = CatalogService(db)
     products = await svc.get_recently_viewed(user.id)
     return [_product_to_list_out(p) for p in products]
+
+
+@router.get("/loyalty")
+async def get_loyalty_program(db: DbSession):
+    """Публичное описание программы лояльности (страница /cashback на сайте):
+    уровни с порогами трат за месяц, кэшбэком и лимитом + условия рефералки."""
+    from api.services.loyalty_service import (
+        REFERRAL_BONUS_KEY, REFERRAL_DISCOUNT_KEY, REFERRAL_THRESHOLD_KEY, LoyaltyService,
+    )
+
+    svc = LoyaltyService(db)
+    levels = await svc.get_levels()
+    ref = await svc.get_referral_settings()
+    return {
+        "levels": [
+            {
+                "name": lv.name,
+                "min_spent": float(lv.min_spent),
+                "cashback_percent": float(lv.cashback_percent),
+                "monthly_cashback_cap": (
+                    float(lv.monthly_cashback_cap) if lv.monthly_cashback_cap is not None else None
+                ),
+                "color_hex": lv.color_hex,
+            }
+            for lv in levels
+        ],
+        "referral": {
+            "bonus_amount": float(ref[REFERRAL_BONUS_KEY]),
+            "threshold_amount": float(ref[REFERRAL_THRESHOLD_KEY]),
+            "new_user_discount_percent": float(ref[REFERRAL_DISCOUNT_KEY]),
+        },
+    }
