@@ -42,9 +42,11 @@ class BotTexts:
             "greeting_new_user", first_name=escape(first_name), bonus=bonus_text
         )
 
-    def referral_bonus_received(self, amount: float) -> str:
+    def referral_bonus_received(self, amount: float, percent: float) -> str:
+        value = f"{amount:.0f}" if amount == int(amount) else f"{amount:.2f}".replace(".", ",")
         return (
-            f"🎁 Ваш друг сделал покупки — вам начислено <b>{amount:.0f} ₽</b> на баланс.\n"
+            f"🎁 Ваш друг сделал заказ — вам начислено <b>{value} ₽</b> на баланс "
+            f"({percent:g}% от суммы заказа).\n"
             "Спасибо, что рекомендуете нас!"
         )
 

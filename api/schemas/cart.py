@@ -186,6 +186,7 @@ class ProfileOut(BaseModel):
     loyalty_next_level_min_spent: Decimal | None = None
     loyalty_period_ends_at: str | None = None        # ISO, когда пересчитается уровень
     # Рефералка
-    referral_bonus_amount: Decimal = Decimal("0")
-    referral_threshold_amount: Decimal = Decimal("0")
+    # Рефералка: % пригласившему с заказов друга, сколько месяцев (0 — бессрочно)
+    referral_percent: Decimal = Decimal("0")
+    referral_period_months: int = 0
     referral_new_user_discount_percent: Decimal = Decimal("0")

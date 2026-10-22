@@ -23,6 +23,15 @@ const MONTHS_PREP = ['январе', 'феврале', 'марте', 'апрел
   'августе', 'сентябре', 'октябре', 'ноябре', 'декабре']
 
 export const rub = (n: number | string) => `${fmtNum(n)} ₽`
+
+/** «3% с каждого его заказа в течение 12 месяцев» / «… без ограничения срока» */
+export function referralTerms(percent: number | string, months: number): string {
+  const p = `${Number(percent).toLocaleString('ru-RU')}%`
+  if (!months) return `${p} с каждого его заказа без ограничения срока`
+  const m10 = months % 10, m100 = months % 100
+  const word = m10 === 1 && m100 !== 11 ? 'месяца' : 'месяцев'
+  return `${p} с каждого его заказа в течение ${months} ${word}`
+}
 export const pct = (n: number | string) => `${fmtNum(n)}%`
 
 export function LoyaltyCard({ profile, onToggleLevels, levelsOpen, onInfo }: {

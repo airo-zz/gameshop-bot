@@ -224,13 +224,13 @@ function LoyaltyRow({ level, onEdit, onDelete, onToggle, deleting, toggling }: L
 // ── ReferralSettingsBlock ─────────────────────────────────────────────────────
 
 function ReferralSettingsBlock() {
-  const [form, setForm] = useState({ bonus_amount: '', threshold_amount: '', new_user_discount_percent: '' })
+  const [form, setForm] = useState({ percent: '', period_months: '', new_user_discount_percent: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
   const fill = (d: ReferralSettings) => setForm({
-    bonus_amount: String(d.bonus_amount),
-    threshold_amount: String(d.threshold_amount),
+    percent: String(d.percent),
+    period_months: String(d.period_months),
     new_user_discount_percent: String(d.new_user_discount_percent),
   })
 
@@ -243,12 +243,12 @@ function ReferralSettingsBlock() {
 
   const handleSave = async () => {
     const data = {
-      bonus_amount: Number(form.bonus_amount),
-      threshold_amount: Number(form.threshold_amount),
+      percent: Number(form.percent),
+      period_months: Math.round(Number(form.period_months)),
       new_user_discount_percent: Number(form.new_user_discount_percent),
     }
-    if (Object.values(data).some(v => isNaN(v) || v < 0) || data.new_user_discount_percent > 90) {
-      toast.error('Проверьте значения: числа ≥ 0, скидка не больше 90%')
+    if (Object.values(data).some(v => isNaN(v) || v < 0) || data.new_user_discount_percent > 90 || data.percent > 50) {
+      toast.error('Проверьте значения: числа ≥ 0, процент не больше 50, скидка не больше 90%')
       return
     }
     setSaving(true)
@@ -263,8 +263,8 @@ function ReferralSettingsBlock() {
   }
 
   const fields: { key: keyof typeof form; label: string; placeholder: string }[] = [
-    { key: 'bonus_amount', label: 'Бонус пригласившему, ₽', placeholder: '150' },
-    { key: 'threshold_amount', label: 'Друг должен потратить, ₽', placeholder: '1000' },
+    { key: 'percent', label: 'Пригласившему с каждого заказа друга, %', placeholder: '3' },
+    { key: 'period_months', label: 'Срок начислений с регистрации друга, мес. (0 — бессрочно)', placeholder: '12' },
     { key: 'new_user_discount_percent', label: 'Скидка другу на первый заказ, %', placeholder: '5' },
   ]
 

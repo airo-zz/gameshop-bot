@@ -253,8 +253,8 @@ class ShopSettings(Base):
     Используется для конфигурируемых параметров вроде суммы реферального бонуса.
 
     Ключи (примеры):
-      referral_bonus_amount              — ₽ пригласившему, когда друг потратил порог
-      referral_threshold_amount          — порог трат друга в ₽ (по выполненным заказам)
+      referral_percent                   — % пригласившему с каждого выполненного заказа друга
+      referral_period_months             — сколько месяцев с регистрации друга платим (0 — бессрочно)
       referral_new_user_discount_percent — скидка другу на первый заказ, %
     """
     __tablename__ = "shop_settings"
@@ -282,6 +282,10 @@ class ReferralReward(Base, UUIDMixin):
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
     reward_amount: Mapped[Decimal] = mapped_column(Numeric(12, 2), nullable=False)
+    # Заказ друга, с которого начислено (NULL — старый разовый бонус до миграции 034)
+    order_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("orders.id", ondelete="SET NULL"), nullable=True
+    )
     is_paid: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(

@@ -24,7 +24,7 @@ from api.services.rapira_service import (
 )
 from api.services.fragment_config import get_admin_view, update_config
 from api.services.loyalty_service import (
-    REFERRAL_BONUS_KEY, REFERRAL_DISCOUNT_KEY, REFERRAL_THRESHOLD_KEY, LoyaltyService,
+    REFERRAL_DISCOUNT_KEY, REFERRAL_MONTHS_KEY, REFERRAL_PERCENT_KEY, LoyaltyService,
 )
 from api.utils.admin_log import log_admin_action
 from shared.models import LoyaltyLevel, ShopSettings
@@ -97,15 +97,15 @@ class LoyaltyLevelUpdateIn(BaseModel):
 
 
 class ReferralSettingsOut(BaseModel):
-    bonus_amount: float               # ₽ пригласившему
-    threshold_amount: float           # сколько должен потратить друг
+    percent: float                    # % пригласившему с каждого заказа друга
+    period_months: int                # сколько месяцев платим (0 — бессрочно)
     new_user_discount_percent: float  # скидка другу на первый заказ
     description: str
 
 
 class ReferralSettingsUpdateIn(BaseModel):
-    bonus_amount: float | None = Field(None, ge=0, le=100_000)
-    threshold_amount: float | None = Field(None, ge=0, le=10_000_000)
+    percent: float | None = Field(None, ge=0, le=50)
+    period_months: int | None = Field(None, ge=0, le=120)
     new_user_discount_percent: float | None = Field(None, ge=0, le=90)
 
 
@@ -323,9 +323,9 @@ async def delete_loyalty_level(
 
 _REFERRAL_FIELDS = {
     # поле API → ключ shop_settings, описание
-    "bonus_amount": (REFERRAL_BONUS_KEY, "₽ пригласившему, когда друг потратит порог"),
-    "threshold_amount": (
-        REFERRAL_THRESHOLD_KEY, "Сколько ₽ должен потратить приглашённый (выполненные заказы)",
+    "percent": (REFERRAL_PERCENT_KEY, "% пригласившему с каждого выполненного заказа друга"),
+    "period_months": (
+        REFERRAL_MONTHS_KEY, "Сколько месяцев с регистрации друга начисляется процент (0 — бессрочно)",
     ),
     "new_user_discount_percent": (
         REFERRAL_DISCOUNT_KEY, "Скидка в % на первый заказ приглашённому",
@@ -336,12 +336,12 @@ _REFERRAL_FIELDS = {
 async def _referral_out(db: DbSession) -> ReferralSettingsOut:
     cfg = await LoyaltyService(db).get_referral_settings()
     return ReferralSettingsOut(
-        bonus_amount=float(cfg[REFERRAL_BONUS_KEY]),
-        threshold_amount=float(cfg[REFERRAL_THRESHOLD_KEY]),
+        percent=float(cfg[REFERRAL_PERCENT_KEY]),
+        period_months=int(cfg[REFERRAL_MONTHS_KEY]),
         new_user_discount_percent=float(cfg[REFERRAL_DISCOUNT_KEY]),
         description=(
-            "Пригласивший получает бонус на баланс один раз, когда друг потратит порог. "
-            "Друг получает скидку на первый заказ."
+            "Пригласивший получает процент с каждого выполненного заказа друга на баланс "
+            "в течение заданного срока с регистрации друга. Друг получает скидку на первый заказ."
         ),
     )
 

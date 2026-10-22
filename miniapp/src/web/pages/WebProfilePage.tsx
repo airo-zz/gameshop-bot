@@ -16,7 +16,7 @@ import { BOT_USERNAME } from '@/config/appTarget'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { money } from '@/web/format'
 import Avatar from '@/web/components/Avatar'
-import { LevelsTable, LoyaltyCard, LoyaltyInfoSheet, rub } from '@/components/loyalty/Loyalty'
+import { LevelsTable, LoyaltyCard, LoyaltyInfoSheet, rub, referralTerms } from '@/components/loyalty/Loyalty'
 import { Reveal } from '@/web/components/Motion'
 import SignInMethods from '@/web/components/SignInMethods'
 import { openChat } from '@/web/chat/chatStore'
@@ -34,7 +34,6 @@ export default function WebProfilePage() {
   if (!user) return null
 
   const refLink = `https://t.me/${BOT_USERNAME}?start=REF_${user.telegram_id}`
-  const threshold = referrals?.threshold_amount ?? 0
 
   async function copyRef() {
     try {
@@ -134,8 +133,8 @@ export default function WebProfilePage() {
               <div className="max-w-xl">
                 <p className="text-lg font-semibold text-[var(--text)]">Приглашайте друзей</p>
                 <p className="text-sm text-[var(--text-2)] mt-1.5 leading-relaxed">
-                  Друг получит скидку {user.referral_new_user_discount_percent}% на первый заказ, а вы — {rub(user.referral_bonus_amount)} на
-                  баланс, когда он потратит {rub(user.referral_threshold_amount)}.
+                  Друг получит скидку {user.referral_new_user_discount_percent}% на первый заказ, а вы —{" "}
+                  {referralTerms(user.referral_percent, user.referral_period_months)} на баланс.
                 </p>
               </div>
               {referrals && (
@@ -166,19 +165,15 @@ export default function WebProfilePage() {
                       <p className="text-sm text-[var(--text)] truncate">
                         {r.first_name}{r.username && <span className="text-[var(--hint)]"> @{r.username}</span>}
                       </p>
-                      {r.rewarded ? (
-                        <span className="flex items-center gap-1 text-xs text-[#34d399] shrink-0">
-                          <CheckCircle size={14} weight="fill" /> +{rub(referrals.bonus_amount)}
+                      {r.earned > 0 ? (
+                        <span className="flex items-center gap-1 text-xs num text-[#34d399] shrink-0">
+                          <CheckCircle size={14} weight="fill" /> +{rub(r.earned)}
                         </span>
                       ) : (
-                        <span className="text-xs num text-[var(--hint)] shrink-0">{rub(r.spent)} из {rub(threshold)}</span>
+                        <span className="text-xs text-[var(--hint)] shrink-0">пока без заказов</span>
                       )}
                     </div>
-                    {!r.rewarded && (
-                      <div className="mt-2 h-1 rounded-full bg-[var(--bg3)] overflow-hidden">
-                        <div className="h-full bg-[var(--accent)]" style={{ width: `${threshold ? Math.min(100, (r.spent / threshold) * 100) : 100}%` }} />
-                      </div>
-                    )}
+                    <p className="text-xs num text-[var(--hint)] mt-1">Заказов: {r.orders_count} · потратил {rub(r.spent)}</p>
                   </div>
                 ))}
               </div>

@@ -28,7 +28,6 @@ export default function ReferralsPage() {
   })
 
   const refLink = profile ? `https://t.me/${BOT_USERNAME}?start=REF_${profile.telegram_id}` : ''
-  const threshold = stats?.threshold_amount ?? 0
 
   const handleCopyLink = () => {
     if (!refLink) return
@@ -63,9 +62,12 @@ export default function ReferralsPage() {
         <div className="rounded-2xl p-4" style={{ background: 'var(--bg2)' }}>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p className="text-xs" style={{ color: 'var(--hint)' }}>Вам за друга</p>
+              <p className="text-xs" style={{ color: 'var(--hint)' }}>Вам с заказов друга</p>
               <p className="font-display num" style={{ fontSize: 20, color: 'var(--text)', marginTop: 4 }}>
-                {rub(stats.bonus_amount)}
+                {Number(stats.percent).toLocaleString('ru-RU')}%
+              </p>
+              <p className="text-[11px]" style={{ color: 'var(--hint)', marginTop: 2 }}>
+                {stats.period_months ? `${stats.period_months} мес. с регистрации друга` : 'без ограничения срока'}
               </p>
             </div>
             <div>
@@ -76,8 +78,8 @@ export default function ReferralsPage() {
             </div>
           </div>
           <p className="text-sm mt-3" style={{ color: 'var(--hint)', lineHeight: 1.45 }}>
-            Бонус придёт на баланс, когда друг потратит {rub(threshold)} — так мы отсекаем накрутку.
-            Начисляется один раз за каждого друга.
+            С каждого выполненного заказа друга вам на баланс приходит {Number(stats.percent).toLocaleString('ru-RU')}% от суммы
+            {stats.period_months ? ` — в течение ${stats.period_months} мес. после его регистрации` : ' — без ограничения срока'}.
           </p>
         </div>
       )}
@@ -139,7 +141,6 @@ export default function ReferralsPage() {
         ) : (
           <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg2)' }}>
             {stats.referrals.map((ref, i) => {
-              const progress = threshold > 0 ? Math.min(100, (ref.spent / threshold) * 100) : 100
               return (
                 <div
                   key={ref.telegram_id}
@@ -151,21 +152,19 @@ export default function ReferralsPage() {
                       {ref.first_name}
                       {ref.username && <span style={{ color: 'var(--hint)', fontWeight: 400 }}> @{ref.username}</span>}
                     </p>
-                    {ref.rewarded ? (
-                      <span className="flex items-center gap-1 text-xs flex-shrink-0" style={{ color: '#34d399' }}>
-                        <CheckCircle size={14} weight="fill" /> +{rub(stats.bonus_amount)}
+                    {ref.earned > 0 ? (
+                      <span className="flex items-center gap-1 text-xs num flex-shrink-0" style={{ color: '#34d399' }}>
+                        <CheckCircle size={14} weight="fill" /> +{rub(ref.earned)}
                       </span>
                     ) : (
-                      <span className="text-xs num flex-shrink-0" style={{ color: 'var(--hint)' }}>
-                        {rub(ref.spent)} из {rub(threshold)}
+                      <span className="text-xs flex-shrink-0" style={{ color: 'var(--hint)' }}>
+                        пока без заказов
                       </span>
                     )}
                   </div>
-                  {!ref.rewarded && (
-                    <div className="mt-2" style={{ height: 4, borderRadius: 2, background: 'var(--bg3)', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${progress}%`, background: 'var(--accent)' }} />
-                    </div>
-                  )}
+                  <p className="text-xs num mt-1" style={{ color: 'var(--hint)' }}>
+                    Заказов: {ref.orders_count} · потратил {rub(ref.spent)}
+                  </p>
                 </div>
               )
             })}

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { LevelsTable, LoyaltyCard, LoyaltyInfoSheet, pct, rub } from '@/components/loyalty/Loyalty'
+import { LevelsTable, LoyaltyCard, LoyaltyInfoSheet, pct, rub, referralTerms } from '@/components/loyalty/Loyalty'
 import { Heart, Package, Share2, MessageCircle, Wallet, ShoppingBag, Users, Gift, Settings, FileText, ChevronDown, Copy } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { profileApi, ordersApi, catalogApi, supportApi } from '@/api'
@@ -275,7 +275,7 @@ export default function ProfilePage() {
         </div>
         <p className="text-sm mb-3" style={{ color: 'var(--hint)', lineHeight: 1.45 }}>
           Друг получит скидку {pct(profile.referral_new_user_discount_percent)} на первый заказ,
-          а вы — {rub(profile.referral_bonus_amount)} на баланс, когда он потратит {rub(profile.referral_threshold_amount)}.
+          а вы — {referralTerms(profile.referral_percent, profile.referral_period_months)} на баланс.
         </p>
         <div className="flex items-center gap-2">
           <button

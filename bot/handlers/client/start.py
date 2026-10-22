@@ -128,7 +128,7 @@ async def _apply_referral(user: User, start_param: str, db: AsyncSession) -> flo
     user.referred_by_id = referrer.id
     await db.commit()
     # Денег новичку не начисляем: ему — скидка на первый заказ (DiscountService),
-    # пригласившему — бонус, когда друг потратит порог (LoyaltyService).
+    # пригласившему — процент с каждого выполненного заказа друга (LoyaltyService).
     row = (await db.execute(
         select(ShopSettings).where(ShopSettings.key == "referral_new_user_discount_percent")
     )).scalar_one_or_none()

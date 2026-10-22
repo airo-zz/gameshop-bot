@@ -107,6 +107,13 @@ def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex
         f'<meta property="og:url" content="{_e(url)}" />',
         '<meta name="robots" content="noindex, follow" />' if noindex else
         '<meta name="robots" content="index, follow, max-image-preview:large" />',
+        # Текст для роботов (#seo) людям не показываем: при работающем JS он
+        # скрыт до загрузки сайта, а React заменит его тем же содержимым в
+        # оформлении. Если сайт не загрузился за 8 с — текст показываем.
+        '<style>.js #seo{display:none}</style>',
+        '<script>document.documentElement.classList.add("js");'
+        'setTimeout(function(){if(!window.__appMounted)document.documentElement.classList.remove("js")},8000)'
+        '</script>',
     ]
     if path == "/":
         if settings.YANDEX_VERIFICATION:

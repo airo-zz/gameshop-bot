@@ -160,13 +160,10 @@ async def merge_users(
         await db.execute(text(
             f"DELETE FROM {table} WHERE user_id = :s AND product_id IN "
             f"(SELECT product_id FROM {table} WHERE user_id = :t)"), p)
-    # Рефералы: сам себе не реферал; одна награда на приглашённого
+    # Рефералы: сам себе не реферал (награды друг за друга внутри одного человека — убираем)
     await db.execute(text(
         "DELETE FROM referral_rewards WHERE (referrer_id = :s AND referred_id = :t) "
         "OR (referrer_id = :t AND referred_id = :s)"), p)
-    await db.execute(text(
-        "DELETE FROM referral_rewards WHERE referred_id = :s "
-        "AND EXISTS (SELECT 1 FROM referral_rewards WHERE referred_id = :t)"), p)
     await db.execute(text(
         "UPDATE users SET referred_by_id = NULL WHERE (id = :t AND referred_by_id = :s) "
         "OR (id = :s AND referred_by_id = :t)"), p)

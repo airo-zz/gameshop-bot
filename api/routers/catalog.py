@@ -175,7 +175,7 @@ async def get_loyalty_program(db: DbSession):
     """Публичное описание программы лояльности (страница /cashback на сайте):
     уровни с порогами трат за месяц, кэшбэком и лимитом + условия рефералки."""
     from api.services.loyalty_service import (
-        REFERRAL_BONUS_KEY, REFERRAL_DISCOUNT_KEY, REFERRAL_THRESHOLD_KEY, LoyaltyService,
+        REFERRAL_DISCOUNT_KEY, REFERRAL_MONTHS_KEY, REFERRAL_PERCENT_KEY, LoyaltyService,
     )
 
     svc = LoyaltyService(db)
@@ -195,8 +195,8 @@ async def get_loyalty_program(db: DbSession):
             for lv in levels
         ],
         "referral": {
-            "bonus_amount": float(ref[REFERRAL_BONUS_KEY]),
-            "threshold_amount": float(ref[REFERRAL_THRESHOLD_KEY]),
+            "percent": float(ref[REFERRAL_PERCENT_KEY]),
+            "period_months": int(ref[REFERRAL_MONTHS_KEY]),
             "new_user_discount_percent": float(ref[REFERRAL_DISCOUNT_KEY]),
         },
     }

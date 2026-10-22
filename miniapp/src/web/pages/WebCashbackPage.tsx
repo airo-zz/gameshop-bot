@@ -9,7 +9,7 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { catalogApi } from '@/api'
 import { useWebAuth } from '@/web/auth/useWebAuth'
-import { LevelsTable, LoyaltyCard, LoyaltyInfoSheet, rub } from '@/components/loyalty/Loyalty'
+import { LevelsTable, LoyaltyCard, LoyaltyInfoSheet, rub, referralTerms } from '@/components/loyalty/Loyalty'
 import { Reveal, Stagger, StaggerItem } from '@/web/components/Motion'
 import { usePageMeta } from '@/web/seo'
 
@@ -57,8 +57,8 @@ export default function WebCashbackPage() {
               <div className="rounded-2xl bg-[var(--bg2)] p-6">
                 <p className="text-base font-semibold text-[var(--text)]">Приглашайте друзей</p>
                 <p className="mt-1.5 text-sm text-[var(--text-2)] leading-relaxed">
-                  Друг получит скидку {ref.new_user_discount_percent}% на первый заказ, а вы — {rub(ref.bonus_amount)} на
-                  баланс, когда он потратит {rub(ref.threshold_amount)}.
+                  Друг получит скидку {ref.new_user_discount_percent}% на первый заказ, а вы —{" "}
+                  {referralTerms(ref.percent, ref.period_months)} на баланс.
                 </p>
                 <Link
                   to={user ? '/profile' : '/login'}

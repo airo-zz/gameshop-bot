@@ -387,8 +387,8 @@ export interface LoyaltyLevel {
 }
 
 export interface ReferralSettings {
-  bonus_amount: number
-  threshold_amount: number
+  percent: number
+  period_months: number
   new_user_discount_percent: number
 }
 

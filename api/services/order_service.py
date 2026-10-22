@@ -351,12 +351,12 @@ class OrderService:
             # _update_user_stats уже вызван при paid — повторно не вызываем
             loyalty = LoyaltyService(self.db)
             await loyalty.apply_cashback(order)
-            rewarded = await loyalty.maybe_reward_referrer(order.user_id)
+            rewarded = await loyalty.reward_referrer_for_order(order)
             if rewarded:
-                referrer, bonus = rewarded
+                referrer, bonus, percent = rewarded
                 from bot.utils.texts import texts as _texts
                 await self._send_telegram(
-                    referrer.telegram_id, _texts.referral_bonus_received(float(bonus))
+                    referrer.telegram_id, _texts.referral_bonus_received(float(bonus), float(percent))
                 )
             delivery_text = ""
             items_result = await self.db.execute(

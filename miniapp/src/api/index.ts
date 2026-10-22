@@ -207,8 +207,9 @@ export interface Profile {
   loyalty_next_level_name: string | null
   loyalty_next_level_min_spent: number | string | null
   loyalty_period_ends_at: string | null
-  referral_bonus_amount: number | string
-  referral_threshold_amount: number | string
+  /** % пригласившему с каждого заказа друга и срок в месяцах (0 — бессрочно) */
+  referral_percent: number | string
+  referral_period_months: number
   referral_new_user_discount_percent: number | string
 }
 
@@ -216,7 +217,7 @@ export interface Profile {
 
 export interface LoyaltyProgram {
   levels: { name: string; min_spent: number; cashback_percent: number; monthly_cashback_cap: number | null; color_hex: string }[]
-  referral: { bonus_amount: number; threshold_amount: number; new_user_discount_percent: number }
+  referral: { percent: number; period_months: number; new_user_discount_percent: number }
 }
 
 export const catalogApi = {
@@ -340,15 +341,15 @@ export interface ReferralUser {
   username: string | null
   orders_count: number
   joined_at: string
-  spent: number       // потрачено (выполненные заказы), не больше порога
-  rewarded: boolean   // бонус за этого друга уже начислен
+  spent: number       // потрачено другом (выполненные заказы)
+  earned: number      // начислено вам с его заказов
 }
 
 export interface ReferralStats {
   referrals_count: number
   referrals: ReferralUser[]
-  bonus_amount: number
-  threshold_amount: number
+  percent: number
+  period_months: number
   new_user_discount_percent: number
   earned_total: number
 }

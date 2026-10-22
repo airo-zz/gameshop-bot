@@ -52,6 +52,8 @@ if (!isWeb) {
 const loadRoot = isWeb ? import('@/web/WebApp') : import('./App')
 
 loadRoot.then(({ default: RootApp }) => {
+  // Сигнал для SEO-страниц: сайт загрузился, текст для роботов можно не показывать
+  ;(window as Window & { __appMounted?: boolean }).__appMounted = true
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>

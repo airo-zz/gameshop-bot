@@ -12,8 +12,9 @@ api/services/loyalty_service.py
     monthly_cashback_cap уровня за календарный месяц.
 
 Рефералка:
-  • пригласившему — referral_bonus_amount ₽ один раз, когда сумма выполненных
-    заказов приглашённого достигла referral_threshold_amount;
+  • пригласившему — referral_percent % с каждого выполненного заказа
+    приглашённого в течение referral_period_months месяцев с его регистрации
+    (0 — бессрочно); один раз за заказ (уникальный order_id в referral_rewards);
   • приглашённому — скидка referral_new_user_discount_percent % на первый заказ
     (применяется в DiscountService).
 ─────────────────────────────────────────────────────────────────────────────
@@ -45,12 +46,12 @@ SPENT_STATUSES = (
     OrderStatus.completed,
 )
 
-REFERRAL_BONUS_KEY = "referral_bonus_amount"
-REFERRAL_THRESHOLD_KEY = "referral_threshold_amount"
+REFERRAL_PERCENT_KEY = "referral_percent"
+REFERRAL_MONTHS_KEY = "referral_period_months"
 REFERRAL_DISCOUNT_KEY = "referral_new_user_discount_percent"
 REFERRAL_DEFAULTS = {
-    REFERRAL_BONUS_KEY: Decimal("150"),
-    REFERRAL_THRESHOLD_KEY: Decimal("1000"),
+    REFERRAL_PERCENT_KEY: Decimal("3"),
+    REFERRAL_MONTHS_KEY: Decimal("12"),
     REFERRAL_DISCOUNT_KEY: Decimal("5"),
 }
 
@@ -222,30 +223,30 @@ class LoyaltyService:
                 logger.warning("Некорректное значение shop_settings %s=%r", row.key, row.value)
         return values
 
-    async def maybe_reward_referrer(self, referred_user_id: uuid.UUID) -> tuple[User, Decimal] | None:
-        """Платит пригласившему, если приглашённый набрал порог выполненных заказов.
+    async def reward_referrer_for_order(self, order: Order) -> tuple[User, Decimal, Decimal] | None:
+        """Платит пригласившему процент с выполненного заказа друга.
 
-        Возвращает (пригласивший, сумма) при начислении, иначе None.
-        Защита от двойной выплаты — уникальный referred_id в referral_rewards.
+        Возвращает (пригласивший, сумма, процент) при начислении, иначе None.
+        Один раз за заказ — уникальный order_id в referral_rewards (повторное
+        выполнение после реверса completed → processing второй раз не платит).
         """
         referred = (await self.db.execute(
-            select(User).where(User.id == referred_user_id)
+            select(User).where(User.id == order.user_id)
         )).scalar_one_or_none()
-        if not referred or not referred.referred_by_id:
+        if not referred or not referred.referred_by_id or referred.referred_by_id == referred.id:
             return None
 
         cfg = await self.get_referral_settings()
-        bonus = cfg[REFERRAL_BONUS_KEY]
-        if bonus <= 0:
+        percent = cfg[REFERRAL_PERCENT_KEY]
+        if percent <= 0:
             return None
+        months = int(cfg[REFERRAL_MONTHS_KEY])
+        if months > 0 and referred.created_at:
+            if datetime.now(timezone.utc) > referred.created_at + timedelta(days=30 * months):
+                return None
 
-        completed_sum = Decimal((await self.db.execute(
-            select(func.coalesce(func.sum(Order.total_amount), 0)).where(
-                Order.user_id == referred.id,
-                Order.status == OrderStatus.completed,
-            )
-        )).scalar_one())
-        if completed_sum < cfg[REFERRAL_THRESHOLD_KEY]:
+        amount = (Decimal(order.total_amount) * percent / 100).quantize(CENT, rounding=ROUND_DOWN)
+        if amount <= 0:
             return None
 
         inserted = await self.db.execute(
@@ -254,31 +255,34 @@ class LoyaltyService:
                 id=uuid.uuid4(),
                 referrer_id=referred.referred_by_id,
                 referred_id=referred.id,
-                reward_amount=bonus,
+                order_id=order.id,
+                reward_amount=amount,
                 is_paid=True,
                 paid_at=datetime.now(timezone.utc),
             )
-            .on_conflict_do_nothing(index_elements=["referred_id"])
+            .on_conflict_do_nothing(
+                index_elements=["order_id"], index_where=ReferralReward.order_id.isnot(None),
+            )
             .returning(ReferralReward.id)
         )
         if inserted.scalar_one_or_none() is None:
-            return None  # уже выплачено
+            return None  # за этот заказ уже начислено
 
         referrer = (await self.db.execute(
             select(User).where(User.id == referred.referred_by_id).with_for_update()
         )).scalar_one()
         balance_before = referrer.balance
-        referrer.balance += bonus
+        referrer.balance += amount
         self.db.add(BalanceTransaction(
             user_id=referrer.id,
-            amount=bonus,
+            amount=amount,
             balance_before=balance_before,
             balance_after=referrer.balance,
             type="referral_bonus",
-            description=f"Бонус за приглашённого друга ({referred.display_name})",
-            reference_id=referred.id,
+            description=f"{percent:g}% с заказа друга {order.order_number} ({referred.display_name})",
+            reference_id=order.id,
         ))
-        return referrer, bonus
+        return referrer, amount, percent
 
     async def referral_first_order_discount(self, user: User) -> Decimal:
         """% скидки на первый заказ для приглашённого (0 — не положена)."""

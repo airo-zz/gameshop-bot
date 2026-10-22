@@ -13,7 +13,7 @@ from api.rate_limit import limiter
 from api.routers.payments import TelegramWidgetAuthIn, verify_widget_body
 from api.schemas.cart import ProfileOut, TokenResponse
 from api.services.loyalty_service import (
-    REFERRAL_BONUS_KEY, REFERRAL_DISCOUNT_KEY, REFERRAL_THRESHOLD_KEY, LoyaltyService,
+    REFERRAL_DISCOUNT_KEY, REFERRAL_MONTHS_KEY, REFERRAL_PERCENT_KEY, LoyaltyService,
 )
 from shared.models import Order, OrderStatus, ReferralReward, User
 from api.routers.avatar import avatar_url
@@ -78,17 +78,16 @@ async def get_profile(db: DbSession, user: CurrentUser):
             }
             for lv in st.levels
         ],
-        referral_bonus_amount=ref_cfg[REFERRAL_BONUS_KEY],
-        referral_threshold_amount=ref_cfg[REFERRAL_THRESHOLD_KEY],
+        referral_percent=ref_cfg[REFERRAL_PERCENT_KEY],
+        referral_period_months=int(ref_cfg[REFERRAL_MONTHS_KEY]),
         referral_new_user_discount_percent=ref_cfg[REFERRAL_DISCOUNT_KEY],
     )
 
 
 @router.get("/referrals")
 async def get_referral_stats(db: DbSession, user: CurrentUser):
-    """Статистика реферальной программы: прогресс каждого друга к порогу."""
+    """Рефералка: друзья, сколько они потратили и сколько вы с них получили."""
     cfg = await LoyaltyService(db).get_referral_settings()
-    threshold = cfg[REFERRAL_THRESHOLD_KEY]
 
     completed_sum = (
         select(func.coalesce(func.sum(Order.total_amount), 0))
@@ -96,20 +95,28 @@ async def get_referral_stats(db: DbSession, user: CurrentUser):
         .correlate(User)
         .scalar_subquery()
     )
+    earned_from = (
+        select(func.coalesce(func.sum(ReferralReward.reward_amount), 0))
+        .where(ReferralReward.referred_id == User.id, ReferralReward.referrer_id == user.id)
+        .correlate(User)
+        .scalar_subquery()
+    )
     rows = (await db.execute(
-        select(User, completed_sum, ReferralReward.reward_amount)
-        .outerjoin(ReferralReward, ReferralReward.referred_id == User.id)
+        select(User, completed_sum, earned_from)
         .where(User.referred_by_id == user.id)
         .order_by(User.created_at.desc())
     )).all()
 
-    earned = sum((r[2] or Decimal("0")) for r in rows)
+    earned_total = (await db.execute(
+        select(func.coalesce(func.sum(ReferralReward.reward_amount), 0))
+        .where(ReferralReward.referrer_id == user.id)
+    )).scalar_one()
     return {
         "referrals_count": len(rows),
-        "bonus_amount": float(cfg[REFERRAL_BONUS_KEY]),
-        "threshold_amount": float(threshold),
+        "percent": float(cfg[REFERRAL_PERCENT_KEY]),
+        "period_months": int(cfg[REFERRAL_MONTHS_KEY]),
         "new_user_discount_percent": float(cfg[REFERRAL_DISCOUNT_KEY]),
-        "earned_total": float(earned),
+        "earned_total": float(earned_total),
         "referrals": [
             {
                 "telegram_id": r.telegram_id,
@@ -117,10 +124,10 @@ async def get_referral_stats(db: DbSession, user: CurrentUser):
                 "username": r.username,
                 "orders_count": r.orders_count,
                 "joined_at": r.created_at.isoformat(),
-                "spent": float(min(Decimal(spent), threshold)),
-                "rewarded": reward is not None,
+                "spent": float(spent),
+                "earned": float(earned),
             }
-            for r, spent, reward in rows
+            for r, spent, earned in rows
         ],
     }
 
