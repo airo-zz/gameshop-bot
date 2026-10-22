@@ -25,11 +25,11 @@ class LoyaltyLevel(Base, UUIDMixin):
     Уровни программы лояльности.
     Настраиваются через admin-панель без изменения кода.
 
-    Пример конфигурации по умолчанию:
-      Bronze  → от 0 ₽         → 0% скидка, 0% кэшбек
-      Silver  → от 3 000 ₽     → 3% скидка, 1% кэшбек
-      Gold    → от 10 000 ₽    → 7% скидка, 2% кэшбек
-      VIP     → от 30 000 ₽    → 12% скидка, 3% кэшбек
+    Модель как у Bybit (см. api/services/loyalty_service.py):
+      • min_spent — порог трат за календарный месяц (МСК);
+      • уровень = max(уровень по тратам прошлого месяца, по тратам текущего);
+      • выгода только кэшбэком на баланс, с потолком monthly_cashback_cap в месяц.
+    discount_percent / min_orders оставлены в схеме, но не используются.
     """
     __tablename__ = "loyalty_levels"
 
@@ -43,6 +43,10 @@ class LoyaltyLevel(Base, UUIDMixin):
     )
     cashback_percent: Mapped[Decimal] = mapped_column(
         Numeric(5, 2), nullable=False, default=Decimal("0")
+    )
+    # Потолок кэшбэка за календарный месяц (МСК). NULL — без потолка.
+    monthly_cashback_cap: Mapped[Decimal | None] = mapped_column(
+        Numeric(12, 2), nullable=True
     )
     priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     color_hex: Mapped[str] = mapped_column(String(7), nullable=False, default="#CD7F32")
@@ -227,7 +231,9 @@ class ShopSettings(Base):
     Используется для конфигурируемых параметров вроде суммы реферального бонуса.
 
     Ключи (примеры):
-      referral_bonus_amount — сумма бонуса в ₽ за первую оплату реферала
+      referral_bonus_amount              — ₽ пригласившему, когда друг потратил порог
+      referral_threshold_amount          — порог трат друга в ₽ (по выполненным заказам)
+      referral_new_user_discount_percent — скидка другу на первый заказ, %
     """
     __tablename__ = "shop_settings"
 

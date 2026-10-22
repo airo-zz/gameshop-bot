@@ -157,35 +157,26 @@ def recalculate_all_loyalty():
 
 async def _recalculate_all_async():
     from sqlalchemy import select
+    from api.services.loyalty_service import LoyaltyService
     from shared.database.session import get_worker_db_session
-    from shared.models import LoyaltyLevel, User
+    from shared.models import User
 
+    # Уровень считается по тратам за месяц (модель Bybit) — экраны считают его
+    # на лету, здесь только освежаем кэш users.loyalty_level_id (админка, аналитика),
+    # в т.ч. понижение после смены месяца.
     async with get_worker_db_session() as db:
-        # Получаем все уровни отсортированные по убыванию min_spent
-        levels_result = await db.execute(
-            select(LoyaltyLevel)
-            .where(LoyaltyLevel.is_active == True)
-            .order_by(LoyaltyLevel.min_spent.desc())
-        )
-        levels = levels_result.scalars().all()
-
-        # Обрабатываем пользователей батчами по 100
+        svc = LoyaltyService(db)
         offset = 0
         while True:
             users_result = await db.execute(
-                select(User).where(User.is_blocked == False).offset(offset).limit(100)
+                select(User).where(User.is_blocked == False)  # noqa: E712
+                .order_by(User.id).offset(offset).limit(100)
             )
             users = users_result.scalars().all()
             if not users:
                 break
-
             for user in users:
-                for level in levels:
-                    if user.total_spent >= level.min_spent:
-                        if user.loyalty_level_id != level.id:
-                            user.loyalty_level_id = level.id
-                        break
-
+                await svc.get_status(user)
             offset += 100
 
 

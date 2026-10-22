@@ -23,13 +23,14 @@ from api.services.rapira_service import (
     get_usd_rub_rate,
 )
 from api.services.fragment_config import get_admin_view, update_config
+from api.services.loyalty_service import (
+    REFERRAL_BONUS_KEY, REFERRAL_DISCOUNT_KEY, REFERRAL_THRESHOLD_KEY, LoyaltyService,
+)
 from api.utils.admin_log import log_admin_action
 from shared.models import LoyaltyLevel, ShopSettings
 
 router = APIRouter()
 
-REFERRAL_BONUS_KEY = "referral_bonus_amount"
-REFERRAL_BONUS_DEFAULT = Decimal("100")
 
 
 # ── Pydantic schemas ──────────────────────────────────────────────────────────
@@ -44,6 +45,7 @@ class LoyaltyLevelOut(BaseModel):
     min_orders: int
     discount_percent: float
     cashback_percent: float
+    monthly_cashback_cap: float | None
     priority: int
     is_active: bool
     color_hex: str
@@ -57,6 +59,7 @@ class LoyaltyLevelCreateIn(BaseModel):
     min_orders: int = Field(0, ge=0)
     discount_percent: float = Field(0, ge=0, le=100)
     cashback_percent: float = Field(0, ge=0, le=100)
+    monthly_cashback_cap: float | None = Field(None, ge=0)  # None — без потолка
     priority: int = Field(0, ge=0)
     is_active: bool = True
     color_hex: str = Field("#CD7F32", max_length=7)
@@ -77,6 +80,8 @@ class LoyaltyLevelUpdateIn(BaseModel):
     min_orders: int | None = Field(None, ge=0)
     discount_percent: float | None = Field(None, ge=0, le=100)
     cashback_percent: float | None = Field(None, ge=0, le=100)
+    # Явный null снимает потолок; поле не передано — не меняем (см. model_fields_set)
+    monthly_cashback_cap: float | None = Field(None, ge=0)
     priority: int | None = Field(None, ge=0)
     is_active: bool | None = None
     color_hex: str | None = Field(None, max_length=7)
@@ -92,12 +97,16 @@ class LoyaltyLevelUpdateIn(BaseModel):
 
 
 class ReferralSettingsOut(BaseModel):
-    bonus_amount: float
+    bonus_amount: float               # ₽ пригласившему
+    threshold_amount: float           # сколько должен потратить друг
+    new_user_discount_percent: float  # скидка другу на первый заказ
     description: str
 
 
 class ReferralSettingsUpdateIn(BaseModel):
-    bonus_amount: float = Field(..., gt=0, le=100_000)
+    bonus_amount: float | None = Field(None, ge=0, le=100_000)
+    threshold_amount: float | None = Field(None, ge=0, le=10_000_000)
+    new_user_discount_percent: float | None = Field(None, ge=0, le=90)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -111,6 +120,9 @@ def _level_to_out(level: LoyaltyLevel) -> LoyaltyLevelOut:
         min_orders=level.min_orders,
         discount_percent=float(level.discount_percent),
         cashback_percent=float(level.cashback_percent),
+        monthly_cashback_cap=(
+            float(level.monthly_cashback_cap) if level.monthly_cashback_cap is not None else None
+        ),
         priority=level.priority,
         is_active=level.is_active,
         color_hex=level.color_hex,
@@ -165,6 +177,9 @@ async def create_loyalty_level(
         min_orders=body.min_orders,
         discount_percent=Decimal(str(body.discount_percent)),
         cashback_percent=Decimal(str(body.cashback_percent)),
+        monthly_cashback_cap=(
+            Decimal(str(body.monthly_cashback_cap)) if body.monthly_cashback_cap is not None else None
+        ),
         priority=body.priority,
         is_active=body.is_active,
         color_hex=body.color_hex,
@@ -234,6 +249,10 @@ async def update_loyalty_level(
         level.discount_percent = Decimal(str(body.discount_percent))
     if body.cashback_percent is not None:
         level.cashback_percent = Decimal(str(body.cashback_percent))
+    if "monthly_cashback_cap" in body.model_fields_set:
+        level.monthly_cashback_cap = (
+            Decimal(str(body.monthly_cashback_cap)) if body.monthly_cashback_cap is not None else None
+        )
     if body.priority is not None:
         level.priority = body.priority
     if body.is_active is not None:
@@ -299,7 +318,32 @@ async def delete_loyalty_level(
     await db.delete(level)
 
 
-# ── GET /settings/referral — текущий реферальный бонус ───────────────────────
+# ── GET /settings/referral — настройки реферальной программы ─────────────────
+
+
+_REFERRAL_FIELDS = {
+    # поле API → ключ shop_settings, описание
+    "bonus_amount": (REFERRAL_BONUS_KEY, "₽ пригласившему, когда друг потратит порог"),
+    "threshold_amount": (
+        REFERRAL_THRESHOLD_KEY, "Сколько ₽ должен потратить приглашённый (выполненные заказы)",
+    ),
+    "new_user_discount_percent": (
+        REFERRAL_DISCOUNT_KEY, "Скидка в % на первый заказ приглашённому",
+    ),
+}
+
+
+async def _referral_out(db: DbSession) -> ReferralSettingsOut:
+    cfg = await LoyaltyService(db).get_referral_settings()
+    return ReferralSettingsOut(
+        bonus_amount=float(cfg[REFERRAL_BONUS_KEY]),
+        threshold_amount=float(cfg[REFERRAL_THRESHOLD_KEY]),
+        new_user_discount_percent=float(cfg[REFERRAL_DISCOUNT_KEY]),
+        description=(
+            "Пригласивший получает бонус на баланс один раз, когда друг потратит порог. "
+            "Друг получает скидку на первый заказ."
+        ),
+    )
 
 
 @router.get(
@@ -311,20 +355,10 @@ async def get_referral_settings(
     db: DbSession,
     admin: CurrentAdmin,
 ) -> ReferralSettingsOut:
-    """Возвращает текущую сумму реферального бонуса."""
-    row = await _get_setting(db, REFERRAL_BONUS_KEY)
-    amount = Decimal(row.value) if row else REFERRAL_BONUS_DEFAULT
-    return ReferralSettingsOut(
-        bonus_amount=float(amount),
-        description=(
-            row.description
-            if row and row.description
-            else "Сумма в ₽, начисляемая рефереру при первой оплате реферала"
-        ),
-    )
+    return await _referral_out(db)
 
 
-# ── PATCH /settings/referral — обновить реферальный бонус ────────────────────
+# ── PATCH /settings/referral — обновить настройки рефералки ──────────────────
 
 
 @router.patch(
@@ -337,38 +371,30 @@ async def update_referral_settings(
     db: DbSession,
     admin: CurrentAdmin,
 ) -> ReferralSettingsOut:
-    """Обновляет сумму реферального бонуса."""
-    row = await _get_setting(db, REFERRAL_BONUS_KEY)
-    new_value = str(Decimal(str(body.bonus_amount)))
+    before = (await _referral_out(db)).model_dump(exclude={"description"})
 
-    before_amount = float(Decimal(row.value)) if row else float(REFERRAL_BONUS_DEFAULT)
-
-    if row:
-        row.value = new_value
-    else:
-        row = ShopSettings(
-            key=REFERRAL_BONUS_KEY,
-            value=new_value,
-            description="Сумма в ₽, начисляемая рефереру при первой оплате реферала",
-        )
-        db.add(row)
-
+    for field, (key, description) in _REFERRAL_FIELDS.items():
+        value = getattr(body, field)
+        if value is None:
+            continue
+        row = await _get_setting(db, key)
+        if row:
+            row.value = str(Decimal(str(value)))
+        else:
+            db.add(ShopSettings(key=key, value=str(Decimal(str(value))), description=description))
     await db.flush()
 
+    out = await _referral_out(db)
     await log_admin_action(
         db=db,
         admin=admin,
         action="shop_settings.update",
         entity_type="shop_settings",
         entity_id=None,
-        before_data={"referral_bonus_amount": before_amount},
-        after_data={"referral_bonus_amount": body.bonus_amount},
+        before_data=before,
+        after_data=out.model_dump(exclude={"description"}),
     )
-
-    return ReferralSettingsOut(
-        bonus_amount=float(Decimal(row.value)),
-        description=row.description or "",
-    )
+    return out
 
 
 # ── Ценообразование (USD-курс RAPIRA + наценка платёжки) ─────────────────────

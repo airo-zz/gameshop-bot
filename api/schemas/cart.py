@@ -170,3 +170,17 @@ class ProfileOut(BaseModel):
     loyalty_cashback_percent: Decimal = Decimal("0")
     loyalty_color_hex: str = "#CD7F32"
     loyalty_levels: list[dict] = []
+    # Модель Bybit: уровень по тратам за месяц (МСК)
+    loyalty_level_index: int = 0
+    loyalty_cashback_cap: Decimal | None = None      # потолок кэшбэка в месяц
+    loyalty_month_cashback: Decimal = Decimal("0")   # уже начислено в этом месяце
+    loyalty_month_spent: Decimal = Decimal("0")
+    loyalty_prev_month_spent: Decimal = Decimal("0")
+    loyalty_held_from_prev_month: bool = False
+    loyalty_next_level_name: str | None = None
+    loyalty_next_level_min_spent: Decimal | None = None
+    loyalty_period_ends_at: str | None = None        # ISO, когда пересчитается уровень
+    # Рефералка
+    referral_bonus_amount: Decimal = Decimal("0")
+    referral_threshold_amount: Decimal = Decimal("0")
+    referral_new_user_discount_percent: Decimal = Decimal("0")

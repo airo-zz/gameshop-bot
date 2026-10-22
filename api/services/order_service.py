@@ -30,6 +30,7 @@ from shared.models import (
 # ProductLot removed — flat catalog model since migration 017
 from shared.models.order import ALLOWED_STATUS_TRANSITIONS
 from api.services.discount_service import DiscountService, DiscountResult
+from api.services.loyalty_service import LoyaltyService
 
 
 def resolve_field_sources(products: list) -> dict[str, dict]:
@@ -348,7 +349,15 @@ class OrderService:
         elif new_status == OrderStatus.completed:
             order.completed_at = now
             # _update_user_stats уже вызван при paid — повторно не вызываем
-            await self._apply_cashback(order)
+            loyalty = LoyaltyService(self.db)
+            await loyalty.apply_cashback(order)
+            rewarded = await loyalty.maybe_reward_referrer(order.user_id)
+            if rewarded:
+                referrer, bonus = rewarded
+                from bot.utils.texts import texts as _texts
+                await self._send_telegram(
+                    referrer.telegram_id, _texts.referral_bonus_received(float(bonus))
+                )
             delivery_text = ""
             items_result = await self.db.execute(
                 select(OrderItem).where(OrderItem.order_id == order.id)
@@ -633,50 +642,9 @@ class OrderService:
         user.total_spent += order.total_amount
         user.orders_count += 1
 
-        # Пересчёт уровня лояльности
-        await self._recalculate_loyalty(user)
-
-    async def _recalculate_loyalty(self, user: User) -> None:
-        from shared.models import LoyaltyLevel
-        result = await self.db.execute(
-            select(LoyaltyLevel)
-            .where(
-                LoyaltyLevel.is_active == True,
-                LoyaltyLevel.min_spent <= user.total_spent,
-            )
-            .order_by(LoyaltyLevel.min_spent.desc())
-            .limit(1)
-        )
-        new_level = result.scalar_one_or_none()
-        if new_level and new_level.id != user.loyalty_level_id:
-            user.loyalty_level_id = new_level.id
-
-    async def _apply_cashback(self, order: Order) -> None:
-        """Начисляет кэшбек на баланс согласно уровню лояльности."""
-        result = await self.db.execute(
-            select(User)
-            .options(selectinload(User.loyalty_level))
-            .where(User.id == order.user_id)
-        )
-        user = result.scalar_one()
-        if not user.loyalty_level or user.loyalty_level.cashback_percent <= 0:
-            return
-
-        cashback = order.total_amount * user.loyalty_level.cashback_percent / 100
-        if cashback <= 0:
-            return
-
-        balance_before = user.balance
-        user.balance += cashback
-        self.db.add(BalanceTransaction(
-            user_id=user.id,
-            amount=cashback,
-            balance_before=balance_before,
-            balance_after=user.balance,
-            type="cashback",
-            description=f"Кэшбек {user.loyalty_level.cashback_percent}% за заказ {order.order_number}",
-            reference_id=order.id,
-        ))
+        # Обновляем кэш уровня (уровень считается по тратам за месяц)
+        await self.db.flush()
+        await LoyaltyService(self.db).get_status(user)
 
     async def _link_chat_and_notify(self, order: Order) -> None:
         """
@@ -788,6 +756,23 @@ class OrderService:
                 return
 
             telegram_id = order_with_user.user.telegram_id
+            url = f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage"
+            async with httpx.AsyncClient(timeout=10) as client:
+                await client.post(url, json={
+                    "chat_id": telegram_id,
+                    "text": text,
+                    "parse_mode": "HTML",
+                })
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning("Не удалось отправить уведомление: %s", exc)
+
+    async def _send_telegram(self, telegram_id: int, text: str) -> None:
+        """Сообщение произвольному пользователю (не владельцу заказа). Не критично."""
+        try:
+            import httpx
+            from shared.config import settings
+
             url = f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage"
             async with httpx.AsyncClient(timeout=10) as client:
                 await client.post(url, json={

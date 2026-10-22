@@ -42,6 +42,18 @@ class BotTexts:
             "greeting_new_user", first_name=escape(first_name), bonus=bonus_text
         )
 
+    def referral_bonus_received(self, amount: float) -> str:
+        return (
+            f"🎁 Ваш друг сделал покупки — вам начислено <b>{amount:.0f} ₽</b> на баланс.\n"
+            "Спасибо, что рекомендуете нас!"
+        )
+
+    def referral_discount_hint(self, percent: float) -> str:
+        return (
+            f"\n\n🎁 Вы пришли по приглашению — скидка <b>{percent:g}%</b> на первый заказ "
+            "применится автоматически."
+        )
+
     # ── Каталог ───────────────────────────────────────────────────────────────
     @property
     def catalog_header(self) -> str:

@@ -22,14 +22,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from shared.models import (
-    Cart, DiscountRule, DiscountType, LoyaltyLevel,
+    Cart, DiscountRule, DiscountType,
     PromoCode, PromoCodeUsage, User,
 )
 
 
 @dataclass
 class AppliedDiscount:
-    rule: DiscountRule | None  # None для прямых скидок по уровню лояльности
+    rule: DiscountRule | None  # None для скидки приглашённому на первый заказ
     amount: Decimal
     reason: str
 
@@ -63,21 +63,13 @@ class DiscountService:
         applicable_rules: list[DiscountRule] = []
         promo_code: PromoCode | None = None
 
-        # Пересчитываем актуальный уровень лояльности на лету —
-        # loyalty_level_id в БД может быть устаревшим (обновляется лениво).
-        actual_loyalty = await self._recalculate_loyalty_level(user)
-        actual_loyalty_id = actual_loyalty.id if actual_loyalty else user.loyalty_level_id
+        # Уровни лояльности скидок не дают — только кэшбэк (см. LoyaltyService).
 
-        # ── 1. Скидки по уровню лояльности ───────────────────────────────────
-        if actual_loyalty_id:
-            loyalty_rules = await self._get_loyalty_rules(actual_loyalty_id)
-            applicable_rules.extend(loyalty_rules)
-
-        # ── 2. Временные акции (time_based) ──────────────────────────────────
+        # ── 1. Временные акции (time_based) ──────────────────────────────────
         time_rules = await self._get_time_based_rules(subtotal)
         applicable_rules.extend(time_rules)
 
-        # ── 3. Промокод ───────────────────────────────────────────────────────
+        # ── 2. Промокод ───────────────────────────────────────────────────────
         if promo_code_str:
             promo_result = await self._validate_promo(promo_code_str, user.id, subtotal)
             if promo_result:
@@ -87,15 +79,15 @@ class DiscountService:
         # ── Применяем правила ─────────────────────────────────────────────────
         applied = self._apply_rules(applicable_rules, subtotal)
 
-        # ── 4. Прямая скидка уровня лояльности ───────────────────────────────
-        if actual_loyalty and actual_loyalty.is_active and actual_loyalty.discount_percent > 0:
-            loyalty_amount = subtotal * actual_loyalty.discount_percent / Decimal("100")
-            if loyalty_amount > 0:
-                applied.append(AppliedDiscount(
-                    rule=None,
-                    amount=loyalty_amount,
-                    reason=f"{actual_loyalty.name}: скидка {actual_loyalty.discount_percent}%",
-                ))
+        # ── 3. Скидка приглашённому на первый заказ ──────────────────────────
+        from api.services.loyalty_service import LoyaltyService
+        ref_percent = await LoyaltyService(self.db).referral_first_order_discount(user)
+        if ref_percent > 0:
+            applied.append(AppliedDiscount(
+                rule=None,
+                amount=(subtotal * ref_percent / Decimal("100")).quantize(Decimal("0.01")),
+                reason=f"Скидка {ref_percent:g}% на первый заказ по приглашению",
+            ))
 
         total = sum(a.amount for a in applied)
         # Скидка не может превышать сумму заказа
@@ -154,37 +146,6 @@ class DiscountService:
         if rule.discount_value_type == DiscountValueType.percent:
             return f"{rule.name}: скидка {rule.discount_value}%"
         return f"{rule.name}: скидка {rule.discount_value} ₽"
-
-    async def _recalculate_loyalty_level(self, user: User) -> LoyaltyLevel | None:
-        """Возвращает актуальный уровень лояльности по текущим total_spent/orders_count.
-        Не зависит от loyalty_level_id в БД — пересчитывает на лету."""
-        result = await self.db.execute(
-            select(LoyaltyLevel)
-            .where(
-                LoyaltyLevel.is_active == True,
-                LoyaltyLevel.min_spent <= user.total_spent,
-                LoyaltyLevel.min_orders <= user.orders_count,
-            )
-            .order_by(LoyaltyLevel.priority.desc())
-            .limit(1)
-        )
-        return result.scalar_one_or_none()
-
-    async def _get_loyalty_rules(self, loyalty_level_id: uuid.UUID) -> list[DiscountRule]:
-        result = await self.db.execute(
-            select(DiscountRule).where(
-                DiscountRule.type == DiscountType.loyalty,
-                DiscountRule.target_id == loyalty_level_id,
-                DiscountRule.is_active == True,
-            )
-        )
-        return result.scalars().all()
-
-    async def _get_loyalty_level(self, loyalty_level_id: uuid.UUID) -> LoyaltyLevel | None:
-        result = await self.db.execute(
-            select(LoyaltyLevel).where(LoyaltyLevel.id == loyalty_level_id)
-        )
-        return result.scalar_one_or_none()
 
     async def _get_time_based_rules(self, subtotal: Decimal) -> list[DiscountRule]:
         now = datetime.now(timezone.utc)

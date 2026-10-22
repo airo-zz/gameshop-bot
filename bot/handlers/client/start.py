@@ -22,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from shared.config import settings
-from shared.models import User
+from shared.models import ShopSettings, User
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, nav_edit, render_screen
 from shared.content import get_photo_url, get_text
@@ -100,7 +100,7 @@ async def _apply_referral(user: User, start_param: str, db: AsyncSession) -> flo
     """
     Применяет реферальный код при первом входе.
     Формат: REF_<telegram_id>
-    Возвращает бонус реферала (0 если не применён).
+    Возвращает % скидки на первый заказ (0 если реферал не применён).
     """
     if not start_param or not start_param.startswith("REF_"):
         return 0.0
@@ -127,7 +127,15 @@ async def _apply_referral(user: User, start_param: str, db: AsyncSession) -> flo
 
     user.referred_by_id = referrer.id
     await db.commit()
-    return 0.0  # Бонус будет начислен при первой покупке
+    # Денег новичку не начисляем: ему — скидка на первый заказ (DiscountService),
+    # пригласившему — бонус, когда друг потратит порог (LoyaltyService).
+    row = (await db.execute(
+        select(ShopSettings).where(ShopSettings.key == "referral_new_user_discount_percent")
+    )).scalar_one_or_none()
+    try:
+        return float(row.value) if row else 5.0
+    except ValueError:
+        return 0.0
 
 
 @router.message(CommandStart())
@@ -150,7 +158,7 @@ async def cmd_start(message: Message, user: User, db: AsyncSession, state: FSMCo
         await _show_product_from_start(message, start_param, db)
         return
 
-    referral_bonus = 0.0
+    referral_discount = 0.0
 
     # Определяем — новый пользователь или вернулся (зарегистрирован менее 5 минут назад)
     is_new = (
@@ -158,14 +166,10 @@ async def cmd_start(message: Message, user: User, db: AsyncSession, state: FSMCo
     ) < timedelta(minutes=5)
 
     if is_new and start_param:
-        referral_bonus = await _apply_referral(user, start_param, db)
+        referral_discount = await _apply_referral(user, start_param, db)
 
     if is_new:
-        bonus_text = (
-            f"\n\n🎁 Тебе начислен бонус <b>{referral_bonus:.0f} ₽</b> за использование реферальной ссылки!"
-            if referral_bonus > 0
-            else ""
-        )
+        bonus_text = texts.referral_discount_hint(referral_discount) if referral_discount > 0 else ""
         welcome_text = await get_text(
             db, "greeting_new_user", first_name=escape(user.first_name), bonus=bonus_text
         )
