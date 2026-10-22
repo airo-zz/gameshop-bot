@@ -165,11 +165,13 @@ export default function App() {
 
   // Приложение уже смонтировано под сплэшем — гасим его через 2 кадра после
   // первого рендера, чтобы тяжёлый mount главной не совпадал с анимацией.
-  // Минимум 600мс, чтобы сплэш не «мигал» при быстром ответе API.
+  // Не раньше конца анимации сплэша (~2 с от открытия).
   useEffect(() => {
     if (!isReady && !isError) return
-    const MIN_SPLASH_MS = 600
-    const delay = Math.max(0, MIN_SPLASH_MS - (Date.now() - initStartedAt.current))
+    // Сплэш «перо» (index.html) доигрывает до конца — ~2 с от старта страницы
+    const SPLASH_ANIM_MS = 2000
+    const splashStart = (window as Window & { __bootSplashStart?: number }).__bootSplashStart ?? initStartedAt.current
+    const delay = Math.max(0, SPLASH_ANIM_MS - (Date.now() - splashStart))
     let raf = 0
     const t = setTimeout(() => {
       raf = requestAnimationFrame(() => { raf = requestAnimationFrame(hideBootSplash) })

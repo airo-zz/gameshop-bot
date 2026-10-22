@@ -7,6 +7,7 @@
 import { useSearchParams, useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2, Clock, Loader2, XCircle, RotateCcw } from '@/components/ui/icons'
+import { PenLoader } from '@/components/brand/BrandMotion'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { ordersApi } from '@/api'
@@ -84,7 +85,7 @@ export default function WebOrderPage() {
       )}
       {justPaid && awaitingPayment && (
         <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid transparent' }}>
-          <Loader2 size={22} className="animate-spin" style={{ color: 'var(--link)' }} />
+          <PenLoader size={28} label="Проверяем оплату" />
           <div>
             <p className="text-sm font-semibold text-[var(--text)]">Проверяем оплату</p>
             <p className="text-xs text-[var(--hint)]">Обычно это занимает до минуты — статус обновится сам.</p>

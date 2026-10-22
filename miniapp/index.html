@@ -30,33 +30,102 @@
   </head>
   <body style="background:#0B0C0F">
     <!-- boot-splash -->
-    <!-- Сплэш рисуется браузером сразу, до загрузки JS. Только CSS, анимируются
-         лишь opacity/transform — не дёргается, пока main thread занят инициализацией.
-         Убирается из App.tsx (hideBootSplash). В web-сборке вырезается vite-плагином. -->
+    <!-- Сплэш «перо»: виден сразу, до загрузки JS приложения. Плитка проявляется,
+         «D» пишется одним мазком (маска + светящаяся точка), в конце — отблеск.
+         Движок — копия src/components/brand/penEngine.ts (без SVG-фильтров —
+         Telegram WebView). Убирается из App.tsx (hideBootSplash) не раньше
+         окончания анимации. В web-сборке вырезается vite-плагином. -->
     <style>
       #boot-splash {
         position: fixed; inset: 0; z-index: 9999;
-        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
         background: #0B0C0F;
         transition: opacity .3s ease;
         will-change: opacity;
       }
       #boot-splash.is-hidden { opacity: 0; pointer-events: none; }
-      #boot-splash .bs-inner {
-        display: flex; flex-direction: column; align-items: center; gap: 20px;
-        animation: bsIn .4s ease-out both;
-      }
-      #boot-splash .bs-icon { width: 72px; height: 72px; border-radius: 18px; display: block; }
-      #boot-splash .bs-word { height: 26px; width: auto; display: block; }
-      @keyframes bsIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-      @media (prefers-reduced-motion: reduce) { #boot-splash .bs-inner { animation: none; } }
+      #boot-splash .bs-icon { width: 96px; height: 96px; display: block; overflow: visible; }
+      #boot-splash .bs-word { height: 24px; width: auto; display: block; opacity: 0; transition: opacity .6s ease, transform .6s ease; transform: translateY(6px); }
+      #boot-splash .bs-word.is-in { opacity: 1; transform: none; }
     </style>
     <div id="boot-splash" aria-hidden="true">
-      <div class="bs-inner">
-        <img class="bs-icon" src="/src/assets/logo-icon.png" alt="" decoding="sync" fetchpriority="high" />
-        <img class="bs-word" src="/src/assets/logo-full.png" alt="" decoding="sync" fetchpriority="high" />
-      </div>
+      <svg class="bs-icon" viewBox="0 0 256 256">
+        <defs>
+          <mask id="bs-m" maskUnits="userSpaceOnUse" x="-60" y="-60" width="400" height="400">
+            <path class="pen-seg" d="M-10,46 H145.5 A78,84 0 0 1 145.5,214 H101 A30,30 0 0 1 71,184 V95" fill="none" stroke="#fff" stroke-width="62" stroke-linecap="butt" stroke-linejoin="round" style="stroke-dasharray:0 100000"/>
+            <path class="pen-bowl" data-before="155.5" d="M145.5,46 A78,84 0 0 1 145.5,214" fill="none" stroke="#fff" stroke-width="66" stroke-linecap="butt" style="stroke-dasharray:0 100000"/>
+            <path class="pen-wedge" data-o="101,184,115" d="" fill="#fff"/>
+          </mask>
+          <radialGradient id="bs-tip"><stop offset="0" stop-color="#fff"/><stop offset=".35" stop-color="#E4EEFF" stop-opacity=".9"/><stop offset="1" stop-color="#9DBBFF" stop-opacity="0"/></radialGradient>
+          <radialGradient id="bs-halo"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+          <linearGradient id="bs-sheen" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".42"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+          <clipPath id="bs-tileclip"><rect width="256" height="256" rx="58"/></clipPath>
+        </defs>
+        <rect class="bs-tile" width="256" height="256" rx="58" fill="#2563EB" style="opacity:0;transform-origin:128px 128px"/>
+        <g transform="translate(57 61) scale(0.56)">
+          <path class="pen-c" d="M-10,46 H145.5 A78,84 0 0 1 145.5,214 H101 A30,30 0 0 1 71,184 V95" fill="none" stroke="none"/>
+          <path class="pen-pre" d="M-10,46 H145.5 A78,84 0 0 1 145.5,214 H101" fill="none" stroke="none"/>
+          <path class="pen-fillet" d="M101,214 A30,30 0 0 1 71,184" fill="none" stroke="none"/>
+          <path d="M41.61,236.53C41.35,236.25 41.33,231.20 41.33,167.08C41.33,104.96 41.36,97.91 41.59,97.67C41.82,97.44 44.99,97.42 71.50,97.42C99.75,97.42 101.17,97.43 101.45,97.71C101.74,98.00 101.75,100.00 101.77,141.87C101.78,184.72 101.79,185.72 102.10,185.96C102.57,186.31 139.63,186.11 142.48,185.74C143.53,185.60 144.43,185.46 144.49,185.42C144.55,185.38 145.35,185.23 146.26,185.09C147.17,184.94 148.37,184.68 148.92,184.51C149.47,184.33 150.37,184.10 150.92,183.99C151.47,183.88 152.29,183.66 152.75,183.49C153.21,183.33 154.03,183.07 154.58,182.91C155.13,182.76 155.66,182.58 155.75,182.51C155.84,182.43 156.22,182.28 156.58,182.17C156.95,182.06 157.74,181.74 158.33,181.46C158.93,181.19 159.79,180.79 160.25,180.58C162.29,179.64 162.64,179.47 163.58,178.93C164.13,178.61 164.88,178.20 165.25,178.01C166.65,177.28 170.63,174.64 172.44,173.25C176.18,170.37 180.07,166.51 182.50,163.27C182.82,162.84 183.31,162.19 183.58,161.84C184.84,160.21 186.46,157.68 187.01,156.50C187.20,156.09 187.45,155.64 187.57,155.50C187.68,155.36 187.88,154.99 188.01,154.67C188.13,154.35 188.41,153.83 188.62,153.52C188.83,153.21 189.00,152.83 189.01,152.69C189.01,152.54 189.23,151.97 189.51,151.42C189.78,150.87 190.00,150.31 190.00,150.17C190.00,150.03 190.23,149.47 190.50,148.92C190.77,148.37 191.00,147.77 191.00,147.58C191.01,147.40 191.19,146.80 191.42,146.25C191.65,145.70 191.91,144.80 192.01,144.25C192.11,143.70 192.33,142.77 192.51,142.19C192.69,141.61 192.95,140.26 193.08,139.19C193.22,138.12 193.43,136.84 193.54,136.33C193.88,134.80 193.82,125.20 193.46,122.92C193.29,121.91 193.05,120.37 192.92,119.50C192.65,117.63 191.74,113.62 191.50,113.16C191.40,112.98 191.18,112.29 191.00,111.63C190.56,109.98 189.76,107.73 189.34,106.92C189.16,106.56 189.00,106.16 189.00,106.03C189.00,105.90 188.82,105.45 188.60,105.02C188.38,104.60 187.85,103.54 187.42,102.67C185.63,99.03 184.00,96.50 181.07,92.83C179.64,91.04 175.53,86.87 174.10,85.75C173.75,85.48 172.96,84.86 172.36,84.38C171.22,83.48 168.02,81.29 167.03,80.73C166.73,80.56 166.13,80.21 165.70,79.96C165.02,79.57 163.06,78.59 160.75,77.49C157.76,76.07 152.42,74.52 148.67,73.98C147.58,73.82 133.34,73.75 87.08,73.67L26.92,73.58L24.58,73.20C23.30,72.99 21.65,72.64 20.91,72.41C20.17,72.19 19.47,72.00 19.34,72.00C18.91,72.00 14.90,70.14 13.42,69.25C11.16,67.90 8.53,65.55 6.35,62.93C5.18,61.53 4.81,60.97 4.03,59.50C3.76,59.00 3.42,58.36 3.27,58.08C3.12,57.81 3.00,57.46 3.00,57.32C3.00,57.17 2.81,56.70 2.59,56.27C2.36,55.84 1.93,54.57 1.63,53.45L1.08,51.42L1.08,47.08L1.09,42.75L1.62,40.65C2.18,38.48 2.51,37.63 3.77,35.08C5.82,30.97 9.04,27.25 12.73,24.75C13.95,23.92 15.43,23.01 15.58,23.00C15.67,23.00 16.08,22.77 16.48,22.50C16.89,22.22 17.32,22.00 17.44,22.00C17.57,22.00 17.99,21.85 18.38,21.67C19.76,21.02 22.94,20.13 25.08,19.78L27.25,19.43L91.42,19.37L155.58,19.32L161.08,19.75C164.11,19.98 167.22,20.29 168.00,20.44C168.78,20.58 170.32,20.84 171.42,21.00C174.50,21.47 179.76,22.66 182.50,23.50C183.10,23.68 183.95,23.91 184.39,24.00C184.83,24.10 185.47,24.29 185.81,24.43C186.14,24.58 186.98,24.87 187.67,25.08C190.18,25.87 193.79,27.28 196.42,28.50C196.97,28.76 198.02,29.24 198.75,29.58C199.48,29.93 200.23,30.28 200.42,30.38C200.60,30.48 200.97,30.66 201.25,30.79C201.53,30.91 201.94,31.12 202.17,31.26C202.40,31.39 202.97,31.68 203.44,31.91C203.92,32.13 204.36,32.40 204.42,32.50C204.48,32.61 204.85,32.84 205.23,33.02C206.15,33.46 207.33,34.17 207.91,34.62C208.17,34.83 208.44,35.00 208.52,35.00C208.66,35.00 211.17,36.66 212.42,37.57C213.93,38.69 214.92,39.43 215.16,39.63C215.30,39.75 216.09,40.39 216.92,41.04C223.54,46.27 231.70,55.28 235.57,61.62C235.83,62.06 236.17,62.59 236.32,62.81C237.03,63.88 237.53,64.65 237.92,65.33C238.16,65.75 238.64,66.57 238.99,67.17C239.34,67.76 240.22,69.41 240.93,70.83C241.64,72.25 242.35,73.60 242.51,73.83C242.66,74.06 242.84,74.44 242.91,74.67C242.98,74.90 243.24,75.53 243.50,76.08C244.82,78.95 245.00,79.36 245.00,79.55C245.00,79.66 245.18,80.09 245.40,80.50C245.62,80.92 245.89,81.59 246.00,82.00C246.11,82.41 246.38,83.10 246.60,83.53C246.82,83.97 247.00,84.46 247.00,84.62C247.01,84.78 247.16,85.25 247.35,85.67C247.54,86.08 247.87,86.98 248.08,87.67C248.46,88.87 248.64,89.43 249.36,91.58C249.71,92.63 250.21,94.45 250.81,96.83C251.01,97.61 251.31,98.77 251.49,99.42C251.67,100.06 251.93,101.28 252.08,102.13C252.22,102.98 252.42,103.88 252.51,104.12C252.61,104.37 252.83,105.47 253.00,106.58C253.17,107.68 253.43,109.11 253.57,109.75C253.70,110.39 253.97,112.38 254.17,114.17C254.36,115.95 254.61,118.17 254.71,119.08C254.96,121.23 254.95,135.06 254.71,137.00C254.61,137.78 254.37,139.84 254.17,141.58C253.97,143.33 253.70,145.28 253.56,145.92C253.43,146.56 253.17,147.98 253.00,149.08C252.83,150.18 252.58,151.38 252.45,151.75C252.32,152.12 252.12,152.98 252.00,153.67C251.88,154.35 251.68,155.22 251.55,155.58C251.42,155.95 251.20,156.74 251.07,157.33C250.85,158.33 250.43,159.79 249.74,161.92C249.59,162.38 249.29,163.33 249.08,164.04C248.86,164.74 248.57,165.54 248.43,165.80C248.30,166.07 248.10,166.65 247.99,167.10C247.88,167.55 247.66,168.14 247.50,168.42C247.34,168.69 247.16,169.14 247.09,169.42C246.98,169.91 246.36,171.43 245.59,173.08C245.37,173.54 244.98,174.40 244.70,175.00C243.89,176.75 242.69,179.16 242.00,180.42C241.64,181.06 241.20,181.88 241.01,182.25C240.65,182.93 239.84,184.35 239.25,185.32C238.30,186.86 237.82,187.63 237.51,188.08C237.32,188.36 236.81,189.11 236.39,189.75C235.96,190.39 235.46,191.12 235.26,191.36C235.07,191.61 234.74,192.06 234.53,192.36C231.98,196.02 227.85,200.84 223.90,204.74C220.36,208.24 215.33,212.67 213.34,214.04C213.11,214.21 212.62,214.56 212.25,214.84C211.88,215.12 211.18,215.63 210.69,215.97C210.19,216.31 209.58,216.73 209.33,216.92C208.27,217.69 206.32,219.00 206.23,219.00C206.18,219.00 205.90,219.17 205.61,219.38C204.82,219.94 200.89,222.28 199.75,222.86C199.20,223.14 198.22,223.66 197.58,224.01C196.94,224.37 196.15,224.78 195.83,224.92C195.51,225.07 194.76,225.41 194.17,225.69C193.57,225.97 192.78,226.33 192.42,226.50C192.05,226.67 191.26,227.03 190.67,227.31C189.15,228.01 186.88,228.90 184.17,229.85C183.66,230.03 182.91,230.32 182.50,230.49C181.31,231.00 174.64,233.00 174.15,233.00C173.99,233.00 173.27,233.18 172.55,233.41C171.84,233.63 170.58,233.93 169.75,234.07C168.92,234.21 167.99,234.41 167.67,234.50C167.35,234.60 166.11,234.82 164.92,234.99C163.72,235.17 162.08,235.43 161.25,235.57C159.94,235.79 158.31,235.96 150.67,236.67C149.79,236.76 125.09,236.82 95.48,236.83C43.75,236.83 41.88,236.82 41.61,236.53Z" fill="#fff" mask="url(#bs-m)"/>
+          <circle class="pen-halo" r="40" fill="url(#bs-halo)" style="opacity:0"/>
+          <circle class="pen-tip" r="14" fill="url(#bs-tip)" style="opacity:0"/>
+        </g>
+        <g clip-path="url(#bs-tileclip)"><rect class="bs-sheen" x="-200" y="-40" width="150" height="340" fill="url(#bs-sheen)" transform="skewX(-18)"/></g>
+      </svg>
+      <img class="bs-word" src="/src/assets/logo-full.png" alt="" decoding="async" />
     </div>
+    <script>
+      (function () {
+        window.__bootSplashStart = Date.now()
+        var svg = document.querySelector('#boot-splash .bs-icon')
+        if (!svg || !svg.querySelector('.pen-c').getTotalLength) return
+        var q = function (s) { return svg.querySelector(s) }
+        var clamp = function (v) { return Math.max(0, Math.min(1, v)) }
+        var ease = function (t) { return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2 }
+        var easeOut = function (t) { return 1 - Math.pow(1 - t, 3) }
+        var seg = function (t, a, b) { return clamp((t - a) / (b - a)) }
+        var segEl = q('.pen-seg'), path = q('.pen-c'), bowl = q('.pen-bowl'), wedge = q('.pen-wedge')
+        var tile = q('.bs-tile'), sheen = q('.bs-sheen'), tip = q('.pen-tip'), halo = q('.pen-halo')
+        var word = document.querySelector('#boot-splash .bs-word')
+        var L = path.getTotalLength(), BL = bowl.getTotalLength(), B0 = +bowl.getAttribute('data-before')
+        var F0 = q('.pen-pre').getTotalLength(), FL = q('.pen-fillet').getTotalLength()
+        var o = wedge.getAttribute('data-o').split(',').map(Number)
+        segEl.style.strokeDasharray = L + ' ' + L
+        bowl.style.strokeDasharray = BL + ' ' + BL
+        function pen(k) {
+          segEl.style.strokeDashoffset = L * (1 - k)
+          bowl.style.strokeDashoffset = BL * (1 - clamp((k * L - B0) / BL))
+          var a1 = 90 + 90 * clamp((k * L - F0) / FL)
+          if (a1 - 90 < .01) wedge.setAttribute('d', '')
+          else {
+            var d = 'M' + o[0] + ',' + o[1]
+            for (var i = 0; i <= 12; i++) {
+              var a = (90 + (a1 - 90) * i / 12) * Math.PI / 180
+              d += ' L' + (o[0] + o[2] * Math.cos(a)).toFixed(2) + ',' + (o[1] + o[2] * Math.sin(a)).toFixed(2)
+            }
+            wedge.setAttribute('d', d + ' Z')
+          }
+          var pt = path.getPointAtLength(L * k), show = Math.sin(Math.PI * Math.min(1, k * 1.02))
+          tip.setAttribute('cx', pt.x); tip.setAttribute('cy', pt.y); tip.style.opacity = show
+          halo.setAttribute('cx', pt.x); halo.setAttribute('cy', pt.y); halo.style.opacity = show
+        }
+        if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          tile.style.opacity = 1; pen(1); tip.style.opacity = 0; halo.style.opacity = 0; word.classList.add('is-in'); return
+        }
+        var t0 = performance.now()
+        function frame(now) {
+          var t = (now - t0) / 1000
+          var a = easeOut(seg(t, 0, .45))
+          tile.style.opacity = a
+          tile.style.transform = 'scale(' + (.86 + .14 * a) + ')'
+          pen(ease(seg(t, .25, 1.35)))
+          if (t > 1.0) word.classList.add('is-in')
+          sheen.setAttribute('x', -200 + ease(seg(t, 1.35, 1.95)) * 560)
+          if (t < 2 && document.getElementById('boot-splash')) requestAnimationFrame(frame)
+        }
+        requestAnimationFrame(frame)
+      })()
+    </script>
     <!-- /boot-splash -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>

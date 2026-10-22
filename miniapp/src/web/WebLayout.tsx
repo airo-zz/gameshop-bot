@@ -17,7 +17,7 @@ import { useWebCart } from '@/web/cart/useWebCart'
 import { money } from '@/web/format'
 import Avatar from '@/web/components/Avatar'
 import GameSearch from '@/web/components/GameSearch'
-import logoFull from '@/assets/logo-full.png'
+import { PenLogo } from '@/components/brand/BrandMotion'
 import { initMetrika, useMetrikaPageViews } from '@/web/seo'
 import { preloadRoutesWhenIdle } from '@/web/prefetch'
 
@@ -34,10 +34,21 @@ const NAV: NavItem[] = [
   { label: 'Вопросы', href: '/#faq' },
 ]
 
-function Logo() {
+// Логотип «пишется» в шапке один раз за сеанс (первый заход), дальше — статичный вектор
+const INTRO_KEY = 'logo_intro_played'
+function shouldPlayIntro(): boolean {
+  try {
+    if (sessionStorage.getItem(INTRO_KEY)) return false
+    sessionStorage.setItem(INTRO_KEY, '1')
+    return true
+  } catch { return false }
+}
+
+function Logo({ intro = false }: { intro?: boolean }) {
+  const [play] = useState(() => intro && shouldPlayIntro())
   return (
     <Link to="/" className="flex items-center shrink-0" aria-label={SHOP_NAME}>
-      <img src={logoFull} alt={SHOP_NAME} width={800} height={154} className="h-6 md:h-7 w-auto" />
+      <PenLogo animate={play} className="h-6 md:h-7 w-auto" />
     </Link>
   )
 }
@@ -159,7 +170,7 @@ export default function WebLayout() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 border-b border-[var(--border)]" style={{ background: 'var(--bg)' }}>
         <div className="web-container flex items-center gap-8 h-16">
-          <Logo />
+          <Logo intro />
 
           <nav className="hidden md:flex items-center gap-5 lg:gap-6">
             {NAV.map((item) => <NavItemLink key={item.href} item={item} />)}

@@ -12,7 +12,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Wallet, Smartphone, CreditCard, Bitcoin, TrendingUp, TrendingDown, CheckCircle2, XCircle, Loader2 } from '@/components/ui/icons'
+import { Wallet, Smartphone, CreditCard, Bitcoin, TrendingUp, TrendingDown, CheckCircle2, XCircle } from '@/components/ui/icons'
+import { PenLoader } from '@/components/brand/BrandMotion'
 import toast from 'react-hot-toast'
 import { profileApi, paymentsApi, type BalanceTransaction } from '@/api'
 import { PAY_SOURCE } from '@/config/appTarget'
@@ -116,7 +117,7 @@ export default function WebBalancePage() {
 
       {waiting && (
         <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid transparent' }}>
-          <Loader2 size={20} className="animate-spin shrink-0" style={{ color: 'var(--link)' }} />
+          <PenLoader size={28} label="Ожидаем подтверждение оплаты" />
           <div>
             <p className="text-sm font-semibold text-[var(--text)]">Ожидаем подтверждение оплаты</p>
             <p className="text-xs text-[var(--hint)]">Обычно это занимает до минуты. Страницу можно не обновлять.</p>
