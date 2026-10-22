@@ -11,16 +11,21 @@ import { catalogApi } from '@/api'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { LevelsTable, LoyaltyCard, LoyaltyInfoSheet, rub } from '@/components/loyalty/Loyalty'
 import { Reveal, Stagger, StaggerItem } from '@/web/components/Motion'
+import { usePageMeta } from '@/web/seo'
 
 const RULES = [
   { title: 'Уровень — по тратам за месяц', text: 'Считаются все оплаченные заказы с 1-го по последнее число календарного месяца (по Москве).' },
   { title: 'Держится ещё месяц', text: 'Достигнутый уровень сохраняется весь следующий месяц. Не набрали ту же сумму — с 1-го числа уровень станет тем, до которого дошли.' },
-  { title: 'Кэшбэк на баланс', text: 'Начисляется, когда заказ выполнен. Балансом можно оплатить заказ целиком или частично.' },
+  { title: 'Кэшбэк на баланс', text: 'Начисляется, когда заказ выполнен. Балансом можно оплачивать следующие заказы.' },
   { title: 'Лимит в месяц', text: 'У каждого уровня свой потолок кэшбэка. С нового месяца лимит обнуляется.' },
 ]
 
 export default function WebCashbackPage() {
   const { user } = useWebAuth()
+  usePageMeta({
+    title: 'Кэшбэк и программа лояльности',
+    description: 'Программа лояльности reDonate: кэшбэк на баланс с каждого выполненного заказа, 10 уровней по тратам за месяц, условия реферальной программы.',
+  })
   const [levelsOpen, setLevelsOpen] = useState(true)
   const [info, setInfo] = useState(false)
   const { data, isLoading } = useQuery({ queryKey: ['web', 'loyalty'], queryFn: catalogApi.getLoyaltyProgram, staleTime: 10 * 60_000 })

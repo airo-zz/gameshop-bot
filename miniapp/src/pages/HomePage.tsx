@@ -16,8 +16,9 @@ import logoFullSrc from '@/assets/logo-full.png'
 import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { NAV_HEIGHT } from '@/components/layout/Layout'
+import { fmtNum } from '@/utils/format'
 
-const fmt = (n: number | string) => Number(n).toLocaleString('ru', { maximumFractionDigits: 2 })
+const fmt = fmtNum
 
 // ── Menu Sheet (bottom sheet) ─────────────────────────────────────────────────
 

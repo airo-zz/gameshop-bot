@@ -5,15 +5,17 @@
  */
 
 import { useEffect, useState } from 'react'
-import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { Menu, X, Send, LogOut, ShoppingCart, Wallet, Search } from '@/components/ui/icons'
+import { Menu, X, Send, LogOut, ShoppingCart, Wallet } from '@/components/ui/icons'
 import { SHOP_NAME, MINIAPP_URL, SUPPORT_BOT_URL, SITE_URL } from '@/config/appTarget'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { useWebCart } from '@/web/cart/useWebCart'
 import { money } from '@/web/format'
 import Avatar from '@/web/components/Avatar'
+import GameSearch from '@/web/components/GameSearch'
 import logoFull from '@/assets/logo-full.png'
+import { initMetrika, useMetrikaPageViews } from '@/web/seo'
 
 interface NavItem {
   label: string
@@ -61,27 +63,6 @@ function NavItemLink({ item, onClick, className = '' }: { item: NavItem; onClick
     >
       {item.label}
     </NavLink>
-  )
-}
-
-function HeaderSearch() {
-  const navigate = useNavigate()
-  const [q, setQ] = useState('')
-  return (
-    <form
-      onSubmit={(e) => { e.preventDefault(); navigate(q.trim() ? `/catalog?q=${encodeURIComponent(q.trim())}` : '/catalog') }}
-      className="hidden lg:flex items-center gap-2 h-10 w-60 px-3 rounded-xl bg-[var(--bg2)] border border-transparent focus-within:border-[var(--accent)] transition-colors"
-      role="search"
-    >
-      <Search size={18} className="text-[var(--hint)] shrink-0" />
-      <input
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-        placeholder="Найти игру"
-        aria-label="Найти игру"
-        className="flex-1 min-w-0 bg-transparent outline-none text-sm text-[var(--text)] placeholder:text-[var(--hint)]"
-      />
-    </form>
   )
 }
 
@@ -158,6 +139,8 @@ export default function WebLayout() {
   const location = useLocation()
   const { isAuthenticated } = useWebAuth()
   const reduce = useReducedMotion()
+  useEffect(() => { initMetrika() }, [])
+  useMetrikaPageViews()
 
   // Новая страница — наверх (кроме якорей вида /#faq)
   useEffect(() => {
@@ -177,7 +160,7 @@ export default function WebLayout() {
           </nav>
 
           <div className="hidden md:flex items-center gap-2 ml-auto">
-            <HeaderSearch />
+            <GameSearch className="hidden lg:block w-64" />
             <CartButton />
             <AuthArea />
           </div>
@@ -238,7 +221,7 @@ export default function WebLayout() {
           <div className="col-span-2 md:col-span-1">
             <Logo />
             <p className="text-sm text-[var(--hint)] mt-4 leading-relaxed max-w-xs">
-              Донат в мобильные и PC-игры, Telegram Stars и Premium. Оплата СБП, картой или криптой, живая поддержка.
+              Пополнение игр и цифровых сервисов. Оплата через СБП, банковской картой или криптовалютой.
             </p>
           </div>
 

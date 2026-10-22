@@ -5,10 +5,11 @@ import { ArrowLeft, Users, Share2, Copy, CheckCircle } from '@/components/ui/ico
 import toast from 'react-hot-toast'
 import { profileApi, type ReferralStats } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
+import { fmtNum } from '@/utils/format'
 
 const BOT_USERNAME = import.meta.env.VITE_BOT_USERNAME ?? 'reDonate_robot'
 
-const rub = (n: number | string) => `${Number(n).toLocaleString('ru', { maximumFractionDigits: 2 })} ₽`
+const rub = (n: number | string) => `${fmtNum(n)} ₽`
 
 export default function ReferralsPage() {
   const navigate = useNavigate()

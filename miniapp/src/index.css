@@ -42,7 +42,9 @@ h1, .font-display {
   font-weight: 650;
   letter-spacing: -0.02em;
 }
-.num { font-variant-numeric: tabular-nums; }
+/* Цифры пропорциональные (плотнее); моноширинные — только в таблицах (.tnum) */
+.num { white-space: nowrap; }
+.tnum { font-variant-numeric: tabular-nums; }
 
 /* ── react-photo-view: toolbar below Telegram content safe area ──────────── */
 .PhotoView-Slider__BannerWrap {

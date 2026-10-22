@@ -5,25 +5,25 @@
  */
 
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
-  ChevronDown, ChevronRight, Search, Smartphone, CreditCard, Bitcoin, Wallet, Zap, ShieldCheck, Headphones,
+  ChevronDown, ChevronRight, Smartphone, CreditCard, Bitcoin, Wallet, Zap, ShieldCheck, Headphones,
 } from '@/components/ui/icons'
 import { catalogApi, type Game } from '@/api'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import GameCard from '@/web/components/GameCard'
+import GameSearch from '@/web/components/GameSearch'
 import { EASE, Reveal, Stagger, StaggerItem } from '@/web/components/Motion'
+import { usePageMeta } from '@/web/seo'
 
 const cover = (g: Game) => (g.image_url ? normalizeImageUrl(g.image_url) ?? g.image_url : null)
 
 // ── Первый экран ──────────────────────────────────────────────────────────────
 
 function Hero({ games }: { games: Game[] }) {
-  const navigate = useNavigate()
   const reduce = useReducedMotion()
-  const [q, setQ] = useState('')
   const covers = games.filter(cover).slice(0, 6)
 
   const item = (i: number) => ({
@@ -40,33 +40,18 @@ function Hero({ games }: { games: Game[] }) {
             Донат в игры<br />за пару минут
           </motion.h1>
           <motion.p {...item(1)} className="mt-5 text-base md:text-lg text-[var(--text-2)] max-w-md leading-relaxed">
-            Валюта, пропуски и наборы для мобильных и PC-игр, Telegram Stars и Premium.
-            Платите СБП, картой или криптой — и получайте кэшбэк на баланс.
+            Внутриигровая валюта, наборы и подписки для мобильных и компьютерных игр.
+            Оплата через СБП, банковской картой или криптовалютой, кэшбэк с каждой покупки.
           </motion.p>
 
-          <motion.form
-            {...item(2)}
-            onSubmit={(e) => { e.preventDefault(); navigate(q.trim() ? `/catalog?q=${encodeURIComponent(q.trim())}` : '/catalog') }}
-            className="mt-8 flex items-center gap-2 max-w-md h-14 pl-4 pr-2 rounded-2xl bg-[var(--bg2)] border border-transparent focus-within:border-[var(--accent)] transition-colors"
-            role="search"
-          >
-            <Search size={20} className="text-[var(--hint)] shrink-0" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Какую игру пополнить?"
-              aria-label="Какую игру пополнить?"
-              className="flex-1 min-w-0 bg-transparent outline-none text-base text-[var(--text)] placeholder:text-[var(--hint)]"
-            />
-            <button type="submit" className="h-10 px-4 rounded-xl text-sm font-semibold text-[var(--text)] bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors">
-              Найти
-            </button>
-          </motion.form>
+          <motion.div {...item(2)} className="mt-8 max-w-md">
+            <GameSearch size="lg" placeholder="Какую игру пополнить?" />
+          </motion.div>
 
           <motion.ul {...item(3)} className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--hint)]">
             <li className="flex items-center gap-1.5"><Zap size={16} className="text-[var(--link)]" />Автовыдача</li>
             <li className="flex items-center gap-1.5"><ShieldCheck size={16} className="text-[var(--link)]" />Безопасная оплата</li>
-            <li className="flex items-center gap-1.5"><Headphones size={16} className="text-[var(--link)]" />Живая поддержка</li>
+            <li className="flex items-center gap-1.5"><Headphones size={16} className="text-[var(--link)]" />Поддержка операторов</li>
           </motion.ul>
         </div>
 
@@ -183,7 +168,7 @@ function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean;
       ) : games.length === 0 ? (
         <p className="text-sm text-[var(--hint)] py-10 text-center">Скоро здесь появятся игры</p>
       ) : (
-        <Stagger key={tab} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-6">
+        <Stagger key={tab} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
           {games.map((g) => (
             <StaggerItem key={g.id}><GameCard game={g} /></StaggerItem>
           ))}
@@ -243,7 +228,7 @@ function Cashback() {
 
 const STEPS = [
   { title: 'Выберите игру и пакет', text: 'Найдите игру в каталоге и добавьте нужный набор в корзину.' },
-  { title: 'Оплатите удобным способом', text: 'СБП, карта, криптовалюта или баланс — можно и частично с баланса.' },
+  { title: 'Оплатите удобным способом', text: 'СБП, банковская карта, криптовалюта или баланс аккаунта.' },
   { title: 'Получите товар', text: 'Автовыдача приходит сразу, остальное оператор выдаёт в чате.' },
 ]
 
@@ -275,7 +260,7 @@ function HowItWorks() {
             { Icon: Smartphone, label: 'СБП' },
             { Icon: CreditCard, label: 'Visa, Mastercard, МИР' },
             { Icon: Bitcoin, label: 'USDT, TON, BTC' },
-            { Icon: Wallet, label: 'Баланс магазина' },
+            { Icon: Wallet, label: 'Баланс аккаунта' },
           ].map(({ Icon, label }) => (
             <span key={label} className="flex items-center gap-2 text-sm text-[var(--text)]">
               <Icon size={20} className="text-[var(--hint)]" /> {label}
@@ -291,8 +276,8 @@ function HowItWorks() {
 
 const FAQ = [
   { q: 'Как быстро приходит товар?', a: 'Товары с автовыдачей приходят сразу после оплаты. Остальные заказы оператор обрабатывает в чате, обычно за несколько минут.' },
-  { q: 'Какие способы оплаты доступны?', a: 'СБП, банковские карты (Visa, Mastercard, МИР), криптовалюта (USDT, TON, BTC и др.) и баланс магазина. Если баланса не хватает, его можно списать частично, а остаток доплатить.' },
-  { q: 'Нужна ли регистрация?', a: 'Нет — вход в один клик через Telegram. Заказы, баланс и кэшбэк общие для сайта и Telegram-бота.' },
+  { q: 'Какие способы оплаты доступны?', a: 'СБП, банковские карты (Visa, Mastercard, МИР), криптовалюта (USDT, TON, BTC и др.) и баланс аккаунта.' },
+  { q: 'Нужна ли регистрация?', a: 'Отдельная регистрация не нужна — вход выполняется через Telegram. Заказы, баланс и кэшбэк общие для сайта и Telegram-бота.' },
   { q: 'Как работает кэшбэк?', a: 'Уровень зависит от трат за календарный месяц. С каждого выполненного заказа на баланс возвращается процент вашего уровня, в пределах месячного лимита.' },
   { q: 'Что делать, если возникла проблема?', a: 'Напишите в поддержку в Telegram — операторы ответят и помогут с заказом или оплатой.' },
 ]
@@ -351,6 +336,7 @@ function FaqSection() {
 // ── Страница ──────────────────────────────────────────────────────────────────
 
 export default function WebHomePage() {
+  usePageMeta({})
   const { data: all = [], isLoading, isError } = useQuery({
     queryKey: ['web', 'games', 'all'],
     queryFn: () => catalogApi.getGames(),

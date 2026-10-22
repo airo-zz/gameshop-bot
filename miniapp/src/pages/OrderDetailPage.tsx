@@ -6,6 +6,7 @@ import { ordersApi, chatApi } from '@/api'
 import { CheckCircle, Clock, Copy, MessageCircle, XCircle, HelpCircle, RefreshCw, BadgeCheck, Circle, Info } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
+import { fmtNum } from '@/utils/format'
 
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
   new:             { label: 'Новый',           color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', Icon: Circle },
@@ -222,11 +223,11 @@ export default function OrderDetailPage() {
                 )}
                 <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{item.product_name}</p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>
-                  {item.quantity} шт. × {item.unit_price.toLocaleString('ru')} ₽
+                  {item.quantity} шт. × {fmtNum(item.unit_price)} ₽
                 </p>
               </div>
               <p className="font-semibold num text-sm flex-shrink-0" style={{ color: 'var(--text)' }}>
-                {item.total_price.toLocaleString('ru')} ₽
+                {fmtNum(item.total_price)} ₽
               </p>
             </div>
 
@@ -290,12 +291,12 @@ export default function OrderDetailPage() {
         {order.discount_amount > 0 && (
           <div className="flex justify-between text-sm">
             <span style={{ color: 'var(--hint)' }}>Скидка</span>
-            <span style={{ color: '#34d399' }}>-{order.discount_amount.toLocaleString('ru')} ₽</span>
+            <span style={{ color: '#34d399' }}>-{fmtNum(order.discount_amount)} ₽</span>
           </div>
         )}
         <div className="flex justify-between font-bold">
           <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span className="font-display num" style={{ color: 'var(--text)' }}>{order.total_amount.toLocaleString('ru')} ₽</span>
+          <span className="font-display num" style={{ color: 'var(--text)' }}>{fmtNum(order.total_amount)} ₽</span>
         </div>
       </div>
 

@@ -4,6 +4,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronDown, Info } from '@/components/ui/icons'
 import type { Profile } from '@/api'
+import { fmtNum } from '@/utils/format'
 
 /** Минимум полей уровня для таблицы — есть и в profile API, и в публичном /catalog/loyalty */
 export interface LevelRow {
@@ -21,8 +22,8 @@ const MONTHS_GEN = ['января', 'февраля', 'марта', 'апрел�
 const MONTHS_PREP = ['январе', 'феврале', 'марте', 'апреле', 'мае', 'июне', 'июле',
   'августе', 'сентябре', 'октябре', 'ноябре', 'декабре']
 
-export const rub = (n: number | string) => `${Number(n).toLocaleString('ru', { maximumFractionDigits: 2 })} ₽`
-export const pct = (n: number | string) => `${Number(n).toLocaleString('ru', { maximumFractionDigits: 2 })}%`
+export const rub = (n: number | string) => `${fmtNum(n)} ₽`
+export const pct = (n: number | string) => `${fmtNum(n)}%`
 
 export function LoyaltyCard({ profile, onToggleLevels, levelsOpen, onInfo }: {
   profile: Profile
@@ -161,7 +162,7 @@ export function LoyaltyInfoSheet({ open, onClose, levels }: { open: boolean; onC
     },
     {
       title: 'Кэшбэк — на баланс',
-      text: `Начисляется, когда заказ выполнен: от ${first ? pct(first.cashback_percent) : '1%'} до ${last ? pct(last.cashback_percent) : '6%'}. Балансом можно оплатить следующие заказы целиком или частично.`,
+      text: `Начисляется, когда заказ выполнен: от ${first ? pct(first.cashback_percent) : '1%'} до ${last ? pct(last.cashback_percent) : '6%'}. Балансом можно оплачивать следующие заказы.`,
     },
     {
       title: 'Лимит кэшбэка в месяц',
@@ -238,10 +239,10 @@ export function LevelsTable({ levels, currentIndex = -1 }: { levels: LevelRow[];
             <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
               <span style={{ width: 8, height: 8, borderRadius: 2, background: lv.color_hex, flexShrink: 0 }} />
               <span style={{ color: isCurrent ? 'var(--text)' : 'var(--text)', fontWeight: isCurrent ? 600 : 400, whiteSpace: 'nowrap' }}>{lv.name}</span>
-              <span className="num" style={{ color: 'var(--hint)', fontSize: 12, whiteSpace: 'nowrap' }}>от {rub(lv.min_spent)}</span>
+              <span className="tnum" style={{ color: 'var(--hint)', fontSize: 12, whiteSpace: 'nowrap' }}>от {rub(lv.min_spent)}</span>
             </span>
-            <span className="num" style={{ textAlign: 'right', color: 'var(--text)' }}>{pct(lv.cashback_percent)}</span>
-            <span className="num" style={{ textAlign: 'right', minWidth: 72, color: 'var(--hint)' }}>
+            <span className="tnum" style={{ textAlign: 'right', color: 'var(--text)' }}>{pct(lv.cashback_percent)}</span>
+            <span className="tnum" style={{ textAlign: 'right', minWidth: 72, color: 'var(--hint)' }}>
               {lv.monthly_cashback_cap != null ? rub(lv.monthly_cashback_cap) : 'без лимита'}
             </span>
           </div>

@@ -10,8 +10,9 @@ import { catalogApi } from '@/api'
 import type { Game } from '@/api'
 import GameCard from '@/web/components/GameCard'
 import { Reveal, Stagger, StaggerItem } from '@/web/components/Motion'
+import { usePageMeta } from '@/web/seo'
 
-const GRID = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-4 gap-y-6'
+const GRID = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4'
 
 function Grid({ title, items }: { title: string; items: Game[] }) {
   if (!items.length) return null
@@ -32,6 +33,10 @@ function Grid({ title, items }: { title: string; items: Game[] }) {
 export default function WebCatalogPage() {
   const [params, setParams] = useSearchParams()
   const q = params.get('q') ?? ''
+  usePageMeta({
+    title: 'Каталог игр и сервисов',
+    description: 'Все игры и цифровые сервисы, которые можно пополнить в reDonate: внутриигровая валюта, наборы и подписки. Оплата через СБП, банковской картой или криптовалютой.',
+  })
   const { data: all, isLoading, isError } = useQuery({
     queryKey: ['web', 'games', 'all'],
     queryFn: () => catalogApi.getGames(),

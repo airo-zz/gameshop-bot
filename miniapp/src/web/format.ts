@@ -3,8 +3,10 @@
  * Общие форматтеры и справочники сайта (деньги, статусы заказов, типы операций).
  */
 
+import { fmtNum } from '@/utils/format'
+
 export function money(v: number | string | null | undefined): string {
-  return Number(v ?? 0).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + ' ₽'
+  return fmtNum(v) + ' ₽'
 }
 
 export function apiError(e: unknown, fallback: string): string {

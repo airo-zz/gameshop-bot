@@ -17,6 +17,7 @@ import toast from 'react-hot-toast'
 import { profileApi, paymentsApi, type BalanceTransaction } from '@/api'
 import { PAY_SOURCE } from '@/config/appTarget'
 import { money, apiError, txLabel, txIsCredit } from '@/web/format'
+import { fmtNum } from '@/utils/format'
 
 const PRESETS = [300, 500, 1000, 2000, 5000]
 const MIN_AMOUNT = 100
@@ -164,7 +165,7 @@ export default function WebBalancePage() {
                       color: numeric === p ? 'var(--link)' : 'rgba(220,235,255,0.8)',
                     }}
                   >
-                    {p.toLocaleString('ru-RU')} ₽
+                    {fmtNum(p)} ₽
                   </button>
                 ))}
               </div>

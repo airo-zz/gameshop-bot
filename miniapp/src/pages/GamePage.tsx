@@ -10,6 +10,7 @@ import { useTelegram } from '@/hooks/useTelegram'
 import { useDragScroll } from '@/hooks/useDragScroll'
 import { useCartStore } from '@/store'
 import clsx from 'clsx'
+import { fmtNum } from '@/utils/format'
 
 // ── ProductRow — строка товара с ценой и кнопкой +/- ─────────────────────────
 
@@ -61,11 +62,11 @@ function ProductRow({ product, cartQty, onAdd, onRemove, singleAdd }: ProductRow
           />
           <span style={{ fontSize: '0.8rem', color: 'rgba(220,235,255,0.45)' }}>{unit}</span>
           <span className="font-display num" style={{ marginLeft: 'auto', fontSize: '1rem', color: 'var(--text)' }}>
-            {total.toLocaleString('ru')} ₽
+            {fmtNum(total)} ₽
           </span>
         </div>
         <div style={{ fontSize: 11, color: 'rgba(220,235,255,0.35)' }}>
-          Минимум {minQty.toLocaleString('ru')} {unit} · {Number(product.price).toLocaleString('ru')} ₽ за 1 {unit}
+          Минимум {fmtNum(minQty)} {unit} · {fmtNum(product.price)} ₽ за 1 {unit}
         </div>
         <motion.button
           type="button"
@@ -152,11 +153,11 @@ function ProductRow({ product, cartQty, onAdd, onRemove, singleAdd }: ProductRow
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
           {hasDiscount && (
             <span style={{ fontSize: '0.75rem', color: 'rgba(220,235,255,0.3)', textDecoration: 'line-through' }}>
-              {Number(product.original_price).toLocaleString('ru')} ₽
+              {fmtNum(product.original_price)} ₽
             </span>
           )}
           <span className="font-display num" style={{ fontSize: '1rem', color: isOutOfStock ? 'var(--hint)' : 'var(--text)' }}>
-            {Number(product.price).toLocaleString('ru')} ₽
+            {fmtNum(product.price)} ₽
           </span>
           {hasDiscount && (
             <span style={{

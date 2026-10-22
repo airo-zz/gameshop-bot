@@ -1,19 +1,23 @@
 /**
  * src/web/components/GameCard.tsx
- * Карточка игры на сайте: обложка + название. Ведёт на /game/:slug.
+ * Карточка игры для сайта (не miniapp): подложка с обложкой, название, тип и
+ * отклик на наведение. Ведёт на /game/:slug.
  */
 
 import { Link } from 'react-router-dom'
-import { Gamepad2 } from '@/components/ui/icons'
+import { Gamepad2, ChevronRight } from '@/components/ui/icons'
 import type { Game } from '@/api'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 
 export default function GameCard({ game }: { game: Game }) {
   const img = game.image_url ? normalizeImageUrl(game.image_url) ?? game.image_url : null
   return (
-    <Link to={`/game/${game.slug}`} className="group block">
+    <Link
+      to={`/game/${game.slug}`}
+      className="group flex flex-col h-full p-2.5 rounded-2xl bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors duration-200"
+    >
       <div
-        className="aspect-square rounded-2xl bg-[var(--bg2)] flex items-center justify-center overflow-hidden transition-transform duration-300 group-hover:-translate-y-1"
+        className="aspect-square rounded-xl bg-[var(--bg3)] flex items-center justify-center overflow-hidden"
         style={{ boxShadow: 'inset 0 0 0 1px var(--border)' }}
       >
         {img ? (
@@ -21,15 +25,22 @@ export default function GameCard({ game }: { game: Game }) {
             src={img}
             alt={game.name}
             loading="lazy"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+            className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
           />
         ) : (
           <Gamepad2 size={32} className="text-[var(--hint)]" />
         )}
       </div>
-      <p className="mt-2.5 text-sm font-medium text-[var(--text)] line-clamp-2 group-hover:text-[var(--link)] transition-colors">
-        {game.name}
-      </p>
+      <div className="flex items-end justify-between gap-2 px-1 pt-3 pb-1 flex-1">
+        <div className="min-w-0">
+          <p className="text-[15px] font-semibold leading-snug text-[var(--text)] line-clamp-2">{game.name}</p>
+          <p className="text-xs text-[var(--hint)] mt-1">{game.type === 'service' ? 'Сервис' : 'Игра'}</p>
+        </div>
+        <ChevronRight
+          size={18}
+          className="shrink-0 text-[var(--hint)] opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200"
+        />
+      </div>
     </Link>
   )
 }

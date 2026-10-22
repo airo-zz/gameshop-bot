@@ -15,6 +15,7 @@ import { chatApi, type ChatMessage } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import logo from '@/assets/logo-mark.png'
 import { NAV_HEIGHT } from '@/components/layout/Layout'
+import { fmtNum } from '@/utils/format'
 
 // ── Image compression ─────────────────────────────────────────────────────────
 
@@ -134,7 +135,7 @@ function SystemMessage({ text }: { text: string }) {
             {title}
           </span>
           <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>
-            {Number(price).toLocaleString('ru')} ₽
+            {fmtNum(price)} ₽
           </span>
           <Link
             to={`/pay/${oid}`}

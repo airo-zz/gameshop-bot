@@ -157,6 +157,10 @@ class AppSettings(BaseSettings):
     ABANDONED_CART_HOURS: int = 1
     CART_PRICE_RESERVE_HOURS: int = 24
     FRONTEND_URL: str = "https://redonate.su"
+    # Коды подтверждения прав на сайт (Яндекс.Вебмастер / Google Search Console):
+    # только значение content из мета-тега. Пусто — тег не выводится.
+    YANDEX_VERIFICATION: str = ""
+    GOOGLE_SITE_VERIFICATION: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

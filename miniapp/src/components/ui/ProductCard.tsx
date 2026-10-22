@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useTelegram } from '@/hooks/useTelegram'
 import { catalogApi, type Product } from '@/api'
 import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
+import { fmtNum } from '@/utils/format'
 
 interface Props {
   product: Product
@@ -174,7 +175,7 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
             className="text-base font-semibold mt-auto"
             style={{ color: 'var(--text)' }}
           >
-            {minPrice.toLocaleString('ru')} ₽
+            {fmtNum(minPrice)} ₽
           </p>
         )}
       </div>

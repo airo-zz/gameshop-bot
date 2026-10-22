@@ -89,6 +89,8 @@ services:
     volumes:
       - media_data:/app/media
       - static_files:/static
+      # Собранный сайт — шаблон для SEO-отдачи страниц (api/routers/seo.py)
+      - ./miniapp/dist-web:/web_dist:ro
 
   # ── Telegram Bot ────────────────────────────
   bot:

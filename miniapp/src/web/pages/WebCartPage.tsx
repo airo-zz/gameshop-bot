@@ -8,9 +8,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Minus, Trash2, ShoppingCart, Tag } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { useWebCart } from '@/web/cart/useWebCart'
+import { fmtNum } from '@/utils/format'
 
 function money(v: number) {
-  return Number(v).toLocaleString('ru-RU') + ' ₽'
+  return fmtNum(v) + ' ₽'
 }
 
 export default function WebCartPage() {

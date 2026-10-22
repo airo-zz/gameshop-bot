@@ -13,9 +13,10 @@ import { ordersApi, profileApi, cartApi } from '@/api'
 import { useWebCart } from '@/web/cart/useWebCart'
 import { PAY_SOURCE } from '@/config/appTarget'
 import BalanceSplitToggle, { splitPayment } from '@/components/ui/BalanceSplit'
+import { fmtNum } from '@/utils/format'
 
 function money(v: number) {
-  return Number(v).toLocaleString('ru-RU') + ' ₽'
+  return fmtNum(v) + ' ₽'
 }
 
 const METHODS = [
@@ -226,7 +227,7 @@ export default function WebCheckoutPage() {
         <div className="flex items-start gap-2 p-3 rounded-2xl mt-4" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid transparent' }}>
           <AlertCircle size={15} className="shrink-0 mt-0.5" style={{ color: '#f87171' }} />
           <p className="text-sm" style={{ color: '#f87171' }}>
-            Баланса не хватает. Выберите СБП, карту или крипту — доступный баланс спишем, а остаток оплатите.{' '}
+            Баланса недостаточно для оплаты заказа. Выберите другой способ оплаты.{' '}
             <Link to="/balance" className="underline font-semibold">Пополнить баланс</Link>
           </p>
         </div>

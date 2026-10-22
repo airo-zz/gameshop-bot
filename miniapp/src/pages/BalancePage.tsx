@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { profileApi, paymentsApi, type BalanceTransaction } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import { PAY_SOURCE } from '@/config/appTarget'
+import { fmtNum } from '@/utils/format'
 
 
 const PRESET_AMOUNTS = [200, 500, 1000, 5000, 10000]
@@ -16,7 +17,7 @@ const ENABLED_METHODS: PaymentMethod[] = ['sbp', 'card', 'crypto']
 const METHOD_LABELS: Record<PaymentMethod, string> = {
   sbp: 'СБП',
   card: 'Карта',
-  crypto: 'Крипта',
+  crypto: 'Криптовалюта',
 }
 
 const TX_LABEL: Record<string, string> = {
@@ -70,7 +71,7 @@ export default function BalancePage() {
     if (!awaiting || !profile || balanceBefore.current === null) return
     if (Number(profile.balance) > balanceBefore.current) {
       haptic.success()
-      toast.success(`Баланс пополнен: ${Number(profile.balance).toLocaleString('ru')} ₽`)
+      toast.success(`Баланс пополнен: ${fmtNum(profile.balance)} ₽`)
       setAwaitingUntil(0)
     }
   }, [awaiting, profile, haptic])
@@ -134,7 +135,7 @@ export default function BalancePage() {
           <Wallet size={16} /> Текущий баланс
         </p>
         <p className="font-display num" style={{ color: 'var(--text)', fontSize: 30, lineHeight: 1.2, marginTop: 8 }}>
-          {Number(profile?.balance ?? 0).toLocaleString('ru', { maximumFractionDigits: 2 })} ₽
+          {fmtNum(profile?.balance)} ₽
         </p>
       </div>
 
@@ -186,7 +187,7 @@ export default function BalancePage() {
                 key={m}
                 type="button"
                 onClick={() => { haptic.select(); setMethod(m) }}
-                className="flex-1 min-w-0 px-1 py-2.5 rounded-xl text-sm font-medium truncate active:opacity-80"
+                className="flex-1 min-w-0 px-1 py-2.5 rounded-xl text-[13px] font-medium truncate active:opacity-80"
                 style={{
                   background: method === m ? 'var(--accent-soft)' : 'var(--bg3)',
                   border: `1px solid ${method === m ? 'var(--accent)' : 'transparent'}`,
@@ -271,7 +272,7 @@ export default function BalancePage() {
                     className="text-sm font-semibold num flex-shrink-0"
                     style={{ color: isCredit ? '#34d399' : 'var(--text)' }}
                   >
-                    {isCredit ? '+' : '−'}{Math.abs(tx.amount).toLocaleString('ru')} ₽
+                    {isCredit ? '+' : '−'}{fmtNum(Math.abs(tx.amount))} ₽
                   </p>
                 </div>
               )

@@ -5,6 +5,7 @@ import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Package, ChevronRight, Search } from '@/components/ui/icons'
 import { ordersApi } from '@/api'
+import { fmtNum } from '@/utils/format'
 
 const STATUS_LABEL: Record<string, string> = {
   new:             'Новый',
@@ -125,7 +126,7 @@ export default function OrdersPage() {
                     {order.order_number}
                   </p>
                   <p className="font-display num text-sm" style={{ color: 'var(--text)' }}>
-                    {order.total_amount.toLocaleString('ru')} ₽
+                    {fmtNum(order.total_amount)} ₽
                   </p>
                 </div>
                 <p className="text-xs font-medium flex items-center"

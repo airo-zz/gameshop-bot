@@ -279,7 +279,7 @@ export default function CheckoutPage() {
         >
           <AlertCircle size={15} className="flex-shrink-0 mt-0.5" style={{ color: '#f87171' }} />
           <p className="text-sm" style={{ color: '#f87171' }}>
-            Баланса не хватает. Выберите СБП, карту или крипту — доступный баланс спишем, а остаток оплатите.
+            Баланса недостаточно для оплаты заказа. Выберите другой способ оплаты.
           </p>
         </div>
       )}
