@@ -71,11 +71,37 @@ def _lower_first(s: str) -> str:
     return s[0].lower() + s[1:]
 
 
+_INDECLINABLE = {"премиум", "vip", "мега", "супер"}
+
+
+def accusative(phrase: str) -> str:
+    """
+    Винительный падеж названия раздела после «купить» / «цены на»:
+    «Платина» → «платину», «Премиум подписка» → «премиум подписку»,
+    «Золотая карта» → «золотую карту». Множественное число и мужской род
+    не меняются («Бриллианты», «Боевой пропуск», «Наборы Новичка»).
+    """
+    words = phrase.split(" ")
+    for i, w in enumerate(words):
+        low = w.lower()
+        if not re.fullmatch(r"[А-Яа-яЁё-]+", w) or low in _INDECLINABLE:
+            continue  # латиница, индекс, «премиум» — смотрим дальше
+        if low.endswith(("ая", "яя")):
+            words[i] = w[:-2] + ("ую" if low.endswith("ая") else "юю")
+            continue  # прилагательное — дальше существительное
+        if low.endswith(("ый", "ий", "ой", "ые", "ие")):
+            continue  # прилагательное мужского рода / мн. числа
+        if low.endswith(("а", "я")) and len(low) > 2:
+            words[i] = w[:-1] + ("у" if low.endswith("а") else "ю")
+        break  # главное слово найдено — дальше не трогаем («Пропуск Эпизода»)
+    return " ".join(words)
+
+
 def game_seo(game, cat_names: list[str], min_price: Decimal | float | None,
              has_auto: bool, top_cashback: float | None) -> PageSeo:
     name = game.name
     names = [clean_name(c) for c in cat_names if clean_name(c)]
-    main = _lower_first(names[0]) if names else "внутриигровую валюту"
+    main = _lower_first(accusative(names[0])) if names else "внутриигровую валюту"
     what = ", ".join(_lower_first(n) for n in names[:3]) or "внутриигровая валюта и наборы"
     al = aliases(game)
     price = f" от {money(min_price)}" if min_price else ""
@@ -122,7 +148,7 @@ def game_seo(game, cat_names: list[str], min_price: Decimal | float | None,
 
 def category_seo(game, cat, min_price: Decimal | float | None, has_auto: bool) -> PageSeo:
     name, cname = game.name, clean_name(cat.name) or cat.name
-    lc = _lower_first(cname)
+    lc = _lower_first(accusative(cname))
     # «Discord Nitro» в игре Discord — не повторяем название игры
     suffix = "" if name.lower() in cname.lower() else f" {name}"
     price = f" от {money(min_price)}" if min_price else ""
