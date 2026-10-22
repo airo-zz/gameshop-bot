@@ -13,7 +13,16 @@ export default defineConfig({
   define: {
     'import.meta.env.VITE_APP_TARGET': JSON.stringify(APP_TARGET),
   },
-  plugins: [react()],
+  plugins: [
+    react(),
+    // Сплэш из index.html нужен только Mini App — на сайте вырезаем
+    {
+      name: 'strip-boot-splash',
+      transformIndexHtml(html) {
+        return isWeb ? html.replace(/<!-- boot-splash -->[\s\S]*?<!-- \/boot-splash -->/, '') : html
+      },
+    },
+  ],
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
   },

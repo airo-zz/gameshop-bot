@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Zap, Clock, Plus, Minus, ShoppingCart, Sparkles } from 'lucide-react'
+import { ChevronLeft, Zap, Clock, Plus, Minus, ShoppingCart, MessageSquarePlus } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { catalogApi } from '@/api'
 import type { Category, Product, InputField } from '@/api'
@@ -56,7 +56,7 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
           {product.name}
         </h3>
         {product.badge && !outOfStock && (
-          <span className="shrink-0 text-[10px] font-bold text-white px-1.5 py-0.5 rounded-full" style={{ background: 'linear-gradient(135deg,#f59e0b,#ef4444)' }}>
+          <span className="shrink-0 text-[10px] font-bold text-white px-1.5 py-0.5 rounded-full" style={{ background: '#EF4444' }}>
             {product.badge}
           </span>
         )}
@@ -237,7 +237,7 @@ export default function WebGamePage() {
         {game?.image_url && (
           <img src={game.image_url} alt={gameName} className="w-16 h-16 rounded-2xl object-cover border border-white/10" />
         )}
-        <h1 className="text-2xl md:text-4xl font-extrabold text-white flex-1 min-w-0">{gameName}</h1>
+        <h1 className="text-2xl md:text-4xl font-bold text-white flex-1 min-w-0">{gameName}</h1>
         {game?.custom_order_enabled && (
           <a
             href={MINIAPP_URL}
@@ -245,9 +245,9 @@ export default function WebGamePage() {
             rel="noopener noreferrer"
             title="Индивидуальный заказ оформляется в Telegram — оператор соберёт лот под вас"
             className="hidden sm:inline-flex items-center gap-1.5 shrink-0 text-sm font-semibold px-3.5 py-2 rounded-xl"
-            style={{ background: 'rgba(45,88,173,0.14)', color: '#93b8f0', border: '1px solid rgba(45,88,173,0.36)' }}
+            style={{ background: 'rgba(37,99,235,0.14)', color: 'var(--text)', border: '1px solid transparent' }}
           >
-            <Sparkles size={15} /> Индивидуальный заказ
+            <MessageSquarePlus size={15} /> Индивидуальный заказ
           </a>
         )}
       </div>
@@ -269,7 +269,7 @@ export default function WebGamePage() {
                   'px-4 py-2 rounded-xl text-sm font-medium transition-all ' +
                   (currentCatId === cat.id ? 'text-white' : 'text-white/55 bg-white/[0.03] border border-white/[0.06] hover:text-white/80')
                 }
-                style={currentCatId === cat.id ? { background: 'rgba(45,88,173,0.22)', border: '1px solid rgba(45,88,173,0.5)' } : {}}
+                style={currentCatId === cat.id ? { background: 'rgba(37,99,235,0.22)', border: '1px solid transparent' } : {}}
               >
                 {cat.name}
               </button>
@@ -286,7 +286,7 @@ export default function WebGamePage() {
                     'px-3 py-1.5 rounded-lg text-xs font-medium transition-all ' +
                     (currentCatId === sub.id ? 'text-white' : 'text-white/55 bg-white/[0.03] border border-white/[0.06] hover:text-white/80')
                   }
-                  style={currentCatId === sub.id ? { background: 'rgba(45,88,173,0.22)', border: '1px solid rgba(45,88,173,0.5)' } : {}}
+                  style={currentCatId === sub.id ? { background: 'rgba(37,99,235,0.22)', border: '1px solid transparent' } : {}}
                 >
                   {sub.name}
                 </button>
@@ -297,7 +297,7 @@ export default function WebGamePage() {
           {currentCat?.delivery_type && currentCat.delivery_type !== 'mixed' && (
             <div className="mb-5">
               {currentCat.delivery_type === 'auto' ? (
-                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(16,185,129,0.12)', color: '#34d399', border: '1px solid rgba(16,185,129,0.25)' }}>
+                <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(16,185,129,0.12)', color: '#34d399', border: '1px solid transparent' }}>
                   <Zap size={11} fill="#34d399" stroke="none" /> Автовыдача
                 </span>
               ) : (
@@ -319,7 +319,7 @@ export default function WebGamePage() {
           ) : (
             <>
             {isTgAuto && tgFieldDefs.length > 0 && (
-              <div id="tg-recipient" className="rounded-2xl p-4 mb-4 max-w-xl" style={{ background: 'var(--bg2)', border: '1px solid rgba(45,88,173,0.35)' }}>
+              <div id="tg-recipient" className="rounded-2xl p-4 mb-4 max-w-xl" style={{ background: 'var(--bg2)', border: '1px solid transparent' }}>
                 <p className="text-sm font-semibold mb-3" style={{ color: 'var(--link)' }}>Данные получателя</p>
                 <div className="space-y-3">
                   {tgFieldDefs.map((f) => (

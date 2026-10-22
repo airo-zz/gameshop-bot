@@ -15,13 +15,12 @@ export default function FavoritesPage() {
 
   if (isError) return (
     <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-      <p className="text-5xl mb-4">😔</p>
       <p className="text-sm mb-4" style={{ color: 'var(--hint)' }}>Не удалось загрузить данные</p>
       <button
         type="button"
         onClick={() => refetch()}
-        className="px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
-        style={{ background: 'rgba(45,88,173,0.16)', border: '1px solid rgba(45,88,173,0.38)', color: '#6b9de8' }}
+        className="px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-[0.97]"
+        style={{ background: 'var(--accent-soft)', color: 'var(--link)' }}
       >
         Повторить
       </button>
@@ -39,7 +38,7 @@ export default function FavoritesPage() {
 
   return (
     <div className="px-4 pt-5 pb-4 space-y-4">
-      <h1 className="text-xl font-extrabold flex items-center gap-2" style={{ color: 'var(--text)' }}>
+      <h1 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--text)' }}>
         <Heart size={20} fill="currentColor" style={{ color: '#f87171' }} />
         Избранное
       </h1>

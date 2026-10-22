@@ -66,18 +66,20 @@ const randS = (n: number) => n - rand(2 * n)
 
 // ── Config ────────────────────────────────────────────────────────────────────
 const IS_MOBILE = typeof window !== 'undefined' && window.innerWidth < 768
-const TARGET_FPS = IS_MOBILE ? 24 : 60
+const TARGET_FPS = IS_MOBILE ? 30 : 60
 const FRAME_MS   = 1000 / TARGET_FPS
 
 function getDPR() {
   return IS_MOBILE ? Math.min(devicePixelRatio, 1.5) : (devicePixelRatio || 1)
 }
 
-// Particle settings — magenta/pink palette
-const PARTICLE_COUNT = IS_MOBILE ? 40  : 150
-const RANGE_Y        = 100
-const BASE_HUE       = 295   // pink-magenta base (#d946ef territory)
-const RANGE_SPEED    = 1.2
+// Приглушённые однотонные частицы в цвет бренда (#2563EB → чуть светлее для тёмного фона)
+const PARTICLE_COUNT = IS_MOBILE ? 24  : 60
+const RANGE_Y        = 140
+const BASE_HUE       = 220   // синий бренда
+const MAX_ALPHA      = 0.28  // фон, а не эффект — едва заметно
+const RANGE_SPEED    = 0.5
+const START_DELAY_MS = 900   // стартуем после сплэша, чтобы не конкурировать с первым рендером
 const PROPS_PER      = 9     // x y vx vy life maxLife speed size hue
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -117,8 +119,8 @@ export default function ParticleCanvas() {
       props[i+4] = 0
       props[i+5] = 50 + rand(150)
       props[i+6] = rand(RANGE_SPEED)
-      props[i+7] = 1 + rand(2)
-      props[i+8] = BASE_HUE + rand(50)   // magenta → pink range
+      props[i+7] = 1 + rand(1)
+      props[i+8] = BASE_HUE + rand(10)
     }
 
     for (let i = 0; i < total; i += PROPS_PER) initParticle(i)
@@ -152,9 +154,6 @@ export default function ParticleCanvas() {
       tick++
 
       ctx.clearRect(0, 0, W, H)
-      // transparent background — page bg shows through
-      ctx.fillStyle = 'rgba(8,8,16,0)'
-      ctx.fillRect(0, 0, W, H)
 
       for (let i = 0; i < total; i += PROPS_PER) {
         const x      = props[i]
@@ -176,7 +175,7 @@ export default function ParticleCanvas() {
         const alpha = triWave(life, maxLife)
 
         ctx.lineWidth   = size
-        ctx.strokeStyle = `hsla(${hue},100%,68%,${Math.min(alpha * 1.25, 1).toFixed(3)})`
+        ctx.strokeStyle = `hsla(${hue},80%,66%,${(alpha * MAX_ALPHA).toFixed(3)})`
         ctx.beginPath()
         ctx.moveTo(x, y)
         ctx.lineTo(nx, ny)
@@ -193,21 +192,9 @@ export default function ParticleCanvas() {
         }
       }
 
-      // Bloom (desktop only — exact from reference)
-      if (!IS_MOBILE) {
-        try {
-          ctx.save()
-          ctx.filter = 'blur(8px) brightness(200%)'
-          ctx.globalCompositeOperation = 'lighter'
-          ctx.drawImage(canvas!, 0, 0, W, H)
-          ctx.restore()
-        } catch {
-          ctx.restore()
-        }
-      }
-
     }
 
+    paused = document.hidden
     const onVisibility = () => { paused = document.hidden }
     document.addEventListener('visibilitychange', onVisibility)
 
@@ -217,12 +204,16 @@ export default function ParticleCanvas() {
     tg?.onEvent?.('activated',   onActivated)
     tg?.onEvent?.('deactivated', onDeactivated)
 
-    if (!document.hidden) {
+    // Пользователь просил меньше движения — не запускаем вовсе
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    const startTimer = reduceMotion ? 0 : window.setTimeout(() => {
       lastFrame = performance.now()
       raf = requestAnimationFrame(draw)
-    }
+      canvas.style.opacity = '1'
+    }, START_DELAY_MS)
 
     return () => {
+      clearTimeout(startTimer)
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', resize)
       document.removeEventListener('visibilitychange', onVisibility)
@@ -243,8 +234,8 @@ export default function ParticleCanvas() {
         pointerEvents: 'none',
         display: 'block',
         contain: 'strict',
-        backfaceVisibility: 'hidden',
-        willChange: 'contents',
+        opacity: 0,
+        transition: 'opacity 1s ease',
       }}
     />
   )

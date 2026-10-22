@@ -100,9 +100,9 @@ export default function CustomOrderPage() {
       {/* Пояснение — «что это за кнопка» */}
       <div style={{
         display: 'flex', gap: 10, padding: '12px 14px', borderRadius: 14, marginBottom: 16,
-        background: 'rgba(45,88,173,0.10)', border: '1px solid rgba(45,88,173,0.28)',
+        background: 'rgba(37,99,235,0.10)', border: '1px solid transparent',
       }}>
-        <Info size={18} style={{ color: '#6b9de8', flexShrink: 0, marginTop: 1 }} />
+        <Info size={18} style={{ color: 'var(--link)', flexShrink: 0, marginTop: 1 }} />
         <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, opacity: 0.9 }}>
           {copy.intro}
         </p>
@@ -119,7 +119,7 @@ export default function CustomOrderPage() {
         rows={4}
         style={{
           width: '100%', borderRadius: 14, padding: '12px 14px', resize: 'vertical',
-          background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)',
+          background: 'rgba(220,235,255,0.05)', border: '1px solid rgba(220,235,255,0.12)',
           color: 'var(--text)', fontSize: 14, lineHeight: 1.45, marginBottom: 16,
         }}
       />
@@ -134,7 +134,7 @@ export default function CustomOrderPage() {
             <img
               src={URL.createObjectURL(f)}
               alt=""
-              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12, border: '1px solid rgba(255,255,255,0.12)' }}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12, border: '1px solid rgba(220,235,255,0.12)' }}
             />
             <button
               type="button"
@@ -152,7 +152,7 @@ export default function CustomOrderPage() {
         {files.length < MAX_FILES && (
           <label style={{
             width: 72, height: 72, borderRadius: 12, cursor: 'pointer',
-            border: '1px dashed rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.03)',
+            border: '1px dashed rgba(220,235,255,0.25)', background: 'rgba(220,235,255,0.03)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             <ImagePlus size={22} style={{ color: 'var(--hint)' }} />
@@ -168,7 +168,7 @@ export default function CustomOrderPage() {
         style={{
           width: '100%', padding: '14px', borderRadius: 14, border: 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          background: sending ? 'rgba(45,88,173,0.4)' : 'linear-gradient(135deg, #2563eb, #2d58ad)',
+          background: sending ? 'rgba(37,99,235,0.4)' : 'var(--accent)',
           color: '#fff', fontSize: 15, fontWeight: 700, cursor: sending ? 'not-allowed' : 'pointer',
         }}
       >

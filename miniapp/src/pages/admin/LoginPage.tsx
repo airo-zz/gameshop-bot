@@ -49,7 +49,7 @@ export default function AdminLoginPage() {
   return (
     <div
       className="min-h-screen flex flex-col items-center justify-center px-4"
-      style={{ background: '#060f1e' }}
+      style={{ background: '#101C36' }}
     >
       {/* Card */}
       <div className="w-full max-w-sm bg-white/[0.04] border border-white/[0.08] rounded-3xl p-8 flex flex-col items-center gap-6 shadow-[0_0_40px_rgba(0,0,0,0.4)] backdrop-blur-sm">

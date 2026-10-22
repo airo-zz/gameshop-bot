@@ -121,12 +121,12 @@ export default function BalancePage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center justify-center w-9 h-9 rounded-xl active:scale-95 transition-transform flex-shrink-0"
+          className="flex items-center justify-center w-9 h-9 rounded-xl active:scale-[0.97] transition-transform flex-shrink-0"
           style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
         >
           <ArrowLeft size={18} style={{ color: 'var(--text)' }} />
         </button>
-        <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>Баланс</h1>
+        <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Баланс</h1>
       </div>
 
       {/* Balance card */}
@@ -137,13 +137,13 @@ export default function BalancePage() {
         <div className="flex items-center gap-2 mb-3">
           <div
             className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(107,157,232,0.12)', border: '1px solid rgba(107,157,232,0.18)' }}
+            style={{ background: 'rgba(127,166,245,0.12)', border: '1px solid transparent' }}
           >
-            <Wallet size={18} style={{ color: '#6b9de8' }} />
+            <Wallet size={18} style={{ color: 'var(--link)' }} />
           </div>
           <span className="text-sm font-medium" style={{ color: 'var(--hint)' }}>Текущий баланс</span>
         </div>
-        <p className="text-3xl font-extrabold" style={{ color: '#6b9de8' }}>
+        <p className="text-3xl font-bold" style={{ color: 'var(--link)' }}>
           {Number(profile?.balance ?? 0).toLocaleString('ru')} ₽
         </p>
       </div>
@@ -164,11 +164,11 @@ export default function BalancePage() {
                 key={preset}
                 type="button"
                 onClick={() => { haptic.select(); setAmount(String(preset)) }}
-                className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all active:scale-95"
+                className="flex-1 py-2 rounded-xl text-sm font-semibold transition-all active:scale-[0.97]"
                 style={{
-                  background: numericAmount === preset ? 'rgba(107,157,232,0.2)' : 'var(--bg3, rgba(255,255,255,0.06))',
-                  border: `1px solid ${numericAmount === preset ? 'rgba(107,157,232,0.4)' : 'var(--border)'}`,
-                  color: numericAmount === preset ? '#6b9de8' : 'var(--text)',
+                  background: numericAmount === preset ? 'rgba(127,166,245,0.2)' : 'var(--bg3, rgba(220,235,255,0.06))',
+                  border: `1px solid ${numericAmount === preset ? 'rgba(127,166,245,0.4)' : 'var(--border)'}`,
+                  color: numericAmount === preset ? '#7FA6F5' : 'var(--text)',
                 }}
               >
                 {preset}
@@ -196,11 +196,11 @@ export default function BalancePage() {
                 key={m}
                 type="button"
                 onClick={() => { haptic.select(); setMethod(m) }}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-95"
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.97]"
                 style={{
-                  background: method === m ? 'rgba(107,157,232,0.2)' : 'var(--bg3, rgba(255,255,255,0.06))',
-                  border: `1px solid ${method === m ? 'rgba(107,157,232,0.4)' : 'var(--border)'}`,
-                  color: method === m ? '#6b9de8' : 'var(--text)',
+                  background: method === m ? 'rgba(127,166,245,0.2)' : 'var(--bg3, rgba(220,235,255,0.06))',
+                  border: `1px solid ${method === m ? 'rgba(127,166,245,0.4)' : 'var(--border)'}`,
+                  color: method === m ? '#7FA6F5' : 'var(--text)',
                 }}
               >
                 {METHOD_LABELS[m]}
@@ -217,7 +217,7 @@ export default function BalancePage() {
           disabled={!canSubmit}
           className="w-full py-3 rounded-xl font-semibold text-sm transition-all active:scale-[0.98]"
           style={{
-            background: canSubmit ? 'rgba(45,88,173,0.85)' : 'var(--bg3, rgba(255,255,255,0.06))',
+            background: canSubmit ? 'var(--accent)' : 'var(--bg3, rgba(220,235,255,0.06))',
             color: canSubmit ? '#fff' : 'var(--hint)',
             cursor: canSubmit ? 'pointer' : 'not-allowed',
             opacity: loading ? 0.7 : 1,

@@ -306,7 +306,7 @@ function CustomLotModal({ chatId, onClose, onCreated }: {
         </div>
         <button onClick={submit} disabled={saving} style={{
           padding: '12px', borderRadius: 12, border: 'none',
-          background: saving ? 'rgba(45,88,173,0.4)' : 'linear-gradient(135deg, #2563eb, #2d58ad)',
+          background: saving ? 'rgba(37,99,235,0.4)' : 'linear-gradient(135deg, #2563eb, #2563EB)',
           color: '#fff', fontSize: 14, fontWeight: 700, cursor: saving ? 'default' : 'pointer',
         }}>
           {saving ? 'Создание…' : 'Создать и отправить в чат'}
@@ -729,7 +729,7 @@ function ChatListPanel({
                 {/* Avatar */}
                 <div style={{
                   width: 38, height: 38, borderRadius: '50%', flexShrink: 0,
-                  background: 'linear-gradient(135deg, #1e3a8a, #1d4ed8)',
+                  background: 'linear-gradient(135deg, #1D4ED8, #1d4ed8)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 14, fontWeight: 700, color: '#fff',
                 }}>
@@ -759,7 +759,7 @@ function ChatListPanel({
                     {hasUnread && (
                       <span style={{
                         flexShrink: 0, minWidth: 18, height: 18, borderRadius: 9,
-                        background: 'linear-gradient(135deg, #2d58ad, #1e3f8a)',
+                        background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
                         color: '#fff', fontSize: 10, fontWeight: 700,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         padding: '0 5px',
@@ -946,7 +946,7 @@ function ChatDetailPanel({
         {chat && (
           <div style={{
             width: 32, height: 32, borderRadius: '50%', flexShrink: 0,
-            background: 'linear-gradient(135deg, #1e3a8a, #1d4ed8)',
+            background: 'linear-gradient(135deg, #1D4ED8, #1d4ed8)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 13, fontWeight: 700, color: '#fff',
           }}>

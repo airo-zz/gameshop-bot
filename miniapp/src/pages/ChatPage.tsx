@@ -14,6 +14,7 @@ import { Link } from 'react-router-dom'
 import { chatApi, type ChatMessage } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import logo from '@/assets/logo-mark.png'
+import { NAV_HEIGHT } from '@/components/layout/Layout'
 
 // ── Image compression ─────────────────────────────────────────────────────────
 
@@ -124,23 +125,23 @@ function SystemMessage({ text }: { text: string }) {
       <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 8px', marginBottom: 8 }}>
         <div style={{
           display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 16px',
-          borderRadius: 16, background: 'rgba(45,88,173,0.12)',
-          border: '1px solid rgba(45,88,173,0.35)', maxWidth: '88%', width: '100%',
+          borderRadius: 16, background: 'var(--bg2)',
+          border: '1px solid var(--border)', maxWidth: '88%', width: '100%',
         }}>
-          <span style={{ fontSize: 11, color: '#6b9de8', fontWeight: 700, letterSpacing: 0.3 }}>
+          <span style={{ fontSize: 11, color: 'var(--link)', fontWeight: 700, letterSpacing: 0.3 }}>
             ИНДИВИДУАЛЬНЫЙ ЛОТ
           </span>
-          <span style={{ fontSize: 14, color: '#fff', fontWeight: 500, lineHeight: 1.4, wordBreak: 'break-word' }}>
+          <span style={{ fontSize: 14, color: 'var(--text)', fontWeight: 500, lineHeight: 1.4, wordBreak: 'break-word' }}>
             {title}
           </span>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#93b8f0' }}>
+          <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--text)' }}>
             {Number(price).toLocaleString('ru')} ₽
           </span>
           <Link
             to={`/pay/${oid}`}
             style={{
               marginTop: 2, textAlign: 'center', padding: '10px 14px', borderRadius: 12,
-              background: 'linear-gradient(135deg, #2563eb, #2d58ad)', color: '#fff',
+              background: 'var(--accent)', color: '#fff',
               fontSize: 14, fontWeight: 600, textDecoration: 'none',
             }}
           >
@@ -161,14 +162,14 @@ function SystemMessage({ text }: { text: string }) {
         <div style={{
           display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 8,
           padding: '12px 16px', borderRadius: 16,
-          background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)',
+          background: 'rgba(16,185,129,0.1)', border: '1px solid transparent',
           maxWidth: '88%',
         }}>
           <span style={{ fontSize: 12, color: '#34d399', fontWeight: 700, letterSpacing: 0.2 }}>
             Оплата подтверждена
           </span>
           <p style={{
-            margin: 0, fontSize: 13, color: 'rgba(255,255,255,0.75)',
+            margin: 0, fontSize: 13, color: 'rgba(220,235,255,0.75)',
             textAlign: 'center', lineHeight: 1.5,
           }}>
             {displayText}
@@ -177,10 +178,10 @@ function SystemMessage({ text }: { text: string }) {
             <Link
               to={`/orders/${orderId}`}
               style={{
-                fontSize: 11, color: 'rgba(255,255,255,0.45)',
+                fontSize: 11, color: 'rgba(220,235,255,0.45)',
                 textDecoration: 'none', padding: '3px 10px',
-                borderRadius: 20, border: '1px solid rgba(255,255,255,0.12)',
-                background: 'rgba(255,255,255,0.05)',
+                borderRadius: 20, border: '1px solid rgba(220,235,255,0.12)',
+                background: 'rgba(220,235,255,0.05)',
               }}
             >
               Перейти в заказ
@@ -194,9 +195,9 @@ function SystemMessage({ text }: { text: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 8px', marginBottom: 8 }}>
       <span style={{
-        fontSize: 12, color: 'rgba(255,255,255,0.55)',
+        fontSize: 12, color: 'rgba(220,235,255,0.55)',
         display: 'inline-block', padding: '8px 14px', borderRadius: 16,
-        background: 'rgba(255,255,255,0.04)',
+        background: 'rgba(220,235,255,0.04)',
         maxWidth: '88%', textAlign: 'center', lineHeight: 1.5,
         whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere',
       }}>
@@ -211,7 +212,7 @@ function SystemMessage({ text }: { text: string }) {
 function DateSeparator({ label }: { label: string }) {
   return (
     <div style={{ textAlign: 'center', margin: '12px 0 8px' }}>
-      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.25)', padding: '3px 10px', borderRadius: 10, background: 'rgba(255,255,255,0.05)' }}>
+      <span style={{ fontSize: 11, color: 'rgba(220,235,255,0.25)', padding: '3px 10px', borderRadius: 10, background: 'rgba(220,235,255,0.05)' }}>
         {label}
       </span>
     </div>
@@ -234,18 +235,18 @@ function MessageBubble({
         maxWidth: '80%',
         padding: '8px 12px',
         borderRadius: isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-        background: isUser ? 'rgba(29,78,216,0.85)' : 'rgba(255,255,255,0.07)',
-        border: isUser ? '1px solid rgba(96,165,250,0.2)' : '1px solid rgba(255,255,255,0.06)',
+        background: isUser ? 'var(--accent)' : 'var(--bg2)',
+        border: 'none',
         opacity: msg.optimistic ? 0.65 : 1,
         transition: 'opacity 0.2s',
       }}>
         {isAdmin && (
-          <p style={{ fontSize: 10, fontWeight: 700, color: '#3b82f6', marginBottom: 3, userSelect: 'none' }}>
+          <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--link)', marginBottom: 3, userSelect: 'none' }}>
             Продавец
           </p>
         )}
         {msg.text && (
-          <p style={{ fontSize: 14, color: '#fff', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.45, margin: 0, userSelect: 'text', WebkitUserSelect: 'text' }}>
+          <p style={{ fontSize: 14, color: isUser ? '#fff' : 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: 1.45, margin: 0, userSelect: 'text', WebkitUserSelect: 'text' }}>
             <TextWithLinks text={msg.text} />
           </p>
         )}
@@ -268,7 +269,7 @@ function MessageBubble({
                   type="button"
                   data-file-url={absUrl}
                   onClick={() => { const tg = (window as any).Telegram?.WebApp; if (tg?.openLink) tg.openLink(absUrl); else window.open(absUrl, '_blank') }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.7)', fontSize: 12, cursor: 'pointer', touchAction: 'none', WebkitTapHighlightColor: 'transparent' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 10px', borderRadius: 8, background: 'rgba(220,235,255,0.08)', border: '1px solid rgba(220,235,255,0.12)', color: 'rgba(220,235,255,0.7)', fontSize: 12, cursor: 'pointer', touchAction: 'none', WebkitTapHighlightColor: 'transparent' }}
                 >
                   <Paperclip size={12} /> Файл {idx + 1}
                 </button>
@@ -276,7 +277,7 @@ function MessageBubble({
             })}
           </div>
         )}
-        <p style={{ fontSize: 10, color: isUser ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.25)', marginTop: 4, marginBottom: 0, textAlign: 'right' }}>
+        <p style={{ fontSize: 10, color: isUser ? 'rgba(220,235,255,0.4)' : 'rgba(220,235,255,0.25)', marginTop: 4, marginBottom: 0, textAlign: 'right' }}>
           {msg.optimistic ? '...' : formatTime(msg.created_at)}
         </p>
       </div>
@@ -475,19 +476,19 @@ export default function ChatPage() {
       <div style={{
         flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10,
         padding: '0 16px', height: 56,
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
-        background: 'rgba(6,15,30,0.97)',
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--bg)',
       }}>
         <div style={{
           width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-          background: 'linear-gradient(135deg, #1e3a8a, #1d4ed8)',
+          background: 'var(--accent)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <img src={logo} alt="" style={{ width: 22, height: 22, objectFit: 'contain' }} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 14, fontWeight: 700, color: '#fff', margin: 0, lineHeight: 1.3 }}>Продавец</p>
-          <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', margin: 0, lineHeight: 1 }}>Онлайн</p>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', margin: 0, lineHeight: 1.3 }}>Продавец</p>
+          <p style={{ fontSize: 11, color: 'var(--hint)', margin: 0, lineHeight: 1 }}>Онлайн</p>
         </div>
       </div>
 
@@ -495,7 +496,7 @@ export default function ChatPage() {
       {orderIdParam && (
         <div style={{
           flexShrink: 0, padding: '8px 16px',
-          background: 'rgba(16,185,129,0.12)', borderBottom: '1px solid rgba(16,185,129,0.2)',
+          background: 'rgba(16,185,129,0.12)', borderBottom: '1px solid transparent',
           display: 'flex', alignItems: 'center', gap: 8,
         }}>
           <span style={{ fontSize: 12, color: '#34d399' }}>
@@ -531,7 +532,7 @@ export default function ChatPage() {
             >
               <div style={{
                 width: 64, height: 64, borderRadius: 22,
-                background: 'rgba(29,78,216,0.12)', border: '1px solid rgba(29,78,216,0.2)',
+                background: 'rgba(29,78,216,0.12)', border: '1px solid transparent',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
                 <img src={logo} alt="" style={{ width: 48, height: 48, objectFit: 'contain' }} />
@@ -587,11 +588,11 @@ export default function ChatPage() {
 
       {/* Attached files preview */}
       {attachedFiles.length > 0 && (
-        <div style={{ flexShrink: 0, display: 'flex', gap: 8, flexWrap: 'wrap', padding: '8px 14px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+        <div style={{ flexShrink: 0, display: 'flex', gap: 8, flexWrap: 'wrap', padding: '8px 14px', borderTop: '1px solid rgba(220,235,255,0.05)' }}>
           {attachedFiles.map((f, i) => (
             <div key={i} style={{ position: 'relative' }}>
               <img src={URL.createObjectURL(f)} alt=""
-                style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)' }} />
+                style={{ width: 52, height: 52, objectFit: 'cover', borderRadius: 8, border: '1px solid rgba(220,235,255,0.1)' }} />
               <button
                 onClick={() => setAttachedFiles(prev => prev.filter((_, j) => j !== i))}
                 style={{ position: 'absolute', top: -4, right: -4, width: 18, height: 18, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
@@ -606,17 +607,17 @@ export default function ChatPage() {
       {/* Input bar */}
       <div style={{
         flexShrink: 0, padding: '8px 12px',
-        paddingBottom: keyboardOpen ? '8px' : 'calc(env(safe-area-inset-bottom, 0px) + 96px)',
-        background: '#060f1e', borderTop: '1px solid rgba(255,255,255,0.05)',
+        paddingBottom: keyboardOpen ? '8px' : `calc(env(safe-area-inset-bottom, 0px) + ${NAV_HEIGHT + 8}px)`,
+        background: 'var(--bg)', borderTop: '1px solid var(--border)',
       }}>
         <form
           onSubmit={handleSend}
-          style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 20, padding: '6px 6px 6px 14px' }}
+          style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 20, padding: '6px 6px 6px 14px' }}
         >
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 10, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.4)', cursor: 'pointer' }}
+            style={{ flexShrink: 0, width: 32, height: 32, borderRadius: 10, background: 'transparent', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--hint)', cursor: 'pointer' }}
           >
             <Paperclip size={18} />
           </button>
@@ -627,19 +628,19 @@ export default function ChatPage() {
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() } }}
             placeholder="Написать сообщение..."
             rows={1}
-            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', resize: 'none', fontSize: 14, color: '#fff', minHeight: 32, maxHeight: 120, lineHeight: 1.5, padding: '4px 0' }}
+            style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', resize: 'none', fontSize: 14, color: 'var(--text)', minHeight: 32, maxHeight: 120, lineHeight: 1.5, padding: '4px 0' }}
           />
           <button
             type="submit"
             disabled={(!text.trim() && attachedFiles.length === 0) || sending || uploading}
             style={{
               flexShrink: 0, width: 36, height: 36, borderRadius: 12, border: 'none',
-              background: (text.trim() || attachedFiles.length > 0) ? 'linear-gradient(135deg, #1d4ed8, #2563eb)' : 'rgba(255,255,255,0.08)',
+              background: (text.trim() || attachedFiles.length > 0) ? 'var(--accent)' : 'var(--bg3)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'background 0.2s',
             }}
           >
             {sending || uploading
-              ? <div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+              ? <div style={{ width: 16, height: 16, border: '2px solid rgba(220,235,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
               : <Send size={16} color="#fff" />
             }
           </button>

@@ -54,7 +54,7 @@ export default function PayOrderPage() {
       <div style={{ textAlign: 'center', padding: '48px 20px' }}>
         <CheckCircle size={44} style={{ color: '#34d399', margin: '0 auto 12px' }} />
         <p style={{ color: 'var(--text)', fontWeight: 600, marginBottom: 8 }}>Заказ уже оплачен или обрабатывается</p>
-        <Link to={`/orders/${order.id}`} style={{ color: '#6b9de8' }}>Открыть заказ</Link>
+        <Link to={`/orders/${order.id}`} style={{ color: 'var(--link)' }}>Открыть заказ</Link>
       </div>
     )
   }
@@ -98,7 +98,7 @@ export default function PayOrderPage() {
       </h1>
 
       {/* Состав заказа */}
-      <div style={{ background: 'var(--bg2)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: '14px 16px', marginBottom: 16 }}>
+      <div style={{ background: 'var(--bg2)', border: '1px solid rgba(220,235,255,0.08)', borderRadius: 16, padding: '14px 16px', marginBottom: 16 }}>
         <p style={{ fontSize: 12, color: 'var(--hint)', marginBottom: 8 }}>Заказ {order.order_number}</p>
         {order.items.map(it => (
           <p key={it.id} style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', wordBreak: 'break-word', marginBottom: 4 }}>
@@ -121,17 +121,17 @@ export default function PayOrderPage() {
               onClick={() => { setMethod(m.id); haptic.impact('light') }}
               style={{
                 display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14,
-                background: active ? 'rgba(45,88,173,0.16)' : 'var(--bg2)',
-                border: active ? '1px solid rgba(45,88,173,0.6)' : '1px solid rgba(255,255,255,0.08)',
+                background: active ? 'var(--accent-soft)' : 'var(--bg2)',
+                border: active ? '1px solid var(--accent)' : '1px solid var(--border)',
                 color: 'var(--text)', textAlign: 'left', cursor: 'pointer',
               }}>
-              <span style={{ color: active ? '#6b9de8' : 'var(--hint)' }}>{m.icon}</span>
+              <span style={{ color: active ? 'var(--link)' : 'var(--hint)' }}>{m.icon}</span>
               <span style={{ flex: 1 }}>
                 <span style={{ display: 'block', fontSize: 14, fontWeight: 600 }}>{m.label}</span>
                 <span style={{ display: 'block', fontSize: 11, color: 'var(--hint)' }}>{m.description}</span>
               </span>
               {price != null && (
-                <span style={{ fontSize: 14, fontWeight: 700, color: '#93b8f0' }}>{fmtPrice(price)} ₽</span>
+                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text)' }}>{fmtPrice(price)} ₽</span>
               )}
             </button>
           )
@@ -145,7 +145,7 @@ export default function PayOrderPage() {
       )}
 
       {insufficient && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 12, background: 'rgba(239,68,68,0.1)', border: '1px solid transparent', marginBottom: 12 }}>
           <AlertCircle size={16} style={{ color: '#f87171', flexShrink: 0 }} />
           <span style={{ fontSize: 12, color: '#fca5a5' }}>Недостаточно средств на балансе</span>
         </div>
@@ -154,7 +154,7 @@ export default function PayOrderPage() {
       <button type="button" onClick={handlePay} disabled={paying || !!insufficient}
         style={{
           width: '100%', padding: '14px', borderRadius: 14, border: 'none',
-          background: (paying || insufficient) ? 'rgba(45,88,173,0.4)' : 'linear-gradient(135deg, #2563eb, #2d58ad)',
+          background: (paying || insufficient) ? 'rgba(37,99,235,0.4)' : 'var(--accent)',
           color: '#fff', fontSize: 15, fontWeight: 700, cursor: (paying || insufficient) ? 'not-allowed' : 'pointer',
         }}>
         {paying ? 'Оплата…' : `Оплатить ${fmtPrice(payTotal)} ₽`}

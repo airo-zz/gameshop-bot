@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#060f1e" />
+    <meta name="theme-color" content="#0A1326" />
     <title>reDonate — игровой донат, Telegram Stars и Premium</title>
     <meta name="description" content="Пополнение игр, Telegram Stars и Premium быстро и безопасно. Оплата через СБП, картой или криптовалютой, автовыдача и живая поддержка." />
 
@@ -24,10 +24,40 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://redonate.su/og-image.png" />
 
-    <!-- Telegram WebApp SDK — обязательно до всего остального -->
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <!-- Telegram WebApp SDK. defer: не блокирует отрисовку сплэша, но всё равно
+         выполняется до main.tsx (defer- и module-скрипты идут в порядке документа) -->
+    <script defer src="https://telegram.org/js/telegram-web-app.js"></script>
   </head>
-  <body style="background:#010509">
+  <body style="background:#0A1326">
+    <!-- boot-splash -->
+    <!-- Сплэш рисуется браузером сразу, до загрузки JS. Только CSS, анимируются
+         лишь opacity/transform — не дёргается, пока main thread занят инициализацией.
+         Убирается из App.tsx (hideBootSplash). В web-сборке вырезается vite-плагином. -->
+    <style>
+      #boot-splash {
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+        background: #0A1326;
+        transition: opacity .3s ease;
+        will-change: opacity;
+      }
+      #boot-splash.is-hidden { opacity: 0; pointer-events: none; }
+      #boot-splash .bs-inner {
+        display: flex; flex-direction: column; align-items: center; gap: 20px;
+        animation: bsIn .4s ease-out both;
+      }
+      #boot-splash .bs-icon { width: 72px; height: 72px; border-radius: 18px; display: block; }
+      #boot-splash .bs-word { height: 26px; width: auto; display: block; }
+      @keyframes bsIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+      @media (prefers-reduced-motion: reduce) { #boot-splash .bs-inner { animation: none; } }
+    </style>
+    <div id="boot-splash" aria-hidden="true">
+      <div class="bs-inner">
+        <img class="bs-icon" src="/src/assets/logo-icon.png" alt="" decoding="sync" fetchpriority="high" />
+        <img class="bs-word" src="/src/assets/logo-full.png" alt="" decoding="sync" fetchpriority="high" />
+      </div>
+    </div>
+    <!-- /boot-splash -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -76,7 +76,7 @@ export default function IntegrationsPage() {
   return (
     <div className="space-y-4 pb-8 max-w-lg">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(45,88,173,0.15)', color: 'var(--link)' }}>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.15)', color: 'var(--link)' }}>
           <Zap size={20} />
         </div>
         <div>
@@ -160,8 +160,8 @@ export default function IntegrationsPage() {
         <div>
           <label className="text-xs text-white/50 mb-1.5 block">Оплата на Fragment</label>
           <select value={payment} onChange={(e) => setPayment(e.target.value)} className={inputCls + ' appearance-none'}>
-            <option value="ton" className="bg-[#060f1e]">TON</option>
-            <option value="usdt_ton" className="bg-[#060f1e]">USDT (TON)</option>
+            <option value="ton" className="bg-[#101C36]">TON</option>
+            <option value="usdt_ton" className="bg-[#101C36]">USDT (TON)</option>
           </select>
         </div>
 

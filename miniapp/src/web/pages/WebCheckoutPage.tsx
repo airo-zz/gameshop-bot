@@ -95,7 +95,7 @@ export default function WebCheckoutPage() {
 
   return (
     <div className="web-container py-8 md:py-12 max-w-2xl">
-      <h1 className="text-2xl md:text-3xl font-extrabold text-white mb-6">Оформление</h1>
+      <h1 className="text-2xl md:text-3xl font-bold text-white mb-6">Оформление</h1>
 
       {/* Состав */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 mb-6">
@@ -166,8 +166,8 @@ export default function WebCheckoutPage() {
               onClick={() => setMethod(m.id)}
               className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all active:scale-[0.99]"
               style={{
-                background: selected ? 'rgba(45,88,173,0.22)' : 'var(--bg2)',
-                border: selected ? '1.5px solid rgba(45,88,173,0.55)' : '1.5px solid var(--border)',
+                background: selected ? 'rgba(37,99,235,0.22)' : 'var(--bg2)',
+                border: selected ? '1.5px solid transparent' : '1.5px solid var(--border)',
                 opacity: disabled ? 0.5 : 1,
               }}
             >
@@ -198,7 +198,7 @@ export default function WebCheckoutPage() {
       )}
 
       {insufficientBalance && (
-        <div className="flex items-start gap-2 p-3 rounded-2xl mt-4" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}>
+        <div className="flex items-start gap-2 p-3 rounded-2xl mt-4" style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid transparent' }}>
           <AlertCircle size={15} className="shrink-0 mt-0.5" style={{ color: '#f87171' }} />
           <p className="text-sm" style={{ color: '#f87171' }}>
             Недостаточно средств.{' '}

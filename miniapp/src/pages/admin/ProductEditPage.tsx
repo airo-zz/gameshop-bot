@@ -544,9 +544,9 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
               onChange={(e) => handleGameChange(e.target.value)}
               className={inputCls + ' appearance-none'}
             >
-              <option value="" className="bg-[#060f1e]">— Выберите игру —</option>
+              <option value="" className="bg-[#101C36]">— Выберите игру —</option>
               {games.map((game) => (
-                <option key={game.id} value={game.id} className="bg-[#060f1e]">
+                <option key={game.id} value={game.id} className="bg-[#101C36]">
                   {game.name}
                 </option>
               ))}
@@ -563,11 +563,11 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
               disabled={!form.game_id || loadingCats}
               className={inputCls + ' appearance-none disabled:opacity-40'}
             >
-              <option value="" className="bg-[#060f1e]">
+              <option value="" className="bg-[#101C36]">
                 {loadingCats ? 'Загрузка...' : '— Выберите категорию —'}
               </option>
               {categories.map((cat) => (
-                <option key={cat.id} value={cat.id} className="bg-[#060f1e]">
+                <option key={cat.id} value={cat.id} className="bg-[#101C36]">
                   {cat.name}
                 </option>
               ))}
@@ -733,7 +733,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
             className={inputCls + ' appearance-none'}
           >
             {DELIVERY_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value} className="bg-[#060f1e]">
+              <option key={opt.value} value={opt.value} className="bg-[#101C36]">
                 {opt.label}
               </option>
             ))}

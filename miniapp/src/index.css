@@ -43,8 +43,8 @@ button { user-select: none; }
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar       { width: 2px; height: 2px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(45,88,173,0.45); border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: rgba(45,88,173,0.75); }
+::-webkit-scrollbar-thumb { background: rgba(220,235,255,0.18); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(220,235,255,0.3); }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -55,88 +55,65 @@ button { user-select: none; }
   .card {
     @apply rounded-2xl p-4;
     background: var(--bg2);
-    border: 1px solid rgba(255,255,255,0.06);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
   }
 
-  /* Primary gradient button */
+  /* Primary button */
   .btn-primary {
     @apply w-full py-3.5 px-6 rounded-2xl font-semibold text-base
-           transition-all duration-200 active:scale-95 flex items-center justify-center gap-2;
-    background: var(--gradient-primary);
+           flex items-center justify-center gap-2;
+    background: var(--btn);
     color: #ffffff;
-    box-shadow: 0 4px 24px rgba(45,88,173,0.50);
-    position: relative;
-    overflow: hidden;
-  }
-  .btn-primary::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    width: 40%;
-    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 50%, transparent 100%);
-    animation: shimmerSweep 2.4s ease-in-out infinite;
-    animation-play-state: paused;
-  }
-  .btn-primary:hover::after,
-  .btn-primary:active::after {
-    animation-play-state: running;
+    transition: background-color 0.15s ease, transform 0.1s ease, opacity 0.15s ease;
   }
   .btn-primary:disabled {
     opacity: 0.4;
     pointer-events: none;
-    box-shadow: none;
   }
-  .btn-primary:disabled::after { display: none; }
-  .btn-primary:not(:disabled):hover {
-    box-shadow: 0 4px 32px rgba(45,88,173,0.70);
-    transform: translateY(-1px);
-  }
-  .btn-primary:not(:disabled):active { transform: translateY(0) scale(0.97); }
+  .btn-primary:not(:disabled):hover  { background: var(--btn-hover); }
+  .btn-primary:not(:disabled):active { background: var(--btn-hover); transform: scale(0.98); }
 
   /* Secondary button */
   .btn-secondary {
-    @apply w-full py-3.5 px-6 rounded-2xl font-semibold text-base
-           transition-all duration-150 active:scale-95;
-    background: var(--bg2);
+    @apply w-full py-3.5 px-6 rounded-2xl font-semibold text-base;
+    background: var(--bg3);
     color: var(--text);
     border: 1px solid var(--border);
+    transition: background-color 0.15s ease, transform 0.1s ease;
   }
+  .btn-secondary:active { transform: scale(0.98); }
 
-  /* Gaming accent button */
+  /* Бывшая «геймерская» кнопка — теперь та же primary */
   .btn-gaming {
     @apply w-full py-3.5 px-6 rounded-2xl font-semibold text-base
-           transition-all duration-200 active:scale-95 flex items-center justify-center gap-2;
-    background: var(--gradient-gaming);
+           flex items-center justify-center gap-2;
+    background: var(--btn);
     color: #ffffff;
-    box-shadow: 0 4px 24px rgba(45,88,173,0.38);
+    transition: background-color 0.15s ease, transform 0.1s ease;
   }
+  .btn-gaming:active { background: var(--btn-hover); transform: scale(0.98); }
 
   /* Badge */
   .badge {
-    @apply inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold;
-    background: rgba(45,88,173,0.16);
-    color: #6b9de8;
-    border: 1px solid rgba(45,88,173,0.40);
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold;
+    background: var(--accent-soft);
+    color: var(--link);
   }
-  .badge-warn    { background: rgba(245,158,11,0.15); color: #fbbf24; border-color: rgba(245,158,11,0.3); }
-  .badge-success { background: rgba(16,185,129,0.15); color: #34d399; border-color: rgba(16,185,129,0.3); }
-  .badge-danger  { background: rgba(239,68,68,0.15);  color: #f87171; border-color: rgba(239,68,68,0.3); }
-  .badge-cyan    { background: rgba(0,180,216,0.15);  color: #22d3ee; border-color: rgba(0,180,216,0.3); }
+  .badge-warn    { background: rgba(245,158,11,0.14); color: #fbbf24; }
+  .badge-success { background: rgba(16,185,129,0.14); color: #34d399; }
+  .badge-danger  { background: rgba(239,68,68,0.14);  color: #f87171; }
+  .badge-cyan    { background: var(--accent-soft);    color: var(--link); }
 
   /* Input */
   .input {
-    @apply w-full px-4 py-3 rounded-2xl text-base outline-none transition-all duration-150;
-    background: var(--bg2);
+    @apply w-full px-4 py-3 rounded-2xl text-base outline-none;
+    background: var(--bg3);
     color: var(--text);
-    border: 1.5px solid var(--border);
+    border: 1px solid var(--border);
     font-family: 'Inter', sans-serif;
+    transition: border-color 0.15s ease;
   }
-  .input:focus {
-    border-color: rgba(45,88,173,0.70);
-    box-shadow: 0 0 0 3px rgba(45,88,173,0.16);
-  }
+  .input:focus { border-color: var(--accent); }
   .input::placeholder { color: var(--hint); }
 
   /* Divider */
@@ -151,105 +128,63 @@ button { user-select: none; }
 
   /* Category pill */
   .pill {
-    @apply flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium
-           transition-all duration-150 active:scale-95 whitespace-nowrap;
+    @apply flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap;
     background: var(--bg2);
     color: var(--hint);
     border: 1px solid var(--border);
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
   }
-  .pill:hover { border-color: rgba(45,88,173,0.45); color: rgba(255,255,255,0.7); }
   .pill-active {
-    background: rgba(45,88,173,0.18);
-    color: #6b9de8;
-    border-color: rgba(45,88,173,0.40);
+    background: var(--accent);
+    color: #ffffff;
+    border-color: var(--accent);
   }
 
-  /* Glass search bar */
+  /* Search bar */
   .search-bar {
     @apply relative;
-    background: var(--glass-bg);
-    border: 1.5px solid var(--glass-border);
-    backdrop-filter: blur(var(--glass-blur));
-    -webkit-backdrop-filter: blur(var(--glass-blur));
-    border-radius: 18px;
-    transition: border-color 0.15s;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    transition: border-color 0.15s ease;
   }
-  .search-bar:focus-within {
-    border-color: rgba(45,88,173,0.58);
-    box-shadow: 0 0 0 3px rgba(45,88,173,0.14);
-  }
+  .search-bar:focus-within { border-color: var(--accent); }
 }
 
 /* ── Keyframes ───────────────────────────────────────────────────────────── */
 @keyframes skeletonShimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
 @keyframes spin { to { transform: rotate(360deg); } }
-@keyframes fadeIn      { from { opacity: 0 }                              to { opacity: 1 } }
-@keyframes slideUp     { from { transform: translateY(16px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
-@keyframes slideDown   { from { transform: translateY(-12px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
-@keyframes scaleIn     { from { transform: scale(0.92); opacity: 0 }      to { transform: scale(1); opacity: 1 } }
-@keyframes shimmerSweep { 0% { transform: translateX(-120%) skewX(-20deg); } 100% { transform: translateX(220%) skewX(-20deg); } }
-@keyframes orbit       { from { transform: rotate(0deg) translateX(30px) rotate(0deg); } to { transform: rotate(360deg) translateX(30px) rotate(-360deg); } }
-@keyframes glowPulse   { 0%,100% { opacity:0.4; transform:scale(1); } 50% { opacity:1; transform:scale(1.5); } }
-@keyframes gradientShift { 0%,100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
-@keyframes neonPulse   { 0%,100% { box-shadow: 0 0 10px rgba(45,88,173,0.38), 0 0 30px rgba(45,88,173,0.14); } 50% { box-shadow: 0 0 20px rgba(45,88,173,0.68), 0 0 60px rgba(45,88,173,0.24); } }
-@keyframes float       { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-8px); } }
-@keyframes starTwinkle { 0%,100% { opacity: 0.3; transform: scale(1); } 50% { opacity: 1; transform: scale(1.4); } }
+@keyframes fadeIn    { from { opacity: 0 } to { opacity: 1 } }
+@keyframes slideUp   { from { transform: translateY(8px); opacity: 0 }  to { transform: translateY(0); opacity: 1 } }
+@keyframes slideDown { from { transform: translateY(-8px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+@keyframes scaleIn   { from { transform: scale(0.97); opacity: 0 }      to { transform: scale(1); opacity: 1 } }
 
 /* ── Utility classes ─────────────────────────────────────────────────────── */
-.animate-fade-in    { animation: fadeIn    0.25s ease-out both; }
-.animate-slide-up   { animation: slideUp   0.3s  ease-out both; }
-.animate-slide-down { animation: slideDown 0.3s  ease-out both; }
-.animate-scale-in   { animation: scaleIn   0.35s cubic-bezier(0.34,1.56,0.64,1) both; }
-.animate-float      { animation: float     6s    ease-in-out infinite; will-change: transform; }
-.animate-neon-pulse { animation: neonPulse 3s    ease-in-out infinite; will-change: box-shadow; }
+.animate-fade-in    { animation: fadeIn    0.2s ease-out both; }
+.animate-slide-up   { animation: slideUp   0.2s ease-out both; }
+.animate-slide-down { animation: slideDown 0.2s ease-out both; }
+.animate-scale-in   { animation: scaleIn   0.2s ease-out both; }
 
-/* Staggered entrance delays */
-.delay-75  { animation-delay: 75ms;  }
-.delay-150 { animation-delay: 150ms; }
-.delay-225 { animation-delay: 225ms; }
-.delay-300 { animation-delay: 300ms; }
-.delay-375 { animation-delay: 375ms; }
-.delay-450 { animation-delay: 450ms; }
+/* ── Акцентный текст (раньше был градиентным) ────────────────────────────── */
+.gradient-text,
+.gradient-text-gaming { color: var(--link); }
+.gradient-text-hot    { color: #fbbf24; }
 
-/* ── Gradient text ───────────────────────────────────────────────────────── */
-.gradient-text {
-  background: linear-gradient(135deg, #6b9de8, #2d58ad);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.gradient-text-gaming {
-  background: linear-gradient(135deg, #6b9de8 0%, #22d3ee 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-.gradient-text-hot {
-  background: linear-gradient(135deg, #fbbf24 0%, #f87171 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ── Glow effects ────────────────────────────────────────────────────────── */
-.glow-violet    { box-shadow: 0 0 20px rgba(45,88,173,0.50); }
-.glow-violet-lg { box-shadow: 0 0 40px rgba(45,88,173,0.60); }
-.glow-cyan      { box-shadow: 0 0 20px rgba(0,180,216,0.42); }
-
-/* ── Glassmorphism helpers ───────────────────────────────────────────────── */
+/* ── Glass helper — теперь просто непрозрачная поверхность ───────────────── */
 .glass {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(var(--glass-blur));
-  -webkit-backdrop-filter: blur(var(--glass-blur));
+  background: var(--bg2);
+  border: 1px solid var(--border);
 }
 
-/* ── Product card hover glow ─────────────────────────────────────────────── */
-.product-card-hover {
-  transition: box-shadow 0.25s ease, transform 0.2s ease;
-}
-.product-card-hover:hover {
-  box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
-  transform: translateY(-2px);
-}
+/* ── Product card ────────────────────────────────────────────────────────── */
+.product-card-hover { transition: transform 0.1s ease; }
+.product-card-hover:active { transform: scale(0.98); }
 
+/* ── Меньше движения, если пользователь просил ───────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

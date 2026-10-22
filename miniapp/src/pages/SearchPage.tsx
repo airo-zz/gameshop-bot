@@ -35,7 +35,7 @@ function GameCard({ game }: { game: Game }) {
     <button
       type="button"
       onClick={handleClick}
-      className="flex-shrink-0 flex flex-col items-center gap-1.5 active:scale-95 transition-transform"
+      className="flex-shrink-0 flex flex-col items-center gap-1.5 active:scale-[0.97] transition-transform"
       style={{ width: 100, minWidth: 100, flexShrink: 0 }}
     >
       <div
@@ -122,7 +122,7 @@ export default function SearchPage() {
           <button
             type="button"
             onClick={() => setQuery('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center transition-all active:scale-90"
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center transition-all active:scale-[0.97]"
             style={{ background: 'var(--bg3)' }}
           >
             <X size={14} style={{ color: 'var(--hint)' }} />
@@ -184,8 +184,8 @@ export default function SearchPage() {
               <button
                 type="button"
                 onClick={() => navigate('/custom-order?type=missing_game')}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
-                style={{ background: 'rgba(45,88,173,0.16)', border: '1px solid rgba(45,88,173,0.38)', color: '#6b9de8' }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-[0.97]"
+                style={{ background: 'var(--accent-soft)', color: 'var(--link)' }}
               >
                 Не нашли свою игру? Напишите нам
               </button>

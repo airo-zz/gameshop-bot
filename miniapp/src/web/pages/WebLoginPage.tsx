@@ -37,7 +37,7 @@ export default function WebLoginPage() {
       <div className="w-full max-w-md rounded-3xl border border-white/[0.08] bg-white/[0.02] p-8 text-center">
         <div
           className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
-          style={{ background: 'rgba(45,88,173,0.15)', color: 'var(--link)' }}
+          style={{ background: 'rgba(37,99,235,0.15)', color: 'var(--link)' }}
         >
           <Send size={24} />
         </div>

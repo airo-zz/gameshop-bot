@@ -58,8 +58,7 @@ export default function TopProgressBar({ active }: TopProgressBarProps) {
         style={{
           height: '100%',
           width: `${width}%`,
-          background: 'linear-gradient(90deg, #1d4ed8, #60a5fa)',
-          boxShadow: '0 0 8px rgba(96,165,250,0.6)',
+          background: 'var(--accent)',
           transition: active
             ? 'width 0.6s cubic-bezier(0.1, 0.9, 0.2, 1)'
             : 'width 0.25s ease-out',

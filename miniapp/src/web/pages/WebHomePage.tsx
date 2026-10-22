@@ -18,26 +18,16 @@ import GameCard from '@/web/components/GameCard'
 function Hero() {
   return (
     <section className="relative overflow-hidden">
-      {/* Фоновое свечение */}
-      <div
-        className="pointer-events-none absolute inset-0 opacity-70"
-        style={{
-          background:
-            'radial-gradient(60% 60% at 50% 0%, rgba(45,88,173,0.35) 0%, rgba(0,180,216,0.10) 40%, transparent 70%)',
-        }}
-      />
       <div className="web-container relative pt-20 pb-16 md:pt-28 md:pb-24 text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-xs text-white/60 mb-6">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
           Моментальная выдача · СБП, карта, крипта
         </div>
 
-        <h1 className="text-4xl md:text-6xl font-extrabold text-white leading-[1.05] tracking-tight">
+        <h1 className="text-4xl md:text-6xl font-bold text-white leading-[1.05] tracking-tight">
           Игровой донат
           <br />
-          <span
-            style={{ background: 'var(--gradient-gaming)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
-          >
+          <span style={{ color: 'var(--link)' }}>
             быстро и безопасно
           </span>
         </h1>
@@ -92,7 +82,7 @@ function Features() {
           >
             <div
               className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
-              style={{ background: 'rgba(45,88,173,0.15)', color: 'var(--link)' }}
+              style={{ background: 'rgba(37,99,235,0.15)', color: 'var(--link)' }}
             >
               <f.icon size={20} />
             </div>
@@ -131,7 +121,7 @@ function Catalog() {
                 key={t}
                 onClick={() => setTab(t)}
                 className={'px-4 py-2 rounded-lg text-sm font-semibold transition-colors ' + (tab === t ? 'text-white' : 'text-white/50 hover:text-white/80')}
-                style={tab === t ? { background: 'rgba(45,88,173,0.35)' } : {}}
+                style={tab === t ? { background: 'rgba(37,99,235,0.35)' } : {}}
               >
                 {t === 'game' ? 'Игры' : 'Сервисы'}
               </button>
@@ -182,7 +172,7 @@ function HowItWorks() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-9">
         {STEPS.map((s) => (
           <div key={s.n} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
-            <div className="text-3xl font-extrabold" style={{ color: 'var(--link)', opacity: 0.9 }}>{s.n}</div>
+            <div className="text-3xl font-bold" style={{ color: 'var(--link)', opacity: 0.9 }}>{s.n}</div>
             <h3 className="text-lg font-semibold text-white mt-3">{s.title}</h3>
             <p className="text-sm text-white/45 mt-1.5 leading-relaxed">{s.text}</p>
           </div>
@@ -250,7 +240,7 @@ function CtaBanner() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
           <Link
             to="/catalog"
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-[#0a1428] transition-all active:scale-[0.97] hover:bg-white/90"
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-[#101C36] transition-all active:scale-[0.97] hover:bg-white/90"
           >
             <ShoppingBag size={17} />
             Выбрать товар

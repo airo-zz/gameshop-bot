@@ -15,8 +15,8 @@ export function apiError(e: unknown, fallback: string): string {
 export const ORDER_STATUS: Record<string, { label: string; color: string; bg: string }> = {
   new: { label: 'Ожидает оплаты', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
   pending_payment: { label: 'Ожидает оплаты', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
-  paid: { label: 'Оплачен', color: '#6b9de8', bg: 'rgba(45,88,173,0.15)' },
-  processing: { label: 'В обработке', color: '#6b9de8', bg: 'rgba(45,88,173,0.15)' },
+  paid: { label: 'Оплачен', color: '#7FA6F5', bg: 'rgba(37,99,235,0.15)' },
+  processing: { label: 'В обработке', color: '#7FA6F5', bg: 'rgba(37,99,235,0.15)' },
   clarification: { label: 'Требуется уточнение', color: '#f59e0b', bg: 'rgba(245,158,11,0.12)' },
   completed: { label: 'Выполнен', color: '#34d399', bg: 'rgba(16,185,129,0.12)' },
   cancelled: { label: 'Отменён', color: '#f87171', bg: 'rgba(239,68,68,0.12)' },

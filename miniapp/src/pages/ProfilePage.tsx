@@ -95,15 +95,14 @@ function LoyaltyProgressBar({ totalSpent, discountPercent, loyaltyColorHex, leve
       </div>
 
       {/* Полоса прогресса */}
-      <div style={{ height: 8, borderRadius: 99, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
+      <div style={{ height: 8, borderRadius: 99, background: 'rgba(220,235,255,0.08)', overflow: 'hidden' }}>
         <div
           ref={barRef}
           style={{
             height: '100%',
             borderRadius: 99,
-            background: `linear-gradient(90deg, rgba(${hexToRgb(loyaltyColorHex)},0.6), ${loyaltyColorHex})`,
-            boxShadow: `0 0 8px rgba(${hexToRgb(loyaltyColorHex)},0.5)`,
-            transition: 'width 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
+            background: loyaltyColorHex,
+                        transition: 'width 0.7s cubic-bezier(0.4, 0, 0.2, 1)',
             width: 0,
           }}
         />
@@ -165,16 +164,14 @@ function AvatarBlock({ showAvatar, avatarSrc, avatarInitial, onError }: AvatarBl
       src={avatarSrc!}
       alt=""
       className="w-16 h-16 rounded-full object-cover flex-shrink-0"
-      style={{ boxShadow: '0 0 0 2px rgba(45,88,173,0.35)' }}
       onError={onError}
     />
   ) : (
     <div
       className="w-16 h-16 rounded-full flex items-center justify-center flex-shrink-0 text-2xl font-bold"
       style={{
-        background: 'linear-gradient(135deg, #2d58ad, #7c3aed)',
+        background: 'var(--accent)',
         color: '#fff',
-        boxShadow: '0 0 0 2px rgba(45,88,173,0.35)',
       }}
     >
       {avatarInitial}
@@ -219,7 +216,7 @@ function MenuBlock() {
         <div
           key={to}
           onClick={() => handleMenuClick(to)}
-          className="flex flex-col items-center gap-2 py-4 px-2 rounded-2xl active:scale-[0.96] transition-transform"
+          className="flex flex-col items-center gap-2 py-4 px-2 rounded-2xl active:opacity-80"
           style={{
             background: 'var(--bg2)',
             border: '1px solid var(--border)',
@@ -229,12 +226,10 @@ function MenuBlock() {
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{
-              background: 'rgba(107,157,232,0.12)',
-              border: '1px solid rgba(107,157,232,0.18)',
-              boxShadow: '0 0 12px rgba(107,157,232,0.08)',
+              background: 'var(--bg3)',
             }}
           >
-            <span style={{ color: '#6b9de8' }}>{icon}</span>
+            <span style={{ color: 'var(--link)' }}>{icon}</span>
           </div>
           <span
             className="text-xs font-medium text-center leading-tight"
@@ -339,7 +334,7 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
-        <div className="p-4 rounded-2xl" style={{ background: 'rgba(45,88,173,0.1)', border: '1px solid rgba(45,88,173,0.22)' }}>
+        <div className="p-4 rounded-2xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
           <p className="text-sm" style={{ color: 'var(--hint)' }}>Данные профиля временно недоступны. Попробуй позже.</p>
         </div>
         <MenuBlock />
@@ -445,7 +440,7 @@ export default function ProfilePage() {
       {/* ── Статистика ── */}
       <div className="grid grid-cols-3 gap-2">
         {[
-          { label: 'Баланс',    value: `${Number(profile.balance).toLocaleString('ru')} ₽`, color: '#6b9de8', icon: <Wallet size={14} />, to: '/balance' },
+          { label: 'Баланс',    value: `${Number(profile.balance).toLocaleString('ru')} ₽`, color: 'var(--link)', icon: <Wallet size={14} />, to: '/balance' },
           { label: 'Заказов',   value: String(profile.orders_count),   color: 'var(--text)', icon: <ShoppingBag size={14} />, to: '/orders' },
           { label: 'Рефералов', value: String(profile.referrals_count), color: '#34d399',    icon: <Users size={14} />, to: '/referrals' },
         ].map(({ label, value, color, icon, to }) => (
@@ -453,7 +448,7 @@ export default function ProfilePage() {
             key={label}
             onClick={() => handleStatClick(to)}
             style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 16, padding: '12px 10px', textAlign: 'center', display: 'block', cursor: 'pointer' }}
-            className="active:scale-95 transition-transform"
+            className="active:scale-[0.97] transition-transform"
           >
             <div style={{ color, opacity: 0.6, display: 'flex', justifyContent: 'center', marginBottom: 4 }}>{icon}</div>
             <p className="text-base font-bold truncate" style={{ color }}>{value}</p>
@@ -465,7 +460,7 @@ export default function ProfilePage() {
       {/* ── Реферальная программа ── */}
       <div className="card">
         <div className="flex items-center gap-2 mb-1">
-          <Gift size={16} style={{ color: '#6b9de8' }} />
+          <Gift size={16} style={{ color: 'var(--link)' }} />
           <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>Реферальная программа</p>
         </div>
         <p className="text-xs mb-3" style={{ color: 'var(--hint)' }}>
@@ -475,23 +470,21 @@ export default function ProfilePage() {
           <button
             type="button"
             onClick={handleCopyLink}
-            className="flex items-center flex-1 p-3 rounded-xl active:scale-95 transition-transform"
+            className="flex items-center flex-1 p-3 rounded-xl active:scale-[0.97] transition-transform"
             style={{ background: 'var(--bg3)', border: '1px solid var(--border)', minWidth: 0 }}
           >
-            <code className="text-xs font-bold truncate" style={{ color: '#6b9de8' }}>
+            <code className="text-xs font-bold truncate" style={{ color: 'var(--link)' }}>
               t.me/{BOT_USERNAME}?start=REF_{profile.telegram_id}
             </code>
           </button>
           <button
             type="button"
             onClick={handleShareTelegram}
-            className="flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
+            className="flex items-center justify-center active:scale-[0.97] transition-transform flex-shrink-0"
             style={{
               width: 40, height: 40,
               borderRadius: 12,
-              background: 'rgba(45,88,173,0.15)',
-              border: '1px solid rgba(45,88,173,0.25)',
-              color: '#6b9de8',
+              background: 'var(--accent-soft)', color: 'var(--link)',
             }}
           >
             <Share2 size={16} />
@@ -513,11 +506,10 @@ export default function ProfilePage() {
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{
-              background: 'rgba(107,157,232,0.12)',
-              border: '1px solid rgba(107,157,232,0.18)',
+              background: 'var(--bg3)',
             }}
           >
-            <FileText size={18} style={{ color: '#6b9de8' }} />
+            <FileText size={18} style={{ color: 'var(--link)' }} />
           </div>
           <span className="flex-1 text-left text-sm font-semibold" style={{ color: 'var(--text)' }}>
             Документы
@@ -562,22 +554,21 @@ export default function ProfilePage() {
           to="/admin"
           className="flex items-center gap-3 p-4 rounded-2xl active:scale-[0.97] transition-transform"
           style={{
-            background: 'rgba(45,88,173,0.12)',
-            border: '1px solid rgba(45,88,173,0.25)',
+            background: 'var(--bg2)',
+            border: '1px solid var(--border)',
             textDecoration: 'none',
           }}
         >
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
             style={{
-              background: 'rgba(45,88,173,0.2)',
-              border: '1px solid rgba(45,88,173,0.35)',
+              background: 'var(--bg3)',
             }}
           >
-            <Settings size={18} style={{ color: '#6b9de8' }} />
+            <Settings size={18} style={{ color: 'var(--link)' }} />
           </div>
           <div>
-            <p className="text-sm font-semibold" style={{ color: '#6b9de8' }}>Админ-панель</p>
+            <p className="text-sm font-semibold" style={{ color: 'var(--link)' }}>Админ-панель</p>
             <p className="text-xs" style={{ color: 'var(--hint)' }}>{adminProfile.role}</p>
           </div>
         </Link>

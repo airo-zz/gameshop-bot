@@ -369,7 +369,7 @@ export default function OrderDetailPage() {
               className={inputCls}
             >
               {ALLOWED_TRANSITIONS[order.status].map((s) => (
-                <option key={s} value={s} className="bg-[#060f1e]">
+                <option key={s} value={s} className="bg-[#101C36]">
                   {STATUS_LABELS[s] ?? s}
                 </option>
               ))}

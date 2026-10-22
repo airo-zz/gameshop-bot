@@ -10,8 +10,8 @@ import { useTelegram } from '@/hooks/useTelegram'
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
   new:             { label: 'Новый',           color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', Icon: Circle },
   pending_payment: { label: 'Ожидает оплаты',  color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',  Icon: Clock },
-  paid:            { label: 'Оплачен',                  color: '#6b9de8', bg: 'rgba(45,88,173,0.12)',  Icon: BadgeCheck },
-  processing:      { label: 'В процессе выполнения',   color: '#6b9de8', bg: 'rgba(139,92,246,0.1)',  Icon: RefreshCw },
+  paid:            { label: 'Оплачен',                  color: '#7FA6F5', bg: 'rgba(37,99,235,0.12)',  Icon: BadgeCheck },
+  processing:      { label: 'В процессе выполнения',   color: '#7FA6F5', bg: 'rgba(37,99,235,0.12)',  Icon: RefreshCw },
   clarification:   { label: 'Ожидает вашего ответа',  color: '#fbbf24', bg: 'rgba(245,158,11,0.1)',  Icon: HelpCircle },
   completed:       { label: 'Выполнен',                color: '#34d399', bg: 'rgba(16,185,129,0.1)',  Icon: CheckCircle },
   cancelled:       { label: 'Отменён',                 color: '#f87171', bg: 'rgba(239,68,68,0.1)',   Icon: XCircle },
@@ -120,7 +120,7 @@ export default function OrderDetailPage() {
       {isSuccess && (
         <div
           className="flex flex-col items-center py-6 gap-3 rounded-2xl animate-slide-up"
-          style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)' }}
+          style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid transparent' }}
         >
           <CheckCircle size={48} style={{ color: '#34d399' }} />
           <div className="text-center">
@@ -134,7 +134,7 @@ export default function OrderDetailPage() {
       {isPending && order?.status === 'pending_payment' && (
         <div
           className="flex items-start gap-3 py-4 px-4 rounded-2xl animate-slide-up"
-          style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.3)' }}
+          style={{ background: 'rgba(251,191,36,0.08)', border: '1px solid transparent' }}
         >
           <Clock size={20} className="flex-shrink-0 mt-0.5" style={{ color: '#fbbf24' }} />
           <div>
@@ -150,7 +150,7 @@ export default function OrderDetailPage() {
       {isPending && order?.status === 'paid' && (
         <div
           className="flex flex-col items-center py-6 gap-3 rounded-2xl animate-slide-up"
-          style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)' }}
+          style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid transparent' }}
         >
           <CheckCircle size={48} style={{ color: '#34d399' }} />
           <div className="text-center">
@@ -163,9 +163,9 @@ export default function OrderDetailPage() {
       {/* Статус */}
       <div
         className="rounded-2xl p-5 text-center"
-        style={{ background: statusInfo.bg, border: `1px solid ${statusInfo.color}33` }}
+        style={{ background: statusInfo.bg }}
       >
-        <div style={{ width: 52, height: 52, borderRadius: '50%', background: `${statusInfo.color}22`, border: `1.5px solid ${statusInfo.color}66`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
+        <div style={{ width: 52, height: 52, borderRadius: '50%', background: `${statusInfo.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 10px' }}>
           <statusInfo.Icon size={26} style={{ color: statusInfo.color }} />
         </div>
         <p className="font-bold text-base" style={{ color: statusInfo.color }}>{statusInfo.label}</p>
@@ -174,8 +174,8 @@ export default function OrderDetailPage() {
           <button
             type="button"
             onClick={() => copyToClipboard(order.order_number)}
-            className="p-1 rounded-lg active:scale-90 transition-transform"
-            style={{ background: 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer' }}
+            className="p-1 rounded-lg active:scale-[0.97] transition-transform"
+            style={{ background: 'rgba(220,235,255,0.06)', border: 'none', cursor: 'pointer' }}
           >
             <Copy size={11} style={{ color: 'var(--hint)' }} />
           </button>
@@ -197,11 +197,9 @@ export default function OrderDetailPage() {
               type="button"
               onClick={checkPayment}
               disabled={cooldown > 0}
-              className="w-full py-3 rounded-2xl font-semibold text-sm transition-all active:scale-95"
+              className="w-full py-3 rounded-2xl font-semibold text-sm transition-all active:scale-[0.97]"
               style={{
-                background: 'rgba(45,88,173,0.14)',
-                border: '1px solid rgba(45,88,173,0.32)',
-                color: '#6b9de8',
+                background: 'var(--accent-soft)', color: 'var(--link)',
                 opacity: cooldown > 0 ? 0.6 : 1,
                 cursor: cooldown > 0 ? 'not-allowed' : 'pointer',
               }}
@@ -227,7 +225,7 @@ export default function OrderDetailPage() {
                   {item.quantity} шт. × {item.unit_price.toLocaleString('ru')} ₽
                 </p>
               </div>
-              <p className="font-bold text-sm flex-shrink-0" style={{ color: '#6b9de8' }}>
+              <p className="font-bold text-sm flex-shrink-0" style={{ color: 'var(--link)' }}>
                 {item.total_price.toLocaleString('ru')} ₽
               </p>
             </div>
@@ -236,7 +234,7 @@ export default function OrderDetailPage() {
             {item.delivered_at && item.delivery_data && (
               <div
                 className="mt-3 p-3 rounded-xl"
-                style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)' }}
+                style={{ background: 'rgba(16,185,129,0.08)', border: '1px solid transparent' }}
               >
                 <p className="text-xs font-semibold mb-2" style={{ color: '#34d399' }}>
                   Данные получены
@@ -248,7 +246,7 @@ export default function OrderDetailPage() {
                         <button
                           type="button"
                           onClick={() => copyToClipboard(key)}
-                          className="p-1 rounded-lg transition-all active:scale-90"
+                          className="p-1 rounded-lg transition-all active:scale-[0.97]"
                           style={{ background: 'var(--bg3)' }}
                         >
                           <Copy size={13} style={{ color: 'var(--hint)' }} />
@@ -272,11 +270,11 @@ export default function OrderDetailPage() {
               <div
                 key={`instr-${item.id}`}
                 className="rounded-xl p-3 mt-2"
-                style={{ background: 'rgba(107,157,232,0.07)', border: '1px solid rgba(107,157,232,0.18)' }}
+                style={{ background: 'rgba(127,166,245,0.07)', border: '1px solid transparent' }}
               >
                 <div className="flex items-center gap-2 mb-1.5">
-                  <Info size={13} style={{ color: '#6b9de8', flexShrink: 0 }} />
-                  <p className="text-xs font-semibold" style={{ color: '#6b9de8' }}>
+                  <Info size={13} style={{ color: 'var(--link)', flexShrink: 0 }} />
+                  <p className="text-xs font-semibold" style={{ color: 'var(--link)' }}>
                     Инструкция по получению
                   </p>
                 </div>
@@ -297,7 +295,7 @@ export default function OrderDetailPage() {
         )}
         <div className="flex justify-between font-bold">
           <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span style={{ color: '#6b9de8' }}>{order.total_amount.toLocaleString('ru')} ₽</span>
+          <span style={{ color: 'var(--link)' }}>{order.total_amount.toLocaleString('ru')} ₽</span>
         </div>
       </div>
 
@@ -328,11 +326,9 @@ export default function OrderDetailPage() {
         <button
           type="button"
           onClick={handleChatClick}
-          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm transition-all active:scale-95"
+          className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-semibold text-sm transition-all active:scale-[0.97]"
           style={{
-            background: 'rgba(45,88,173,0.14)',
-            border: '1px solid rgba(45,88,173,0.32)',
-            color: '#6b9de8',
+            background: 'var(--accent-soft)', color: 'var(--link)',
           }}
         >
           <MessageCircle size={17} />

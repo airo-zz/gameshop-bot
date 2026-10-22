@@ -111,10 +111,10 @@ export default function WebBalancePage() {
 
   return (
     <div className="web-container py-8 md:py-12">
-      <h1 className="text-2xl md:text-3xl font-extrabold text-white mb-6">Баланс</h1>
+      <h1 className="text-2xl md:text-3xl font-bold text-white mb-6">Баланс</h1>
 
       {waiting && (
-        <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: 'rgba(45,88,173,0.12)', border: '1px solid rgba(45,88,173,0.3)' }}>
+        <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid transparent' }}>
           <Loader2 size={20} className="animate-spin shrink-0" style={{ color: 'var(--link)' }} />
           <div>
             <p className="text-sm font-semibold text-white">Ожидаем подтверждение оплаты</p>
@@ -130,7 +130,7 @@ export default function WebBalancePage() {
             <div className="flex items-center gap-2 text-white/80 text-sm font-medium">
               <Wallet size={18} /> Текущий баланс
             </div>
-            <p className="text-4xl font-extrabold text-white mt-3">
+            <p className="text-4xl font-bold text-white mt-3">
               {profile ? money(profile.balance) : '—'}
             </p>
             <p className="text-xs text-white/70 mt-2">Оплачивайте заказы с баланса мгновенно и без комиссии.</p>
@@ -159,9 +159,9 @@ export default function WebBalancePage() {
                     onClick={() => setAmount(String(p))}
                     className="px-3.5 py-2 rounded-xl text-sm font-semibold transition-colors"
                     style={{
-                      background: numeric === p ? 'rgba(45,88,173,0.25)' : 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${numeric === p ? 'rgba(107,157,232,0.5)' : 'rgba(255,255,255,0.08)'}`,
-                      color: numeric === p ? 'var(--link)' : 'rgba(255,255,255,0.8)',
+                      background: numeric === p ? 'rgba(37,99,235,0.25)' : 'rgba(220,235,255,0.04)',
+                      border: `1px solid ${numeric === p ? 'var(--accent)' : 'rgba(220,235,255,0.08)'}`,
+                      color: numeric === p ? 'var(--link)' : 'rgba(220,235,255,0.8)',
                     }}
                   >
                     {p.toLocaleString('ru-RU')} ₽
@@ -183,8 +183,8 @@ export default function WebBalancePage() {
                       onClick={() => setMethod(m.id)}
                       className="w-full flex items-center gap-3 p-3.5 rounded-2xl text-left transition-all"
                       style={{
-                        background: selected ? 'rgba(45,88,173,0.22)' : 'var(--bg2)',
-                        border: selected ? '1.5px solid rgba(45,88,173,0.55)' : '1.5px solid var(--border)',
+                        background: selected ? 'rgba(37,99,235,0.22)' : 'var(--bg2)',
+                        border: selected ? '1.5px solid var(--accent)' : '1.5px solid var(--border)',
                       }}
                     >
                       <m.icon size={20} style={{ color: selected ? 'var(--link)' : 'var(--hint)' }} />

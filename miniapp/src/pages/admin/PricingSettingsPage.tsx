@@ -61,7 +61,7 @@ export default function PricingSettingsPage() {
   return (
     <div className="space-y-4 pb-8 max-w-lg">
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(45,88,173,0.15)', color: 'var(--link)' }}>
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.15)', color: 'var(--link)' }}>
           <DollarSign size={20} />
         </div>
         <div>

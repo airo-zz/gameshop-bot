@@ -70,7 +70,7 @@ export default function WebOrderPage() {
   return (
     <div className="web-container py-8 md:py-12 max-w-2xl">
       {justPaid && !awaitingPayment && order.status !== 'cancelled' && (
-        <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.25)' }}>
+        <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid transparent' }}>
           <CheckCircle2 size={22} style={{ color: '#34d399' }} />
           <div>
             <p className="text-sm font-semibold text-white">Оплата прошла</p>
@@ -81,7 +81,7 @@ export default function WebOrderPage() {
         </div>
       )}
       {justPaid && awaitingPayment && (
-        <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: 'rgba(45,88,173,0.12)', border: '1px solid rgba(45,88,173,0.3)' }}>
+        <div className="flex items-center gap-3 rounded-2xl p-4 mb-6" style={{ background: 'rgba(37,99,235,0.12)', border: '1px solid transparent' }}>
           <Loader2 size={22} className="animate-spin" style={{ color: 'var(--link)' }} />
           <div>
             <p className="text-sm font-semibold text-white">Проверяем оплату</p>
@@ -92,7 +92,7 @@ export default function WebOrderPage() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-white">Заказ {order.order_number}</h1>
+          <h1 className="text-2xl font-bold text-white">Заказ {order.order_number}</h1>
           <p className="text-xs text-white/40 mt-1">{new Date(order.created_at).toLocaleString('ru-RU')}</p>
         </div>
         <span className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1.5 rounded-full" style={{ background: st.bg, color: st.color }}>

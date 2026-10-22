@@ -163,8 +163,8 @@ export default function WebLayout() {
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header
-        className="sticky top-0 z-40 border-b border-white/[0.06] backdrop-blur-xl"
-        style={{ background: 'rgba(1,5,9,0.72)' }}
+        className="sticky top-0 z-40 border-b border-white/[0.06]"
+        style={{ background: 'var(--bg)' }}
       >
         <div className="web-container flex items-center justify-between h-16">
           <Logo />

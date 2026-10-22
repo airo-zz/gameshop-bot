@@ -2,11 +2,13 @@
  * src/components/ui/ImageWithSkeleton.tsx
  * ─────────────────────────────────────────────────────────────────────────
  * Картинка с skeleton-анимацией пока не загрузится + fallback при ошибке.
+ * Только CSS-переходы (без framer-motion) — дёшево даже в длинных сетках.
+ * Картинка из кэша показывается сразу, без повторного fade-in.
  *
  * Props:
  *   src         — URL из API (нормализуется автоматически)
  *   alt         — alt текст
- *   fallback    — ReactNode при отсутствии/ошибке загрузки (по умолчанию 🎮)
+ *   fallback    — ReactNode при отсутствии/ошибке загрузки (по умолчанию иконка геймпада)
  *   className   — дополнительные Tailwind-классы для контейнера
  *   imgClassName — классы непосредственно для <img>
  *   aspectRatio  — CSS aspect-ratio контейнера (default "1 / 1")
@@ -15,7 +17,7 @@
  */
 
 import { useState, useCallback } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { Gamepad2 } from 'lucide-react'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 
 interface ImageWithSkeletonProps {
@@ -45,17 +47,25 @@ export default function ImageWithSkeleton({
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>(
     normalizedSrc ? 'loading' : 'error'
   )
+  // true — картинка уже была в кэше: показываем без анимации
+  const [instant, setInstant] = useState(false)
 
   const handleLoad = useCallback(() => setStatus('loaded'), [])
   const handleError = useCallback(() => setStatus('error'), [])
+  const imgRef = useCallback((el: HTMLImageElement | null) => {
+    if (el?.complete && el.naturalWidth > 0) {
+      setInstant(true)
+      setStatus('loaded')
+    }
+  }, [])
 
   const defaultFallback = (
     <div
-      className="w-full h-full flex items-center justify-center text-3xl select-none"
-      style={{ background: 'var(--bg3)', color: 'rgba(107,157,232,0.35)' }}
+      className="w-full h-full flex items-center justify-center select-none"
+      style={{ background: 'var(--bg3)', color: 'var(--hint)' }}
       aria-hidden="true"
     >
-      🎮
+      <Gamepad2 size={28} strokeWidth={1.5} />
     </div>
   )
 
@@ -64,40 +74,37 @@ export default function ImageWithSkeleton({
       className={`relative overflow-hidden ${className}`}
       style={{ aspectRatio, background: 'var(--bg3)', ...style }}
     >
-      {/* Skeleton pulse — видим пока грузится */}
-      <AnimatePresence>
-        {status === 'loading' && (
-          <motion.div
-            key="skeleton"
-            className="absolute inset-0 z-10"
-            initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            style={{
-              background: 'linear-gradient(90deg, var(--bg3) 25%, rgba(45,88,173,0.08) 50%, var(--bg3) 75%)',
-              backgroundSize: '200% 100%',
-              animation: 'skeletonShimmer 1.6s ease-in-out infinite',
-            }}
-          />
-        )}
-      </AnimatePresence>
+      {/* Skeleton — видим пока грузится */}
+      {status === 'loading' && (
+        <div
+          className="absolute inset-0 z-10"
+          style={{
+            background: 'linear-gradient(90deg, var(--bg3) 25%, rgba(220,235,255,0.04) 50%, var(--bg3) 75%)',
+            backgroundSize: '200% 100%',
+            animation: 'skeletonShimmer 1.6s ease-in-out infinite',
+          }}
+        />
+      )}
 
       {/* Fallback при ошибке или отсутствии src */}
       {status === 'error' && (fallback ?? defaultFallback)}
 
       {/* Картинка — рендерим всегда (если есть src), скрываем пока грузится */}
-      {normalizedSrc && (
-        <motion.img
+      {normalizedSrc && status !== 'error' && (
+        <img
+          ref={imgRef}
           src={normalizedSrc}
           alt={alt}
           loading={loading}
           onLoad={handleLoad}
           onError={handleError}
           className={`w-full h-full ${imgClassName}`}
-          style={{ objectFit, display: 'block' }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: status === 'loaded' ? 1 : 0 }}
-          transition={{ duration: 0.25 }}
+          style={{
+            objectFit,
+            display: 'block',
+            opacity: status === 'loaded' ? 1 : 0,
+            transition: instant ? 'none' : 'opacity 0.2s ease',
+          }}
         />
       )}
     </div>

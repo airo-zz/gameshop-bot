@@ -49,7 +49,7 @@ export default function WebProfilePage() {
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl font-extrabold text-white truncate">{user.first_name}</h1>
+          <h1 className="text-2xl font-bold text-white truncate">{user.first_name}</h1>
           {user.username && <p className="text-sm text-white/45">@{user.username}</p>}
         </div>
         <button
@@ -64,7 +64,7 @@ export default function WebProfilePage() {
         {/* Баланс */}
         <Link to="/balance" className="rounded-3xl p-6 relative overflow-hidden group" style={{ background: 'var(--gradient-primary)' }}>
           <div className="flex items-center gap-2 text-white/80 text-sm font-medium"><Wallet size={18} /> Баланс</div>
-          <p className="text-3xl font-extrabold text-white mt-3">{money(user.balance)}</p>
+          <p className="text-3xl font-bold text-white mt-3">{money(user.balance)}</p>
           <span className="inline-flex items-center gap-1 mt-4 text-sm font-semibold text-white bg-white/15 rounded-xl px-3.5 py-2 group-hover:bg-white/25 transition-colors">
             Пополнить <ChevronRight size={16} />
           </span>
@@ -73,7 +73,7 @@ export default function WebProfilePage() {
         {/* Лояльность */}
         <div className="rounded-3xl border border-white/[0.06] bg-white/[0.02] p-6">
           <div className="flex items-center gap-2 text-white/60 text-sm font-medium"><Award size={18} /> Уровень</div>
-          <p className="text-2xl font-extrabold mt-3" style={{ color: user.loyalty_color_hex || 'var(--link)' }}>
+          <p className="text-2xl font-bold mt-3" style={{ color: user.loyalty_color_hex || 'var(--link)' }}>
             {user.loyalty_level_name || 'Новичок'}
           </p>
           <p className="text-xs text-white/45 mt-1">
@@ -94,7 +94,7 @@ export default function WebProfilePage() {
 
         {/* Статистика */}
         <Link to="/orders" className="rounded-3xl border border-white/[0.06] bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-colors flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(45,88,173,0.15)', color: 'var(--link)' }}>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.15)', color: 'var(--link)' }}>
             <Package size={22} />
           </div>
           <div className="flex-1">
@@ -105,7 +105,7 @@ export default function WebProfilePage() {
         </Link>
 
         <a href={SUPPORT_BOT_URL} target="_blank" rel="noopener noreferrer" className="rounded-3xl border border-white/[0.06] bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-colors flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(45,88,173,0.15)', color: 'var(--link)' }}>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(37,99,235,0.15)', color: 'var(--link)' }}>
             <Headphones size={22} />
           </div>
           <div className="flex-1">

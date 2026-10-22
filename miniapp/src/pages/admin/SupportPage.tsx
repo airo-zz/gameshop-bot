@@ -79,7 +79,7 @@ interface TicketListResponse {
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
   open:         { label: 'Открыт',   color: '#34d399' },
-  in_progress:  { label: 'В работе', color: '#6b9de8' },
+  in_progress:  { label: 'В работе', color: '#7FA6F5' },
   waiting_user: { label: 'Ожидает',  color: '#fbbf24' },
   resolved:     { label: 'Решён',    color: '#34d399' },
   closed:       { label: 'Закрыт',   color: '#9ca3af' },

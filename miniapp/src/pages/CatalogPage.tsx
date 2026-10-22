@@ -58,15 +58,12 @@ export default function CatalogPage() {
 
   if (isError) return (
     <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-      <p className="text-5xl mb-4">😔</p>
       <p className="text-sm mb-4" style={{ color: 'var(--hint)' }}>Не удалось загрузить каталог</p>
       <button
         onClick={() => refetch()}
-        className="px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
+        className="px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-[0.97]"
         style={{
-          background: 'rgba(45,88,173,0.16)',
-          border: '1px solid rgba(45,88,173,0.38)',
-          color: '#6b9de8',
+          background: 'var(--accent-soft)', color: 'var(--link)',
         }}
       >
         Повторить
@@ -81,7 +78,7 @@ export default function CatalogPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
     >
-      <h1 className="text-xl font-extrabold tracking-tight" style={{ color: 'var(--text)' }}>
+      <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>
         Каталог
       </h1>
 
@@ -109,8 +106,8 @@ export default function CatalogPage() {
                 <motion.div
                   layoutId="catalog-tab-pill"
                   className="absolute inset-0 rounded-xl"
-                  style={{ background: 'var(--accent)', zIndex: -1 }}
-                  transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                  style={{ background: 'var(--bg3)', zIndex: -1 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
                 />
               )}
               {tab.label}
@@ -188,13 +185,12 @@ export default function CatalogPage() {
             ))
           ) : (
             <div className="text-center py-12">
-              <p className="text-4xl mb-3">🔍</p>
               <p style={{ color: 'var(--hint)', fontSize: 14, marginBottom: 16 }}>Нет игр по запросу «{debouncedQuery}»</p>
               <button
                 type="button"
                 onClick={() => navigate('/custom-order?type=missing_game')}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
-                style={{ background: 'rgba(45,88,173,0.16)', border: '1px solid rgba(45,88,173,0.38)', color: '#6b9de8' }}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-[0.97]"
+                style={{ background: 'var(--accent-soft)', color: 'var(--link)' }}
               >
                 Не нашли свою игру? Напишите нам
               </button>
@@ -257,7 +253,7 @@ export default function CatalogPage() {
           type="button"
           onClick={() => navigate('/custom-order?type=missing_game')}
           className="w-full flex items-center gap-3 p-3 rounded-2xl text-left transition-all active:scale-[0.98]"
-          style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', cursor: 'pointer', marginTop: 8 }}
+          style={{ background: 'rgba(220,235,255,0.04)', border: '1px solid rgba(220,235,255,0.08)', cursor: 'pointer', marginTop: 8 }}
         >
           <span style={{ flex: 1 }}>
             <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>

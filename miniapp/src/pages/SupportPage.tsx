@@ -12,8 +12,8 @@ import { useTelegram } from '@/hooks/useTelegram'
 type View = 'list' | 'drafting' | 'chat'
 
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
-  open:         { label: 'Открыт',      color: '#3b82f6', bg: 'rgba(59,130,246,0.15)' },
-  in_progress:  { label: 'В работе',    color: '#a78bfa', bg: 'rgba(167,139,250,0.15)' },
+  open:         { label: 'Открыт',      color: '#8395B8', bg: 'rgba(131,149,184,0.15)' },
+  in_progress:  { label: 'В работе',    color: 'var(--link)', bg: 'rgba(37,99,235,0.15)' },
   waiting_user: { label: 'Ожидаем вас', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
   resolved:     { label: 'Решён',       color: '#6b7280', bg: 'rgba(107,114,128,0.15)' },
   closed:       { label: 'Закрыт',      color: '#6b7280', bg: 'rgba(107,114,128,0.15)' },
@@ -55,7 +55,7 @@ function FullScreenOverlay({ children }: { children: ReactNode }) {
         zIndex: 200,
         display: 'flex',
         flexDirection: 'column',
-        background: '#060f1e',
+        background: '#101C36',
       }}
     >
       {children}
@@ -222,10 +222,10 @@ export default function SupportPage() {
       {view === 'list' && (
         <div className="mb-4">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>Мои обращения</h1>
+            <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Мои обращения</h1>
             <button
               onClick={() => setView('drafting')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all active:scale-95"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all active:scale-[0.97]"
               style={{ background: '#1d4ed8', color: '#fff' }}
             >
               <Plus size={14} />
@@ -244,13 +244,13 @@ export default function SupportPage() {
                   onClick={() => setTicketTab(tab.key)}
                   className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-sm font-medium transition-all"
                   style={{
-                    background: ticketTab === tab.key ? 'rgba(255,255,255,0.1)' : 'transparent',
+                    background: ticketTab === tab.key ? 'rgba(220,235,255,0.1)' : 'transparent',
                     color: ticketTab === tab.key ? 'var(--text)' : 'var(--hint)',
                   }}
                 >
                   {tab.label}
                   {tab.count > 0 && (
-                    <span className="text-xs px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(255,255,255,0.08)', color: 'var(--hint)' }}>
+                    <span className="text-xs px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(220,235,255,0.08)', color: 'var(--hint)' }}>
                       {tab.count}
                     </span>
                   )}
@@ -281,7 +281,7 @@ export default function SupportPage() {
           {/* Hint */}
           <div className="flex-1 flex flex-col justify-end px-4 py-4">
             <div className="bg-white/[0.06] rounded-2xl rounded-bl-sm px-4 py-3 mb-4 max-w-[85%]">
-              <p className="text-[10px] font-semibold mb-1" style={{ color: '#3b82f6' }}>Поддержка</p>
+              <p className="text-[10px] font-semibold mb-1" style={{ color: 'var(--link)' }}>Поддержка</p>
               <p className="text-sm text-white/80">Опишите проблему, и мы поможем как можно быстрее.</p>
             </div>
           </div>
@@ -290,7 +290,7 @@ export default function SupportPage() {
           <div
             className="shrink-0 border-t border-white/5 px-3 pt-2"
             style={{
-              background: '#060f1e',
+              background: '#101C36',
               paddingBottom: 'max(env(safe-area-inset-bottom, 20px), 20px)',
             }}
           >
@@ -341,7 +341,7 @@ export default function SupportPage() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="p-1.5 rounded-xl transition-colors active:scale-90"
+                className="p-1.5 rounded-xl transition-colors active:scale-[0.97]"
                 style={{ color: 'var(--hint)' }}
               >
                 <Paperclip size={18} />
@@ -365,7 +365,7 @@ export default function SupportPage() {
                 type="button"
                 onClick={handleSubmitDraft}
                 disabled={(!draftText.trim() && attachedFiles.length === 0) || draftCreating || uploadingFiles}
-                className="p-2 rounded-xl disabled:opacity-40 transition-all active:scale-90"
+                className="p-2 rounded-xl disabled:opacity-40 transition-all active:scale-[0.97]"
                 style={{ background: '#1d4ed8' }}
               >
                 {draftCreating || uploadingFiles
@@ -448,7 +448,7 @@ export default function SupportPage() {
                       ].join(' ')}
                     >
                       {!isUser && (
-                        <p className="text-[10px] font-semibold mb-0.5" style={{ color: '#3b82f6' }}>
+                        <p className="text-[10px] font-semibold mb-0.5" style={{ color: 'var(--link)' }}>
                           Поддержка
                         </p>
                       )}
@@ -481,7 +481,7 @@ export default function SupportPage() {
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs"
-                                style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)' }}
+                                style={{ background: 'rgba(220,235,255,0.08)', color: 'rgba(220,235,255,0.6)' }}
                               >
                                 <Paperclip size={11} />
                                 Файл {idx + 1}
@@ -529,7 +529,7 @@ export default function SupportPage() {
           <div
             className="shrink-0 border-t border-white/5 px-3 pt-2"
             style={{
-              background: '#060f1e',
+              background: '#101C36',
               paddingBottom: 'max(env(safe-area-inset-bottom, 20px), 20px)',
             }}
           >
@@ -562,7 +562,7 @@ export default function SupportPage() {
                 <button
                   onClick={handleReply}
                   disabled={sending || uploadingFiles || (!replyText.trim() && attachedFiles.length === 0)}
-                  className="p-2 rounded-xl transition-all active:scale-90 disabled:opacity-40"
+                  className="p-2 rounded-xl transition-all active:scale-[0.97] disabled:opacity-40"
                   style={{ background: '#1d4ed8' }}
                 >
                   <Send size={18} color="#fff" />
@@ -608,7 +608,7 @@ export default function SupportPage() {
                 top: 'calc(env(safe-area-inset-top, 0px) + 52px)',
                 right: 16,
                 zIndex: 301,
-                background: 'rgba(255,255,255,0.15)',
+                background: 'rgba(220,235,255,0.15)',
                 border: 'none',
                 borderRadius: 20,
                 width: 36, height: 36,
@@ -676,7 +676,7 @@ export default function SupportPage() {
                 >
                   <div
                     className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-base font-bold"
-                    style={{ background: 'rgba(59,130,246,0.18)', color: '#3b82f6' }}
+                    style={{ background: 'rgba(37,99,235,0.18)', color: 'var(--link)' }}
                   >
                     {initial}
                   </div>

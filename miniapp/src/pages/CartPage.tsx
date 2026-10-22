@@ -153,7 +153,7 @@ export default function CartPage() {
     <div className="px-4 pt-5 pb-6 space-y-4">
       {/* Заголовок */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>🛒 Корзина</h1>
+        <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Корзина</h1>
       </div>
 
       {/* Позиции */}
@@ -202,14 +202,14 @@ export default function CartPage() {
               )}
 
               <div className="flex items-center justify-between mt-2">
-                <p className="font-bold text-sm" style={{ color: '#60a5fa' }}>
+                <p className="font-bold text-sm" style={{ color: 'var(--link)' }}>
                   {fmtPrice(item.subtotal)} ₽
                 </p>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
                     onClick={() => handleQtyChange(item, -1)}
-                    className="w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+                    className="w-7 h-7 rounded-full flex items-center justify-center active:scale-[0.97] transition-transform"
                     style={{ background: 'var(--bg3)', color: 'var(--text)' }}
                     disabled={!!updatingId}
                   >
@@ -224,7 +224,7 @@ export default function CartPage() {
                   <button
                     type="button"
                     onClick={() => handleQtyChange(item, 1)}
-                    className="w-7 h-7 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+                    className="w-7 h-7 rounded-full flex items-center justify-center active:scale-[0.97] transition-transform"
                     style={{ background: 'var(--bg3)', color: 'var(--text)' }}
                     disabled={!!updatingId}
                   >
@@ -255,9 +255,9 @@ export default function CartPage() {
             type="button"
             onClick={handleApplyPromo}
             disabled={!promoInput.trim() || promoApplying}
-            className="px-4 py-3 rounded-2xl font-semibold text-sm transition-all active:scale-95 disabled:opacity-40"
+            className="px-4 py-3 rounded-2xl font-semibold text-sm transition-all active:scale-[0.97] disabled:opacity-40"
             style={{
-              background: 'linear-gradient(135deg, #2563eb, #2d58ad)',
+              background: 'var(--accent)',
               color: '#fff',
             }}
           >
@@ -269,9 +269,9 @@ export default function CartPage() {
         {cart.promo_code && (
           <div
             className="flex items-center justify-between px-3 py-2 rounded-xl"
-            style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid rgba(16,185,129,0.2)' }}
+            style={{ background: 'rgba(16,185,129,0.1)', border: '1px solid transparent' }}
           >
-            <span className="text-sm font-medium" style={{ color: '#34d399' }}>🏷 {cart.promo_code}</span>
+            <span className="text-sm font-medium" style={{ color: '#34d399' }}>Промокод {cart.promo_code}</span>
             <span className="text-sm font-bold" style={{ color: '#34d399' }}>
               -{fmtPrice(cart.promo_discount ?? 0)} ₽
             </span>
@@ -293,7 +293,7 @@ export default function CartPage() {
           <div className="divider" />
           <div className="flex justify-between font-bold text-base">
             <span style={{ color: 'var(--text)' }}>Итого</span>
-            <span style={{ color: '#60a5fa' }}>{fmtPrice(cart.total)} ₽</span>
+            <span style={{ color: 'var(--link)' }}>{fmtPrice(cart.total)} ₽</span>
           </div>
         </div>
 

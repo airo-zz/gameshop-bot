@@ -12,6 +12,7 @@ import { useDragScroll } from '@/hooks/useDragScroll'
 import logoFullSrc from '@/assets/logo-full.png'
 import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
 import { normalizeImageUrl } from '@/utils/imageUrl'
+import { NAV_HEIGHT } from '@/components/layout/Layout'
 
 // ── Inline SVG icons ─────────────────────────────────────────────────────────
 
@@ -46,7 +47,7 @@ function IconMenu({ open }: { open: boolean }) {
           transformBox: 'fill-box' as any,
           transformOrigin: 'center',
           transform: open ? 'translateY(6px) rotate(45deg)' : 'translateY(0) rotate(0deg)',
-          transition: 'transform 0.35s cubic-bezier(0.34, 1.2, 0.64, 1)',
+          transition: 'transform 0.35s ease',
         }}
       />
       <line
@@ -65,17 +66,9 @@ function IconMenu({ open }: { open: boolean }) {
           transformBox: 'fill-box' as any,
           transformOrigin: 'center',
           transform: open ? 'translateY(-6px) rotate(-45deg)' : 'translateY(0) rotate(0deg)',
-          transition: 'transform 0.35s cubic-bezier(0.34, 1.2, 0.64, 1)',
+          transition: 'transform 0.35s ease',
         }}
       />
-    </svg>
-  )
-}
-
-function IconFire() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-      <path d="M12 2C12 2 8 7 8 11a4 4 0 0 0 8 0c0-1.5-.8-3-1.5-4 0 0-.5 2-2 2-.8 0-1.5-.7-1.5-1.5C11 6 12 2 12 2zM6.3 14.7C5.5 13.4 5 11.8 5 11c0 0-2 2.5-2 5a9 9 0 0 0 18 0c0-3-1.5-5.5-3-7 0 2-1 4-3 5-1.2.6-2 .5-2 .5s1-1.5 1-3c-1 1.5-2.7 2.5-4 2.5-.9 0-1.6-.5-2.7-1.3C7 12 6 11 6 11z"/>
     </svg>
   )
 }
@@ -183,24 +176,22 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
         width: 38,
         height: 22,
         borderRadius: 11,
-        background: checked ? 'rgba(45,88,173,0.85)' : 'rgba(255,255,255,0.12)',
-        border: checked ? '1px solid rgba(107,157,232,0.5)' : '1px solid rgba(255,255,255,0.1)',
+        background: checked ? 'var(--accent)' : 'rgba(220,235,255,0.14)',
         position: 'relative',
         cursor: 'pointer',
-        transition: 'background 0.2s, border-color 0.2s',
+        transition: 'background 0.2s ease',
         flexShrink: 0,
       }}
     >
       <div style={{
         position: 'absolute',
-        top: 2,
-        left: checked ? 18 : 2,
+        top: 3,
+        left: checked ? 19 : 3,
         width: 16,
         height: 16,
         borderRadius: '50%',
         background: '#fff',
-        transition: 'left 0.2s cubic-bezier(0.34,1.56,0.64,1)',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
+        transition: 'left 0.2s ease',
       }} />
     </div>
   )
@@ -215,6 +206,8 @@ interface MenuItem {
   toggle?: boolean
   toggleKey?: string
 }
+
+const SHEET_TRANSITION = 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
 
 // ── Menu Sheet (bottom sheet) ─────────────────────────────────────────────────
 
@@ -237,7 +230,7 @@ const MENU_GROUPS: MenuItem[][] = [
   ],
   [
     { icon: <IconSupport />, label: 'Поддержка', path: '/support' },
-    { icon: <IconSparkle />, label: 'Эффекты частиц', toggle: true, toggleKey: 'particles' },
+    { icon: <IconSparkle />, label: 'Частицы на фоне', toggle: true, toggleKey: 'particles' },
   ],
 ]
 
@@ -270,7 +263,7 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
   // Reset panel transform when open state changes
   useEffect(() => {
     if (panelRef.current) {
-      panelRef.current.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)'
+      panelRef.current.style.transition = SHEET_TRANSITION
       panelRef.current.style.transform = open ? 'translateY(0)' : 'translateY(100%)'
     }
   }, [open])
@@ -290,7 +283,7 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
 
   const handleDragEnd = () => {
     if (panelRef.current) {
-      panelRef.current.style.transition = 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)'
+      panelRef.current.style.transition = SHEET_TRANSITION
     }
     if (dragDelta.current > 80) {
       onClose()
@@ -312,7 +305,7 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
           zIndex: 90,
           opacity: open ? 1 : 0,
           pointerEvents: open ? 'auto' : 'none',
-          transition: 'opacity 0.3s ease',
+          transition: 'opacity 0.25s ease',
         }}
       />
 
@@ -325,15 +318,12 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
           left: 0,
           right: 0,
           zIndex: 91,
-          background: 'rgba(16,14,38,0.97)',
-          backdropFilter: 'blur(24px)',
-          WebkitBackdropFilter: 'blur(24px)',
-          borderTop: '1px solid rgba(45,88,173,0.28)',
+          background: 'var(--bg2)',
+          borderTop: '1px solid var(--border)',
           borderRadius: '20px 20px 0 0',
-          boxShadow: '0 -8px 40px rgba(0,0,0,0.6), 0 0 0 1px rgba(45,88,173,0.06)',
           transform: open ? 'translateY(0)' : 'translateY(100%)',
-          transition: 'transform 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
-          paddingBottom: 'calc(96px + env(safe-area-inset-bottom, 0px))',
+          transition: SHEET_TRANSITION,
+          paddingBottom: `calc(${NAV_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
         }}
       >
         {/* Drag handle — swipe down here to close */}
@@ -347,7 +337,7 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
             width: 36,
             height: 4,
             borderRadius: 99,
-            background: 'rgba(255,255,255,0.18)',
+            background: 'rgba(220,235,255,0.18)',
           }} />
         </div>
 
@@ -356,7 +346,7 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
           {MENU_GROUPS.map((group, gi) => (
             <div key={gi}>
               {gi > 0 && (
-                <div style={{ height: 1, background: 'rgba(45,88,173,0.15)', margin: '4px 16px' }} />
+                <div style={{ height: 1, background: 'var(--border)', margin: '4px 16px' }} />
               )}
               {group.map((item) => {
                 const isToggle = !!item.toggle
@@ -385,9 +375,9 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
                       color: 'var(--text)',
                       transition: 'background 0.15s',
                     }}
-                    onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(45,88,173,0.12)' }}
+                    onTouchStart={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(220,235,255,0.04)' }}
                     onTouchEnd={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(45,88,173,0.10)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.background = 'rgba(220,235,255,0.04)' }}
                     onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.background = 'none' }}
                   >
                     <span
@@ -398,9 +388,8 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
                         width: 34,
                         height: 34,
                         borderRadius: 10,
-                        background: 'rgba(107,157,232,0.10)',
-                        border: '1px solid rgba(107,157,232,0.15)',
-                        color: '#6b9de8',
+                        background: 'var(--bg3)',
+                        color: 'var(--link)',
                         flexShrink: 0,
                       }}
                     >
@@ -414,7 +403,7 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
                         if (item.toggleKey === 'particles') onToggleParticles(v)
                       }} />
                     ) : (
-                      <span style={{ color: 'rgba(107,157,232,0.35)', display: 'flex' }}>
+                      <span style={{ color: 'var(--hint)', display: 'flex' }}>
                         <IconChevronRight />
                       </span>
                     )}
@@ -429,16 +418,7 @@ function MenuSheet({ open, onClose, particlesEnabled, onToggleParticles }: MenuS
   )
 }
 
-// ── Trending category card gradients ──────────────────────────────────────────
 
-const CARD_GRADIENTS = [
-  'linear-gradient(135deg, #162d5c 0%, #2d5aad 100%)',
-  'linear-gradient(135deg, #2e1459 0%, #7b35d0 100%)',
-  'linear-gradient(135deg, #0f3a2a 0%, #1a7a5a 100%)',
-  'linear-gradient(135deg, #3a1f0a 0%, #a05828 100%)',
-  'linear-gradient(135deg, #152e3a 0%, #1e7a9a 100%)',
-  'linear-gradient(135deg, #3a1020 0%, #8a2a5a 100%)',
-]
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
@@ -522,17 +502,15 @@ export default function HomePage() {
 
       {/* ── Fixed header ────────────────────────────────────────────────── */}
       <div
-        className="z-40 animate-slide-down"
+        className="z-40"
         style={{
           position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
           paddingTop: 'calc(var(--tg-safe-area-inset-top, env(safe-area-inset-top, 0px)) + var(--tg-content-safe-area-inset-top, 0px))',
-          background: 'rgba(12,11,29,0.92)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          background: 'var(--bg)',
+          borderBottom: '1px solid var(--border)',
         }}
       >
         <div
@@ -562,7 +540,7 @@ export default function HomePage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: 12,
-                color: 'rgba(255,255,255,0.6)',
+                color: 'var(--hint)',
                 textDecoration: 'none',
                 WebkitTapHighlightColor: 'transparent',
               }}
@@ -578,11 +556,11 @@ export default function HomePage() {
                 alignItems: 'center',
                 justifyContent: 'center',
                 borderRadius: 12,
-                background: menuOpen ? 'rgba(45,88,173,0.18)' : 'transparent',
-                border: menuOpen ? '1px solid rgba(45,88,173,0.38)' : '1px solid transparent',
-                color: menuOpen ? '#6b9de8' : 'rgba(255,255,255,0.6)',
+                background: menuOpen ? 'var(--bg2)' : 'transparent',
+                border: 'none',
+                color: menuOpen ? 'var(--text)' : 'var(--hint)',
                 cursor: 'pointer',
-                transition: 'background 0.2s, border-color 0.2s, color 0.2s',
+                transition: 'background 0.15s ease, color 0.15s ease',
                 WebkitTapHighlightColor: 'transparent',
               }}
             >
@@ -600,13 +578,10 @@ export default function HomePage() {
             style={{
               margin: 0,
               fontWeight: 700,
-              fontSize: '1.6rem',
-              lineHeight: 1.2,
-              letterSpacing: '-0.02em',
-              background: 'linear-gradient(135deg, #ffffff 0%, #93b8f0 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+              fontSize: '1.375rem',
+              lineHeight: 1.25,
+              letterSpacing: '-0.01em',
+              color: 'var(--text)',
             }}
           >
             {displayName ? `Добро пожаловать, ${displayName}!` : 'Добро пожаловать!'}
@@ -623,15 +598,15 @@ export default function HomePage() {
                   gap: 5,
                   padding: '4px 12px 4px 10px',
                   borderRadius: 999,
-                  background: 'rgba(45,88,173,0.16)',
-                  border: '1px solid rgba(45,88,173,0.32)',
+                  background: 'var(--bg2)',
+                  border: '1px solid var(--border)',
                   fontSize: 12,
                   fontWeight: 600,
-                  color: '#93b8f0',
+                  color: 'var(--text)',
                   textDecoration: 'none',
                 }}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#93b8f0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--link)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
                   <rect x="2" y="5" width="20" height="14" rx="2"/>
                   <line x1="2" y1="10" x2="22" y2="10"/>
                 </svg>
@@ -649,8 +624,8 @@ export default function HomePage() {
                       gap: 5,
                       padding: '4px 12px 4px 8px',
                       borderRadius: 999,
-                      background: `${loyaltyColor}22`,
-                      border: `1px solid ${loyaltyColor}44`,
+                      background: `${loyaltyColor}1A`,
+                      border: '1px solid transparent',
                       fontSize: 12,
                       fontWeight: 600,
                       color: loyaltyColor,
@@ -669,10 +644,8 @@ export default function HomePage() {
         </div>
 
         {/* ── Trending categories ───────────────────────────────────────────── */}
-        <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(45,88,173,0.2) 30%, rgba(45,88,173,0.2) 70%, transparent)', marginBottom: 24 }} />
-        <section className="mb-8">
-          <h2 style={{ margin: '0 0 12px', fontWeight: 700, fontSize: '1.05rem', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ color: '#fb923c', display: 'flex' }}><IconFire /></span>
+        <section className="mt-2 mb-8">
+          <h2 style={{ margin: '0 0 12px', fontWeight: 600, fontSize: '1.0625rem', color: 'var(--text)' }}>
             Популярное
           </h2>
 
@@ -698,7 +671,7 @@ export default function HomePage() {
                 : 'linear-gradient(to right, black 0%, black 72%, transparent 100%)',
             } as React.CSSProperties}
           >
-            {trendingCategories.map((cat, i) => {
+            {trendingCategories.map(cat => {
               const imgSrc = normalizeImageUrl(cat.game_image_url)
               return (
                 <div
@@ -714,8 +687,8 @@ export default function HomePage() {
                     borderRadius: 16,
                     flexShrink: 0,
                     textDecoration: 'none',
-                    background: CARD_GRADIENTS[i % CARD_GRADIENTS.length],
-                    border: '1px solid rgba(255,255,255,0.1)',
+                    background: 'var(--bg2)',
+                    border: '1px solid var(--border)',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'flex-end',
@@ -737,18 +710,18 @@ export default function HomePage() {
                         width: '100%', height: '100%',
                         objectFit: 'cover',
                         objectPosition: 'right center',
-                        opacity: 0.35,
+                        opacity: 0.6,
                         pointerEvents: 'none',
                         userSelect: 'none',
                       }}
                     />
                   )}
-                  {/* Градиент: слева непрозрачно (текст), справа прозрачно (фото) */}
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to right, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 55%, rgba(0,0,0,0.1) 100%)' }} />
-                  <p style={{ margin: 0, fontSize: 15, fontWeight: 700, color: '#fff', position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                  {/* Затемнение под текст: слева цвет карточки, справа видно фото */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(to right, #101C36 0%, rgba(16,28,54,0.8) 50%, rgba(16,28,54,0.1) 100%)' }} />
+                  <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: 'var(--text)', position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                     {cat.name}
                   </p>
-                  <p style={{ margin: '3px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.6)', position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                  <p style={{ margin: '3px 0 0', fontSize: 12, color: 'var(--hint)', position: 'relative', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                     {cat.game_name}
                   </p>
                 </div>
@@ -759,7 +732,6 @@ export default function HomePage() {
 
         {/* ── Games section ────────────────────────────────────────────────── */}
         {/* ── Games horizontal scroll ──────────────────────────────────────── */}
-        <div style={{ height: 1, background: 'linear-gradient(90deg, transparent, rgba(45,88,173,0.2) 30%, rgba(45,88,173,0.2) 70%, transparent)', marginBottom: 24 }} />
         <section>
           {/* Открыть полный каталог */}
           <Link
@@ -770,23 +742,23 @@ export default function HomePage() {
               justifyContent: 'space-between',
               padding: '10px 14px',
               borderRadius: 14,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.07)',
+              background: 'var(--bg2)',
+              border: '1px solid var(--border)',
               textDecoration: 'none',
               marginBottom: 12,
               WebkitTapHighlightColor: 'transparent',
             }}
-            onTouchStart={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)' }}
-            onTouchEnd={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)' }}
+            onTouchStart={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg3)' }}
+            onTouchEnd={e => { (e.currentTarget as HTMLElement).style.background = 'var(--bg2)' }}
           >
             <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>Открыть полный каталог</span>
-            <span style={{ color: 'rgba(107,157,232,0.7)', display: 'flex' }}><IconChevronRight /></span>
+            <span style={{ color: 'var(--hint)', display: 'flex' }}><IconChevronRight /></span>
           </Link>
 
           {/* Segment control */}
           <div
             className="flex p-1 rounded-2xl"
-            style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', marginBottom: 12 }}
+            style={{ background: 'var(--bg2)', border: '1px solid var(--border)', marginBottom: 12 }}
           >
             {([
               { value: 'game' as const, label: 'Игры' },
@@ -810,8 +782,8 @@ export default function HomePage() {
                     <motion.div
                       layoutId="home-tab-pill"
                       className="absolute inset-0 rounded-xl"
-                      style={{ background: 'rgba(255,255,255,0.1)', zIndex: -1 }}
-                      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+                      style={{ background: 'var(--bg3)', zIndex: -1 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
                     />
                   )}
                   {tab.label}
@@ -831,15 +803,14 @@ export default function HomePage() {
                 <div
                   key={game.id}
                   onClick={() => handleGameClick(game.slug)}
-                  className="active:scale-95 transition-transform"
+                  className="active:opacity-80"
                   style={{
-                    borderRadius: 18,
+                    borderRadius: 14,
                     overflow: 'hidden',
-                    border: '1px solid rgba(255,255,255,0.08)',
+                    border: '1px solid var(--border)',
                     display: 'block',
-                    background: 'rgba(12,11,26,0.50)',
-                    backdropFilter: 'blur(10px)',
-                    WebkitBackdropFilter: 'blur(10px)',
+                    background: 'var(--bg2)',
+                    transition: 'opacity 0.1s ease',
                     cursor: 'pointer',
                   }}
                 >
@@ -858,22 +829,22 @@ export default function HomePage() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          background: 'linear-gradient(135deg, #060f1e, #0a1428)',
-                          color: 'rgba(107,157,232,0.5)',
+                          background: 'var(--bg2)',
+                          color: 'var(--hint)',
                         }}
                       >
                         <IconGamepadSmall />
                       </div>
                     }
                   />
-                  <div style={{ padding: '6px 6px 9px', background: 'rgba(8,7,20,0.6)', borderTop: '1px solid rgba(45,88,173,0.15)' }}>
+                  <div style={{ padding: '7px 6px 9px' }}>
                     <p
                       style={{
                         margin: 0,
                         textAlign: 'center',
                         fontSize: 12,
-                        fontWeight: 600,
-                        color: 'rgba(255,255,255,0.75)',
+                        fontWeight: 500,
+                        color: 'var(--text)',
                         overflow: 'hidden',
                         whiteSpace: 'nowrap',
                         textOverflow: 'ellipsis',
@@ -892,7 +863,7 @@ export default function HomePage() {
           <Link
             to="/catalog"
             className="btn-primary"
-            style={{ textDecoration: 'none', boxShadow: '0 0 24px rgba(45,88,173,0.45), 0 4px 24px rgba(45,88,173,0.3)' }}
+            style={{ textDecoration: 'none' }}
           >
             Открыть весь каталог
           </Link>
@@ -904,10 +875,10 @@ export default function HomePage() {
           style={{
             display: 'flex', alignItems: 'center', gap: 12, marginTop: 12,
             padding: '12px 14px', borderRadius: 14, textDecoration: 'none',
-            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--bg2)', border: '1px solid var(--border)',
           }}
         >
-          <span style={{ color: '#6b9de8', display: 'flex', flexShrink: 0 }}><IconSparkle /></span>
+          <span style={{ color: 'var(--link)', display: 'flex', flexShrink: 0 }}><IconSupport /></span>
           <span style={{ flex: 1 }}>
             <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--text)' }}>
               Не нашли свою игру?
@@ -916,7 +887,7 @@ export default function HomePage() {
               Напишите нам — договоримся и соберём индивидуально
             </span>
           </span>
-          <span style={{ color: 'rgba(107,157,232,0.7)', display: 'flex' }}><IconChevronRight /></span>
+          <span style={{ color: 'var(--hint)', display: 'flex' }}><IconChevronRight /></span>
         </Link>
 
       </div>

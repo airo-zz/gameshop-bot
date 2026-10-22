@@ -62,7 +62,7 @@ export default function WebCartPage() {
 
   return (
     <div className="web-container py-8 md:py-12 max-w-3xl">
-      <h1 className="text-2xl md:text-3xl font-extrabold text-white mb-6">Корзина</h1>
+      <h1 className="text-2xl md:text-3xl font-bold text-white mb-6">Корзина</h1>
 
       <div className="space-y-2.5">
         {cart.items.map((item) => (

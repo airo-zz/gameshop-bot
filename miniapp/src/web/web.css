@@ -28,12 +28,12 @@ body.web a {
 /* Нормальный скроллбар вместо 2px «телефонного» */
 body.web ::-webkit-scrollbar { width: 10px; height: 10px; }
 body.web ::-webkit-scrollbar-thumb {
-  background: rgba(45, 88, 173, 0.5);
+  background: rgba(37,99,235, 0.5);
   border-radius: 6px;
   border: 2px solid transparent;
   background-clip: content-box;
 }
-body.web ::-webkit-scrollbar-thumb:hover { background: rgba(107, 157, 232, 0.7); background-clip: content-box; }
+body.web ::-webkit-scrollbar-thumb:hover { background: rgba(127,166,245, 0.7); background-clip: content-box; }
 
 /* Плавные якорные переходы */
 html { scroll-behavior: smooth; }

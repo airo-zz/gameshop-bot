@@ -20,8 +20,8 @@ const STATUS_COLOR: Record<string, string> = {
   completed:     '#34d399',
   cancelled:     '#f87171',
   clarification: '#fbbf24',
-  paid:          '#60a5fa',
-  processing:    '#6b9de8',
+  paid:          'var(--link)',
+  processing:    '#7FA6F5',
 }
 
 export default function OrdersPage() {
@@ -62,8 +62,8 @@ export default function OrdersPage() {
       <button
         type="button"
         onClick={() => refetch()}
-        className="px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-95"
-        style={{ background: 'rgba(45,88,173,0.16)', border: '1px solid rgba(45,88,173,0.38)', color: '#6b9de8' }}
+        className="px-5 py-2.5 rounded-2xl text-sm font-semibold transition-all active:scale-[0.97]"
+        style={{ background: 'var(--accent-soft)', color: 'var(--link)' }}
       >
         Повторить
       </button>
@@ -77,7 +77,7 @@ export default function OrdersPage() {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.2, ease: 'easeOut' }}
     >
-      <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>Мои заказы</h1>
+      <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Мои заказы</h1>
 
       {rawOrders.length > 0 && (
         <div
@@ -129,13 +129,13 @@ export default function OrdersPage() {
                   <p className="font-bold text-sm" style={{ color: 'var(--text)' }}>
                     {order.order_number}
                   </p>
-                  <p className="font-bold text-sm" style={{ color: '#6b9de8' }}>
+                  <p className="font-bold text-sm" style={{ color: 'var(--link)' }}>
                     {order.total_amount.toLocaleString('ru')} ₽
                   </p>
                 </div>
                 <p className="text-xs font-medium flex items-center"
                    style={{ color: STATUS_COLOR[order.status] ?? 'var(--hint)' }}>
-                  <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: STATUS_COLOR[order.status] ?? 'rgba(255,255,255,0.3)', marginRight: 6, flexShrink: 0 }} />
+                  <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: STATUS_COLOR[order.status] ?? 'rgba(220,235,255,0.3)', marginRight: 6, flexShrink: 0 }} />
                   {STATUS_LABEL[order.status] ?? order.status}
                 </p>
                 <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>
@@ -151,8 +151,8 @@ export default function OrdersPage() {
                   <button
                     type="button"
                     onClick={(e) => { e.stopPropagation(); navigate(`/pay/${order.id}`) }}
-                    className="mt-2 px-3 py-1.5 rounded-xl text-xs font-semibold active:scale-95 transition-transform"
-                    style={{ background: 'rgba(45,88,173,0.9)', color: '#fff', border: 'none', cursor: 'pointer' }}
+                    className="mt-2 px-3 py-1.5 rounded-xl text-xs font-semibold active:scale-[0.97] transition-transform"
+                    style={{ background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer' }}
                   >
                     Оплатить
                   </button>

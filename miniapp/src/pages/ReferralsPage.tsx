@@ -51,12 +51,12 @@ export default function ReferralsPage() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center justify-center w-9 h-9 rounded-xl active:scale-95 transition-transform flex-shrink-0"
+          className="flex items-center justify-center w-9 h-9 rounded-xl active:scale-[0.97] transition-transform flex-shrink-0"
           style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
         >
           <ArrowLeft size={18} style={{ color: 'var(--text)' }} />
         </button>
-        <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>Рефералы</h1>
+        <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Рефералы</h1>
       </div>
 
       {/* Summary stats */}
@@ -65,10 +65,10 @@ export default function ReferralsPage() {
           className="p-4 rounded-2xl"
           style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
         >
-          <div style={{ color: '#6b9de8', opacity: 0.6, marginBottom: 6, display: 'flex' }}>
+          <div style={{ color: 'var(--link)', opacity: 0.6, marginBottom: 6, display: 'flex' }}>
             <Users size={16} />
           </div>
-          <p className="text-2xl font-extrabold" style={{ color: '#6b9de8' }}>
+          <p className="text-2xl font-bold" style={{ color: 'var(--link)' }}>
             {isLoading ? '—' : (stats?.referrals_count ?? 0)}
           </p>
           <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>Приглашено</p>
@@ -80,7 +80,7 @@ export default function ReferralsPage() {
           <div style={{ color: '#34d399', opacity: 0.6, marginBottom: 6, display: 'flex' }}>
             <ShoppingBag size={16} />
           </div>
-          <p className="text-2xl font-extrabold" style={{ color: '#34d399' }}>
+          <p className="text-2xl font-bold" style={{ color: '#34d399' }}>
             {isLoading ? '—' : (stats?.referrals?.filter(r => r.orders_count > 0).length ?? 0)}
           </p>
           <p className="text-xs mt-0.5" style={{ color: 'var(--hint)' }}>Сделали заказ</p>
@@ -100,10 +100,10 @@ export default function ReferralsPage() {
           <button
             type="button"
             onClick={handleCopyLink}
-            className="flex items-center flex-1 p-3 rounded-xl active:scale-95 transition-transform min-w-0"
-            style={{ background: 'var(--bg3, rgba(255,255,255,0.04))', border: '1px solid var(--border)' }}
+            className="flex items-center flex-1 p-3 rounded-xl active:scale-[0.97] transition-transform min-w-0"
+            style={{ background: 'var(--bg3, rgba(220,235,255,0.04))', border: '1px solid var(--border)' }}
           >
-            <code className="text-xs font-bold truncate" style={{ color: '#6b9de8' }}>
+            <code className="text-xs font-bold truncate" style={{ color: 'var(--link)' }}>
               {profile
                 ? `t.me/${BOT_USERNAME}?start=REF_${profile.telegram_id}`
                 : 'Загрузка...'}
@@ -112,13 +112,11 @@ export default function ReferralsPage() {
           <button
             type="button"
             onClick={handleShareTelegram}
-            className="flex items-center justify-center active:scale-90 transition-transform flex-shrink-0"
+            className="flex items-center justify-center active:scale-[0.97] transition-transform flex-shrink-0"
             style={{
               width: 40, height: 40,
               borderRadius: 12,
-              background: 'rgba(45,88,173,0.15)',
-              border: '1px solid rgba(45,88,173,0.25)',
-              color: '#6b9de8',
+              background: 'var(--accent-soft)', color: 'var(--link)',
             }}
           >
             <Share2 size={16} />
@@ -158,7 +156,7 @@ export default function ReferralsPage() {
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold"
                     style={{
-                      background: 'linear-gradient(135deg, #2d58ad, #7c3aed)',
+                      background: 'var(--accent)',
                       color: '#fff',
                     }}
                   >
@@ -183,13 +181,13 @@ export default function ReferralsPage() {
                       <div className="flex items-center gap-1.5 mt-1">
                         <div
                           className="h-1.5 flex-1 rounded-full overflow-hidden"
-                          style={{ background: 'rgba(255,255,255,0.08)' }}
+                          style={{ background: 'rgba(220,235,255,0.08)' }}
                         >
                           <div
                             className="h-full rounded-full"
                             style={{
                               width: '100%',
-                              background: 'linear-gradient(90deg, #34d399, #059669)',
+                              background: '#10B981',
                             }}
                           />
                         </div>
@@ -201,13 +199,13 @@ export default function ReferralsPage() {
                       <div className="flex items-center gap-1.5 mt-1">
                         <div
                           className="h-1.5 flex-1 rounded-full overflow-hidden"
-                          style={{ background: 'rgba(255,255,255,0.08)' }}
+                          style={{ background: 'rgba(220,235,255,0.08)' }}
                         >
                           <div
                             className="h-full rounded-full"
                             style={{
                               width: '0%',
-                              background: 'linear-gradient(90deg, #2d58ad, #6b9de8)',
+                              background: 'var(--accent)',
                             }}
                           />
                         </div>

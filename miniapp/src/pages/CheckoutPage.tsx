@@ -106,10 +106,10 @@ export default function CheckoutPage() {
           marginTop: 10,
           padding: '7px 10px',
           borderRadius: 10,
-          background: 'rgba(45,88,173,0.08)',
-          border: '1px solid rgba(45,88,173,0.18)',
+          background: 'rgba(37,99,235,0.08)',
+          border: '1px solid transparent',
           fontSize: 12,
-          color: '#6b9de8',
+          color: 'var(--link)',
           lineHeight: 1.4,
         }}
       >
@@ -122,7 +122,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="px-4 pt-5 pb-8 space-y-5 animate-slide-up">
-      <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)' }}>💳 Оформление</h1>
+      <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Оформление</h1>
 
       {/* Состав заказа */}
       <div className="card space-y-2">
@@ -148,7 +148,7 @@ export default function CheckoutPage() {
         )}
         <div className="flex justify-between font-bold text-base">
           <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span style={{ color: '#6b9de8' }}>{fmtPrice(cart.total)} ₽</span>
+          <span style={{ color: 'var(--link)' }}>{fmtPrice(cart.total)} ₽</span>
         </div>
 
         {/* Подсказка о прогрессе лояльности */}
@@ -210,22 +210,22 @@ export default function CheckoutPage() {
                 className="w-full flex items-center gap-3 p-4 rounded-2xl text-left transition-all duration-150 active:scale-[0.98]"
                 style={{
                   background: isSelected
-                    ? 'linear-gradient(135deg, rgba(45,88,173,0.28), rgba(45,88,173,0.25))'
+                    ? 'var(--accent-soft)'
                     : 'var(--bg2)',
                   border: isSelected
-                    ? '1.5px solid rgba(45,88,173,0.55)'
+                    ? '1.5px solid var(--accent)'
                     : '1.5px solid var(--border)',
                   opacity: isDisabled ? 0.5 : 1,
                 }}
               >
-                <span style={{ color: isSelected ? '#6b9de8' : 'var(--hint)' }}>
+                <span style={{ color: isSelected ? 'var(--link)' : 'var(--hint)' }}>
                   {method.icon}
                 </span>
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{method.label}</p>
                     {quote && (
-                      <p className="text-sm font-bold" style={{ color: '#6b9de8' }}>
+                      <p className="text-sm font-bold" style={{ color: 'var(--link)' }}>
                         {fmtPrice(quote[method.id as QuoteKey])} ₽
                       </p>
                     )}
@@ -237,7 +237,7 @@ export default function CheckoutPage() {
                     }
                   </p>
                 </div>
-                {isSelected && <CheckCircle size={18} style={{ color: '#6b9de8' }} />}
+                {isSelected && <CheckCircle size={18} style={{ color: 'var(--link)' }} />}
               </button>
             )
           })}
@@ -254,7 +254,7 @@ export default function CheckoutPage() {
       {insufficientBalance && (
         <div
           className="flex items-start gap-2 p-3 rounded-2xl"
-          style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}
+          style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid transparent' }}
         >
           <AlertCircle size={15} className="flex-shrink-0 mt-0.5" style={{ color: '#f87171' }} />
           <p className="text-sm" style={{ color: '#f87171' }}>
@@ -283,13 +283,13 @@ export default function CheckoutPage() {
         Нажимая «Оплатить», ты принимаешь{' '}
         <span
           onClick={() => openLink(`${window.location.origin}/app/legal/terms.html`)}
-          style={{ color: '#6b9de8', cursor: 'pointer' }}
+          style={{ color: 'var(--link)', cursor: 'pointer' }}
         >
           условия сервиса
         </span>{' '}и{' '}
         <span
           onClick={() => openLink(`${window.location.origin}/app/legal/privacy.html`)}
-          style={{ color: '#6b9de8', cursor: 'pointer' }}
+          style={{ color: 'var(--link)', cursor: 'pointer' }}
         >
           политику конфиденциальности
         </span>

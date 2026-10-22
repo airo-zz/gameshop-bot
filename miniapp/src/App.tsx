@@ -1,5 +1,5 @@
 // src/App.tsx
-import { lazy, Suspense, useEffect, useRef, useState, Component, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, Component, type ReactNode } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useQueryClient } from '@tanstack/react-query'
@@ -11,7 +11,6 @@ import { cartApi, catalogApi, profileApi } from '@/api'
 import Layout from '@/components/layout/Layout'
 import TelegramBackButton from '@/components/TelegramBackButton'
 import StartParamRedirect from '@/components/StartParamRedirect'
-import LoadingScreen from '@/components/ui/LoadingScreen'
 import ErrorScreen from '@/components/ui/ErrorScreen'
 
 // ErrorBoundary для lazy-loaded chunk'ов — при ошибке загрузки перезагружает страницу
@@ -38,12 +37,21 @@ class ChunkErrorBoundary extends Component<{ children: ReactNode }, { hasError: 
   }
 }
 
+// Навигация между страницами — тихая, без полноэкранного сплэша
 function LazyPage({ children }: { children: ReactNode }) {
   return (
     <ChunkErrorBoundary>
-      <Suspense fallback={<LoadingScreen />}>{children}</Suspense>
+      <Suspense fallback={null}>{children}</Suspense>
     </ChunkErrorBoundary>
   )
+}
+
+// Сплэш живёт в index.html (виден до загрузки JS). Гасим его CSS-переходом и удаляем.
+function hideBootSplash() {
+  const el = document.getElementById('boot-splash')
+  if (!el) return
+  el.classList.add('is-hidden')
+  setTimeout(() => el.remove(), 350)
 }
 
 const HomePage       = lazy(() => import('@/pages/HomePage'))
@@ -93,8 +101,6 @@ export default function App() {
   const queryClient = useQueryClient()
   const initialized = useRef(false)
   const initStartedAt = useRef(Date.now())
-  const [splashExiting, setSplashExiting] = useState(false)
-  const [splashGone, setSplashGone] = useState(false)
 
   useEffect(() => {
     const twa = (window as any).Telegram?.WebApp
@@ -157,18 +163,22 @@ export default function App() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Приложение уже смонтировано под сплэшем — гасим его через 2 кадра после
+  // первого рендера, чтобы тяжёлый mount главной не совпадал с анимацией.
+  // Минимум 600мс, чтобы сплэш не «мигал» при быстром ответе API.
   useEffect(() => {
-    if (!isReady) return
-    const MIN_SPLASH_MS = 1400
-    const elapsed = Date.now() - initStartedAt.current
-    const delay = Math.max(0, MIN_SPLASH_MS - elapsed)
-    const t1 = setTimeout(() => setSplashExiting(true), delay)
-    const t2 = setTimeout(() => setSplashGone(true), delay + 400)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
-  }, [isReady])
+    if (!isReady && !isError) return
+    const MIN_SPLASH_MS = 600
+    const delay = Math.max(0, MIN_SPLASH_MS - (Date.now() - initStartedAt.current))
+    let raf = 0
+    const t = setTimeout(() => {
+      raf = requestAnimationFrame(() => { raf = requestAnimationFrame(hideBootSplash) })
+    }, delay)
+    return () => { clearTimeout(t); cancelAnimationFrame(raf) }
+  }, [isReady, isError])
 
   if (isError) return <ErrorScreen />
-  if (!splashGone) return <LoadingScreen exiting={splashExiting} />
+  if (!isReady) return null
 
   return (
     <BrowserRouter basename="/app">
@@ -181,15 +191,15 @@ export default function App() {
         }}
         toastOptions={{
           style: {
-            background: '#060f1e',
-            color: '#fff',
-            border: '1px solid rgba(45,88,173,0.4)',
+            background: '#101C36',
+            color: '#DCEBFF',
+            border: '1px solid rgba(220,235,255,0.1)',
             borderRadius: '14px',
             fontSize: '14px',
             fontWeight: 500,
           },
-          success: { iconTheme: { primary: '#6b9de8', secondary: '#060f1e' } },
-          error:   { iconTheme: { primary: '#f87171', secondary: '#060f1e' } },
+          success: { iconTheme: { primary: '#7FA6F5', secondary: '#101C36' } },
+          error:   { iconTheme: { primary: '#f87171', secondary: '#101C36' } },
         }}
       />
       <Routes>

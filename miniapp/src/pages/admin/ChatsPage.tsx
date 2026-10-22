@@ -197,7 +197,7 @@ export default function ChatsPage() {
                 {/* Avatar */}
                 <div style={{
                   width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
-                  background: 'linear-gradient(135deg, #1e3a8a, #1d4ed8)',
+                  background: 'linear-gradient(135deg, #1D4ED8, #1d4ed8)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 16, fontWeight: 700, color: '#fff',
                 }}>
@@ -259,7 +259,7 @@ export default function ChatsPage() {
                       <span style={{
                         flexShrink: 0,
                         minWidth: 20, height: 20, borderRadius: 10,
-                        background: 'linear-gradient(135deg, #2d58ad, #1e3f8a)',
+                        background: 'linear-gradient(135deg, #2563EB, #1D4ED8)',
                         color: '#fff', fontSize: 11, fontWeight: 700,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         padding: '0 6px',

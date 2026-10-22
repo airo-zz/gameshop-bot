@@ -35,7 +35,7 @@ export default function WebCatalogPage() {
   return (
     <div className="web-container py-10 md:py-14">
       <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-extrabold text-white">Каталог</h1>
+        <h1 className="text-3xl md:text-4xl font-bold text-white">Каталог</h1>
         <p className="text-sm text-white/45 mt-2">Выберите игру или услугу.</p>
       </div>
 
