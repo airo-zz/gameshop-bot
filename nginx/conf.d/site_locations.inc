@@ -1,0 +1,176 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Общие правила сайта для всех HTTPS-доменов (redonate.su, redonate.gg).
+# Подключается из gameshop.conf через include. Расширение .inc — чтобы
+# nginx.conf (include conf.d/*.conf) не подхватил файл сам на уровне http.
+# ─────────────────────────────────────────────────────────────────────────────
+    # Docker internal DNS — резолвит имена контейнеров динамически при запросе,
+    # а не при старте/reload nginx. Без этого nginx падает если upstream не запущен.
+    resolver 127.0.0.11 valid=30s ipv6=off;
+
+    # ── Mini App (React SPA) ──────────────────────────────────────────────────
+    location /app {
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/index.html @spa_fallback;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+
+        location ~* \.(js|css|png|jpg|svg|ico|woff2)$ {
+            root /usr/share/nginx/html;
+            expires 30d;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+
+    location @spa_fallback {
+        root /usr/share/nginx/html;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        try_files /app/index.html =404;
+    }
+
+    # ── SEO: индексируемые страницы сайта отдаёт API (api/routers/seo.py) ──────
+    # Готовый HTML с метаданными, schema.org и текстом страницы; React затем
+    # запускается как обычно. Если API недоступен — статический index.html.
+    location ~ ^/(catalog|cashback)?$ {
+        set $upstream_api http://api:8000;
+        rewrite ^/(.*)$ /seo/render/$1 break;
+        proxy_pass         $upstream_api;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 10s;
+        proxy_intercept_errors on;
+        error_page 502 503 504 = @web_index;
+        add_header Cache-Control "no-cache";
+    }
+
+    location ~ ^/game/[^/]+/?$ {
+        set $upstream_api http://api:8000;
+        rewrite ^/game/([^/]+)/?$ /seo/render/game/$1 break;
+        proxy_pass         $upstream_api;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 10s;
+        proxy_intercept_errors on;
+        error_page 502 503 504 = @web_index;
+        add_header Cache-Control "no-cache";
+    }
+
+    location ~ ^/(sitemap\.xml|robots\.txt)$ {
+        set $upstream_api http://api:8000;
+        proxy_pass         $upstream_api;
+        proxy_set_header   Host $host;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 10s;
+    }
+
+    location @web_index {
+        root /usr/share/nginx/web;
+        add_header Cache-Control "no-cache";
+        try_files /index.html =404;
+    }
+
+    # ── Public Website (React SPA, base /) ─────────────────────────────────────
+    # Отдаёт dist-web из /usr/share/nginx/web. Неизвестные пути → index.html
+    # (клиентский роутинг). Более специфичные локации (/app, /api, /static, …)
+    # матчатся раньше этого catch-all.
+    location / {
+        root /usr/share/nginx/web;
+        index index.html;
+        try_files $uri /index.html;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+
+        location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?)$ {
+            root /usr/share/nginx/web;
+            expires 30d;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+
+    # ── Static Files (uploaded images) ───────────────────────────────────────
+    location /static/ {
+        alias /usr/share/nginx/static/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # ── 429 JSON response ─────────────────────────────────────────────────────
+    # Возвращаем JSON вместо дефолтного HTML при превышении лимита.
+    # error_page только переопределяет тело — URI не проксируется.
+    error_page 429 @rate_limited;
+    location @rate_limited {
+        default_type application/json;
+        return 429 '{"detail":"Слишком много запросов. Попробуйте позже."}';
+    }
+
+    # ── Auth endpoints (строгий лимит — брутфорс-защита) ─────────────────────
+    location ~* ^/api/v1/payments/auth {
+        set $upstream_api http://api:8000;
+        limit_req zone=auth_zone burst=3 nodelay;
+        proxy_pass         $upstream_api;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        proxy_connect_timeout 5s;
+    }
+
+    # ── FastAPI Backend ───────────────────────────────────────────────────────
+    location /api {
+        # Переменная заставляет nginx резолвить имя при каждом запросе (через
+        # resolver выше), а не один раз при старте/reload — контейнер может
+        # ещё не быть готов в момент перезагрузки конфига.
+        set $upstream_api http://api:8000;
+        limit_req zone=api_zone burst=20 nodelay;
+        proxy_pass         $upstream_api;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        proxy_connect_timeout 5s;
+        client_max_body_size 15m;
+    }
+
+    # ── Bot Webhook ───────────────────────────────────────────────────────────
+    location /webhook/bot {
+        set $upstream_bot http://bot:8080;
+        proxy_pass         $upstream_bot;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+    }
+
+    # ── Support Bot Webhook ──────────────────────────────────────────────────
+    location /webhook/support_bot {
+        set $upstream_support http://support_bot:8081;
+        proxy_pass         $upstream_support;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+    }
+
+    # ── Payment Webhooks (ЮKassa, CryptoBot) ─────────────────────────────────
+    location /webhooks {
+        set $upstream_api http://api:8000;
+        proxy_pass         $upstream_api;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+        proxy_connect_timeout 5s;
+    }
+
+    # ── Health check ──────────────────────────────────────────────────────────
+    location /health {
+        set $upstream_api http://api:8000;
+        proxy_pass $upstream_api;
+    }
+
+    location ~ /\. { deny all; }
