@@ -10,6 +10,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { Search } from '@/components/ui/icons'
 import { catalogApi } from '@/api'
 import { normalizeImageUrl } from '@/utils/imageUrl'
+import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
 import { prefetchGame } from '@/web/prefetch'
 
 export default function GameSearch({ size = 'md', placeholder = 'Найти игру', className = '' }: {
@@ -139,7 +140,7 @@ export default function GameSearch({ size = 'md', placeholder = 'Найти иг
                     className={'w-full flex items-center gap-3 px-2 py-2 rounded-xl text-left transition-colors ' + (i === active ? 'bg-[var(--bg3)]' : '')}
                   >
                     <span className="w-9 h-9 rounded-lg overflow-hidden bg-[var(--bg3)] shrink-0">
-                      {img && <img src={img} alt="" className="w-full h-full object-cover" />}
+                      {img && <img src={thumbUrl(img, 320) ?? img} onError={onThumbError(img)} alt="" className="w-full h-full object-cover" />}
                     </span>
                     <span className="min-w-0">
                       <span className="block text-sm font-medium text-[var(--text)] truncate">{g.name}</span>

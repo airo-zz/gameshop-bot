@@ -13,6 +13,7 @@ POST /api/v1/admin/upload
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+import asyncio
 import uuid
 from pathlib import Path
 from typing import Annotated
@@ -21,6 +22,7 @@ import aiofiles
 from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile, status
 
 from api.deps_admin import CurrentAdmin, require_permission
+from api.utils.thumbs import make_thumbs
 from shared.config import settings
 
 router = APIRouter()
@@ -85,6 +87,8 @@ async def upload_image(file: UploadFile) -> dict:
 
     async with aiofiles.open(dest, "wb") as f:
         await f.write(contents)
+    # WebP-копии для сайта (обложки игр и т.п.); в потоке — Pillow блокирующий
+    await asyncio.to_thread(make_thumbs, dest)
 
     return {"url": f"/static/uploads/{filename}"}
 
@@ -128,5 +132,7 @@ async def upload_image_jwt(
 
     async with aiofiles.open(dest, "wb") as f:
         await f.write(contents)
+    # WebP-копии для сайта (обложки игр и т.п.); в потоке — Pillow блокирующий
+    await asyncio.to_thread(make_thumbs, dest)
 
     return {"url": f"/static/uploads/{filename}"}

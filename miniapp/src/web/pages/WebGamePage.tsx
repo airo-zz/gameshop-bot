@@ -8,15 +8,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { ChevronRight, Zap, Clock, Plus, Minus, ShoppingCart, MessageSquarePlus, ShieldCheck, Headphones } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { catalogApi } from '@/api'
-import type { Category, Product, InputField } from '@/api'
+import type { Category, Product, InputField, GameSeo } from '@/api'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { useWebCart } from '@/web/cart/useWebCart'
 import { money } from '@/web/format'
 import { normalizeImageUrl } from '@/utils/imageUrl'
+import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
 import { EASE, Stagger, StaggerItem } from '@/web/components/Motion'
 import { usePageMeta } from '@/web/seo'
 
@@ -172,10 +173,59 @@ function CartSummary({ count, total }: { count: number; total: number }) {
   )
 }
 
+// ── Вопросы и текст о донате (для людей и поисковиков) ──────────────────────
+
+function GameSeoBlock({ seo, gameName }: { seo: GameSeo; gameName: string }) {
+  const [open, setOpen] = useState<number | null>(null)
+  return (
+    <section className="mt-16 grid lg:grid-cols-[1fr_2fr] gap-8" aria-labelledby="game-faq">
+      <div>
+        <h2 id="game-faq" className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text)]" style={{ margin: 0 }}>
+          Вопросы о донате в {gameName}
+        </h2>
+        {seo.aliases.length > 0 && (
+          <p className="mt-3 text-xs text-[var(--hint)] leading-relaxed">Также ищут: {seo.aliases.join(', ')}</p>
+        )}
+      </div>
+      <div className="space-y-2">
+        {seo.faq.map((f, i) => (
+          <div key={f.q} className="rounded-2xl bg-[var(--bg2)] overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setOpen(open === i ? null : i)}
+              aria-expanded={open === i}
+              className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left text-[15px] font-medium text-[var(--text)]"
+            >
+              {f.q}
+              <ChevronRight size={18} className={'shrink-0 text-[var(--hint)] transition-transform ' + (open === i ? 'rotate-90' : '')} />
+            </button>
+            <AnimatePresence initial={false}>
+              {open === i && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.25, ease: EASE }}
+                  className="overflow-hidden"
+                >
+                  <p className="px-5 pb-4 text-sm leading-relaxed text-[var(--text-2)]">{f.a}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        ))}
+        {seo.text && (
+          <p className="pt-4 text-sm leading-relaxed text-[var(--hint)] whitespace-pre-line">{seo.text}</p>
+        )}
+      </div>
+    </section>
+  )
+}
+
 // ── Страница ──────────────────────────────────────────────────────────────────
 
 export default function WebGamePage() {
-  const { slug } = useParams<{ slug: string }>()
+  const { slug, cat: catSlug } = useParams<{ slug: string; cat?: string }>()
   const navigate = useNavigate()
   const location = useLocation()
   const [params] = useSearchParams()
@@ -199,7 +249,10 @@ export default function WebGamePage() {
 
   const rootCats = useMemo(() => categories.filter((c: Category) => !c.parent_id), [categories])
   const allCats = useMemo(() => [...categories, ...categories.flatMap((c) => c.children ?? [])], [categories])
-  const currentCatId = (activeCatId && allCats.some((c) => c.id === activeCatId) ? activeCatId : null) ?? rootCats[0]?.id ?? null
+  // Раздел: выбранный кликом → из адреса /game/<игра>/<раздел> → ?cat= → первый
+  const slugCatId = catSlug ? rootCats.find((c) => c.slug === catSlug)?.id ?? null : null
+  const currentCatId = (activeCatId && allCats.some((c) => c.id === activeCatId) ? activeCatId : null)
+    ?? slugCatId ?? rootCats[0]?.id ?? null
   const currentCat = allCats.find((c) => c.id === currentCatId)
   const currentRoot = rootCats.find((c) => c.id === currentCatId || c.children?.some((s) => s.id === currentCatId))
 
@@ -215,12 +268,21 @@ export default function WebGamePage() {
   const cover = game?.image_url ? normalizeImageUrl(game.image_url) ?? game.image_url : null
   const description = (currentCat?.description || game?.description || '').trim()
 
-  usePageMeta({
-    title: game ? `Купить донат ${game.name} — пополнение онлайн` : undefined,
-    description: game
-      ? `Пополнение ${game.name}: ${rootCats.map((c) => c.name.toLowerCase()).slice(0, 3).join(', ') || 'внутриигровая валюта и наборы'}. Оплата через СБП, банковской картой или криптовалютой.`
-      : undefined,
+  // У каждого раздела своя страница: адрес меняется при выборе вкладки
+  const selectRoot = (cat: Category) => {
+    setActiveCatId(cat.id)
+    navigate(`/game/${slug}/${cat.slug}${location.search}`, { replace: true, preventScrollReset: true })
+  }
+
+  // Заголовок, описание и вопросы — те же, что у серверной версии страницы
+  const { data: seo } = useQuery({
+    queryKey: ['web', 'game-seo', slug, catSlug ?? ''],
+    queryFn: () => catalogApi.getGameSeo(slug!, catSlug),
+    enabled: !!slug,
+    staleTime: 10 * 60_000,
+    retry: false,
   })
+  usePageMeta({ title: seo?.title, description: seo?.description })
 
   const requireLogin = () => navigate('/login', { state: { from: location.pathname } })
 
@@ -279,16 +341,24 @@ export default function WebGamePage() {
         <ChevronRight size={14} />
         <Link to="/catalog" className="hover:text-[var(--text)] transition-colors">Каталог</Link>
         <ChevronRight size={14} />
-        <span className="text-[var(--text-2)] truncate">{gameName}</span>
+        {catSlug && currentRoot ? (
+          <>
+            <Link to={`/game/${slug}`} className="hover:text-[var(--text)] transition-colors truncate">{gameName}</Link>
+            <ChevronRight size={14} />
+            <span className="text-[var(--text-2)] truncate">{currentRoot.name}</span>
+          </>
+        ) : (
+          <span className="text-[var(--text-2)] truncate">{gameName}</span>
+        )}
       </nav>
 
       {/* Шапка игры */}
       <header className="flex items-start sm:items-center gap-4 sm:gap-5 mb-8">
         {cover && (
-          <img src={cover} alt={gameName} className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl object-cover shrink-0" style={{ boxShadow: 'inset 0 0 0 1px var(--border)' }} />
+          <img src={thumbUrl(cover, 320) ?? cover} onError={onThumbError(cover)} alt={gameName} className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl object-cover shrink-0" style={{ boxShadow: 'inset 0 0 0 1px var(--border)' }} />
         )}
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl sm:text-3xl md:text-[2.5rem] leading-tight text-[var(--text)]" style={{ margin: 0 }}>{gameName}</h1>
+          <h1 className="text-2xl sm:text-3xl md:text-[2.5rem] leading-tight text-[var(--text)]" style={{ margin: 0 }}>{seo?.h1 ?? gameName}</h1>
           <div className="mt-3 flex flex-wrap items-center gap-2">
             {currentCat?.delivery_type === 'auto' && (
               <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium" style={{ background: 'rgba(16,185,129,0.12)', color: '#34d399' }}>
@@ -328,7 +398,7 @@ export default function WebGamePage() {
               {rootCats.map((cat) => {
                 const active = currentRoot?.id === cat.id
                 return (
-                  <button key={cat.id} onClick={() => setActiveCatId(cat.id)} className={tabClass(active)}>
+                  <button key={cat.id} onClick={() => selectRoot(cat)} className={tabClass(active)}>
                     {active && <motion.span layoutId="web-game-tab" className="absolute inset-0 rounded-xl bg-[var(--bg3)]" transition={{ duration: 0.25, ease: EASE }} />}
                     <span className="relative">{cat.name}</span>
                   </button>
@@ -418,6 +488,8 @@ export default function WebGamePage() {
           </aside>
         </div>
       )}
+
+      {seo && <GameSeoBlock seo={seo} gameName={gameName} />}
 
       {/* Корзина: нижняя панель на телефоне */}
       {count > 0 && (

@@ -10,6 +10,7 @@ import { prefetchGame } from '@/web/prefetch'
 import { Gamepad2, ChevronRight } from '@/components/ui/icons'
 import type { Game } from '@/api'
 import { normalizeImageUrl } from '@/utils/imageUrl'
+import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
 
 export default function GameCard({ game }: { game: Game }) {
   const img = game.image_url ? normalizeImageUrl(game.image_url) ?? game.image_url : null
@@ -29,7 +30,10 @@ export default function GameCard({ game }: { game: Game }) {
       >
         {img ? (
           <img
-            src={img}
+            src={thumbUrl(img, 320) ?? img}
+            srcSet={thumbSrcSet(img)}
+            sizes="(min-width: 1024px) 220px, 45vw"
+            onError={onThumbError(img)}
             alt={game.name}
             loading="lazy"
             decoding="async"

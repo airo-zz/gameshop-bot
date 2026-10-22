@@ -43,9 +43,11 @@
         add_header Cache-Control "no-cache";
     }
 
-    location ~ ^/game/[^/]+/?$ {
+    # Страница игры и страница раздела (/game/<игра>/<раздел>)
+    location ~ ^/game/[^/]+(/[^/]+)?/?$ {
         set $upstream_api http://api:8000;
         rewrite ^/game/([^/]+)/?$ /seo/render/game/$1 break;
+        rewrite ^/game/([^/]+)/([^/]+)/?$ /seo/render/game/$1/$2 break;
         proxy_pass         $upstream_api;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;

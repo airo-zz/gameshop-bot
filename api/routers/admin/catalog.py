@@ -5,7 +5,6 @@ Admin API: управление каталогом (игры, категории
 ─────────────────────────────────────────────────────────────────────────────
 """
 
-import re
 import uuid
 from decimal import Decimal
 from math import ceil
@@ -16,6 +15,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import selectinload
 
 from api.deps import DbSession
+from shared.slug import slugify_latin, unique_slug
 from api.deps_admin import CurrentAdmin, require_permission
 from api.schemas.admin import (
     BulkPriceUpdateIn,
@@ -49,12 +49,16 @@ router = APIRouter()
 
 
 def _slugify(name: str) -> str:
-    """Генерирует slug из имени если не передан явно."""
-    slug = name.lower().strip()
-    slug = re.sub(r"[^\w\s-]", "", slug)
-    slug = re.sub(r"[\s_-]+", "-", slug)
-    slug = slug.strip("-")
-    return slug
+    """Латинский адрес из названия (ЧПУ), если slug не передан явно."""
+    return slugify_latin(name)
+
+
+async def _category_slug(db, game_id, name: str) -> str:
+    """Латинский адрес раздела, уникальный внутри игры (страница /game/<игра>/<раздел>)."""
+    taken = set((await db.execute(
+        select(Category.slug).where(Category.game_id == game_id)
+    )).scalars().all())
+    return unique_slug(slugify_latin(name), taken)
 
 
 # ── Games ─────────────────────────────────────────────────────────────────────
@@ -120,6 +124,10 @@ async def create_game(
         type=body.type,
         input_fields=body.input_fields,
         custom_order_enabled=body.custom_order_enabled,
+        seo_title=body.seo_title,
+        seo_description=body.seo_description,
+        seo_aliases=body.seo_aliases,
+        seo_text=body.seo_text,
     )
     db.add(game)
     await db.flush()
@@ -274,7 +282,7 @@ async def create_category(
                 detail="Родительская категория не найдена",
             )
 
-    slug = body.slug or _slugify(body.name)
+    slug = body.slug or await _category_slug(db, body.game_id, body.name)
 
     category = Category(
         game_id=body.game_id,
@@ -844,7 +852,7 @@ async def import_ggsel_commit(
     for cat_item in body.categories:
         category = existing_by_name.get(cat_item.name)
         if category is None:
-            slug = _slugify(cat_item.name)[:64] or uuid.uuid4().hex[:12]
+            slug = await _category_slug(db, body.game_id, cat_item.name)
             category = Category(
                 game_id=body.game_id,
                 name=cat_item.name,

@@ -215,6 +215,16 @@ export interface Profile {
 
 // ── Catalog API ───────────────────────────────────────────────────────────────
 
+export interface GameSeo {
+  title: string
+  description: string
+  h1: string
+  intro: string
+  faq: { q: string; a: string }[]
+  aliases: string[]
+  text: string | null
+}
+
 export interface LoyaltyProgram {
   levels: { name: string; min_spent: number; cashback_percent: number; monthly_cashback_cap: number | null; color_hex: string }[]
   referral: { percent: number; period_months: number; new_user_discount_percent: number }
@@ -229,6 +239,10 @@ export const catalogApi = {
 
   getCategories: (slug: string) =>
     apiClient.get<Category[]>(`/catalog/games/${slug}/categories`).then(r => r.data),
+
+  /** Тексты страницы игры/раздела — те же, что видит поисковик (api/services/seo_content.py) */
+  getGameSeo: (slug: string, cat?: string) =>
+    apiClient.get<GameSeo>(`/catalog/games/${slug}/seo`, { params: cat ? { cat } : {} }).then(r => r.data),
 
   getProducts: (categoryId: string, page = 0) =>
     apiClient.get<Product[]>('/catalog/products', {

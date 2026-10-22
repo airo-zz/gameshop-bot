@@ -55,6 +55,12 @@ class Game(Base, UUIDMixin, TimestampMixin):
     image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     banner_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # SEO (миграция 035): свой заголовок/описание для поисковиков (пусто —
+    # генерируются), другие названия игры по строке, текст о донате внизу страницы
+    seo_title: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    seo_description: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    seo_aliases: Mapped[str | None] = mapped_column(Text, nullable=True)
+    seo_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     type: Mapped[str] = mapped_column(String(16), nullable=False, default="game", index=True)
     # "game" | "service"
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

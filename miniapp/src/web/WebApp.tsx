@@ -51,7 +51,7 @@ export default function WebApp() {
           <Route path="catalog" element={<Suspense fallback={null}><WebCatalogPage /></Suspense>} />
           <Route path="cashback" element={<Suspense fallback={null}><WebCashbackPage /></Suspense>} />
           <Route path="request" element={<RequireWebAuth><Suspense fallback={null}><WebRequestPage /></Suspense></RequireWebAuth>} />
-          <Route path="game/:slug" element={<Suspense fallback={null}><WebGamePage /></Suspense>} />
+          <Route path="game/:slug/:cat?" element={<Suspense fallback={null}><WebGamePage /></Suspense>} />
           <Route path="login" element={<Suspense fallback={null}><WebLoginPage /></Suspense>} />
           <Route path="cart" element={<RequireWebAuth><Suspense fallback={null}><WebCartPage /></Suspense></RequireWebAuth>} />
           <Route path="checkout" element={<RequireWebAuth><Suspense fallback={null}><WebCheckoutPage /></Suspense></RequireWebAuth>} />

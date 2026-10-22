@@ -30,6 +30,7 @@ from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 from api.deps import DbSession
 from api.services.catalog_service import CatalogService
 from api.services.loyalty_service import LoyaltyService
+from api.services.seo_content import clean_name, load_game_page
 from shared.config import settings
 
 logger = logging.getLogger(__name__)
@@ -99,7 +100,8 @@ def _money(v: object) -> str:
     return f"{s} ₽"
 
 
-def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex: bool = False) -> str:
+def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex: bool = False,
+            image: str | None = None) -> str:
     page = _template()
     url = SITE + (path if path != "/" else "/")
     head = [
@@ -131,6 +133,8 @@ def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex
         (r'<meta property="og:title" content="[^"]*"\s*/?>', f'<meta property="og:title" content="{_e(title)}" />'),
         (r'<meta property="og:description" content="[^"]*"\s*/?>', f'<meta property="og:description" content="{_e(desc)}" />'),
         (r'<meta property="og:url" content="[^"]*"\s*/?>', ""),
+        *(((r'<meta property="og:image" content="[^"]*"\s*/?>', f'<meta property="og:image" content="{_e(image)}" />'),)
+          if image else ()),
     ):
         page = re.sub(pattern, value, page, count=1)
     page = page.replace("</head>", "\n    " + "\n    ".join(head) + "\n  </head>", 1)
@@ -258,53 +262,68 @@ async def _cashback(db) -> tuple[int, str]:
     return 200, _render("/cashback", title, desc, body, ld)
 
 
-async def _game(db, slug: str) -> tuple[int, str]:
-    svc = CatalogService(db)
-    game = await svc.get_game_by_slug(slug)
-    if not game or not game.is_active:
-        body = _nav() + "<h1>Страница не найдена</h1><p><a href='/catalog'>Перейти в каталог</a></p>"
-        return 404, _render(f"/game/{slug}", "Страница не найдена | reDonate", DEFAULT_DESC, body, [], noindex=True)
+def _faq_ld(faq: list[tuple[str, str]]) -> dict:
+    return {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {"@type": "Question", "name": q, "acceptedAnswer": {"@type": "Answer", "text": a}}
+            for q, a in faq
+        ],
+    }
 
-    categories = await svc.get_categories_by_game(game.id)
-    roots = [c for c in categories if c.parent_id is None and c.is_active]
-    sections, offers = [], []
-    for cat in roots:
-        products, _ = await svc.get_products_by_category(cat.id, 0, 100)
-        if not products:
-            continue
+
+async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
+    data = await load_game_page(db, slug, cat_slug)
+    path = f"/game/{slug}" + (f"/{cat_slug}" if cat_slug else "")
+    if data is None:
+        body = _nav() + "<h1>Страница не найдена</h1><p><a href='/catalog'>Перейти в каталог</a></p>"
+        return 404, _render(path, "Страница не найдена | reDonate", DEFAULT_DESC, body, [], noindex=True)
+    game, roots, offers, current, page = data
+
+    sections: dict = {}
+    for cat, p in offers:
+        sections.setdefault(cat.id, (cat, []))[1].append(p)
+    sections_html = ""
+    for cat, products in sections.values():
         lis = "".join(
-            f"<li>{_e(p.name)} — {_money(p.price)}"
-            + (" (нет в наличии)" if p.is_out_of_stock else "") + "</li>"
+            f"<li>{_e(p.name)} — {_money(p.price)}" + (" (нет в наличии)" if p.is_out_of_stock else "") + "</li>"
             for p in products
         )
-        desc_html = f"<p>{_e(cat.description)}</p>" if getattr(cat, "description", None) else ""
-        sections.append(f"<h2>{_e(cat.name)}</h2>{desc_html}<ul>{lis}</ul>")
-        offers.extend((cat, p) for p in products)
+        heading = _e(clean_name(cat.name)) if current else (
+            f'<a href="/game/{_e(game.slug)}/{_e(cat.slug)}">{_e(clean_name(cat.name))} {_e(game.name)}</a>'
+        )
+        desc_html = f"<p>{_e(cat.description)}</p>" if getattr(cat, "description", None) and not current else ""
+        sections_html += f"<h2>{heading}</h2>{desc_html}<ul>{lis}</ul>"
 
-    prices = [float(p.price) for _, p in offers if not p.is_out_of_stock]
-    min_price = min(prices) if prices else None
-    cat_names = ", ".join(c.name.lower() for c in roots[:3]) or "внутриигровая валюта и наборы"
-
-    title = f"Купить донат {game.name}" + (f" — от {_money(min_price)}" if min_price else "") + " | reDonate"
-    desc = (f"Пополнение {game.name}: {cat_names}. "
-            + (f"Цены от {_money(min_price)}. " if min_price else "")
-            + "Оплата через СБП, банковской картой или криптовалютой, кэшбэк на баланс.")
-    intro = (game.description or "").strip()
+    crumbs = [("Главная", "/"), ("Каталог", "/catalog"), (game.name, f"/game/{game.slug}")]
+    if current:
+        crumbs.append((clean_name(current.name), path))
+    other_cats = "".join(
+        f'<li><a href="/game/{_e(game.slug)}/{_e(c.slug)}">{_e(clean_name(c.name))}</a></li>'
+        for c in roots if not current or c.id != current.id
+    )
+    faq_html = "".join(f"<h3>{_e(q)}</h3><p>{_e(a)}</p>" for q, a in page.faq)
     body = (
         _nav()
-        + f'<nav><a href="/">Главная</a> / <a href="/catalog">Каталог</a> / {_e(game.name)}</nav>'
-        + f"<h1>Донат {_e(game.name)}</h1>"
-        + (f"<p>{_e(intro)}</p>" if intro else f"<p>Пополнение {_e(game.name)} онлайн: {_e(cat_names)}.</p>")
-        + "".join(sections)
+        + "<nav>" + " / ".join(
+            f'<a href="{_e(u)}">{_e(n)}</a>' if i < len(crumbs) - 1 else _e(n)
+            for i, (n, u) in enumerate(crumbs)) + "</nav>"
+        + f"<h1>{_e(page.h1)}</h1><p>{_e(page.intro)}</p>"
+        + (f"<p>Также ищут: {_e(', '.join(page.aliases))}.</p>" if page.aliases else "")
+        + sections_html
+        + (f"<h2>{'Другие разделы' if current else 'Разделы'} {_e(game.name)}</h2><ul>{other_cats}</ul>" if other_cats else "")
+        + f"<h2>Вопросы и ответы</h2>{faq_html}"
+        + (f"<div>{_e(page.text)}</div>" if page.text else "")
     )
-    page_url = f"{SITE}/game/{game.slug}"
+
     image = f"{SITE}{game.image_url}" if game.image_url and game.image_url.startswith("/") else game.image_url
-    ld: list[dict] = [_breadcrumbs([("Главная", "/"), ("Каталог", "/catalog"), (game.name, f"/game/{game.slug}")])]
+    ld: list[dict] = [_breadcrumbs(crumbs), _faq_ld(page.faq)]
     if offers:
         ld.append({
             "@context": "https://schema.org",
             "@type": "ItemList",
-            "name": f"Донат {game.name}",
+            "name": page.h1,
             "itemListElement": [
                 {
                     "@type": "ListItem",
@@ -312,7 +331,7 @@ async def _game(db, slug: str) -> tuple[int, str]:
                     "item": {
                         "@type": "Product",
                         "name": f"{game.name}: {p.name}",
-                        "category": cat.name,
+                        "category": clean_name(cat.name),
                         **({"image": image} if image else {}),
                         "brand": {"@type": "Brand", "name": game.name},
                         "offers": {
@@ -321,7 +340,7 @@ async def _game(db, slug: str) -> tuple[int, str]:
                             "priceCurrency": "RUB",
                             "availability": "https://schema.org/OutOfStock" if p.is_out_of_stock
                             else "https://schema.org/InStock",
-                            "url": f"{page_url}?cat={cat.id}",
+                            "url": f"{SITE}/game/{game.slug}/{cat.slug}",
                             "seller": {"@type": "Organization", "name": BRAND},
                         },
                     },
@@ -329,7 +348,7 @@ async def _game(db, slug: str) -> tuple[int, str]:
                 for i, (cat, p) in enumerate(offers[:100])
             ],
         })
-    return 200, _render(f"/game/{game.slug}", title, desc, body, ld)
+    return 200, _render(path, page.title, page.description, body, ld, image=image)
 
 
 async def _cached(key: str, builder) -> HTMLResponse:
@@ -371,6 +390,11 @@ async def render_game(slug: str, db: DbSession):
     return await _cached(f"/game/{slug}", lambda: _game(db, slug))
 
 
+@router.get("/seo/render/game/{slug}/{cat_slug}", response_class=HTMLResponse, include_in_schema=False)
+async def render_game_category(slug: str, cat_slug: str, db: DbSession):
+    return await _cached(f"/game/{slug}/{cat_slug}", lambda: _game(db, slug, cat_slug))
+
+
 # ── sitemap.xml / robots.txt ──────────────────────────────────────────────────
 
 @router.get("/sitemap.xml", include_in_schema=False)
@@ -387,9 +411,14 @@ async def sitemap(db: DbSession):
         url("/catalog", today, "0.9", "daily"),
         url("/cashback", today, "0.5", "monthly"),
     ]
+    svc = CatalogService(db)
     for g in games:
         updated = getattr(g, "updated_at", None)
-        parts.append(url(f"/game/{g.slug}", (updated.date().isoformat() if updated else today), "0.8", "daily"))
+        lastmod = updated.date().isoformat() if updated else today
+        parts.append(url(f"/game/{g.slug}", lastmod, "0.8", "daily"))
+        for c in await svc.get_categories_by_game(g.id):
+            if c.parent_id is None and c.is_active:
+                parts.append(url(f"/game/{g.slug}/{c.slug}", lastmod, "0.7", "daily"))
     xml = ('<?xml version="1.0" encoding="UTF-8"?>'
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + "".join(parts) + "</urlset>")
     return Response(xml, media_type="application/xml")
@@ -424,6 +453,7 @@ Disallow: /api/
 Disallow: /webhooks/
 Clean-param: q /catalog
 Clean-param: cat /game/
+Clean-param: q /game/
 
 Sitemap: {SITE}/sitemap.xml
 """

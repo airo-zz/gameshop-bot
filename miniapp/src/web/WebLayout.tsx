@@ -140,6 +140,8 @@ function AuthArea({ onNavigate }: { onNavigate?: () => void }) {
 export default function WebLayout() {
   const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
+  // /game/<игра>/<раздел> — та же страница игры: смена раздела не анимирует и не прокручивает наверх
+  const pageKey = location.pathname.replace(/^(\/game\/[^/]+)\/[^/]+\/?$/, '$1')
   const { isAuthenticated } = useWebAuth()
   const reduce = useReducedMotion()
   useEffect(() => { initMetrika(); preloadRoutesWhenIdle() }, [])
@@ -149,7 +151,7 @@ export default function WebLayout() {
   useEffect(() => {
     if (!location.hash) window.scrollTo({ top: 0 })
     setMenuOpen(false)
-  }, [location.pathname, location.hash])
+  }, [pageKey, location.hash])
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--bg)' }}>
@@ -210,7 +212,7 @@ export default function WebLayout() {
       {/* ── Content ────────────────────────────────────────────────────────── */}
       <motion.main
         className="flex-1"
-        key={location.pathname}
+        key={pageKey}
         initial={reduce ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.25, ease: 'easeOut' }}

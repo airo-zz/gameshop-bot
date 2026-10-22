@@ -22,7 +22,7 @@ function setMeta(selector: string, attr: 'content' | 'href', value: string, crea
 export function usePageMeta({ title, description }: { title?: string; description?: string }) {
   const { pathname } = useLocation()
   useEffect(() => {
-    const fullTitle = title ? `${title} | reDonate` : DEFAULT_TITLE
+    const fullTitle = title ? (title.includes('| reDonate') ? title : `${title} | reDonate`) : DEFAULT_TITLE
     const desc = description ?? DEFAULT_DESCRIPTION
     document.title = fullTitle
     setMeta('meta[name="description"]', 'content', desc, () => Object.assign(document.createElement('meta'), { name: 'description' }))

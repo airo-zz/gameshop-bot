@@ -96,6 +96,10 @@ interface FormState {
   custom_order_enabled: boolean
   type: GameType
   input_fields: Record<string, unknown>[]
+  seo_title: string
+  seo_description: string
+  seo_aliases: string
+  seo_text: string
 }
 
 const EMPTY_FORM: FormState = {
@@ -108,6 +112,10 @@ const EMPTY_FORM: FormState = {
   custom_order_enabled: false,
   type: 'game',
   input_fields: [],
+  seo_title: '',
+  seo_description: '',
+  seo_aliases: '',
+  seo_text: '',
 }
 
 export default function GameEditPage() {
@@ -159,6 +167,10 @@ export default function GameEditPage() {
           custom_order_enabled: game.custom_order_enabled ?? false,
           type:        (game.type ?? 'game') as GameType,
           input_fields: (game.input_fields ?? []) as Record<string, unknown>[],
+          seo_title:       game.seo_title ?? '',
+          seo_description: game.seo_description ?? '',
+          seo_aliases:     game.seo_aliases ?? '',
+          seo_text:        game.seo_text ?? '',
         })
         slugManual.current = true // pre-filled — treat as manual
         setCategories(cats)
@@ -219,6 +231,11 @@ export default function GameEditPage() {
         custom_order_enabled: form.custom_order_enabled,
         type:        form.type,
         input_fields: form.input_fields,
+        // Пустая строка — вернуть автоматический текст
+        seo_title:       form.seo_title.trim(),
+        seo_description: form.seo_description.trim(),
+        seo_aliases:     form.seo_aliases.trim(),
+        seo_text:        form.seo_text.trim(),
       }
 
       if (isCreate) {
@@ -446,6 +463,53 @@ export default function GameEditPage() {
               </span>
             </span>
             <Toggle value={form.custom_order_enabled} onChange={(v) => set('custom_order_enabled', v)} />
+          </div>
+
+          {/* SEO — поисковики */}
+          <div className="pt-1 space-y-3">
+            <div>
+              <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider">
+                Поисковики (SEO)
+              </h2>
+              <p className="text-[11px] text-[var(--hint)] mt-1 leading-relaxed">
+                Пустые поля заполняются автоматически: «Донат {form.name || 'Игра'} — купить … от … ₽».
+              </p>
+            </div>
+            <Field label="Другие названия" hint="по одному на строку — по ним тоже будут находить">
+              <textarea
+                value={form.seo_aliases}
+                onChange={(e) => set('seo_aliases', e.target.value)}
+                placeholder={'Битва замков\nкастл клэш'}
+                rows={3}
+                className={[inputCls, 'resize-none leading-relaxed'].join(' ')}
+              />
+            </Field>
+            <Field label="Заголовок в поиске" hint={`${form.seo_title.length}/70 — длиннее обрежется в выдаче`}>
+              <input
+                value={form.seo_title}
+                onChange={(e) => set('seo_title', e.target.value.slice(0, 160))}
+                placeholder="Автоматически"
+                className={inputCls}
+              />
+            </Field>
+            <Field label="Описание в поиске" hint={`${form.seo_description.length}/160`}>
+              <textarea
+                value={form.seo_description}
+                onChange={(e) => set('seo_description', e.target.value.slice(0, 320))}
+                placeholder="Автоматически"
+                rows={3}
+                className={[inputCls, 'resize-none leading-relaxed'].join(' ')}
+              />
+            </Field>
+            <Field label="Текст о донате" hint="внизу страницы игры, необязательно">
+              <textarea
+                value={form.seo_text}
+                onChange={(e) => set('seo_text', e.target.value)}
+                placeholder="Пара абзацев: что можно купить, чем полезно, особенности пополнения"
+                rows={5}
+                className={[inputCls, 'resize-y leading-relaxed'].join(' ')}
+              />
+            </Field>
           </div>
 
           {/* Данные от покупателя (поля на уровне игры) */}

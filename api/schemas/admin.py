@@ -150,6 +150,10 @@ class GameCreateIn(BaseModel):
     type: str = Field("game", pattern="^(game|service)$")
     input_fields: list[Any] = []
     custom_order_enabled: bool = False
+    seo_title: str | None = Field(None, max_length=160)
+    seo_description: str | None = Field(None, max_length=320)
+    seo_aliases: str | None = Field(None, max_length=2000)
+    seo_text: str | None = Field(None, max_length=20000)
 
 
 class GameUpdateIn(BaseModel):
@@ -163,6 +167,10 @@ class GameUpdateIn(BaseModel):
     type: str | None = Field(None, pattern="^(game|service)$")
     input_fields: list[Any] | None = None
     custom_order_enabled: bool | None = None
+    seo_title: str | None = Field(None, max_length=160)
+    seo_description: str | None = Field(None, max_length=320)
+    seo_aliases: str | None = Field(None, max_length=2000)
+    seo_text: str | None = Field(None, max_length=20000)
 
 
 class GameOut(BaseModel):
@@ -179,6 +187,10 @@ class GameOut(BaseModel):
     type: str
     input_fields: list[Any]
     custom_order_enabled: bool = False
+    seo_title: str | None = None
+    seo_description: str | None = None
+    seo_aliases: str | None = None
+    seo_text: str | None = None
     created_at: datetime
 
 

@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/icons'
 import { catalogApi, type Game } from '@/api'
 import { normalizeImageUrl } from '@/utils/imageUrl'
+import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
 import GameCard from '@/web/components/GameCard'
 import GameSearch from '@/web/components/GameSearch'
 import RequestCta from '@/web/components/RequestCta'
@@ -76,7 +77,10 @@ function Hero({ games }: { games: Game[] }) {
                   style={{ boxShadow: 'inset 0 0 0 1px var(--border)' }}
                 >
                   <img
-                    src={cover(g)!}
+                    src={thumbUrl(cover(g), 320) ?? cover(g)!}
+                    srcSet={thumbSrcSet(cover(g))}
+                    sizes="(min-width: 1024px) 200px, 30vw"
+                    onError={onThumbError(cover(g)!)}
                     alt={g.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                   />
@@ -116,7 +120,7 @@ function Popular() {
                 className="group flex items-center gap-3 p-3 rounded-2xl bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors"
               >
                 <div className="w-14 h-14 rounded-xl overflow-hidden bg-[var(--bg3)] shrink-0">
-                  {img && <img src={img} alt="" className="w-full h-full object-cover" />}
+                  {img && <img src={thumbUrl(img, 320) ?? img} onError={onThumbError(img)} alt="" className="w-full h-full object-cover" />}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-[var(--text)] truncate">{c.name}</p>

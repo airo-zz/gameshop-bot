@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from api.deps import CurrentUser, OptionalUser, DbSession
 from api.schemas.catalog import (
@@ -66,6 +66,29 @@ def _category_to_out(
         auto_engine=cat.auto_engine,
         input_fields=cat.input_fields,
     )
+
+
+@router.get("/games/{slug}/seo")
+async def get_game_seo(slug: str, db: DbSession, cat: str | None = None):
+    """
+    Тексты страницы игры (или раздела ?cat=<slug>) — те же, что видит поисковик:
+    заголовок, описание, H1, вопросы-ответы, другие названия, текст о донате.
+    """
+    from api.services.seo_content import load_game_page
+
+    data = await load_game_page(db, slug, cat)
+    if data is None:
+        raise HTTPException(status_code=404, detail="Страница не найдена")
+    _game, _roots, _offers, _current, page = data
+    return {
+        "title": page.title,
+        "description": page.description,
+        "h1": page.h1,
+        "intro": page.intro,
+        "faq": [{"q": q, "a": a} for q, a in page.faq],
+        "aliases": page.aliases,
+        "text": page.text,
+    }
 
 
 @router.get("/games/{slug}/categories", response_model=list[CategoryOut])
