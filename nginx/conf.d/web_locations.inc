@@ -1,7 +1,30 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Страницы сайта (SEO-рендер, sitemap/robots, SPA) — только на redonate.gg.
+# Фронтенд: Mini App (/app) и страницы сайта (SEO-рендер, sitemap/robots,
+# SPA) — только на redonate.gg.
 # На redonate.su вместо них постоянное перенаправление на redonate.gg.
 # ─────────────────────────────────────────────────────────────────────────────
+    # ── Mini App (React SPA) ──────────────────────────────────────────────────
+    location /app {
+        root /usr/share/nginx/html;
+        index index.html;
+        try_files $uri $uri/index.html @spa_fallback;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+
+        location ~* \.(js|css|png|jpg|svg|ico|woff2)$ {
+            root /usr/share/nginx/html;
+            expires 30d;
+            add_header Cache-Control "public, immutable";
+        }
+    }
+
+    location @spa_fallback {
+        root /usr/share/nginx/html;
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        try_files /app/index.html =404;
+    }
+
     # ── SEO: индексируемые страницы сайта отдаёт API (api/routers/seo.py) ──────
     # Готовый HTML с метаданными, schema.org и текстом страницы; React затем
     # запускается как обычно. Если API недоступен — статический index.html.

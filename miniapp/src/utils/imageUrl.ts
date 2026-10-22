@@ -8,7 +8,7 @@
  *   - "https://..."                     → полный URL (CDN / внешний)
  *   - "games/brawl-stars.jpg"           → относительный путь
  *
- * MiniApp раздаётся по https://redonate.su/app/ — без явного base статика
+ * MiniApp раздаётся по https://redonate.gg/app/ — без явного base статика
  * не грузится (браузер пытается достать /app/static/...).
  *
  * Логика:
@@ -21,7 +21,7 @@
 
 const ORIGIN = (() => {
   if (typeof window === 'undefined') return ''
-  // В production: https://redonate.su
+  // В production: https://redonate.gg
   // В dev (vite proxy): http://localhost:5173
   return window.location.origin
 })()

@@ -1,35 +1,13 @@
 # ─────────────────────────────────────────────────────────────────────────────
-# Служебные пути, общие для redonate.gg и redonate.su: Mini App, API,
-# вебхуки, загруженные картинки. На redonate.su они продолжают работать
-# без перенаправления (бот, Telegram и Platega обращаются к старому домену).
+# Служебные пути, общие для redonate.gg и redonate.su: API, вебхуки,
+# загруженные картинки, health. На redonate.su оставлены без перенаправления
+# как запасной вход (вебхуки POST нельзя надёжно перенаправить, старые ссылки).
 # Подключается из gameshop.conf через include. Расширение .inc — чтобы
 # nginx.conf (include conf.d/*.conf) не подхватил файл сам на уровне http.
 # ─────────────────────────────────────────────────────────────────────────────
     # Docker internal DNS — резолвит имена контейнеров динамически при запросе,
     # а не при старте/reload nginx. Без этого nginx падает если upstream не запущен.
     resolver 127.0.0.11 valid=30s ipv6=off;
-
-    # ── Mini App (React SPA) ──────────────────────────────────────────────────
-    location /app {
-        root /usr/share/nginx/html;
-        index index.html;
-        try_files $uri $uri/index.html @spa_fallback;
-        add_header Cache-Control "no-cache, no-store, must-revalidate";
-        add_header Pragma "no-cache";
-
-        location ~* \.(js|css|png|jpg|svg|ico|woff2)$ {
-            root /usr/share/nginx/html;
-            expires 30d;
-            add_header Cache-Control "public, immutable";
-        }
-    }
-
-    location @spa_fallback {
-        root /usr/share/nginx/html;
-        add_header Cache-Control "no-cache, no-store, must-revalidate";
-        add_header Pragma "no-cache";
-        try_files /app/index.html =404;
-    }
 
     # ── Static Files (uploaded images) ───────────────────────────────────────
     location /static/ {
