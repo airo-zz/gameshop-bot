@@ -8,7 +8,7 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
-const SITE = 'https://redonate.su'
+const SITE = 'https://redonate.gg'
 const DEFAULT_TITLE = 'reDonate — пополнение игр и цифровых сервисов'
 const DEFAULT_DESCRIPTION =
   'Пополнение игровой валюты и цифровых сервисов. Оплата через СБП, банковской картой или криптовалютой. Автоматическая выдача заказов и поддержка операторов.'

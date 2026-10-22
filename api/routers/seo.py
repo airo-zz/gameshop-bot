@@ -1,7 +1,7 @@
 """
 api/routers/seo.py
 ─────────────────────────────────────────────────────────────────────────────
-Серверная отдача страниц сайта redonate.su для поисковиков (Яндекс, Google).
+Серверная отдача страниц сайта redonate.gg для поисковиков (Яндекс, Google).
 
 nginx проксирует сюда HTML-страницы сайта (/, /catalog, /cashback, /game/*),
 а также /sitemap.xml и /robots.txt. Мы берём собранный index.html сайта
@@ -35,7 +35,7 @@ from shared.config import settings
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-SITE = "https://redonate.su"
+SITE = "https://redonate.gg"
 BRAND = "reDonate"
 TEMPLATE_PATH = Path("/web_dist/index.html")
 CACHE_TTL = 300

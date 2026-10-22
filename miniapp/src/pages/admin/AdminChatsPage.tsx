@@ -454,7 +454,7 @@ function MessageBubble({
         {msg.attachments && msg.attachments.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: msg.text ? 6 : 0 }}>
             {msg.attachments.map((url, idx) => {
-              const absUrl = url.startsWith('http') ? url : `https://redonate.su${url}`
+              const absUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`
               const openFile = () => {
                 const tg = (window as any).Telegram?.WebApp
                 if (tg?.openLink) tg.openLink(absUrl)

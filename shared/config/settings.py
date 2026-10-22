@@ -156,7 +156,7 @@ class AppSettings(BaseSettings):
     ENVIRONMENT: Literal["development", "production"] = "production"
     ABANDONED_CART_HOURS: int = 1
     CART_PRICE_RESERVE_HOURS: int = 24
-    FRONTEND_URL: str = "https://redonate.su"
+    FRONTEND_URL: str = "https://redonate.gg"
     # Коды подтверждения прав на сайт (Яндекс.Вебмастер / Google Search Console):
     # только значение content из мета-тега. Пусто — тег не выводится.
     YANDEX_VERIFICATION: str = ""

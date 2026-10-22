@@ -31,17 +31,17 @@ if (isWeb) {
 // Вне Telegram (нет initData) и не на админке — уводим на публичный сайт,
 // сохраняя экран: /app/orders/X → /orders/X, /app/balance → /balance и т.д.
 // (так возврат с Platega, открытый во внешнем браузере, не теряет контекст).
-// Только на проде (redonate.su), чтобы не мешать локальной разработке/preview.
+// Только на проде (redonate.su / redonate.gg), чтобы не мешать локальной разработке/preview.
 if (!isWeb) {
   const inTelegram = !!window.Telegram?.WebApp?.initData
   const { pathname, search } = window.location
   const isAdmin = pathname.startsWith('/app/admin')
-  const isProd = window.location.hostname === 'redonate.su'
+  const isProd = /^redonate\.(su|gg)$/.test(window.location.hostname)
   if (isProd && !inTelegram && !isAdmin) {
     let rest = pathname.replace(/^\/app/, '') || '/'
     if (rest.startsWith('/catalog/')) rest = rest.replace('/catalog/', '/game/')
     const known = /^\/($|catalog$|game\/|orders|balance|profile|cart|referrals)/.test(rest)
-    window.location.replace('https://redonate.su' + (known ? rest + search : '/'))
+    window.location.replace('https://redonate.gg' + (known ? rest + search : '/'))
   }
 }
 

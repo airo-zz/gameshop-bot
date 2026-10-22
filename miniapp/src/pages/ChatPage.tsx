@@ -254,7 +254,7 @@ function MessageBubble({
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: msg.text ? 6 : 0 }}>
             {msg.attachments.map((url, idx) => {
               const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(url)
-              const absUrl = url.startsWith('http') ? url : `https://redonate.su${url}`
+              const absUrl = url.startsWith('http') ? url : `${window.location.origin}${url}`
               return isImage ? (
                 <PhotoView key={idx} src={absUrl}>
                   <div

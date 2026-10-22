@@ -42,7 +42,7 @@ PLATEGA_METHOD_CODES: dict[str, int] = {
 def _app_base(source: str) -> str:
     """Базовый URL фронта по источнику: сайт — корень, miniapp — /app.
 
-    Обе сборки живут на FRONTEND_URL (redonate.su): сайт в корне, Mini App
+    Обе сборки живут на FRONTEND_URL (redonate.gg): сайт в корне, Mini App
     под /app (vite base '/app/'). Возврат после оплаты должен вести туда же,
     откуда платили.
     """

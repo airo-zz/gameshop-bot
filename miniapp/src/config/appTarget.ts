@@ -24,7 +24,7 @@ export const ROUTER_BASENAME = isWeb ? '/' : '/app'
 
 // ── Внешние ссылки бренда ──────────────────────────────────────────────────
 export const SHOP_NAME = (import.meta.env.VITE_SHOP_NAME as string) || 'reDonate'
-export const SITE_URL = 'https://redonate.su'
+export const SITE_URL = 'https://redonate.gg'
 // Username бота берётся из сборочной переменной (в CI = redonate_robot),
 // как и в остальных местах приложения; фолбэк на дефолт из settings.py.
 export const BOT_USERNAME = (import.meta.env.VITE_BOT_USERNAME as string) || 'reDonate_robot'
