@@ -63,6 +63,8 @@ async def send_tg_message(
     Почтовому пользователю — письмо с кнопкой на страницу сайта email_path.
     """
     if not is_telegram_id(telegram_id):
+        if not settings.EMAIL_NOTIFICATIONS_ENABLED:
+            return  # на почту пока только коды входа
         try:
             await _email_user(telegram_id, text, email_path, email_button)
         except Exception as exc:

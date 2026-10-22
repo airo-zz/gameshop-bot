@@ -283,6 +283,10 @@ export default function WebGamePage() {
     retry: false,
   })
   usePageMeta({ title: seo?.title, description: seo?.description })
+  // Тот же H1, что даст сервер, — чтобы заголовок не менялся после загрузки текстов
+  const fallbackH1 = catSlug && currentRoot
+    ? `${currentRoot.name.replace(/^[^\p{L}\p{N}]+/u, '').trim()} ${gameName}`
+    : `${game?.type === 'service' ? 'Пополнение' : 'Донат'} ${gameName}`
 
   const requireLogin = () => navigate('/login', { state: { from: location.pathname } })
 
@@ -354,12 +358,14 @@ export default function WebGamePage() {
 
       {/* Шапка игры */}
       <header className="flex items-start sm:items-center gap-4 sm:gap-5 mb-8">
-        {cover && (
-          <img src={thumbUrl(cover, 320) ?? cover} onError={onThumbError(cover)} alt={gameName} className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl object-cover shrink-0" style={{ boxShadow: 'inset 0 0 0 1px var(--border)' }} />
-        )}
+        {cover ? (
+          <img src={thumbUrl(cover, 320) ?? cover} onError={onThumbError(cover)} alt={gameName} width={112} height={112} className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl object-cover shrink-0" style={{ boxShadow: 'inset 0 0 0 1px var(--border)' }} />
+        ) : !game ? (
+          <div className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl bg-[var(--bg2)] shrink-0" aria-hidden="true" />
+        ) : null}
         <div className="flex-1 min-w-0">
-          <h1 className="text-2xl sm:text-3xl md:text-[2.5rem] leading-tight text-[var(--text)]" style={{ margin: 0 }}>{seo?.h1 ?? gameName}</h1>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl md:text-[2.5rem] leading-tight text-[var(--text)]" style={{ margin: 0 }}>{seo?.h1 ?? fallbackH1}</h1>
+          <div className="mt-3 flex flex-wrap items-center gap-2 min-h-7">
             {currentCat?.delivery_type === 'auto' && (
               <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium" style={{ background: 'rgba(16,185,129,0.12)', color: '#34d399' }}>
                 <Zap size={14} fill="#34d399" /> Автовыдача
@@ -387,7 +393,17 @@ export default function WebGamePage() {
       {catsError ? (
         <p className="text-sm text-[var(--hint)] py-16 text-center">Не удалось загрузить товары — обновите страницу</p>
       ) : catsLoading ? (
-        <div className="h-10 w-72 rounded-xl bg-[var(--bg2)] animate-pulse" />
+        <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start" aria-hidden="true">
+          <div>
+            <div className="h-12 w-80 max-w-full rounded-2xl bg-[var(--bg2)] animate-pulse mb-4" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-40 rounded-2xl bg-[var(--bg2)] animate-pulse" />
+              ))}
+            </div>
+          </div>
+          <div className="hidden lg:block h-52 rounded-2xl bg-[var(--bg2)] animate-pulse" />
+        </div>
       ) : rootCats.length === 0 ? (
         <p className="text-sm text-[var(--hint)] py-16 text-center">Товары для этой игры скоро появятся</p>
       ) : (

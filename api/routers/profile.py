@@ -343,7 +343,7 @@ async def unsubscribe(t: str, db: DbSession):
         target = (await db.execute(select(User).where(User.id == _uuid.UUID(uid)))).scalar_one_or_none()
     if target:
         set_marketing_consent(target, False)
-        msg = "Вы отписались от рассылки reDonate. Письма о заказах и коды входа продолжат приходить."
+        msg = "Вы отписались от рассылки reDonate. Коды для входа на сайт продолжат приходить."
     else:
         msg = "Ссылка недействительна. Отписаться можно в профиле на сайте redonate.gg."
     page = (

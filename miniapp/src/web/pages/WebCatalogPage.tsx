@@ -85,8 +85,8 @@ export default function WebCatalogPage() {
         </label>
       </div>
 
-      {!q && popular.length > 0 && (
-        <div className="-mt-4 mb-10 flex flex-wrap items-center gap-2">
+      {!q && (popular.length > 0 || isLoading) && (
+        <div className="-mt-4 mb-10 flex flex-wrap items-center gap-2 min-h-8">
           <span className="text-sm text-[var(--hint)] mr-1">Часто ищут:</span>
           {popular.map(([slug, name]) => (
             <Link key={slug} to={`/game/${slug}`} className="h-8 px-3 inline-flex items-center rounded-lg text-sm text-[var(--text-2)] bg-[var(--bg2)] hover:bg-[var(--bg3)] hover:text-[var(--text)] transition-colors">

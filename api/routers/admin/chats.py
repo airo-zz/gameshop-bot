@@ -335,6 +335,11 @@ async def notify_user(
 
     from shared.models import is_telegram_id
     if not is_telegram_id(chat.user_id):
+        if not settings.EMAIL_NOTIFICATIONS_ENABLED:
+            raise HTTPException(
+                status_code=400,
+                detail="У пользователя нет Telegram, а письма-уведомления отключены — он увидит ответ в чате на сайте",
+            )
         # Пользователь сайта, вошедший по почте — письмо вместо бота
         import html as _html
         from api.telegram_utils import send_tg_message

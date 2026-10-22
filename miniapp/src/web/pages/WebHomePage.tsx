@@ -59,7 +59,18 @@ function Hero({ games }: { games: Game[] }) {
           </motion.ul>
         </div>
 
-        {/* Стена обложек — реальные игры из каталога */}
+        {/* Стена обложек — реальные игры из каталога; пока грузятся — заглушки того же размера */}
+        {games.length === 0 && (
+          <div className="grid grid-cols-3 gap-3 md:gap-4 pb-7" aria-hidden="true">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className={'aspect-[3/4] rounded-2xl bg-[var(--bg2)] ' + (i >= 3 ? 'hidden lg:block' : '')}
+                style={{ transform: i % 3 === 1 ? 'translateY(28px)' : undefined }}
+              />
+            ))}
+          </div>
+        )}
         {covers.length >= 3 && (
           <div className="grid grid-cols-3 gap-3 md:gap-4 pb-7">
             {covers.map((g, i) => (

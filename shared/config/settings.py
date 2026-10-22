@@ -158,6 +158,10 @@ class EmailSettings(BaseSettings):
     UNISENDER_GO_API_URL: str = "https://go1.unisender.ru/ru/transactional/api/v1"
     EMAIL_FROM: str = "noreply@redonate.gg"
     EMAIL_FROM_NAME: str = "reDonate"
+    # Письма-уведомления почтовым пользователям (заказы, ответы оператора,
+    # пополнение, брошенная корзина). Пока выключено: на почту — только коды
+    # входа (решение владельца 23.10.2026). Код уведомлений сохранён.
+    EMAIL_NOTIFICATIONS_ENABLED: bool = False
 
 
 class AppSettings(BaseSettings):

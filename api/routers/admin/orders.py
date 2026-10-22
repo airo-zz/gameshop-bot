@@ -526,6 +526,8 @@ async def notify_user(
     tg_url = f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage"
     try:
         if not is_telegram_id(order.user.telegram_id):
+            if not settings.EMAIL_NOTIFICATIONS_ENABLED:
+                raise RuntimeError("у пользователя нет Telegram, а письма-уведомления отключены")
             # Пользователь сайта, вошедший по почте — письмо вместо бота
             from shared.mailer import notice_email, send_email
             if not order.user.email:

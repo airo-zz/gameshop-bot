@@ -99,6 +99,8 @@ def _email_cart_reminder(user_id: str, text: str) -> None:
     from sqlalchemy.orm import Session
     from shared.mailer import promo_email, send_email_sync
 
+    if not settings.EMAIL_NOTIFICATIONS_ENABLED:
+        return  # на почту пока только коды входа
     engine = create_engine(settings.DATABASE_URL.replace("+asyncpg", "+psycopg2"), pool_pre_ping=True)
     try:
         with Session(engine) as s:

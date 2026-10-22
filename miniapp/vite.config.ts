@@ -15,6 +15,20 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    // Шрифт Onest (кириллица + латиница) — preload в <head>: без этого текст
+    // сначала рисуется запасным шрифтом и «прыгает» при подмене
+    {
+      name: 'preload-onest',
+      transformIndexHtml: {
+        order: 'post',
+        handler(html, ctx) {
+          const files = Object.keys(ctx.bundle ?? {}).filter((f) => /onest-(cyrillic|latin)-wght-normal.*\.woff2$/.test(f))
+          const base = isWeb ? '/' : '/app/'
+          const links = files.map((f) => `<link rel="preload" href="${base}${f}" as="font" type="font/woff2" crossorigin>`).join('\n    ')
+          return links ? html.replace('</head>', `    ${links}\n  </head>`) : html
+        },
+      },
+    },
     // Сплэш из index.html нужен только Mini App — на сайте вырезаем
     {
       name: 'strip-boot-splash',

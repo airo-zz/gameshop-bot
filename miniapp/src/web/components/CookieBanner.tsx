@@ -14,6 +14,14 @@ export default function CookieBanner() {
   return (
     <AnimatePresence>
       {shown && (
+        // Обёртка: по центру снизу; на телефоне справа место под кнопку чата
+        <motion.div
+          key="cookie"
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="pointer-events-none flex justify-start md:justify-center pl-4 pr-[88px] md:px-24"
+          style={{ position: 'fixed', left: 0, right: 0, bottom: 16, zIndex: 180, marginBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
         <motion.div
           role="region"
           aria-label="Cookie"
@@ -21,14 +29,8 @@ export default function CookieBanner() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 16 }}
           transition={{ duration: 0.25 }}
-          className="rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-4 md:p-5"
-          style={{
-            position: 'fixed', left: 16, bottom: 16, zIndex: 180,
-            // справа остаётся место под кнопку чата
-            width: 'min(420px, calc(100vw - 104px))',
-            boxShadow: '0 16px 40px rgba(0,0,0,0.45)',
-            marginBottom: 'env(safe-area-inset-bottom, 0px)',
-          }}
+          className="pointer-events-auto w-full max-w-[560px] rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-4 md:p-5"
+          style={{ boxShadow: '0 16px 40px rgba(0,0,0,0.45)' }}
         >
           <p className="text-[13px] leading-relaxed text-[var(--text-2)]">
             Мы используем cookie: необходимые — для входа и корзины, аналитические (Яндекс.Метрика) —
@@ -53,6 +55,7 @@ export default function CookieBanner() {
               Только необходимые
             </button>
           </div>
+        </motion.div>
         </motion.div>
       )}
     </AnimatePresence>

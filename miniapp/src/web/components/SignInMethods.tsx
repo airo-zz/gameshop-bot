@@ -218,7 +218,7 @@ export default function SignInMethods() {
         <label className={row + ' border-t border-[var(--border)] cursor-pointer'}>
           <span className="flex-1 min-w-0">
             <span className="block text-sm font-medium text-[var(--text)]">Письма об акциях и скидках</span>
-            <span className="block text-xs text-[var(--hint)] mt-0.5">Письма о заказах и коды входа приходят всегда</span>
+            <span className="block text-xs text-[var(--hint)] mt-0.5">Коды для входа приходят всегда</span>
           </span>
           <input
             type="checkbox"

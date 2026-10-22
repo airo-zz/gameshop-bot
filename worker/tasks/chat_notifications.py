@@ -21,6 +21,9 @@ def _email_chat_notice(session, user_id: int) -> None:
     from sqlalchemy import text as sa_text
     from shared.mailer import notice_email, send_email_sync
 
+    if not settings.EMAIL_NOTIFICATIONS_ENABLED:
+        return  # на почту пока только коды входа
+
     email = session.execute(
         sa_text("SELECT email FROM users WHERE telegram_id = :tg"), {"tg": user_id}
     ).scalar()

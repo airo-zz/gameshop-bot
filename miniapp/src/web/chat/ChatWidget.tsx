@@ -467,7 +467,7 @@ export default function ChatWidget() {
                 <Link to="/login" state={{ from: location.pathname + location.search }} onClick={close} className="text-[var(--link)] hover:text-[var(--text)] font-medium">
                   Войдите
                 </Link>
-                , чтобы получить уведомление об ответе на почту или в Telegram — переписка сохранится.
+                , чтобы переписка сохранилась в аккаунте, а через Telegram — приходили уведомления об ответе.
                 {' '}Отправляя сообщение, вы соглашаетесь с{' '}
                 <a href="/app/legal/privacy.html" target="_blank" rel="noopener noreferrer" className="underline">политикой конфиденциальности</a>.
               </div>

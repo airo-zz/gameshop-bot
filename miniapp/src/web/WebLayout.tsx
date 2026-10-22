@@ -37,7 +37,7 @@ const NAV: NavItem[] = [
 function Logo() {
   return (
     <Link to="/" className="flex items-center shrink-0" aria-label={SHOP_NAME}>
-      <img src={logoFull} alt={SHOP_NAME} className="h-6 md:h-7 w-auto" />
+      <img src={logoFull} alt={SHOP_NAME} width={800} height={154} className="h-6 md:h-7 w-auto" />
     </Link>
   )
 }
@@ -212,7 +212,7 @@ export default function WebLayout() {
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
       <motion.main
-        className="flex-1"
+        className="flex-1 min-h-[calc(100dvh-64px)]"
         key={pageKey}
         initial={reduce ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
