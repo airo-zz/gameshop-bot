@@ -2,7 +2,7 @@
 import { useState, useRef } from 'react'
 import { useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { Search, X } from 'lucide-react'
+import { Search, X } from '@/components/ui/icons'
 import { catalogApi, type Game } from '@/api'
 import ProductCard from '@/components/ui/ProductCard'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -43,7 +43,6 @@ function GameCard({ game }: { game: Game }) {
         style={{
           width: 100, height: 100,
           background: 'var(--bg2)',
-          border: '1px solid var(--border)',
         }}
       >
         {game.image_url ? (
@@ -149,7 +148,7 @@ export default function SearchPage() {
             <div className="space-y-5">
               {games.length > 0 && (
                 <section>
-                  <p className="text-xs font-semibold mb-3 uppercase tracking-wider" style={{ color: 'var(--hint)' }}>
+                  <p className="text-sm font-medium mb-3" style={{ color: 'var(--hint)' }}>
                     Игры
                   </p>
                   <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4 no-scrollbar">
@@ -160,7 +159,7 @@ export default function SearchPage() {
 
               {products.length > 0 && (
                 <section>
-                  <p className="text-xs font-semibold mb-3 uppercase tracking-wider" style={{ color: 'var(--hint)' }}>
+                  <p className="text-sm font-medium mb-3" style={{ color: 'var(--hint)' }}>
                     Товары
                   </p>
                   <div className="grid grid-cols-2 gap-3">
@@ -175,7 +174,7 @@ export default function SearchPage() {
             <div className="text-center py-16">
               <div
                 className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center"
-                style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+                style={{ background: 'var(--bg2)' }}
               >
                 <Search size={24} style={{ color: 'var(--hint)' }} />
               </div>

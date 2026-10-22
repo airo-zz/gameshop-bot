@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { MessageCircle, Send, Plus, ArrowLeft, Paperclip, X, ZoomIn } from 'lucide-react'
+import { MessageCircle, Send, Plus, ArrowLeft, Paperclip, X, ZoomIn } from '@/components/ui/icons'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 import { supportApi, type Ticket, type TicketMessage } from '@/api'
@@ -12,7 +12,7 @@ import { useTelegram } from '@/hooks/useTelegram'
 type View = 'list' | 'drafting' | 'chat'
 
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string }> = {
-  open:         { label: 'Открыт',      color: '#8395B8', bg: 'rgba(131,149,184,0.15)' },
+  open:         { label: 'Открыт',      color: '#7D8799', bg: 'rgba(125,135,153,0.15)' },
   in_progress:  { label: 'В работе',    color: 'var(--link)', bg: 'rgba(37,99,235,0.15)' },
   waiting_user: { label: 'Ожидаем вас', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
   resolved:     { label: 'Решён',       color: '#6b7280', bg: 'rgba(107,114,128,0.15)' },
@@ -55,7 +55,7 @@ function FullScreenOverlay({ children }: { children: ReactNode }) {
         zIndex: 200,
         display: 'flex',
         flexDirection: 'column',
-        background: '#101C36',
+        background: '#15171C',
       }}
     >
       {children}
@@ -222,7 +222,7 @@ export default function SupportPage() {
       {view === 'list' && (
         <div className="mb-4">
           <div className="flex items-center justify-between mb-4">
-            <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Мои обращения</h1>
+            <h1 className="text-xl" style={{ color: 'var(--text)' }}>Мои обращения</h1>
             <button
               onClick={() => setView('drafting')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-semibold transition-all active:scale-[0.97]"
@@ -233,7 +233,7 @@ export default function SupportPage() {
             </button>
           </div>
           {tickets.length > 0 && (
-            <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}>
+            <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'var(--bg2)' }}>
               {([
                 { key: 'active' as const, label: 'Активные', count: activeTickets.length },
                 { key: 'closed' as const, label: 'Закрытые', count: closedTickets.length },
@@ -271,18 +271,18 @@ export default function SupportPage() {
           <div className="shrink-0 flex items-center gap-3 px-4 h-14 border-b border-white/5">
             <button
               onClick={backToList}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+              className="p-2.5 rounded-xl active:opacity-70" style={{ background: 'var(--bg2)' }}
             >
-              <ArrowLeft size={18} className="text-white/60" />
+              <ArrowLeft size={20} style={{ color: 'var(--text)' }} />
             </button>
             <p className="text-sm font-semibold text-white">Новое обращение</p>
           </div>
 
           {/* Hint */}
           <div className="flex-1 flex flex-col justify-end px-4 py-4">
-            <div className="bg-white/[0.06] rounded-2xl rounded-bl-sm px-4 py-3 mb-4 max-w-[85%]">
+            <div className="bg-[var(--bg3)] rounded-2xl rounded-bl-sm px-4 py-3 mb-4 max-w-[85%]">
               <p className="text-[10px] font-semibold mb-1" style={{ color: 'var(--link)' }}>Поддержка</p>
-              <p className="text-sm text-white/80">Опишите проблему, и мы поможем как можно быстрее.</p>
+              <p className="text-sm text-[var(--text-2)]">Опишите проблему, и мы поможем как можно быстрее.</p>
             </div>
           </div>
 
@@ -290,7 +290,7 @@ export default function SupportPage() {
           <div
             className="shrink-0 border-t border-white/5 px-3 pt-2"
             style={{
-              background: '#101C36',
+              background: '#15171C',
               paddingBottom: 'max(env(safe-area-inset-bottom, 20px), 20px)',
             }}
           >
@@ -305,7 +305,7 @@ export default function SupportPage() {
                         className="w-14 h-14 object-cover rounded-xl border border-white/10"
                       />
                     ) : (
-                      <div className="w-14 h-14 rounded-xl border border-white/10 flex items-center justify-center text-xs text-white/50" style={{ background: 'var(--bg2)' }}>
+                      <div className="w-14 h-14 rounded-xl border border-white/10 flex items-center justify-center text-xs text-[var(--hint)]" style={{ background: 'var(--bg2)' }}>
                         {f.name.split('.').pop()?.toUpperCase()}
                       </div>
                     )}
@@ -336,7 +336,7 @@ export default function SupportPage() {
             />
             <div
               className="flex items-end gap-2 p-2 rounded-2xl"
-              style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+              style={{ background: 'var(--bg2)' }}
             >
               <button
                 type="button"
@@ -404,9 +404,9 @@ export default function SupportPage() {
           <div className="shrink-0 flex items-center gap-3 px-4 h-14 border-b border-white/5">
             <button
               onClick={backToList}
-              className="p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors"
+              className="p-2.5 rounded-xl active:opacity-70" style={{ background: 'var(--bg2)' }}
             >
-              <ArrowLeft size={18} className="text-white/60" />
+              <ArrowLeft size={20} style={{ color: 'var(--text)' }} />
             </button>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-white truncate">
@@ -429,7 +429,7 @@ export default function SupportPage() {
           {/* Messages area */}
           <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">
             {displayTicket && (
-              <div className="text-white/30 text-xs text-center italic py-2">
+              <div className="text-[var(--hint)] text-xs text-center italic py-2">
                 Обращение открыто · {formatDate(displayTicket.created_at)}
               </div>
             )}
@@ -444,7 +444,7 @@ export default function SupportPage() {
                         'max-w-[80%] px-3 py-2',
                         isUser
                           ? 'bg-blue-600/80 text-white rounded-2xl rounded-br-sm ml-auto'
-                          : 'bg-white/[0.06] text-white rounded-2xl rounded-bl-sm mr-auto',
+                          : 'bg-[var(--bg3)] text-white rounded-2xl rounded-bl-sm mr-auto',
                       ].join(' ')}
                     >
                       {!isUser && (
@@ -490,7 +490,7 @@ export default function SupportPage() {
                           })}
                         </div>
                       )}
-                      <p className={`text-[10px] mt-1 text-right ${isUser ? 'text-white/50' : 'text-white/30'}`}>
+                      <p className={`text-[10px] mt-1 text-right ${isUser ? 'text-[var(--hint)]' : 'text-[var(--hint)]'}`}>
                         {timeAgo(msg.created_at)}
                       </p>
                     </div>
@@ -500,7 +500,7 @@ export default function SupportPage() {
             </div>
 
             {isClosed && displayTicket?.closed_at && (
-              <div className="text-white/30 text-xs text-center italic py-2">
+              <div className="text-[var(--hint)] text-xs text-center italic py-2">
                 Обращение закрыто · {formatDate(displayTicket.closed_at)}
               </div>
             )}
@@ -513,10 +513,10 @@ export default function SupportPage() {
             <div className="shrink-0 flex flex-wrap gap-2 px-4 pt-2 border-t border-white/5">
               {attachedFiles.map((f, i) => (
                 <div key={i} className="flex items-center gap-1.5 bg-white/5 rounded-lg px-2.5 py-1">
-                  <span className="text-xs text-white/60 truncate max-w-[120px]">{f.name}</span>
+                  <span className="text-xs text-[var(--text-2)] truncate max-w-[120px]">{f.name}</span>
                   <button
                     onClick={() => setAttachedFiles(prev => prev.filter((_, j) => j !== i))}
-                    className="text-white/30 hover:text-white/70"
+                    className="text-[var(--hint)] hover:text-[var(--text-2)]"
                   >
                     <X size={12} />
                   </button>
@@ -529,19 +529,19 @@ export default function SupportPage() {
           <div
             className="shrink-0 border-t border-white/5 px-3 pt-2"
             style={{
-              background: '#101C36',
+              background: '#15171C',
               paddingBottom: 'max(env(safe-area-inset-bottom, 20px), 20px)',
             }}
           >
             {!isClosed ? (
               <div
                 className="flex items-end gap-2 p-2 rounded-2xl"
-                style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+                style={{ background: 'var(--bg2)' }}
               >
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-2.5 rounded-xl bg-white/5 text-white/40 hover:text-white/70 transition-colors"
+                  className="p-2.5 rounded-xl bg-white/5 text-[var(--hint)] hover:text-[var(--text-2)] transition-colors"
                 >
                   <Paperclip size={18} />
                 </button>
@@ -641,7 +641,7 @@ export default function SupportPage() {
             <div className="flex flex-col items-center py-16 gap-5">
               <div
                 className="w-24 h-24 rounded-3xl flex items-center justify-center"
-                style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+                style={{ background: 'var(--bg2)' }}
               >
                 <MessageCircle size={40} style={{ color: 'var(--hint)' }} />
               </div>
@@ -672,7 +672,7 @@ export default function SupportPage() {
                   key={ticket.id}
                   onClick={() => openChat(ticket.id, ticket)}
                   className="flex items-center gap-3 px-3 py-3 rounded-2xl w-full text-left transition-all active:scale-[0.98]"
-                  style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+                  style={{ background: 'var(--bg2)' }}
                 >
                   <div
                     className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-base font-bold"

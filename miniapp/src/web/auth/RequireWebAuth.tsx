@@ -13,7 +13,7 @@ export default function RequireWebAuth({ children }: { children: ReactNode }) {
   const location = useLocation()
 
   if (!ready) {
-    return <div className="web-container py-24 text-center text-sm text-white/40">Загрузка...</div>
+    return <div className="web-container py-24 text-center text-sm text-[var(--hint)]">Загрузка...</div>
   }
   if (!isAuthenticated) {
     return <Navigate to="/login" replace state={{ from: location.pathname + location.search }} />

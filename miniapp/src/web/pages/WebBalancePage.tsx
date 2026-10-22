@@ -12,7 +12,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Wallet, Smartphone, CreditCard, Bitcoin, TrendingUp, TrendingDown, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import { Wallet, Smartphone, CreditCard, Bitcoin, TrendingUp, TrendingDown, CheckCircle2, XCircle, Loader2 } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { profileApi, paymentsApi, type BalanceTransaction } from '@/api'
 import { PAY_SOURCE } from '@/config/appTarget'
@@ -118,7 +118,7 @@ export default function WebBalancePage() {
           <Loader2 size={20} className="animate-spin shrink-0" style={{ color: 'var(--link)' }} />
           <div>
             <p className="text-sm font-semibold text-white">Ожидаем подтверждение оплаты</p>
-            <p className="text-xs text-white/50">Обычно это занимает до минуты. Страницу можно не обновлять.</p>
+            <p className="text-xs text-[var(--hint)]">Обычно это занимает до минуты. Страницу можно не обновлять.</p>
           </div>
         </div>
       )}
@@ -127,20 +127,20 @@ export default function WebBalancePage() {
         {/* ── Левая колонка: баланс + пополнение ───────────────────────────── */}
         <div className="space-y-6">
           <div className="rounded-3xl p-6 relative overflow-hidden" style={{ background: 'var(--gradient-primary)' }}>
-            <div className="flex items-center gap-2 text-white/80 text-sm font-medium">
+            <div className="flex items-center gap-2 text-[var(--text-2)] text-sm font-medium">
               <Wallet size={18} /> Текущий баланс
             </div>
             <p className="text-4xl font-bold text-white mt-3">
               {profile ? money(profile.balance) : '—'}
             </p>
-            <p className="text-xs text-white/70 mt-2">Оплачивайте заказы с баланса мгновенно и без комиссии.</p>
+            <p className="text-xs text-[var(--text-2)] mt-2">Оплачивайте заказы с баланса мгновенно и без комиссии.</p>
           </div>
 
-          <div className="rounded-3xl border border-white/[0.06] bg-white/[0.02] p-5 md:p-6 space-y-5">
+          <div className="rounded-3xl border border-white/[0.06] bg-[var(--bg2)] p-5 md:p-6 space-y-5">
             <h2 className="text-lg font-bold text-white">Пополнить</h2>
 
             <div>
-              <label className="block text-xs text-white/50 mb-2" htmlFor="topup-amount">Сумма, ₽</label>
+              <label className="block text-xs text-[var(--hint)] mb-2" htmlFor="topup-amount">Сумма, ₽</label>
               <input
                 id="topup-amount"
                 type="number"
@@ -149,7 +149,7 @@ export default function WebBalancePage() {
                 max={MAX_AMOUNT}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))}
-                className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-4 py-3 text-lg font-semibold text-white focus:outline-none focus:border-white/25"
+                className="w-full bg-[var(--bg3)] border border-white/[0.08] rounded-xl px-4 py-3 text-lg font-semibold text-white focus:outline-none focus:border-white/25"
               />
               <div className="flex flex-wrap gap-2 mt-3">
                 {PRESETS.map((p) => (
@@ -172,7 +172,7 @@ export default function WebBalancePage() {
             </div>
 
             <div>
-              <p className="text-xs text-white/50 mb-2">Способ оплаты</p>
+              <p className="text-xs text-[var(--hint)] mb-2">Способ оплаты</p>
               <div className="space-y-2">
                 {METHODS.map((m) => {
                   const selected = method === m.id
@@ -190,7 +190,7 @@ export default function WebBalancePage() {
                       <m.icon size={20} style={{ color: selected ? 'var(--link)' : 'var(--hint)' }} />
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-white">{m.label}</p>
-                        <p className="text-xs text-white/45">{m.hint}</p>
+                        <p className="text-xs text-[var(--hint)]">{m.hint}</p>
                       </div>
                       {selected && <CheckCircle2 size={18} style={{ color: 'var(--link)' }} />}
                     </button>
@@ -208,7 +208,7 @@ export default function WebBalancePage() {
             >
               {loading ? 'Создаём платёж...' : `Пополнить на ${amountError ? '' : money(numeric)}`}
             </button>
-            <p className="text-xs text-white/35 text-center leading-relaxed">
+            <p className="text-xs text-[var(--hint)] text-center leading-relaxed">
               Деньги зачисляются автоматически сразу после оплаты. Комиссия платёжной
               системы показывается на странице оплаты.
             </p>
@@ -216,25 +216,25 @@ export default function WebBalancePage() {
         </div>
 
         {/* ── Правая колонка: история ──────────────────────────────────────── */}
-        <div className="rounded-3xl border border-white/[0.06] bg-white/[0.02] p-5 md:p-6">
+        <div className="rounded-3xl border border-white/[0.06] bg-[var(--bg2)] p-5 md:p-6">
           <h2 className="text-lg font-bold text-white mb-4">История операций</h2>
           {historyLoading ? (
             <div className="space-y-2">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-16 rounded-2xl animate-pulse bg-white/[0.04]" />
+                <div key={i} className="h-16 rounded-2xl animate-pulse bg-[var(--bg2)]" />
               ))}
             </div>
           ) : history.length === 0 ? (
             <div className="flex flex-col items-center py-12 gap-3 text-center">
               <Wallet size={32} className="text-white/20" />
-              <p className="text-sm text-white/40">Операций пока нет</p>
+              <p className="text-sm text-[var(--hint)]">Операций пока нет</p>
             </div>
           ) : (
             <div className="space-y-2">
               {history.map((tx) => {
                 const credit = txIsCredit(tx.type)
                 return (
-                  <div key={tx.id} className="flex items-center gap-3 p-3.5 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
+                  <div key={tx.id} className="flex items-center gap-3 p-3.5 rounded-2xl bg-[var(--bg2)] border border-white/[0.05]">
                     <div
                       className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                       style={{ background: credit ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)' }}
@@ -243,7 +243,7 @@ export default function WebBalancePage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-white truncate">{txLabel(tx.type)}</p>
-                      <p className="text-xs text-white/40 truncate">
+                      <p className="text-xs text-[var(--hint)] truncate">
                         {new Date(tx.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         {tx.description ? ` · ${tx.description}` : ''}
                       </p>
@@ -260,7 +260,7 @@ export default function WebBalancePage() {
       </div>
 
       {topupResult === 'success' && !waiting && (
-        <p className="text-xs text-white/40 mt-6 flex items-center gap-2">
+        <p className="text-xs text-[var(--hint)] mt-6 flex items-center gap-2">
           <XCircle size={14} /> Не видите зачисления? Напишите в поддержку — проверим платёж вручную.
         </p>
       )}

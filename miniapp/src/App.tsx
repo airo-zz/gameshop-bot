@@ -191,15 +191,15 @@ export default function App() {
         }}
         toastOptions={{
           style: {
-            background: '#101C36',
+            background: '#15171C',
             color: '#DCEBFF',
             border: '1px solid rgba(220,235,255,0.1)',
-            borderRadius: '14px',
+            borderRadius: '12px',
             fontSize: '14px',
             fontWeight: 500,
           },
-          success: { iconTheme: { primary: '#7FA6F5', secondary: '#101C36' } },
-          error:   { iconTheme: { primary: '#f87171', secondary: '#101C36' } },
+          success: { iconTheme: { primary: '#7FA6F5', secondary: '#15171C' } },
+          error:   { iconTheme: { primary: '#f87171', secondary: '#15171C' } },
         }}
       />
       <Routes>

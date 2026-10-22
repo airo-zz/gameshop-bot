@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Zap, ShieldCheck, Headphones, BadgePercent, Send, ChevronDown, ShoppingBag } from 'lucide-react'
+import { Zap, ShieldCheck, Headphones, BadgePercent, Send, ChevronDown, ShoppingBag } from '@/components/ui/icons'
 import { catalogApi } from '@/api'
 import { MINIAPP_URL, SHOP_NAME } from '@/config/appTarget'
 import GameCard from '@/web/components/GameCard'
@@ -19,7 +19,7 @@ function Hero() {
   return (
     <section className="relative overflow-hidden">
       <div className="web-container relative pt-20 pb-16 md:pt-28 md:pb-24 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-xs text-white/60 mb-6">
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-[var(--bg2)] px-3.5 py-1.5 text-xs text-[var(--text-2)] mb-6">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
           Моментальная выдача · СБП, карта, крипта
         </div>
@@ -32,7 +32,7 @@ function Hero() {
           </span>
         </h1>
 
-        <p className="mt-6 text-base md:text-lg text-white/50 max-w-2xl mx-auto leading-relaxed">
+        <p className="mt-6 text-base md:text-lg text-[var(--hint)] max-w-2xl mx-auto leading-relaxed">
           Пополняй любимые игры за пару минут. Честные цены, проверенные способы оплаты
           и живая поддержка на каждом шаге.
         </p>
@@ -50,13 +50,13 @@ function Hero() {
             href={MINIAPP_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold text-white/80 border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-all active:scale-[0.97] w-full sm:w-auto justify-center"
+            className="inline-flex items-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold text-[var(--text-2)] border border-white/10 bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-all active:scale-[0.97] w-full sm:w-auto justify-center"
           >
             <Send size={17} />
             Открыть в Telegram
           </a>
         </div>
-        <p className="mt-5 text-xs text-white/35">Оплата через СБП, банковской картой или криптовалютой</p>
+        <p className="mt-5 text-xs text-[var(--hint)]">Оплата через СБП, банковской картой или криптовалютой</p>
       </div>
     </section>
   )
@@ -78,7 +78,7 @@ function Features() {
         {FEATURES.map((f) => (
           <div
             key={f.title}
-            className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 hover:bg-white/[0.04] transition-colors"
+            className="rounded-2xl border border-white/[0.06] bg-[var(--bg2)] p-5 hover:bg-[var(--bg2)] transition-colors"
           >
             <div
               className="w-11 h-11 rounded-xl flex items-center justify-center mb-4"
@@ -87,7 +87,7 @@ function Features() {
               <f.icon size={20} />
             </div>
             <h3 className="text-base font-semibold text-white mb-1.5">{f.title}</h3>
-            <p className="text-sm text-white/45 leading-relaxed">{f.text}</p>
+            <p className="text-sm text-[var(--hint)] leading-relaxed">{f.text}</p>
           </div>
         ))}
       </div>
@@ -112,15 +112,15 @@ function Catalog() {
       <div className="flex flex-wrap items-end justify-between gap-4 mb-7">
         <div>
           <h2 className="text-2xl md:text-3xl font-bold text-white">Каталог</h2>
-          <p className="text-sm text-white/45 mt-1.5">Выберите игру или сервис — оформление на сайте за пару минут.</p>
+          <p className="text-sm text-[var(--hint)] mt-1.5">Выберите игру или сервис — оформление на сайте за пару минут.</p>
         </div>
         {hasServices && (
-          <div className="inline-flex rounded-xl border border-white/10 bg-white/[0.03] p-1">
+          <div className="inline-flex rounded-xl border border-white/10 bg-[var(--bg2)] p-1">
             {(['game', 'service'] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={'px-4 py-2 rounded-lg text-sm font-semibold transition-colors ' + (tab === t ? 'text-white' : 'text-white/50 hover:text-white/80')}
+                className={'px-4 py-2 rounded-lg text-sm font-semibold transition-colors ' + (tab === t ? 'text-white' : 'text-[var(--hint)] hover:text-[var(--text-2)]')}
                 style={tab === t ? { background: 'rgba(37,99,235,0.35)' } : {}}
               >
                 {t === 'game' ? 'Игры' : 'Сервисы'}
@@ -133,19 +133,19 @@ function Catalog() {
       {isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-              <div className="aspect-[4/3] animate-pulse bg-white/[0.04]" />
+            <div key={i} className="rounded-2xl border border-white/[0.06] bg-[var(--bg2)] overflow-hidden">
+              <div className="aspect-[4/3] animate-pulse bg-[var(--bg2)]" />
               <div className="p-3.5 space-y-2">
-                <div className="h-3.5 w-2/3 rounded animate-pulse bg-white/[0.06]" />
-                <div className="h-2.5 w-1/3 rounded animate-pulse bg-white/[0.04]" />
+                <div className="h-3.5 w-2/3 rounded animate-pulse bg-[var(--bg3)]" />
+                <div className="h-2.5 w-1/3 rounded animate-pulse bg-[var(--bg2)]" />
               </div>
             </div>
           ))}
         </div>
       ) : isError ? (
-        <p className="text-sm text-white/40 py-10 text-center">Не удалось загрузить каталог</p>
+        <p className="text-sm text-[var(--hint)] py-10 text-center">Не удалось загрузить каталог</p>
       ) : !games || games.length === 0 ? (
-        <p className="text-sm text-white/40 py-10 text-center">Скоро здесь появятся игры</p>
+        <p className="text-sm text-[var(--hint)] py-10 text-center">Скоро здесь появятся игры</p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {games.map((g) => (
@@ -171,10 +171,10 @@ function HowItWorks() {
       <h2 className="text-2xl md:text-3xl font-bold text-white text-center">Как это работает</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-9">
         {STEPS.map((s) => (
-          <div key={s.n} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-6">
+          <div key={s.n} className="rounded-2xl border border-white/[0.06] bg-[var(--bg2)] p-6">
             <div className="text-3xl font-bold" style={{ color: 'var(--link)', opacity: 0.9 }}>{s.n}</div>
             <h3 className="text-lg font-semibold text-white mt-3">{s.title}</h3>
-            <p className="text-sm text-white/45 mt-1.5 leading-relaxed">{s.text}</p>
+            <p className="text-sm text-[var(--hint)] mt-1.5 leading-relaxed">{s.text}</p>
           </div>
         ))}
       </div>
@@ -195,7 +195,7 @@ const FAQ = [
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false)
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+    <div className="rounded-2xl border border-white/[0.06] bg-[var(--bg2)] overflow-hidden">
       <button
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left"
@@ -203,10 +203,10 @@ function FaqItem({ q, a }: { q: string; a: string }) {
         <span className="text-sm md:text-base font-medium text-white">{q}</span>
         <ChevronDown
           size={18}
-          className={'text-white/40 shrink-0 transition-transform duration-200 ' + (open ? 'rotate-180' : '')}
+          className={'text-[var(--hint)] shrink-0 transition-transform duration-200 ' + (open ? 'rotate-180' : '')}
         />
       </button>
-      {open && <p className="px-5 pb-4 text-sm text-white/50 leading-relaxed">{a}</p>}
+      {open && <p className="px-5 pb-4 text-sm text-[var(--hint)] leading-relaxed">{a}</p>}
     </div>
   )
 }
@@ -234,13 +234,13 @@ function CtaBanner() {
         style={{ background: 'var(--gradient-primary)' }}
       >
         <h2 className="text-2xl md:text-3xl font-bold text-white">Готовы пополнить игру?</h2>
-        <p className="text-white/80 mt-2.5 max-w-xl mx-auto">
+        <p className="text-[var(--text-2)] mt-2.5 max-w-xl mx-auto">
           Оформите заказ на сайте или в Telegram-боте {SHOP_NAME} — за пару минут.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
           <Link
             to="/catalog"
-            className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-[#101C36] transition-all active:scale-[0.97] hover:bg-white/90"
+            className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-[#15171C] transition-all active:scale-[0.97] hover:bg-white/90"
           >
             <ShoppingBag size={17} />
             Выбрать товар

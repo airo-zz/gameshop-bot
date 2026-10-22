@@ -380,6 +380,7 @@ export interface LoyaltyLevel {
   min_spent: number
   discount_percent: number
   cashback_percent: number
+  monthly_cashback_cap: number | null
   is_active: boolean
   color_hex: string | null
   icon_emoji: string | null
@@ -387,6 +388,8 @@ export interface LoyaltyLevel {
 
 export interface ReferralSettings {
   bonus_amount: number
+  threshold_amount: number
+  new_user_discount_percent: number
 }
 
 // ── Content (тексты и фото бота) ───────────────────────────────────────────────
@@ -704,8 +707,8 @@ export const adminApi = {
   createLoyaltyLevel: (data: {
     name: string
     min_spent: number
-    discount_percent: number
     cashback_percent: number
+    monthly_cashback_cap: number | null
     is_active?: boolean
     color_hex?: string
     icon_emoji?: string
@@ -715,8 +718,8 @@ export const adminApi = {
   updateLoyaltyLevel: (id: string, data: Partial<{
     name: string
     min_spent: number
-    discount_percent: number
     cashback_percent: number
+    monthly_cashback_cap: number | null
     is_active: boolean
     color_hex: string
     icon_emoji: string
@@ -730,7 +733,7 @@ export const adminApi = {
   getReferralSettings: () =>
     apiClient.get<ReferralSettings>('/admin/settings/referral').then(r => r.data),
 
-  updateReferralSettings: (data: { bonus_amount: number }) =>
+  updateReferralSettings: (data: Partial<ReferralSettings>) =>
     apiClient.patch<ReferralSettings>('/admin/settings/referral', data).then(r => r.data),
 
   // Content — тексты и фото бота

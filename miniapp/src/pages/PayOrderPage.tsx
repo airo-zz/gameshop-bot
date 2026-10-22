@@ -4,7 +4,7 @@
 import { useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Wallet, Bitcoin, CreditCard, AlertCircle, CheckCircle, Smartphone } from 'lucide-react'
+import { Wallet, Bitcoin, CreditCard, AlertCircle, CheckCircle, Smartphone } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { ordersApi, profileApi } from '@/api'
 import { fmtPrice } from '@/utils/format'
@@ -93,12 +93,12 @@ export default function PayOrderPage() {
 
   return (
     <div style={{ padding: '16px', maxWidth: 520, margin: '0 auto' }}>
-      <h1 style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>
+      <h1 style={{ fontSize: 20, color: 'var(--text)', marginBottom: 12 }}>
         Оплата заказа
       </h1>
 
       {/* Состав заказа */}
-      <div style={{ background: 'var(--bg2)', border: '1px solid rgba(220,235,255,0.08)', borderRadius: 16, padding: '14px 16px', marginBottom: 16 }}>
+      <div style={{ background: 'var(--bg2)', border: '1px solid rgba(220,235,255,0.08)', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
         <p style={{ fontSize: 12, color: 'var(--hint)', marginBottom: 8 }}>Заказ {order.order_number}</p>
         {order.items.map(it => (
           <p key={it.id} style={{ fontSize: 14, fontWeight: 600, color: 'var(--text)', wordBreak: 'break-word', marginBottom: 4 }}>
@@ -120,7 +120,7 @@ export default function PayOrderPage() {
             <button key={m.id} type="button"
               onClick={() => { setMethod(m.id); haptic.impact('light') }}
               style={{
-                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14,
+                display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12,
                 background: active ? 'var(--accent-soft)' : 'var(--bg2)',
                 border: active ? '1px solid var(--accent)' : '1px solid var(--border)',
                 color: 'var(--text)', textAlign: 'left', cursor: 'pointer',
@@ -153,7 +153,7 @@ export default function PayOrderPage() {
 
       <button type="button" onClick={handlePay} disabled={paying || !!insufficient}
         style={{
-          width: '100%', padding: '14px', borderRadius: 14, border: 'none',
+          width: '100%', padding: '14px', borderRadius: 12, border: 'none',
           background: (paying || insufficient) ? 'rgba(37,99,235,0.4)' : 'var(--accent)',
           color: '#fff', fontSize: 15, fontWeight: 700, cursor: (paying || insufficient) ? 'not-allowed' : 'pointer',
         }}>

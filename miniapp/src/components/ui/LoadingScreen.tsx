@@ -20,7 +20,7 @@ export default function LoadingScreen() {
         gap: 20,
       }}
     >
-      <img src={logoSrc} alt="reDonate" style={{ width: 72, height: 72, borderRadius: 18, display: 'block' }} />
+      <img src={logoSrc} alt="reDonate" style={{ width: 72, height: 72, borderRadius: 12, display: 'block' }} />
       <img src={logoTextSrc} alt="" style={{ height: 26, width: 'auto', display: 'block' }} />
     </div>
   )

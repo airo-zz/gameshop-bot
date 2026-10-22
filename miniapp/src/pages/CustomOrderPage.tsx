@@ -4,7 +4,7 @@
 // чат, оператор собирает индивидуальный лот (кнопка «Оплатить» приходит в чат/бот).
 import { useState } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
-import { ImagePlus, X, Send, Info } from 'lucide-react'
+import { ImagePlus, X, Send, Info } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { chatApi } from '@/api'
 import { compressImage } from '@/utils/image'
@@ -27,7 +27,7 @@ const COPY: Record<Mode, { title: string; intro: string; placeholder: string; he
   missing_game: {
     title: 'Не нашли свою игру?',
     intro:
-      'Не нашли свою игру? Напишите нам в чат — договоримся и соберём индивидуальный заказ.',
+      'Опишите, что нужно, — ответим в чате, согласуем цену и соберём заказ вручную.',
     placeholder: 'Какая игра или сервис вам нужны? Напишите название и приложите скриншот при необходимости.',
     header: 'Не нашёл игру в каталоге',
   },
@@ -93,20 +93,14 @@ export default function CustomOrderPage() {
 
   return (
     <div style={{ padding: '16px', maxWidth: 520, margin: '0 auto' }}>
-      <h1 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text)', marginBottom: 12 }}>
+      <h1 style={{ fontSize: 20, color: 'var(--text)', marginBottom: 6 }}>
         {copy.title}
       </h1>
 
       {/* Пояснение — «что это за кнопка» */}
-      <div style={{
-        display: 'flex', gap: 10, padding: '12px 14px', borderRadius: 14, marginBottom: 16,
-        background: 'rgba(37,99,235,0.10)', border: '1px solid transparent',
-      }}>
-        <Info size={18} style={{ color: 'var(--link)', flexShrink: 0, marginTop: 1 }} />
-        <p style={{ fontSize: 13, color: 'var(--text)', lineHeight: 1.5, opacity: 0.9 }}>
-          {copy.intro}
-        </p>
-      </div>
+      <p style={{ fontSize: 14, color: 'var(--hint)', lineHeight: 1.5, marginBottom: 18 }}>
+        {copy.intro}
+      </p>
 
       {/* Описание */}
       <label style={{ fontSize: 13, color: 'var(--hint)', display: 'block', marginBottom: 6 }}>
@@ -118,7 +112,7 @@ export default function CustomOrderPage() {
         placeholder={copy.placeholder}
         rows={4}
         style={{
-          width: '100%', borderRadius: 14, padding: '12px 14px', resize: 'vertical',
+          width: '100%', borderRadius: 12, padding: '12px 14px', resize: 'vertical',
           background: 'rgba(220,235,255,0.05)', border: '1px solid rgba(220,235,255,0.12)',
           color: 'var(--text)', fontSize: 14, lineHeight: 1.45, marginBottom: 16,
         }}
@@ -166,7 +160,7 @@ export default function CustomOrderPage() {
         onClick={submit}
         disabled={sending}
         style={{
-          width: '100%', padding: '14px', borderRadius: 14, border: 'none',
+          width: '100%', padding: '14px', borderRadius: 12, border: 'none',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
           background: sending ? 'rgba(37,99,235,0.4)' : 'var(--accent)',
           color: '#fff', fontSize: 15, fontWeight: 700, cursor: sending ? 'not-allowed' : 'pointer',

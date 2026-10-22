@@ -37,8 +37,7 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
       className="relative flex flex-col overflow-hidden product-card-hover"
       style={{
         background: 'var(--bg2)',
-        border: '1px solid var(--border)',
-        borderRadius: '14px',
+        borderRadius: '12px',
       }}
     >
       {/* Image area — только когда есть картинка */}
@@ -71,7 +70,7 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
             <span
               className="absolute bottom-2 left-2 flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md z-10"
               style={{
-                background: 'rgba(10,19,38,0.85)',
+                background: 'rgba(11,12,15,0.85)',
                 color: '#34d399',
               }}
             >
@@ -86,7 +85,7 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
           {isOutOfStock && (
             <div
               className="absolute inset-0 flex items-center justify-center z-10"
-              style={{ background: 'rgba(10,19,38,0.75)' }}
+              style={{ background: 'rgba(11,12,15,0.75)' }}
             >
               <span
                 className="text-xs font-semibold px-2.5 py-1 rounded-md"
@@ -101,7 +100,7 @@ export default function ProductCard({ product, isFavorite = false, onFavoriteTog
           <button
             type="button"
             className="absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center active:opacity-70 z-20"
-            style={{ background: 'rgba(10,19,38,0.7)' }}
+            style={{ background: 'rgba(11,12,15,0.7)' }}
             onClick={handleFavorite}
           >
             <svg width="13" height="13" viewBox="0 0 24 24"

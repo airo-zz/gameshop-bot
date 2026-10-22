@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Zap, Clock, Plus, Minus, Info, Check, MessageSquarePlus } from 'lucide-react'
+import { Zap, Clock, Plus, Minus, Info, Check, MessageSquarePlus } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { catalogApi, cartApi, type Category, type Product, type InputField } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -41,8 +41,8 @@ function ProductRow({ product, cartQty, onAdd, onRemove, singleAdd }: ProductRow
     const unit = qtyField.unit || 'шт'
     return (
       <div style={{
-        background: 'var(--bg2)', border: '1px solid rgba(220,235,255,0.07)',
-        borderRadius: 16, padding: '12px 14px',
+        background: 'var(--bg2)',
+        borderRadius: 12, padding: '12px 14px',
         display: 'flex', flexDirection: 'column', gap: 10,
       }}>
         <span style={{ fontSize: '0.9rem', fontWeight: 500, lineHeight: 1.35, color: 'var(--text)', wordBreak: 'break-word' }}>
@@ -60,7 +60,7 @@ function ProductRow({ product, cartQty, onAdd, onRemove, singleAdd }: ProductRow
             }}
           />
           <span style={{ fontSize: '0.8rem', color: 'rgba(220,235,255,0.45)' }}>{unit}</span>
-          <span style={{ marginLeft: 'auto', fontSize: '1.05rem', fontWeight: 700, color: 'var(--link)' }}>
+          <span className="font-display num" style={{ marginLeft: 'auto', fontSize: '1rem', color: 'var(--text)' }}>
             {total.toLocaleString('ru')} ₽
           </span>
         </div>
@@ -114,8 +114,8 @@ function ProductRow({ product, cartQty, onAdd, onRemove, singleAdd }: ProductRow
 
   return (
     <div style={{
-      background: 'var(--bg2)', border: '1px solid rgba(220,235,255,0.07)',
-      borderRadius: 16, padding: '12px 14px',
+      background: 'var(--bg2)',
+      borderRadius: 12, padding: '12px 14px',
       display: 'flex', flexDirection: 'column', gap: 10,
     }}>
       {/* Name (на всю ширину, перенос) + бейдж */}
@@ -155,7 +155,7 @@ function ProductRow({ product, cartQty, onAdd, onRemove, singleAdd }: ProductRow
               {Number(product.original_price).toLocaleString('ru')} ₽
             </span>
           )}
-          <span style={{ fontSize: '1.05rem', fontWeight: 700, color: isOutOfStock ? 'rgba(220,235,255,0.25)' : '#7FA6F5' }}>
+          <span className="font-display num" style={{ fontSize: '1rem', color: isOutOfStock ? 'var(--hint)' : 'var(--text)' }}>
             {Number(product.price).toLocaleString('ru')} ₽
           </span>
           {hasDiscount && (
@@ -171,7 +171,7 @@ function ProductRow({ product, cartQty, onAdd, onRemove, singleAdd }: ProductRow
         {/* Add/remove pill */}
         <div style={{
           flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          borderRadius: 9999, overflow: 'hidden', transition: 'width 0.2s, background 0.2s',
+          borderRadius: 'var(--r-control)', overflow: 'hidden', transition: 'width 0.2s, background 0.2s',
           width: cartQty > 0 ? 104 : 38, height: 38,
           background: isOutOfStock
             ? 'rgba(239,68,68,0.10)'
@@ -193,7 +193,7 @@ function ProductRow({ product, cartQty, onAdd, onRemove, singleAdd }: ProductRow
                 style={{ display: 'flex', alignItems: 'center', width: '100%' }}
               >
                 <button type="button" onClick={onRemove}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 38, background: 'none', border: 'none', cursor: 'pointer', color: '#f87171' }}>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 38, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--hint)' }}>
                   <Minus size={15} />
                 </button>
                 <span style={{ flex: 1, textAlign: 'center', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)', userSelect: 'none' }}>
@@ -431,17 +431,13 @@ export default function GamePage() {
   )
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
-    >
+    <div>
       {/* Header — название слева; справа сверху кнопка инд. заказа и бейдж выдачи */}
       <div
         className="px-4 pt-5 pb-4"
         style={{ borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'flex-start', gap: 10 }}
       >
-        <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text)', flex: 1, minWidth: 0 }}>
+        <h1 className="text-xl" style={{ color: 'var(--text)', flex: 1, minWidth: 0 }}>
           {gameName}
         </h1>
         <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
@@ -561,8 +557,8 @@ export default function GamePage() {
           <div className="space-y-2">
             {isTgAuto && tgFieldDefs.length > 0 && (
               <div style={{
-                background: 'var(--bg2)', border: '1px solid var(--border)',
-                borderRadius: 16, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10,
+                background: 'var(--bg2)',
+                borderRadius: 12, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10,
               }}>
                 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--link)' }}>
                   Данные получателя
@@ -615,6 +611,6 @@ export default function GamePage() {
         )}
       </div>
 
-    </motion.div>
+    </div>
   )
 }

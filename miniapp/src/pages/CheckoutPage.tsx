@@ -2,10 +2,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { CheckCircle, Wallet, Bitcoin, AlertCircle, CreditCard, Smartphone } from 'lucide-react'
+import { CheckCircle, Wallet, Bitcoin, AlertCircle, CreditCard, Smartphone } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { cartApi, ordersApi, profileApi } from '@/api'
-import { LOYALTY_LEVELS, LOYALTY_DISCOUNTS } from '@/utils/loyalty'
 import { fmtPrice } from '@/utils/format'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
@@ -92,37 +91,31 @@ export default function CheckoutPage() {
 
   if (!cart) return null
 
+  // Подсказка по лояльности (модель Bybit): кэшбэк за этот заказ с учётом месячного
+  // лимита и прогресс к следующему уровню — всё из profile API, без хардкода уровней
   const loyaltyHint = profile ? (() => {
-    const spent = profile.total_spent
-    const current = [...LOYALTY_LEVELS].reverse().find(l => spent >= l.min) ?? LOYALTY_LEVELS[0]
-    const currentIdx = LOYALTY_LEVELS.indexOf(current)
-    const next = currentIdx < LOYALTY_LEVELS.length - 1 ? LOYALTY_LEVELS[currentIdx + 1] : null
-    if (!next || current.max === null) return null
-    const remaining = current.max - spent
-    const discount = LOYALTY_DISCOUNTS[next.name] ?? 0
+    const pct = Number(profile.loyalty_cashback_percent)
+    const cap = profile.loyalty_cashback_cap != null ? Number(profile.loyalty_cashback_cap) : null
+    const left = cap != null ? Math.max(0, cap - Number(profile.loyalty_month_cashback)) : Infinity
+    const cashback = Math.floor(Math.min(Number(cart.total) * pct / 100, left) * 100) / 100
+    const nextMin = profile.loyalty_next_level_min_spent != null ? Number(profile.loyalty_next_level_min_spent) : null
+    const toNext = nextMin != null ? nextMin - Number(profile.loyalty_month_spent) - Number(cart.total) : null
+    if (cashback <= 0 && !profile.loyalty_next_level_name) return null
     return (
-      <div
-        style={{
-          marginTop: 10,
-          padding: '7px 10px',
-          borderRadius: 10,
-          background: 'rgba(37,99,235,0.08)',
-          border: '1px solid transparent',
-          fontSize: 12,
-          color: 'var(--link)',
-          lineHeight: 1.4,
-        }}
-      >
-        До {next.name} осталось{' '}
-        <strong>{fmtPrice(remaining)} ₽</strong>
-        {discount > 0 && ` — апгрейд даст скидку ${discount}%`}
+      <div style={{ marginTop: 12, fontSize: 13, color: 'var(--hint)', lineHeight: 1.45 }}>
+        {cashback > 0 && <>Вернётся кэшбэком: <span className="num" style={{ color: 'var(--text)' }}>{fmtPrice(cashback)} ₽</span>. </>}
+        {profile.loyalty_next_level_name && toNext != null && (
+          toNext <= 0
+            ? <>С этим заказом вы перейдёте на уровень «{profile.loyalty_next_level_name}».</>
+            : <>До уровня «{profile.loyalty_next_level_name}» после заказа: <span className="num" style={{ color: 'var(--text)' }}>{fmtPrice(toNext)} ₽</span>.</>
+        )}
       </div>
     )
   })() : null
 
   return (
     <div className="px-4 pt-5 pb-8 space-y-5 animate-slide-up">
-      <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Оформление</h1>
+      <h1 className="text-xl" style={{ color: 'var(--text)' }}>Оформление</h1>
 
       {/* Состав заказа */}
       <div className="card space-y-2">
@@ -148,7 +141,7 @@ export default function CheckoutPage() {
         )}
         <div className="flex justify-between font-bold text-base">
           <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span style={{ color: 'var(--link)' }}>{fmtPrice(cart.total)} ₽</span>
+          <span className="font-display num" style={{ color: 'var(--text)' }}>{fmtPrice(cart.total)} ₽</span>
         </div>
 
         {/* Подсказка о прогрессе лояльности */}
@@ -225,7 +218,7 @@ export default function CheckoutPage() {
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{method.label}</p>
                     {quote && (
-                      <p className="text-sm font-bold" style={{ color: 'var(--link)' }}>
+                      <p className="text-sm font-semibold num" style={{ color: 'var(--text)' }}>
                         {fmtPrice(quote[method.id as QuoteKey])} ₽
                       </p>
                     )}

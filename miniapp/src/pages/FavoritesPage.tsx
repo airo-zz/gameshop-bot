@@ -2,7 +2,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { catalogApi, type Product } from '@/api'
 import ProductCard from '@/components/ui/ProductCard'
-import { Heart } from 'lucide-react'
+import { Heart } from '@/components/ui/icons'
 import { Link } from 'react-router-dom'
 
 export default function FavoritesPage() {
@@ -38,16 +38,13 @@ export default function FavoritesPage() {
 
   return (
     <div className="px-4 pt-5 pb-4 space-y-4">
-      <h1 className="text-xl font-bold flex items-center gap-2" style={{ color: 'var(--text)' }}>
-        <Heart size={20} fill="currentColor" style={{ color: '#f87171' }} />
-        Избранное
-      </h1>
+      <h1 className="text-xl" style={{ color: 'var(--text)' }}>Избранное</h1>
 
       {favorites.length === 0 ? (
         <div className="flex flex-col items-center py-16 gap-5">
           <div
             className="w-24 h-24 rounded-3xl flex items-center justify-center"
-            style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+            style={{ background: 'var(--bg2)' }}
           >
             <Heart size={40} style={{ color: 'var(--hint)' }} />
           </div>

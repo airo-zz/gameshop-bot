@@ -2,7 +2,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Trash2, Plus, Minus, Tag, ShoppingBag } from 'lucide-react'
+import { Trash2, Plus, Minus, Tag, ShoppingBag } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { cartApi, profileApi, type CartItem } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -133,7 +133,7 @@ export default function CartPage() {
     >
       <div
         className="w-24 h-24 rounded-3xl flex items-center justify-center"
-        style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+        style={{ background: 'var(--bg2)' }}
       >
         <ShoppingBag size={40} style={{ color: 'var(--hint)' }} />
       </div>
@@ -153,7 +153,7 @@ export default function CartPage() {
     <div className="px-4 pt-5 pb-6 space-y-4">
       {/* Заголовок */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Корзина</h1>
+        <h1 className="text-xl" style={{ color: 'var(--text)' }}>Корзина</h1>
       </div>
 
       {/* Позиции */}
@@ -165,7 +165,6 @@ export default function CartPage() {
             className="flex gap-3 p-3 rounded-2xl transition-opacity"
             style={{
               background: 'var(--bg2)',
-              border: '1px solid var(--border)',
               opacity: updatingId === item.id ? 0.5 : 1,
             }}
           >
@@ -202,7 +201,7 @@ export default function CartPage() {
               )}
 
               <div className="flex items-center justify-between mt-2">
-                <p className="font-bold text-sm" style={{ color: 'var(--link)' }}>
+                <p className="font-display num text-sm" style={{ color: 'var(--text)' }}>
                   {fmtPrice(item.subtotal)} ₽
                 </p>
                 <div className="flex items-center gap-1.5">
@@ -245,7 +244,7 @@ export default function CartPage() {
             <Tag size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--hint)' }} />
             <input
               type="text"
-              className="input pl-10 uppercase tracking-widest"
+              className="input pl-10 uppercase placeholder:normal-case"
               placeholder="Промокод"
               value={promoInput}
               onChange={e => setPromoInput(e.target.value.toUpperCase())}
@@ -293,7 +292,7 @@ export default function CartPage() {
           <div className="divider" />
           <div className="flex justify-between font-bold text-base">
             <span style={{ color: 'var(--text)' }}>Итого</span>
-            <span style={{ color: 'var(--link)' }}>{fmtPrice(cart.total)} ₽</span>
+            <span className="font-display num" style={{ color: 'var(--text)' }}>{fmtPrice(cart.total)} ₽</span>
           </div>
         </div>
 

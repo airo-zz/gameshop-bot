@@ -6,7 +6,7 @@
 import { useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { Send } from 'lucide-react'
+import { Send } from '@/components/ui/icons'
 import TelegramLoginButton from '@/web/components/TelegramLoginButton'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import type { TelegramWidgetUser } from '@/api/client'
@@ -34,7 +34,7 @@ export default function WebLoginPage() {
 
   return (
     <div className="web-container flex items-center justify-center py-24">
-      <div className="w-full max-w-md rounded-3xl border border-white/[0.08] bg-white/[0.02] p-8 text-center">
+      <div className="w-full max-w-md rounded-3xl border border-white/[0.08] bg-[var(--bg2)] p-8 text-center">
         <div
           className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5"
           style={{ background: 'rgba(37,99,235,0.15)', color: 'var(--link)' }}
@@ -42,7 +42,7 @@ export default function WebLoginPage() {
           <Send size={24} />
         </div>
         <h1 className="text-2xl font-bold text-white">Вход в {SHOP_NAME}</h1>
-        <p className="text-sm text-white/45 mt-2 mb-7">
+        <p className="text-sm text-[var(--hint)] mt-2 mb-7">
           Войдите через Telegram, чтобы оформлять заказы и следить за ними.
         </p>
 
@@ -50,11 +50,11 @@ export default function WebLoginPage() {
           <TelegramLoginButton onAuth={handleAuth} />
         </div>
 
-        <p className="text-xs text-white/30 mt-6">
+        <p className="text-xs text-[var(--hint)] mt-6">
           Нажимая «Войти», вы соглашаетесь с{' '}
-          <a href="/app/legal/terms.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/60">условиями сервиса</a>
+          <a href="/app/legal/terms.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--text-2)]">условиями сервиса</a>
           {' '}и{' '}
-          <a href="/app/legal/privacy.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/60">политикой конфиденциальности</a>.
+          <a href="/app/legal/privacy.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--text-2)]">политикой конфиденциальности</a>.
         </p>
       </div>
     </div>

@@ -6,7 +6,7 @@
 
 import { useState } from 'react'
 import { Link, Outlet, useLocation } from 'react-router-dom'
-import { Menu, X, Send, LogOut, ShoppingCart, Wallet } from 'lucide-react'
+import { Menu, X, Send, LogOut, ShoppingCart, Wallet } from '@/components/ui/icons'
 import { SHOP_NAME, MINIAPP_URL, SUPPORT_BOT_URL, SITE_URL } from '@/config/appTarget'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { useWebCart } from '@/web/cart/useWebCart'
@@ -60,7 +60,7 @@ function CartButton({ onNavigate }: { onNavigate?: () => void }) {
     <Link
       to="/cart"
       onClick={onNavigate}
-      className="relative p-2 rounded-lg text-white/70 hover:bg-white/[0.06] transition-colors"
+      className="relative p-2 rounded-lg text-[var(--text-2)] hover:bg-[var(--bg3)] transition-colors"
       aria-label="Корзина"
     >
       <ShoppingCart size={20} />
@@ -87,12 +87,12 @@ function AuthArea({ onNavigate }: { onNavigate?: () => void }) {
           to="/balance"
           onClick={onNavigate}
           title="Баланс"
-          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-white/85 border border-white/10 bg-white/[0.03] hover:bg-white/[0.07] transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-white/85 border border-white/10 bg-[var(--bg2)] hover:bg-white/[0.07] transition-colors"
         >
           <Wallet size={15} style={{ color: 'var(--link)' }} />
           {money(user.balance)}
         </Link>
-        <Link to="/profile" onClick={onNavigate} className="flex items-center gap-2.5 rounded-xl px-1.5 py-1 hover:bg-white/[0.05] transition-colors">
+        <Link to="/profile" onClick={onNavigate} className="flex items-center gap-2.5 rounded-xl px-1.5 py-1 hover:bg-[var(--bg3)] transition-colors">
           {user.photo_url ? (
             <img src={user.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
           ) : (
@@ -100,12 +100,12 @@ function AuthArea({ onNavigate }: { onNavigate?: () => void }) {
               {(user.first_name || '?').charAt(0).toUpperCase()}
             </div>
           )}
-          <span className="text-sm text-white/80 max-w-[120px] truncate">{user.first_name}</span>
+          <span className="text-sm text-[var(--text-2)] max-w-[120px] truncate">{user.first_name}</span>
         </Link>
         <button
           onClick={() => { logout(); onNavigate?.() }}
           title="Выйти"
-          className="p-2 rounded-lg text-white/40 hover:text-white/80 hover:bg-white/[0.06] transition-colors"
+          className="p-2 rounded-lg text-[var(--hint)] hover:text-[var(--text-2)] hover:bg-[var(--bg3)] transition-colors"
         >
           <LogOut size={16} />
         </button>
@@ -141,7 +141,7 @@ export default function WebLayout() {
           target="_blank"
           rel="noopener noreferrer"
           onClick={onClick}
-          className="text-sm text-white/60 hover:text-white transition-colors"
+          className="text-sm text-[var(--text-2)] hover:text-white transition-colors"
         >
           {item.label}
         </a>
@@ -152,7 +152,7 @@ export default function WebLayout() {
         key={item.href}
         to={item.href}
         onClick={onClick}
-        className="text-sm text-white/60 hover:text-white transition-colors"
+        className="text-sm text-[var(--text-2)] hover:text-white transition-colors"
       >
         {item.label}
       </Link>
@@ -183,7 +183,7 @@ export default function WebLayout() {
           <div className="md:hidden flex items-center gap-1">
             <CartButton />
           <button
-            className="p-2 rounded-lg text-white/70 hover:bg-white/[0.06] transition-colors"
+            className="p-2 rounded-lg text-[var(--text-2)] hover:bg-[var(--bg3)] transition-colors"
             onClick={() => setMenuOpen((v) => !v)}
             aria-label="Меню"
           >
@@ -199,9 +199,9 @@ export default function WebLayout() {
               {NAV.map((item) => renderNavLink(item, () => setMenuOpen(false)))}
               {isAuthenticated && (
                 <>
-                  <Link to="/profile" onClick={() => setMenuOpen(false)} className="text-sm text-white/60 hover:text-white transition-colors">Профиль</Link>
-                  <Link to="/orders" onClick={() => setMenuOpen(false)} className="text-sm text-white/60 hover:text-white transition-colors">Мои заказы</Link>
-                  <Link to="/cart" onClick={() => setMenuOpen(false)} className="text-sm text-white/60 hover:text-white transition-colors">Корзина</Link>
+                  <Link to="/profile" onClick={() => setMenuOpen(false)} className="text-sm text-[var(--text-2)] hover:text-white transition-colors">Профиль</Link>
+                  <Link to="/orders" onClick={() => setMenuOpen(false)} className="text-sm text-[var(--text-2)] hover:text-white transition-colors">Мои заказы</Link>
+                  <Link to="/cart" onClick={() => setMenuOpen(false)} className="text-sm text-[var(--text-2)] hover:text-white transition-colors">Корзина</Link>
                 </>
               )}
               <AuthArea onNavigate={() => setMenuOpen(false)} />
@@ -220,13 +220,13 @@ export default function WebLayout() {
         <div className="web-container py-12 grid grid-cols-2 md:grid-cols-4 gap-8">
           <div className="col-span-2 md:col-span-1">
             <Logo />
-            <p className="text-sm text-white/40 mt-3 leading-relaxed">
+            <p className="text-sm text-[var(--hint)] mt-3 leading-relaxed">
               Магазин игрового доната. Быстро, безопасно, с поддержкой 24/7.
             </p>
           </div>
 
           <div>
-            <h4 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Навигация</h4>
+            <h4 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider mb-3">Навигация</h4>
             <ul className="space-y-2">
               {NAV.map((item) => (
                 <li key={item.href}>{renderNavLink(item)}</li>
@@ -235,15 +235,15 @@ export default function WebLayout() {
           </div>
 
           <div>
-            <h4 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Документы</h4>
+            <h4 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider mb-3">Документы</h4>
             <ul className="space-y-2">
               <li>
-                <a href={`${SITE_URL}/app/legal/terms.html`} target="_blank" rel="noopener noreferrer" className="text-sm text-white/60 hover:text-white transition-colors">
+                <a href={`${SITE_URL}/app/legal/terms.html`} target="_blank" rel="noopener noreferrer" className="text-sm text-[var(--text-2)] hover:text-white transition-colors">
                   Условия использования
                 </a>
               </li>
               <li>
-                <a href={`${SITE_URL}/app/legal/privacy.html`} target="_blank" rel="noopener noreferrer" className="text-sm text-white/60 hover:text-white transition-colors">
+                <a href={`${SITE_URL}/app/legal/privacy.html`} target="_blank" rel="noopener noreferrer" className="text-sm text-[var(--text-2)] hover:text-white transition-colors">
                   Политика конфиденциальности
                 </a>
               </li>
@@ -251,13 +251,13 @@ export default function WebLayout() {
           </div>
 
           <div>
-            <h4 className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Связь</h4>
+            <h4 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider mb-3">Связь</h4>
             <TelegramCta className="w-full justify-center" />
           </div>
         </div>
 
         <div className="border-t border-white/[0.05]">
-          <div className="web-container py-5 text-xs text-white/30">
+          <div className="web-container py-5 text-xs text-[var(--hint)]">
             © {new Date().getFullYear()} {SHOP_NAME}. Все права защищены.
           </div>
         </div>

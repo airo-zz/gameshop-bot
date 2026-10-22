@@ -172,6 +172,7 @@ export interface LoyaltyLevelEntry {
   min_orders: number
   discount_percent: number
   cashback_percent: number
+  monthly_cashback_cap: number | null
   color_hex: string
   icon_emoji: string
   priority: number
@@ -193,6 +194,19 @@ export interface Profile {
   loyalty_cashback_percent: number
   loyalty_color_hex: string
   loyalty_levels: LoyaltyLevelEntry[]
+  // Модель Bybit: уровень по тратам месяца (API отдаёт Decimal строкой — Number())
+  loyalty_level_index: number
+  loyalty_cashback_cap: number | string | null
+  loyalty_month_cashback: number | string
+  loyalty_month_spent: number | string
+  loyalty_prev_month_spent: number | string
+  loyalty_held_from_prev_month: boolean
+  loyalty_next_level_name: string | null
+  loyalty_next_level_min_spent: number | string | null
+  loyalty_period_ends_at: string | null
+  referral_bonus_amount: number | string
+  referral_threshold_amount: number | string
+  referral_new_user_discount_percent: number | string
 }
 
 // ── Catalog API ───────────────────────────────────────────────────────────────
@@ -315,11 +329,17 @@ export interface ReferralUser {
   username: string | null
   orders_count: number
   joined_at: string
+  spent: number       // потрачено (выполненные заказы), не больше порога
+  rewarded: boolean   // бонус за этого друга уже начислен
 }
 
 export interface ReferralStats {
   referrals_count: number
   referrals: ReferralUser[]
+  bonus_amount: number
+  threshold_amount: number
+  new_user_discount_percent: number
+  earned_total: number
 }
 
 export const profileApi = {

@@ -5,7 +5,7 @@ import {
 } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Send, Paperclip, X } from 'lucide-react'
+import { Send, Paperclip, X } from '@/components/ui/icons'
 import { motion, AnimatePresence } from 'framer-motion'
 import { PhotoProvider, PhotoView } from 'react-photo-view'
 import 'react-photo-view/dist/react-photo-view.css'
@@ -125,8 +125,7 @@ function SystemMessage({ text }: { text: string }) {
       <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 8px', marginBottom: 8 }}>
         <div style={{
           display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 16px',
-          borderRadius: 16, background: 'var(--bg2)',
-          border: '1px solid var(--border)', maxWidth: '88%', width: '100%',
+          borderRadius: 12, background: 'var(--bg2)', maxWidth: '88%', width: '100%',
         }}>
           <span style={{ fontSize: 11, color: 'var(--link)', fontWeight: 700, letterSpacing: 0.3 }}>
             ИНДИВИДУАЛЬНЫЙ ЛОТ
@@ -161,7 +160,7 @@ function SystemMessage({ text }: { text: string }) {
       <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', marginBottom: 8 }}>
         <div style={{
           display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-          padding: '12px 16px', borderRadius: 16,
+          padding: '12px 16px', borderRadius: 12,
           background: 'rgba(16,185,129,0.1)', border: '1px solid transparent',
           maxWidth: '88%',
         }}>
@@ -196,7 +195,7 @@ function SystemMessage({ text }: { text: string }) {
     <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 8px', marginBottom: 8 }}>
       <span style={{
         fontSize: 12, color: 'rgba(220,235,255,0.55)',
-        display: 'inline-block', padding: '8px 14px', borderRadius: 16,
+        display: 'inline-block', padding: '8px 14px', borderRadius: 12,
         background: 'rgba(220,235,255,0.04)',
         maxWidth: '88%', textAlign: 'center', lineHeight: 1.5,
         whiteSpace: 'pre-wrap', wordBreak: 'break-word', overflowWrap: 'anywhere',
@@ -531,7 +530,7 @@ export default function ChatPage() {
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', paddingTop: 48, gap: 12, textAlign: 'center' }}
             >
               <div style={{
-                width: 64, height: 64, borderRadius: 22,
+                width: 64, height: 64, borderRadius: 12,
                 background: 'rgba(29,78,216,0.12)', border: '1px solid transparent',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
@@ -612,7 +611,7 @@ export default function ChatPage() {
       }}>
         <form
           onSubmit={handleSend}
-          style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 20, padding: '6px 6px 6px 14px' }}
+          style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: 'var(--bg2)', borderRadius: 20, padding: '6px 6px 6px 14px' }}
         >
           <button
             type="button"

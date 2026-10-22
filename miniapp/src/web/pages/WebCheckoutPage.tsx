@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Wallet, Bitcoin, CreditCard, CheckCircle, AlertCircle, Smartphone } from 'lucide-react'
+import { Wallet, Bitcoin, CreditCard, CheckCircle, AlertCircle, Smartphone } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { ordersApi, profileApi, cartApi } from '@/api'
 import { useWebCart } from '@/web/cart/useWebCart'
@@ -46,7 +46,7 @@ export default function WebCheckoutPage() {
   if (!cart || cart.items.length === 0) {
     return (
       <div className="web-container py-24 text-center">
-        <p className="text-sm text-white/45 mb-5">Корзина пуста.</p>
+        <p className="text-sm text-[var(--hint)] mb-5">Корзина пуста.</p>
         <button onClick={() => navigate('/catalog')} className="rounded-xl px-5 py-3 text-sm font-semibold text-white" style={{ background: 'var(--gradient-primary)' }}>
           В каталог
         </button>
@@ -98,19 +98,19 @@ export default function WebCheckoutPage() {
       <h1 className="text-2xl md:text-3xl font-bold text-white mb-6">Оформление</h1>
 
       {/* Состав */}
-      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 mb-6">
-        <p className="text-xs font-semibold text-white/50 uppercase tracking-wider mb-3">Состав заказа</p>
+      <div className="rounded-2xl border border-white/[0.06] bg-[var(--bg2)] p-5 mb-6">
+        <p className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider mb-3">Состав заказа</p>
         <div className="space-y-1.5">
           {cart.items.map((i) => (
             <div key={i.id} className="flex justify-between text-sm">
-              <span className="text-white/80 truncate flex-1 mr-3">{i.product_name} × {i.quantity}</span>
+              <span className="text-[var(--text-2)] truncate flex-1 mr-3">{i.product_name} × {i.quantity}</span>
               <span className="text-white font-medium shrink-0">{money(i.subtotal)}</span>
             </div>
           ))}
         </div>
         {cart.discount_amount > 0 && (
           <div className="flex justify-between text-sm mt-2 pt-2 border-t border-white/[0.06]">
-            <span className="text-white/60">Скидка</span>
+            <span className="text-[var(--text-2)]">Скидка</span>
             <span style={{ color: '#34d399' }}>−{money(cart.discount_amount)}</span>
           </div>
         )}
@@ -123,18 +123,18 @@ export default function WebCheckoutPage() {
       {/* Данные для заказа (поля на уровне игры) */}
       {checkoutFields.map((group) => (
         <div key={group.game_id} className="mb-6">
-          <p className="text-sm font-semibold text-white/60 mb-3">Данные для {group.game_name}</p>
-          <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 space-y-3">
+          <p className="text-sm font-semibold text-[var(--text-2)] mb-3">Данные для {group.game_name}</p>
+          <div className="rounded-2xl border border-white/[0.06] bg-[var(--bg2)] p-4 space-y-3">
             {group.fields.map((field) => (
               <div key={field.key}>
-                <label className="block text-xs text-white/50 mb-1.5">
+                <label className="block text-xs text-[var(--hint)] mb-1.5">
                   {field.label}{field.required && <span className="text-amber-400"> *</span>}
                 </label>
                 {field.type === 'select' ? (
                   <select
                     value={fieldValues[group.game_id]?.[field.key] ?? ''}
                     onChange={(e) => setFieldValue(group.game_id, field.key, e.target.value)}
-                    className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/20"
+                    className="w-full bg-[var(--bg3)] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/20"
                   >
                     <option value="">Выберите...</option>
                     {field.options?.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -145,7 +145,7 @@ export default function WebCheckoutPage() {
                     value={fieldValues[group.game_id]?.[field.key] ?? ''}
                     onChange={(e) => setFieldValue(group.game_id, field.key, e.target.value)}
                     placeholder={field.placeholder ?? field.label}
-                    className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-white/20"
+                    className="w-full bg-[var(--bg3)] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-[var(--hint)] focus:outline-none focus:border-white/20"
                   />
                 )}
               </div>
@@ -155,7 +155,7 @@ export default function WebCheckoutPage() {
       ))}
 
       {/* Способ оплаты */}
-      <p className="text-sm font-semibold text-white/60 mb-3">Способ оплаты</p>
+      <p className="text-sm font-semibold text-[var(--text-2)] mb-3">Способ оплаты</p>
       <div className="space-y-2">
         {METHODS.map((m) => {
           const selected = method === m.id
@@ -181,7 +181,7 @@ export default function WebCheckoutPage() {
                     </p>
                   )}
                 </div>
-                <p className="text-xs text-white/45 mt-0.5">
+                <p className="text-xs text-[var(--hint)] mt-0.5">
                   {m.id === 'balance' && profile ? `Баланс: ${money(profile.balance)}` : m.description}
                 </p>
               </div>
@@ -192,7 +192,7 @@ export default function WebCheckoutPage() {
       </div>
 
       {method === 'crypto' && (
-        <p className="text-xs text-white/45 mt-3 text-center">
+        <p className="text-xs text-[var(--hint)] mt-3 text-center">
           Монета и сеть выбираются на странице оплаты
         </p>
       )}
@@ -215,11 +215,11 @@ export default function WebCheckoutPage() {
       >
         {placing ? 'Оформляем...' : `Оплатить ${money(payTotal)}`}
       </button>
-      <p className="text-xs text-white/35 text-center mt-3">
+      <p className="text-xs text-[var(--hint)] text-center mt-3">
         Нажимая «Оплатить», вы принимаете{' '}
-        <a href="/app/legal/terms.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/60">условия сервиса</a>
+        <a href="/app/legal/terms.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--text-2)]">условия сервиса</a>
         {' '}и{' '}
-        <a href="/app/legal/privacy.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-white/60">политику конфиденциальности</a>.
+        <a href="/app/legal/privacy.html" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--text-2)]">политику конфиденциальности</a>.
       </p>
     </div>
   )

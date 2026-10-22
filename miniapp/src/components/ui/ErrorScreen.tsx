@@ -1,5 +1,5 @@
 // src/components/ui/ErrorScreen.tsx
-import { WifiOff } from 'lucide-react'
+import { WifiOff } from '@/components/ui/icons'
 
 export default function ErrorScreen() {
   return (

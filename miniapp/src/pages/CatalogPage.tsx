@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronRight, Search, X } from 'lucide-react'
+import { ChevronRight, Search, X } from '@/components/ui/icons'
 import { catalogApi } from '@/api'
 import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -72,20 +72,15 @@ export default function CatalogPage() {
   )
 
   return (
-    <motion.div
-      className="px-4 pt-5 pb-4 space-y-3"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
-    >
-      <h1 className="text-xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>
+    <div className="px-4 pt-5 pb-4 space-y-3">
+      <h1 className="text-xl" style={{ color: 'var(--text)' }}>
         Каталог
       </h1>
 
       {/* ── Segment control ─────────────────────────────────────────────── */}
       <div
         className="flex p-1 rounded-2xl"
-        style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+        style={{ background: 'var(--bg2)' }}
       >
         {TABS.map(tab => {
           const isActive = activeType === tab.value
@@ -165,7 +160,7 @@ export default function CatalogPage() {
                 key={game.id}
                 onClick={() => handleGameClick(game.slug)}
                 className="flex items-center gap-3 p-3 rounded-2xl active:scale-[0.98] transition-transform"
-                style={{ background: 'var(--bg2)', border: '1px solid var(--border)', cursor: 'pointer' }}
+                style={{ background: 'var(--bg2)', cursor: 'pointer' }}
               >
                 <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
                   <ImageWithSkeleton
@@ -215,7 +210,7 @@ export default function CatalogPage() {
                 key={game.id}
                 onClick={() => handleGameClick(game.slug)}
                 className="flex flex-col rounded-2xl overflow-hidden active:scale-[0.96] transition-transform"
-                style={{ background: 'var(--bg2)', border: '1px solid var(--border)', cursor: 'pointer' }}
+                style={{ background: 'var(--bg2)', cursor: 'pointer' }}
               >
                 <ImageWithSkeleton
                   src={game.image_url}
@@ -266,6 +261,6 @@ export default function CatalogPage() {
           <ChevronRight size={16} style={{ color: 'var(--hint)' }} />
         </button>
       )}
-    </motion.div>
+    </div>
   )
 }

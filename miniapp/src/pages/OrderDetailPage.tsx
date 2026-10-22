@@ -3,7 +3,7 @@ import React from 'react'
 import { useParams, useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ordersApi, chatApi } from '@/api'
-import { CheckCircle, Clock, Copy, MessageCircle, XCircle, HelpCircle, RefreshCw, BadgeCheck, Circle, Info } from 'lucide-react'
+import { CheckCircle, Clock, Copy, MessageCircle, XCircle, HelpCircle, RefreshCw, BadgeCheck, Circle, Info } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
 
@@ -225,7 +225,7 @@ export default function OrderDetailPage() {
                   {item.quantity} шт. × {item.unit_price.toLocaleString('ru')} ₽
                 </p>
               </div>
-              <p className="font-bold text-sm flex-shrink-0" style={{ color: 'var(--link)' }}>
+              <p className="font-semibold num text-sm flex-shrink-0" style={{ color: 'var(--text)' }}>
                 {item.total_price.toLocaleString('ru')} ₽
               </p>
             </div>
@@ -295,7 +295,7 @@ export default function OrderDetailPage() {
         )}
         <div className="flex justify-between font-bold">
           <span style={{ color: 'var(--text)' }}>Итого</span>
-          <span style={{ color: 'var(--link)' }}>{order.total_amount.toLocaleString('ru')} ₽</span>
+          <span className="font-display num" style={{ color: 'var(--text)' }}>{order.total_amount.toLocaleString('ru')} ₽</span>
         </div>
       </div>
 

@@ -4,7 +4,7 @@
  */
 
 import { Link } from 'react-router-dom'
-import { Gamepad2 } from 'lucide-react'
+import { Gamepad2 } from '@/components/ui/icons'
 import type { Game } from '@/api'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 
@@ -13,9 +13,9 @@ export default function GameCard({ game }: { game: Game }) {
   return (
     <Link
       to={`/game/${game.slug}`}
-      className="group rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden hover:border-white/15 hover:-translate-y-0.5 transition-all"
+      className="group rounded-2xl border border-white/[0.06] bg-[var(--bg2)] overflow-hidden hover:border-white/15 hover:-translate-y-0.5 transition-all"
     >
-      <div className="aspect-[4/3] bg-white/[0.03] flex items-center justify-center overflow-hidden">
+      <div className="aspect-[4/3] bg-[var(--bg2)] flex items-center justify-center overflow-hidden">
         {img ? (
           <img
             src={img}
@@ -29,7 +29,7 @@ export default function GameCard({ game }: { game: Game }) {
       </div>
       <div className="p-3.5">
         <div className="text-sm font-medium text-white truncate">{game.name}</div>
-        <div className="text-xs text-white/40 mt-0.5 group-hover:text-white/60 transition-colors">
+        <div className="text-xs text-[var(--hint)] mt-0.5 group-hover:text-[var(--text-2)] transition-colors">
           {game.type === 'service' ? 'Услуги' : 'Донат'} →
         </div>
       </div>

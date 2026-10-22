@@ -1,3 +1,5 @@
+@import '@fontsource-variable/onest';
+@import '@fontsource-variable/unbounded';
 @import './theme.css';
 
 @tailwind base;
@@ -26,14 +28,22 @@ html, body, #root {
   padding: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: 'Inter', system-ui, sans-serif;
+  font-family: var(--font-body);
   font-size: 16px;
   line-height: 1.5;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-button { user-select: none; }
+button { user-select: none; font-family: inherit; }
+
+/* Заголовки, цены, название уровня — широкий Unbounded. Всё остальное — Onest. */
+h1, .font-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.num { font-variant-numeric: tabular-nums; }
 
 /* ── react-photo-view: toolbar below Telegram content safe area ──────────── */
 .PhotoView-Slider__BannerWrap {
@@ -55,12 +65,11 @@ button { user-select: none; }
   .card {
     @apply rounded-2xl p-4;
     background: var(--bg2);
-    border: 1px solid var(--border);
   }
 
   /* Primary button */
   .btn-primary {
-    @apply w-full py-3.5 px-6 rounded-2xl font-semibold text-base
+    @apply w-full py-3.5 px-6 rounded-xl font-semibold text-base
            flex items-center justify-center gap-2;
     background: var(--btn);
     color: #ffffff;
@@ -75,7 +84,7 @@ button { user-select: none; }
 
   /* Secondary button */
   .btn-secondary {
-    @apply w-full py-3.5 px-6 rounded-2xl font-semibold text-base;
+    @apply w-full py-3.5 px-6 rounded-xl font-semibold text-base;
     background: var(--bg3);
     color: var(--text);
     border: 1px solid var(--border);
@@ -85,7 +94,7 @@ button { user-select: none; }
 
   /* Бывшая «геймерская» кнопка — теперь та же primary */
   .btn-gaming {
-    @apply w-full py-3.5 px-6 rounded-2xl font-semibold text-base
+    @apply w-full py-3.5 px-6 rounded-xl font-semibold text-base
            flex items-center justify-center gap-2;
     background: var(--btn);
     color: #ffffff;
@@ -95,7 +104,7 @@ button { user-select: none; }
 
   /* Badge */
   .badge {
-    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold;
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-semibold;
     background: var(--accent-soft);
     color: var(--link);
   }
@@ -106,11 +115,11 @@ button { user-select: none; }
 
   /* Input */
   .input {
-    @apply w-full px-4 py-3 rounded-2xl text-base outline-none;
+    @apply w-full px-4 py-3 rounded-xl text-base outline-none;
     background: var(--bg3);
     color: var(--text);
     border: 1px solid var(--border);
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font-body);
     transition: border-color 0.15s ease;
   }
   .input:focus { border-color: var(--accent); }
@@ -128,7 +137,7 @@ button { user-select: none; }
 
   /* Category pill */
   .pill {
-    @apply flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap;
+    @apply flex-shrink-0 px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap;
     background: var(--bg2);
     color: var(--hint);
     border: 1px solid var(--border);
@@ -145,7 +154,7 @@ button { user-select: none; }
     @apply relative;
     background: var(--bg2);
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: var(--r-control);
     transition: border-color 0.15s ease;
   }
   .search-bar:focus-within { border-color: var(--accent); }

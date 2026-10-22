@@ -17,7 +17,7 @@
  */
 
 import { useState, useCallback } from 'react'
-import { Gamepad2 } from 'lucide-react'
+import { Gamepad2 } from '@/components/ui/icons'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 
 interface ImageWithSkeletonProps {

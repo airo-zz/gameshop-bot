@@ -15,8 +15,16 @@ export default {
           hint:   'var(--hint)',
         },
       },
+      // Иерархия скруглений (значения — в theme.css)
       borderRadius: {
-        '3xl': '1.5rem',
+        lg:    'var(--r-badge)',    // 6  — бейджи
+        xl:    'var(--r-control)',  // 10 — кнопки, поля, обложки
+        '2xl': 'var(--r-card)',     // 12 — карточки
+        '3xl': 'var(--r-sheet)',    // 20 — шторки, модалки
+      },
+      fontFamily: {
+        sans:    ['Onest Variable', 'system-ui', 'sans-serif'],
+        display: ['Unbounded Variable', 'Onest Variable', 'sans-serif'],
       },
       scale: {
         '98': '0.98',

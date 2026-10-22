@@ -5,7 +5,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { Plus, Pencil, Trash2, AlertCircle, X, Check, Save } from 'lucide-react'
-import { adminApi, type LoyaltyLevel } from '@/api/admin'
+import { adminApi, type LoyaltyLevel, type ReferralSettings } from '@/api/admin'
 import toast from 'react-hot-toast'
 
 const inputCls =
@@ -37,16 +37,16 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 interface LevelFormData {
   name: string
   min_spent: string
-  discount_percent: string
   cashback_percent: string
+  monthly_cashback_cap: string   // пусто — без лимита
   is_active: boolean
 }
 
 const EMPTY_FORM: LevelFormData = {
   name: '',
   min_spent: '',
-  discount_percent: '',
   cashback_percent: '',
+  monthly_cashback_cap: '',
   is_active: true,
 }
 
@@ -54,8 +54,8 @@ function levelToForm(level: LoyaltyLevel): LevelFormData {
   return {
     name: level.name,
     min_spent: String(level.min_spent),
-    discount_percent: String(level.discount_percent),
     cashback_percent: String(level.cashback_percent),
+    monthly_cashback_cap: level.monthly_cashback_cap != null ? String(level.monthly_cashback_cap) : '',
     is_active: level.is_active,
   }
 }
@@ -76,7 +76,7 @@ function LevelForm({ initial = EMPTY_FORM, onSave, onCancel, saving }: LevelForm
     e.preventDefault()
     if (!form.name.trim()) { toast.error('Введите название'); return }
     if (isNaN(Number(form.min_spent))) { toast.error('Неверный порог суммы'); return }
-    if (isNaN(Number(form.discount_percent))) { toast.error('Неверный процент скидки'); return }
+    if (form.monthly_cashback_cap.trim() && isNaN(Number(form.monthly_cashback_cap))) { toast.error('Неверный лимит кэшбэка'); return }
     if (isNaN(Number(form.cashback_percent))) { toast.error('Неверный процент кэшбэка'); return }
     onSave(form)
   }
@@ -97,7 +97,7 @@ function LevelForm({ initial = EMPTY_FORM, onSave, onCancel, saving }: LevelForm
           />
         </div>
         <div>
-          <label className="text-xs text-white/50 mb-1 block">Порог суммы, ₽</label>
+          <label className="text-xs text-white/50 mb-1 block">Траты за месяц от, ₽</label>
           <input
             type="number"
             min="0"
@@ -108,16 +108,15 @@ function LevelForm({ initial = EMPTY_FORM, onSave, onCancel, saving }: LevelForm
           />
         </div>
         <div>
-          <label className="text-xs text-white/50 mb-1 block">Скидка, %</label>
+          <label className="text-xs text-white/50 mb-1 block">Лимит кэшбэка в месяц, ₽</label>
           <input
             type="number"
             min="0"
-            max="100"
-            step="0.1"
+            step="1"
             className={inputCls}
-            placeholder="5"
-            value={form.discount_percent}
-            onChange={e => set('discount_percent', e.target.value)}
+            placeholder="без лимита"
+            value={form.monthly_cashback_cap}
+            onChange={e => set('monthly_cashback_cap', e.target.value)}
           />
         </div>
         <div>
@@ -189,10 +188,10 @@ function LoyaltyRow({ level, onEdit, onDelete, onToggle, deleting, toggling }: L
         </div>
         <div className="flex items-center gap-3 mt-1 flex-wrap">
           <span className="text-xs text-white/50">
-            от {level.min_spent.toLocaleString('ru')} ₽
+            от {level.min_spent.toLocaleString('ru')} ₽ за месяц
           </span>
           <span className="text-xs text-indigo-400">
-            скидка {level.discount_percent}%
+            лимит {level.monthly_cashback_cap != null ? `${level.monthly_cashback_cap.toLocaleString('ru')} ₽/мес` : 'нет'}
           </span>
           <span className="text-xs text-emerald-400/80">
             кэшбэк {level.cashback_percent}%
@@ -225,27 +224,36 @@ function LoyaltyRow({ level, onEdit, onDelete, onToggle, deleting, toggling }: L
 // ── ReferralSettingsBlock ─────────────────────────────────────────────────────
 
 function ReferralSettingsBlock() {
-  const [bonusAmount, setBonusAmount] = useState('')
+  const [form, setForm] = useState({ bonus_amount: '', threshold_amount: '', new_user_discount_percent: '' })
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
+  const fill = (d: ReferralSettings) => setForm({
+    bonus_amount: String(d.bonus_amount),
+    threshold_amount: String(d.threshold_amount),
+    new_user_discount_percent: String(d.new_user_discount_percent),
+  })
+
   useEffect(() => {
     adminApi.getReferralSettings()
-      .then(data => setBonusAmount(String(data.bonus_amount)))
+      .then(fill)
       .catch(() => toast.error('Не удалось загрузить настройки реферальной программы'))
       .finally(() => setLoading(false))
   }, [])
 
   const handleSave = async () => {
-    const num = Number(bonusAmount)
-    if (isNaN(num) || num < 0) {
-      toast.error('Введите корректную сумму бонуса')
+    const data = {
+      bonus_amount: Number(form.bonus_amount),
+      threshold_amount: Number(form.threshold_amount),
+      new_user_discount_percent: Number(form.new_user_discount_percent),
+    }
+    if (Object.values(data).some(v => isNaN(v) || v < 0) || data.new_user_discount_percent > 90) {
+      toast.error('Проверьте значения: числа ≥ 0, скидка не больше 90%')
       return
     }
     setSaving(true)
     try {
-      const updated = await adminApi.updateReferralSettings({ bonus_amount: num })
-      setBonusAmount(String(updated.bonus_amount))
+      fill(await adminApi.updateReferralSettings(data))
       toast.success('Настройки реферальной программы сохранены')
     } catch {
       toast.error('Не удалось сохранить настройки')
@@ -254,11 +262,20 @@ function ReferralSettingsBlock() {
     }
   }
 
+  const fields: { key: keyof typeof form; label: string; placeholder: string }[] = [
+    { key: 'bonus_amount', label: 'Бонус пригласившему, ₽', placeholder: '150' },
+    { key: 'threshold_amount', label: 'Друг должен потратить, ₽', placeholder: '1000' },
+    { key: 'new_user_discount_percent', label: 'Скидка другу на первый заказ, %', placeholder: '5' },
+  ]
+
   return (
     <div className="space-y-4">
       <div>
         <h2 className="text-base font-semibold text-white">Реферальная программа</h2>
-        <p className="text-xs text-white/40 mt-0.5">Сумма бонуса, начисляемого рефереру за каждого нового пользователя, совершившего первый заказ</p>
+        <p className="text-xs text-white/40 mt-0.5">
+          Пригласивший получает бонус на баланс один раз, когда сумма выполненных заказов друга
+          достигнет порога. Друг получает скидку на первый заказ.
+        </p>
       </div>
 
       <div className="bg-[#1a1f2e] border border-white/[0.06] rounded-xl p-4 space-y-3">
@@ -266,18 +283,20 @@ function ReferralSettingsBlock() {
           <p className="text-white/40 text-sm">Загрузка...</p>
         ) : (
           <>
-            <div>
-              <label className="text-xs text-white/50 mb-1 block">Бонус за реферала, ₽</label>
-              <input
-                type="number"
-                min="0"
-                step="1"
-                className={inputCls}
-                placeholder="100"
-                value={bonusAmount}
-                onChange={e => setBonusAmount(e.target.value)}
-              />
-            </div>
+            {fields.map(f => (
+              <div key={f.key}>
+                <label className="text-xs text-white/50 mb-1 block">{f.label}</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className={inputCls}
+                  placeholder={f.placeholder}
+                  value={form[f.key]}
+                  onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                />
+              </div>
+            ))}
             <button
               onClick={handleSave}
               disabled={saving}
@@ -322,8 +341,8 @@ export default function LoyaltySettingsPage() {
       const created = await adminApi.createLoyaltyLevel({
         name: form.name,
         min_spent: Number(form.min_spent),
-        discount_percent: Number(form.discount_percent),
         cashback_percent: Number(form.cashback_percent),
+        monthly_cashback_cap: form.monthly_cashback_cap.trim() ? Number(form.monthly_cashback_cap) : null,
         is_active: form.is_active,
       })
       setLevels(prev => [...prev, created])
@@ -342,8 +361,8 @@ export default function LoyaltySettingsPage() {
       const updated = await adminApi.updateLoyaltyLevel(id, {
         name: form.name,
         min_spent: Number(form.min_spent),
-        discount_percent: Number(form.discount_percent),
         cashback_percent: Number(form.cashback_percent),
+        monthly_cashback_cap: form.monthly_cashback_cap.trim() ? Number(form.monthly_cashback_cap) : null,
         is_active: form.is_active,
       })
       setLevels(prev => prev.map(l => l.id === id ? updated : l))

@@ -36,25 +36,25 @@ export default function WebCatalogPage() {
     <div className="web-container py-10 md:py-14">
       <div className="mb-8">
         <h1 className="text-3xl md:text-4xl font-bold text-white">Каталог</h1>
-        <p className="text-sm text-white/45 mt-2">Выберите игру или услугу.</p>
+        <p className="text-sm text-[var(--hint)] mt-2">Выберите игру или услугу.</p>
       </div>
 
       {isLoading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="rounded-2xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-              <div className="aspect-[4/3] animate-pulse bg-white/[0.04]" />
+            <div key={i} className="rounded-2xl border border-white/[0.06] bg-[var(--bg2)] overflow-hidden">
+              <div className="aspect-[4/3] animate-pulse bg-[var(--bg2)]" />
               <div className="p-3.5 space-y-2">
-                <div className="h-3.5 w-2/3 rounded animate-pulse bg-white/[0.06]" />
-                <div className="h-2.5 w-1/3 rounded animate-pulse bg-white/[0.04]" />
+                <div className="h-3.5 w-2/3 rounded animate-pulse bg-[var(--bg3)]" />
+                <div className="h-2.5 w-1/3 rounded animate-pulse bg-[var(--bg2)]" />
               </div>
             </div>
           ))}
         </div>
       ) : isError ? (
-        <p className="text-sm text-white/40 py-16 text-center">Не удалось загрузить каталог</p>
+        <p className="text-sm text-[var(--hint)] py-16 text-center">Не удалось загрузить каталог</p>
       ) : (games.length + services.length) === 0 ? (
-        <p className="text-sm text-white/40 py-16 text-center">Каталог пока пуст</p>
+        <p className="text-sm text-[var(--hint)] py-16 text-center">Каталог пока пуст</p>
       ) : (
         <>
           <Grid title="Игры" items={games} />

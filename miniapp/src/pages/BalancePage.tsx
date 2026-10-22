@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { ArrowLeft, Wallet, TrendingUp, TrendingDown } from 'lucide-react'
+import { ArrowLeft, Wallet, TrendingUp, TrendingDown } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { profileApi, paymentsApi, type BalanceTransaction } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -16,7 +16,7 @@ const ENABLED_METHODS: PaymentMethod[] = ['sbp', 'card', 'crypto']
 const METHOD_LABELS: Record<PaymentMethod, string> = {
   sbp: 'СБП',
   card: 'Карта',
-  crypto: 'Криптовалюта',
+  crypto: 'Крипта',
 }
 
 const TX_LABEL: Record<string, string> = {
@@ -110,48 +110,38 @@ export default function BalancePage() {
   }
 
   return (
-    <motion.div
-      className="px-4 pt-5 pb-6 space-y-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
-    >
+    <div className="px-4 pt-5 pb-6 space-y-4">
       {/* Header */}
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="flex items-center justify-center w-9 h-9 rounded-xl active:scale-[0.97] transition-transform flex-shrink-0"
-          style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+          aria-label="Назад"
+          className="flex items-center justify-center w-10 h-10 rounded-xl active:opacity-70 flex-shrink-0"
+          style={{ background: 'var(--bg2)' }}
         >
-          <ArrowLeft size={18} style={{ color: 'var(--text)' }} />
+          <ArrowLeft size={20} style={{ color: 'var(--text)' }} />
         </button>
-        <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Баланс</h1>
+        <h1 className="text-xl" style={{ color: 'var(--text)' }}>Баланс</h1>
       </div>
 
       {/* Balance card */}
       <div
         className="p-5 rounded-2xl"
-        style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+        style={{ background: 'var(--bg2)' }}
       >
-        <div className="flex items-center gap-2 mb-3">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: 'rgba(127,166,245,0.12)', border: '1px solid transparent' }}
-          >
-            <Wallet size={18} style={{ color: 'var(--link)' }} />
-          </div>
-          <span className="text-sm font-medium" style={{ color: 'var(--hint)' }}>Текущий баланс</span>
-        </div>
-        <p className="text-3xl font-bold" style={{ color: 'var(--link)' }}>
-          {Number(profile?.balance ?? 0).toLocaleString('ru')} ₽
+        <p className="text-sm flex items-center gap-1.5" style={{ color: 'var(--hint)' }}>
+          <Wallet size={16} /> Текущий баланс
+        </p>
+        <p className="font-display num" style={{ color: 'var(--text)', fontSize: 30, lineHeight: 1.2, marginTop: 8 }}>
+          {Number(profile?.balance ?? 0).toLocaleString('ru', { maximumFractionDigits: 2 })} ₽
         </p>
       </div>
 
       {/* Top-up form */}
       <div
         className="p-4 rounded-2xl space-y-4"
-        style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+        style={{ background: 'var(--bg2)' }}
       >
         <p className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Пополнить баланс</p>
 
@@ -196,11 +186,11 @@ export default function BalancePage() {
                 key={m}
                 type="button"
                 onClick={() => { haptic.select(); setMethod(m) }}
-                className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.97]"
+                className="flex-1 min-w-0 px-1 py-2.5 rounded-xl text-sm font-medium truncate active:opacity-80"
                 style={{
-                  background: method === m ? 'rgba(127,166,245,0.2)' : 'var(--bg3, rgba(220,235,255,0.06))',
-                  border: `1px solid ${method === m ? 'rgba(127,166,245,0.4)' : 'var(--border)'}`,
-                  color: method === m ? '#7FA6F5' : 'var(--text)',
+                  background: method === m ? 'var(--accent-soft)' : 'var(--bg3)',
+                  border: `1px solid ${method === m ? 'var(--accent)' : 'transparent'}`,
+                  color: 'var(--text)',
                 }}
               >
                 {METHOD_LABELS[m]}
@@ -238,35 +228,32 @@ export default function BalancePage() {
         {history.length === 0 ? (
           <div
             className="flex flex-col items-center py-10 rounded-2xl gap-3"
-            style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+            style={{ background: 'var(--bg2)' }}
           >
             <Wallet size={32} style={{ color: 'var(--hint)', opacity: 0.4 }} />
             <p className="text-sm" style={{ color: 'var(--hint)' }}>Операций пока нет</p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {history.map(tx => {
+          <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg2)' }}>
+            {history.map((tx, i) => {
               const isCredit = txIsCredit(tx.type)
               return (
                 <div
                   key={tx.id}
-                  className="flex items-center gap-3 p-4 rounded-2xl"
-                  style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+                  className="flex items-center gap-3 px-4 py-3"
+                  style={{ borderTop: i ? '1px solid var(--border)' : 'none' }}
                 >
                   <div
                     className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-                    style={{
-                      background: isCredit ? 'rgba(52,211,153,0.1)' : 'rgba(248,113,113,0.1)',
-                      border: `1px solid ${isCredit ? 'rgba(52,211,153,0.2)' : 'rgba(248,113,113,0.2)'}`,
-                    }}
+                    style={{ background: 'var(--bg3)' }}
                   >
                     {isCredit
-                      ? <TrendingUp size={16} style={{ color: '#34d399' }} />
-                      : <TrendingDown size={16} style={{ color: '#f87171' }} />
+                      ? <TrendingUp size={18} style={{ color: '#34d399' }} />
+                      : <TrendingDown size={18} style={{ color: 'var(--hint)' }} />
                     }
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
                       {txLabel(tx.type)}
                     </p>
                     {tx.description && (
@@ -281,8 +268,8 @@ export default function BalancePage() {
                     </p>
                   </div>
                   <p
-                    className="text-sm font-bold flex-shrink-0"
-                    style={{ color: isCredit ? '#34d399' : '#f87171' }}
+                    className="text-sm font-semibold num flex-shrink-0"
+                    style={{ color: isCredit ? '#34d399' : 'var(--text)' }}
                   >
                     {isCredit ? '+' : '−'}{Math.abs(tx.amount).toLocaleString('ru')} ₽
                   </p>
@@ -292,6 +279,6 @@ export default function BalancePage() {
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   )
 }

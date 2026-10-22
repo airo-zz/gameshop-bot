@@ -2,56 +2,22 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useCartStore, useUIStore } from '@/store'
-import ParticleCanvas from '@/components/ui/ParticleCanvas'
+import { useCartStore } from '@/store'
+import type { Icon as PhIcon } from '@phosphor-icons/react'
+import { HouseIcon, ShoppingCartIcon, SquaresFourIcon, UserIcon } from '@phosphor-icons/react'
 import logo from '@/assets/logo-mark.png'
 import { catalogApi, cartApi, profileApi, chatApi } from '@/api'
 
-// ── SVG Icons ────────────────────────────────────────────────────────────────
+// ── Icons (Phosphor: контур — неактивный, заливка — активный) ───────────────
 
-function IconHome({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 12L12 3l9 9" />
-      <path d="M5 10v9a1 1 0 0 0 1 1h4v-5h4v5h4a1 1 0 0 0 1-1v-9" />
-    </svg>
-  )
-}
-
-function IconGrid({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="7" height="7" rx="1.5" />
-      <rect x="14" y="3" width="7" height="7" rx="1.5" />
-      <rect x="3" y="14" width="7" height="7" rx="1.5" />
-      <rect x="14" y="14" width="7" height="7" rx="1.5" />
-    </svg>
-  )
-}
-
-function IconCart({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2.5 3h2l1 5" />
-      <path d="M5.5 8h13l-1.5 8H7L5.5 8z" />
-      <circle cx="9" cy="19.5" r="1.5" />
-      <circle cx="16" cy="19.5" r="1.5" />
-    </svg>
-  )
-}
-
-function IconUser({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth={active ? 2 : 1.6} strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="8" r="4" />
-      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
-    </svg>
-  )
-}
+type NavIconProps = { active: boolean }
+const navIcon = (Ph: PhIcon) => ({ active }: NavIconProps) => (
+  <Ph size={24} weight={active ? 'fill' : 'regular'} />
+)
+const IconHome = navIcon(HouseIcon)
+const IconGrid = navIcon(SquaresFourIcon)
+const IconCart = navIcon(ShoppingCartIcon)
+const IconUser = navIcon(UserIcon)
 
 // ── Nav config ───────────────────────────────────────────────────────────────
 
@@ -71,7 +37,6 @@ export const NAV_HEIGHT = 58
 export default function Layout() {
   const { pathname } = useLocation()
   const { itemsCount } = useCartStore()
-  const particlesEnabled = useUIStore(s => s.particlesEnabled)
 
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -117,7 +82,7 @@ export default function Layout() {
   const activeIndex = NAV.findIndex(({ to }) =>
     to === '/' ? pathname === '/' : pathname.startsWith(to)
   )
-  const safeActiveIndex = activeIndex === -1 ? 0 : activeIndex
+  // Вне разделов навбара (оформление, заказы…) ничего не подсвечиваем
   const isChatPage = pathname.startsWith('/chat')
 
   const handleChatClick = async (e: React.MouseEvent) => {
@@ -137,8 +102,6 @@ export default function Layout() {
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--bg)' }}>
-      {particlesEnabled && <ParticleCanvas />}
-
       <main
         className={`flex-1 ${isChatPage ? 'overflow-hidden flex flex-col' : 'overflow-y-auto'}`}
         style={{
@@ -165,7 +128,7 @@ export default function Layout() {
       >
         <div className="flex items-stretch justify-around px-1" style={{ height: NAV_HEIGHT }}>
           {NAV.map(({ to, label, IconComp, badge, featured }, index) => {
-            const isActive = index === safeActiveIndex
+            const isActive = index === activeIndex
             const color = isActive ? 'var(--text)' : 'var(--hint)'
 
             if (featured) {

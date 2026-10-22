@@ -7,7 +7,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Zap, Clock, Plus, Minus, ShoppingCart, MessageSquarePlus } from 'lucide-react'
+import { ChevronLeft, Zap, Clock, Plus, Minus, ShoppingCart, MessageSquarePlus } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { catalogApi } from '@/api'
 import type { Category, Product, InputField } from '@/api'
@@ -50,9 +50,9 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
   }
 
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-4 flex flex-col gap-3">
+    <div className="rounded-2xl border border-white/[0.06] bg-[var(--bg2)] p-4 flex flex-col gap-3">
       <div className="flex items-start gap-2">
-        <h3 className={'text-sm font-medium flex-1 ' + (outOfStock ? 'text-white/35' : 'text-white')}>
+        <h3 className={'text-sm font-medium flex-1 ' + (outOfStock ? 'text-[var(--hint)]' : 'text-white')}>
           {product.name}
         </h3>
         {product.badge && !outOfStock && (
@@ -63,8 +63,8 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
       </div>
 
       <div className="flex items-baseline gap-2">
-        {hasDiscount && <span className="text-xs text-white/30 line-through">{money(product.original_price!)}</span>}
-        <span className={'text-lg font-bold ' + (outOfStock ? 'text-white/25' : '')} style={outOfStock ? {} : { color: 'var(--link)' }}>
+        {hasDiscount && <span className="text-xs text-[var(--hint)] line-through">{money(product.original_price!)}</span>}
+        <span className={'text-lg font-bold ' + (outOfStock ? 'text-[var(--hint)]' : '')} style={outOfStock ? {} : { color: 'var(--link)' }}>
           {money(product.price)}
         </span>
         {hasDiscount && (
@@ -79,14 +79,14 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
         <div className="flex flex-col gap-2">
           {inputFields.map((field) => (
             <div key={field.key}>
-              <label className="block text-[11px] text-white/45 mb-1">
+              <label className="block text-[11px] text-[var(--hint)] mb-1">
                 {field.label}{field.required && <span className="text-amber-400"> *</span>}
               </label>
               {field.type === 'select' ? (
                 <select
                   value={inputData[field.key] ?? ''}
                   onChange={(e) => setInputData((p) => ({ ...p, [field.key]: e.target.value }))}
-                  className="w-full bg-white/[0.05] border border-white/[0.08] rounded-lg px-2.5 py-2 text-sm text-white focus:outline-none focus:border-white/20"
+                  className="w-full bg-[var(--bg3)] border border-white/[0.08] rounded-lg px-2.5 py-2 text-sm text-white focus:outline-none focus:border-white/20"
                 >
                   <option value="">Выберите...</option>
                   {field.options?.map((o) => <option key={o} value={o}>{o}</option>)}
@@ -97,7 +97,7 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
                   value={inputData[field.key] ?? ''}
                   onChange={(e) => setInputData((p) => ({ ...p, [field.key]: e.target.value }))}
                   placeholder={field.placeholder ?? field.label}
-                  className="w-full bg-white/[0.05] border border-white/[0.08] rounded-lg px-2.5 py-2 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-white/20"
+                  className="w-full bg-[var(--bg3)] border border-white/[0.08] rounded-lg px-2.5 py-2 text-sm text-white placeholder:text-[var(--hint)] focus:outline-none focus:border-white/20"
                 />
               )}
             </div>
@@ -108,19 +108,19 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
       {/* Действие */}
       <div className="mt-auto">
         {outOfStock ? (
-          <div className="text-xs text-center py-2.5 rounded-xl bg-white/[0.03] text-white/40 border border-white/[0.06]">
+          <div className="text-xs text-center py-2.5 rounded-xl bg-[var(--bg2)] text-[var(--hint)] border border-white/[0.06]">
             Нет в наличии
           </div>
         ) : qty > 0 ? (
-          <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.03] px-2 py-1.5">
-            <button onClick={() => onDec(product)} className="p-1.5 rounded-lg text-white/70 hover:bg-white/[0.06]" aria-label="Убрать">
+          <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-[var(--bg2)] px-2 py-1.5">
+            <button onClick={() => onDec(product)} className="p-1.5 rounded-lg text-[var(--text-2)] hover:bg-[var(--bg3)]" aria-label="Убрать">
               <Minus size={16} />
             </button>
             <span className="text-sm font-bold text-white">{qty}</span>
             <button
               onClick={() => onAdd(product, hasInputs ? inputData : undefined)}
               disabled={singleAdd}
-              className="p-1.5 rounded-lg text-white/70 hover:bg-white/[0.06] disabled:opacity-25 disabled:hover:bg-transparent"
+              className="p-1.5 rounded-lg text-[var(--text-2)] hover:bg-[var(--bg3)] disabled:opacity-25 disabled:hover:bg-transparent"
               aria-label="Добавить"
             >
               <Plus size={16} />
@@ -228,7 +228,7 @@ export default function WebGamePage() {
 
   return (
     <div className="web-container py-8 md:py-12">
-      <Link to="/catalog" className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition-colors mb-6">
+      <Link to="/catalog" className="inline-flex items-center gap-1.5 text-sm text-[var(--hint)] hover:text-white transition-colors mb-6">
         <ChevronLeft size={16} />
         Каталог
       </Link>
@@ -253,11 +253,11 @@ export default function WebGamePage() {
       </div>
 
       {catsError ? (
-        <p className="text-sm text-white/40 py-16 text-center">Не удалось загрузить категории</p>
+        <p className="text-sm text-[var(--hint)] py-16 text-center">Не удалось загрузить категории</p>
       ) : catsLoading ? (
-        <p className="text-sm text-white/40 py-16 text-center">Загрузка...</p>
+        <p className="text-sm text-[var(--hint)] py-16 text-center">Загрузка...</p>
       ) : rootCats.length === 0 ? (
-        <p className="text-sm text-white/40 py-16 text-center">Категории скоро появятся</p>
+        <p className="text-sm text-[var(--hint)] py-16 text-center">Категории скоро появятся</p>
       ) : (
         <>
           <div className="flex flex-wrap gap-2 mb-4">
@@ -267,7 +267,7 @@ export default function WebGamePage() {
                 onClick={() => setActiveCatId(cat.id)}
                 className={
                   'px-4 py-2 rounded-xl text-sm font-medium transition-all ' +
-                  (currentCatId === cat.id ? 'text-white' : 'text-white/55 bg-white/[0.03] border border-white/[0.06] hover:text-white/80')
+                  (currentCatId === cat.id ? 'text-white' : 'text-white/55 bg-[var(--bg2)] border border-white/[0.06] hover:text-[var(--text-2)]')
                 }
                 style={currentCatId === cat.id ? { background: 'rgba(37,99,235,0.22)', border: '1px solid transparent' } : {}}
               >
@@ -284,7 +284,7 @@ export default function WebGamePage() {
                   onClick={() => setActiveCatId(sub.id)}
                   className={
                     'px-3 py-1.5 rounded-lg text-xs font-medium transition-all ' +
-                    (currentCatId === sub.id ? 'text-white' : 'text-white/55 bg-white/[0.03] border border-white/[0.06] hover:text-white/80')
+                    (currentCatId === sub.id ? 'text-white' : 'text-white/55 bg-[var(--bg2)] border border-white/[0.06] hover:text-[var(--text-2)]')
                   }
                   style={currentCatId === sub.id ? { background: 'rgba(37,99,235,0.22)', border: '1px solid transparent' } : {}}
                 >
@@ -301,7 +301,7 @@ export default function WebGamePage() {
                   <Zap size={11} fill="#34d399" stroke="none" /> Автовыдача
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full text-white/45 bg-white/[0.04] border border-white/[0.08]">
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full text-[var(--hint)] bg-[var(--bg2)] border border-white/[0.08]">
                   <Clock size={11} /> Вручную
                 </span>
               )}
@@ -311,11 +311,11 @@ export default function WebGamePage() {
           {prodLoading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-40 rounded-2xl border border-white/[0.06] bg-white/[0.02] animate-pulse" />
+                <div key={i} className="h-40 rounded-2xl border border-white/[0.06] bg-[var(--bg2)] animate-pulse" />
               ))}
             </div>
           ) : products.length === 0 ? (
-            <p className="text-sm text-white/40 py-16 text-center">Товары скоро появятся</p>
+            <p className="text-sm text-[var(--hint)] py-16 text-center">Товары скоро появятся</p>
           ) : (
             <>
             {isTgAuto && tgFieldDefs.length > 0 && (
@@ -324,14 +324,14 @@ export default function WebGamePage() {
                 <div className="space-y-3">
                   {tgFieldDefs.map((f) => (
                     <div key={f.key}>
-                      <label className="block text-xs text-white/50 mb-1.5">
+                      <label className="block text-xs text-[var(--hint)] mb-1.5">
                         {f.label}{f.required && <span className="text-amber-400"> *</span>}
                       </label>
                       {f.type === 'select' ? (
                         <select
                           value={tgFields[f.key] ?? ''}
                           onChange={(e) => setTgFields((prev) => ({ ...prev, [f.key]: e.target.value }))}
-                          className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/20"
+                          className="w-full bg-[var(--bg3)] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-white/20"
                         >
                           <option value="">Выберите...</option>
                           {(f.options ?? []).map((o) => <option key={o} value={o}>{o}</option>)}
@@ -341,7 +341,7 @@ export default function WebGamePage() {
                           value={tgFields[f.key] ?? ''}
                           onChange={(e) => setTgFields((prev) => ({ ...prev, [f.key]: e.target.value }))}
                           placeholder={f.placeholder || f.label}
-                          className="w-full bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-white/20"
+                          className="w-full bg-[var(--bg3)] border border-white/[0.08] rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-[var(--hint)] focus:outline-none focus:border-white/20"
                         />
                       )}
                     </div>

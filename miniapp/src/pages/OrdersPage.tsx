@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate } from 'react-router-dom'
 import { useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Package, ChevronRight, Search } from 'lucide-react'
+import { Package, ChevronRight, Search } from '@/components/ui/icons'
 import { ordersApi } from '@/api'
 
 const STATUS_LABEL: Record<string, string> = {
@@ -71,18 +71,13 @@ export default function OrdersPage() {
   )
 
   return (
-    <motion.div
-      className="px-4 pt-5 pb-4 space-y-3"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.2, ease: 'easeOut' }}
-    >
-      <h1 className="text-xl font-bold" style={{ color: 'var(--text)' }}>Мои заказы</h1>
+    <div className="px-4 pt-5 pb-4 space-y-3">
+      <h1 className="text-xl" style={{ color: 'var(--text)' }}>Мои заказы</h1>
 
       {rawOrders.length > 0 && (
         <div
           className="flex items-center gap-2 rounded-2xl px-3"
-          style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+          style={{ background: 'var(--bg2)' }}
         >
           <Search size={16} style={{ color: 'var(--hint)' }} />
           <input
@@ -104,7 +99,7 @@ export default function OrdersPage() {
         <div className="flex flex-col items-center justify-center py-20 gap-5">
           <div
             className="w-24 h-24 rounded-3xl flex items-center justify-center"
-            style={{ background: 'var(--bg2)', border: '1px solid var(--border)' }}
+            style={{ background: 'var(--bg2)' }}
           >
             <Package size={40} style={{ color: 'var(--hint)' }} />
           </div>
@@ -122,14 +117,14 @@ export default function OrdersPage() {
               key={order.id}
               onClick={() => handleOrderClick(order.id)}
               className="flex items-center gap-3 p-4 rounded-2xl active:scale-[0.98] transition-transform"
-              style={{ background: 'var(--bg2)', border: '1px solid var(--border)', cursor: 'pointer' }}
+              style={{ background: 'var(--bg2)', cursor: 'pointer' }}
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
                   <p className="font-bold text-sm" style={{ color: 'var(--text)' }}>
                     {order.order_number}
                   </p>
-                  <p className="font-bold text-sm" style={{ color: 'var(--link)' }}>
+                  <p className="font-display num text-sm" style={{ color: 'var(--text)' }}>
                     {order.total_amount.toLocaleString('ru')} ₽
                   </p>
                 </div>
@@ -163,6 +158,6 @@ export default function OrdersPage() {
           ))}
         </div>
       )}
-    </motion.div>
+    </div>
   )
 }
