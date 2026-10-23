@@ -48,6 +48,9 @@ export default defineConfig({
   },
   build: {
     outDir: isWeb ? 'dist-web' : 'dist',
+    // Карта сборки сайта: api/routers/seo.py по ней ставит modulepreload скриптов
+    // открытой страницы (без цепочки «страница → скрипт → скрипт страницы»)
+    manifest: isWeb ? 'build-manifest.json' : false,
     sourcemap: false,
     rollupOptions: {
       output: {

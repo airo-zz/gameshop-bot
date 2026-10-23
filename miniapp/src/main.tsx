@@ -25,6 +25,16 @@ if (isWeb) {
     .querySelector('meta[name="viewport"]')
     ?.setAttribute('content', 'width=device-width, initial-scale=1, viewport-fit=cover')
   document.body.classList.add('web')
+
+  // Данные страницы, которые сервер положил прямо в HTML (api/routers/seo.py):
+  // кладём в кэш React Query — страница рисуется без запросов к API при старте.
+  // updatedAt — время сборки на сервере, чтобы устаревшее обновилось в фоне.
+  const w = window as Window & { __INITIAL_DATA__?: { t: number; q: [unknown[], unknown][] } }
+  const init = w.__INITIAL_DATA__
+  if (init) {
+    for (const [key, data] of init.q) queryClient.setQueryData(key, data, { updatedAt: init.t })
+    delete w.__INITIAL_DATA__
+  }
 }
 
 // ── Гейт /app: miniapp открывается только внутри Telegram ────────────────────

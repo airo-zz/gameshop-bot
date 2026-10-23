@@ -13,6 +13,13 @@ nginx проксирует сюда HTML-страницы сайта (/, /catalo
     робот видит контент без JS, а React при запуске заменяет его на SPA.
 Данные берутся из БД при запросе (кэш 5 минут) — цены и новые игры всегда
 актуальны. Если шаблона нет (dev) — отдаём минимальный HTML.
+
+Скорость первой загрузки (людям):
+  • modulepreload скриптов открытой страницы по карте сборки
+    (dist-web/build-manifest.json) — браузер грузит их параллельно, а не цепочкой;
+  • данные страницы прямо в HTML (window.__INITIAL_DATA__ → кэш React Query,
+    src/main.tsx) — без отдельных запросов к API при старте;
+  • шапка сайта в той же вёрстке, что у React, — экран не пустой, пока грузится JS.
 ─────────────────────────────────────────────────────────────────────────────
 """
 
@@ -25,6 +32,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 
 from api.deps import DbSession
@@ -39,6 +47,7 @@ router = APIRouter()
 SITE = "https://redonate.gg"
 BRAND = "reDonate"
 TEMPLATE_PATH = Path("/web_dist/index.html")
+MANIFEST_PATH = Path("/web_dist/build-manifest.json")
 CACHE_TTL = 300
 
 DEFAULT_TITLE = "reDonate — пополнение игр и цифровых сервисов"
@@ -90,6 +99,85 @@ def _template() -> str:
         raise TemplateUnavailable
 
 
+_manifest_cache: tuple[float, dict] | None = None
+
+
+def _manifest() -> dict:
+    """Карта сборки сайта (vite): какие файлы нужны каждой странице."""
+    global _manifest_cache
+    try:
+        mtime = MANIFEST_PATH.stat().st_mtime
+        if _manifest_cache and _manifest_cache[0] == mtime:
+            return _manifest_cache[1]
+        data = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+        _manifest_cache = (mtime, data)
+        return data
+    except (OSError, ValueError):
+        return _manifest_cache[1] if _manifest_cache else {}
+
+
+def _preload_tags(page_module: str | None) -> list[str]:
+    """modulepreload всех скриптов страницы и её стили — сразу, параллельно."""
+    m = _manifest()
+    if not page_module or page_module not in m:
+        return []
+    js: list[str] = []
+    css: list[str] = []
+    seen: set[str] = set()
+
+    def walk(key: str) -> None:
+        if key in seen or key == "index.html" or key not in m:
+            return
+        seen.add(key)
+        entry = m[key]
+        for imp in entry.get("imports", []):
+            walk(imp)
+        if entry.get("file", "").endswith(".js"):
+            js.append(entry["file"])
+        css.extend(c for c in entry.get("css", []) if c not in css)
+
+    walk(page_module)
+    return ([f'<link rel="stylesheet" crossorigin href="/{_e(c)}">' for c in css]
+            + [f'<link rel="modulepreload" crossorigin href="/{_e(f)}">' for f in js])
+
+
+# Страницы сайта → модуль страницы (ключ в карте сборки)
+PAGE_MODULES = {
+    "home": "src/web/pages/WebHomePage.tsx",
+    "catalog": "src/web/pages/WebCatalogPage.tsx",
+    "cashback": "src/web/pages/WebCashbackPage.tsx",
+    "game": "src/web/pages/WebGamePage.tsx",
+}
+
+_NAV_ITEMS = [("Каталог", "/catalog"), ("Кэшбэк", "/cashback"), ("Как это работает", "/#how"), ("Вопросы", "/#faq")]
+
+
+def _shell(active: str | None) -> str:
+    """Шапка сайта в той же вёрстке, что WebLayout (React нарисует её же — без подмены)."""
+    links = "".join(
+        f'<a href="{href}" class="text-sm whitespace-nowrap transition-colors  '
+        + ("text-[var(--text)]" if href == active else "text-[var(--text-2)] hover:text-[var(--text)]")
+        + f'">{label}</a>'
+        for label, href in _NAV_ITEMS
+    )
+    return (
+        '<div class="min-h-screen flex flex-col" style="background: var(--bg);">'
+        '<header class="sticky top-0 z-40 border-b border-[var(--border)]" style="background: var(--bg);">'
+        '<div class="web-container flex items-center gap-8 h-16">'
+        f'<a class="flex items-center shrink-0" aria-label="{BRAND}" href="/">'
+        f'<img src="/logo-full.svg" alt="{BRAND}" width="800" height="154" class="h-6 md:h-7 w-auto"></a>'
+        f'<nav class="hidden md:flex items-center gap-5 lg:gap-6">{links}</nav>'
+        '</div></header></div>'
+    )
+
+
+def _initial_script(entries: list[tuple[list, object]]) -> str:
+    """Данные страницы для кэша React Query: [[queryKey, data], …] + время сборки."""
+    payload = {"t": int(time.time() * 1000), "q": [[k, v] for k, v in entries]}
+    data = json.dumps(jsonable_encoder(payload), ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
+    return f"<script>window.__INITIAL_DATA__={data}</script>"
+
+
 def _e(s: object) -> str:
     return html.escape(str(s), quote=True)
 
@@ -101,9 +189,12 @@ def _money(v: object) -> str:
 
 
 def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex: bool = False,
-            image: str | None = None) -> str:
+            image: str | None = None, page: str | None = None, initial: list | None = None,
+            active: str | None = None) -> str:
+    template_page = page
     page = _template()
     url = SITE + (path if path != "/" else "/")
+    preload = _preload_tags(PAGE_MODULES.get(template_page or ""))
     head = [
         f'<link rel="canonical" href="{_e(url)}" />',
         f'<meta property="og:url" content="{_e(url)}" />',
@@ -122,6 +213,7 @@ def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex
             head.append(f'<meta name="yandex-verification" content="{_e(settings.YANDEX_VERIFICATION)}" />')
         if settings.GOOGLE_SITE_VERIFICATION:
             head.append(f'<meta name="google-site-verification" content="{_e(settings.GOOGLE_SITE_VERIFICATION)}" />')
+    head.extend(preload)
     for block in ld:
         # </script> внутри JSON ломает разметку — экранируем «<»
         head.append('<script type="application/ld+json">'
@@ -144,7 +236,9 @@ def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex
         'font-family:system-ui,sans-serif;color:#DCEBFF;background:#0B0C0F">'
         + body + "</div>"
     )
-    page = page.replace('<div id="root"></div>', f'<div id="root">{prerender}</div>', 1)
+    shell = _shell(active) if template_page else ""
+    data = _initial_script(initial) if initial else ""
+    page = page.replace('<div id="root"></div>', f'<div id="root">{shell}{prerender}</div>{data}', 1)
     return page
 
 
@@ -168,7 +262,8 @@ def _org_ld() -> list[dict]:
             "@context": "https://schema.org",
             "@type": "WebSite",
             "name": BRAND,
-            "url": SITE,
+            "alternateName": "redonate.gg",
+            "url": SITE + "/",
             "inLanguage": "ru",
             "potentialAction": {
                 "@type": "SearchAction",
@@ -188,6 +283,34 @@ def _breadcrumbs(items: list[tuple[str, str]]) -> dict:
             for i, (name, path) in enumerate(items)
         ],
     }
+
+
+# ── Данные страниц для кэша React Query (те же ответы, что у API) ───────────
+
+async def _data_common(db) -> list:
+    from api.routers import catalog as cat_api
+    from api.schemas.catalog import GameOut
+
+    games = [GameOut.model_validate(g) for g in await CatalogService(db).get_active_games()]
+    return [
+        (["web", "games", "all"], games),
+        (["web", "trending-categories"], await cat_api.get_trending_categories(db)),
+    ]
+
+
+async def _data_game(db, slug: str, cat_slug: str | None) -> list:
+    from api.routers import catalog as cat_api
+
+    out = await _data_common(db)
+    cats = await cat_api.list_categories(slug, db)
+    out.append((["web", "categories", slug], cats))
+    roots = [c for c in cats if not c.parent_id]
+    current = next((c for c in roots if cat_slug and c.slug == cat_slug), None) or (roots[0] if roots else None)
+    if current:
+        products = await cat_api.list_products(db, category_id=current.id, page=0, page_size=20)
+        out.append((["web", "products", str(current.id)], products))
+    out.append((["web", "game-seo", slug, cat_slug or ""], await cat_api.get_game_seo(slug, db, cat_slug)))
+    return out
 
 
 # ── Страницы ──────────────────────────────────────────────────────────────────
@@ -212,7 +335,13 @@ async def _home(db) -> tuple[int, str]:
             for q, a in FAQ
         ],
     }]
-    return 200, _render("/", DEFAULT_TITLE, DEFAULT_DESC, body, ld)
+    from api.routers import catalog as cat_api
+
+    initial = await _data_common(db) + [
+        (["web", "home-blocks"], await cat_api.get_home_blocks(db)),
+        (["web", "loyalty"], await cat_api.get_loyalty_program(db)),
+    ]
+    return 200, _render("/", DEFAULT_TITLE, DEFAULT_DESC, body, ld, page="home", initial=initial)
 
 
 async def _catalog(db) -> tuple[int, str]:
@@ -236,7 +365,8 @@ async def _catalog(db) -> tuple[int, str]:
     title = "Каталог игр и сервисов | reDonate"
     desc = ("Все игры и цифровые сервисы, которые можно пополнить в reDonate: внутриигровая валюта, "
             "наборы и подписки. Оплата через СБП, банковской картой или криптовалютой.")
-    return 200, _render("/catalog", title, desc, body, ld)
+    return 200, _render("/catalog", title, desc, body, ld, page="catalog",
+                        initial=await _data_common(db), active="/catalog")
 
 
 async def _cashback(db) -> tuple[int, str]:
@@ -259,7 +389,10 @@ async def _cashback(db) -> tuple[int, str]:
     title = "Кэшбэк и программа лояльности | reDonate"
     desc = (f"Программа лояльности reDonate: кэшбэк до {top} на баланс с каждого выполненного заказа, "
             f"{len(levels)} уровней по тратам за месяц, условия реферальной программы.")
-    return 200, _render("/cashback", title, desc, body, ld)
+    from api.routers import catalog as cat_api
+
+    initial = await _data_common(db) + [(["web", "loyalty"], await cat_api.get_loyalty_program(db))]
+    return 200, _render("/cashback", title, desc, body, ld, page="cashback", initial=initial, active="/cashback")
 
 
 def _faq_ld(faq: list[tuple[str, str]]) -> dict:
@@ -348,7 +481,8 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
                 for i, (cat, p) in enumerate(offers[:100])
             ],
         })
-    return 200, _render(path, page.title, page.description, body, ld, image=image)
+    initial = await _data_game(db, slug, cat_slug)
+    return 200, _render(path, page.title, page.description, body, ld, image=image, page="game", initial=initial)
 
 
 async def _cached(key: str, builder) -> HTMLResponse:

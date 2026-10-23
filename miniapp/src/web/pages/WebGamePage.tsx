@@ -480,6 +480,9 @@ export default function WebGamePage() {
             ) : products.length === 0 ? (
               <p className="text-sm text-[var(--hint)] py-16 text-center">В этом разделе пока нет товаров</p>
             ) : (
+              <>
+              {/* Заголовок раздела для структуры страницы (h1 → h2 → h3 карточек) */}
+              <h2 className="sr-only">{currentCat?.name ?? gameName}</h2>
               <Stagger key={currentCatId ?? ''} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
                 {products.map((p) => (
                   <StaggerItem key={p.id} className="h-full">
@@ -495,6 +498,7 @@ export default function WebGamePage() {
                   </StaggerItem>
                 ))}
               </Stagger>
+              </>
             )}
           </div>
 
