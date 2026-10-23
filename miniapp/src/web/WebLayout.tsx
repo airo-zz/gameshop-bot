@@ -4,7 +4,7 @@
  * Контент рендерится через <Outlet/> с мягкой сменой страниц.
  */
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Menu, X, LogOut, ShoppingCart, Wallet, User } from '@/components/ui/icons'
@@ -20,6 +20,7 @@ import GameSearch from '@/web/components/GameSearch'
 import { PenLogo } from '@/components/brand/BrandMotion'
 import { initMetrika, useMetrikaPageViews } from '@/web/seo'
 import { preloadRoutesWhenIdle } from '@/web/prefetch'
+import { endIntro, isIntro } from '@/web/intro'
 
 interface NavItem {
   label: string
@@ -34,21 +35,10 @@ const NAV: NavItem[] = [
   { label: 'Вопросы', href: '/#faq' },
 ]
 
-// Логотип «пишется» в шапке один раз за сеанс (первый заход), дальше — статичный вектор
-const INTRO_KEY = 'logo_intro_played'
-function shouldPlayIntro(): boolean {
-  try {
-    if (sessionStorage.getItem(INTRO_KEY)) return false
-    sessionStorage.setItem(INTRO_KEY, '1')
-    return true
-  } catch { return false }
-}
-
-function Logo({ intro = false }: { intro?: boolean }) {
-  const [play] = useState(() => intro && shouldPlayIntro())
+function Logo() {
   return (
     <Link to="/" className="flex items-center shrink-0" aria-label={SHOP_NAME}>
-      <PenLogo animate={play} className="h-6 md:h-7 w-auto" />
+      <PenLogo className="h-6 md:h-7 w-auto" />
     </Link>
   )
 }
@@ -159,6 +149,10 @@ export default function WebLayout() {
   useEffect(() => { initMetrika(); preloadRoutesWhenIdle() }, [])
   useMetrikaPageViews()
 
+  // Первая страница сеанса показана: после перехода — без анимаций появления
+  const firstPage = useRef(pageKey)
+  useEffect(() => { if (pageKey !== firstPage.current) endIntro() }, [pageKey])
+
   // Новая страница — наверх (кроме якорей вида /#faq)
   useEffect(() => {
     if (!location.hash) window.scrollTo({ top: 0 })
@@ -170,7 +164,7 @@ export default function WebLayout() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <header className="sticky top-0 z-40 border-b border-[var(--border)]" style={{ background: 'var(--bg)' }}>
         <div className="web-container flex items-center gap-8 h-16">
-          <Logo intro />
+          <Logo />
 
           <nav className="hidden md:flex items-center gap-5 lg:gap-6">
             {NAV.map((item) => <NavItemLink key={item.href} item={item} />)}
@@ -225,7 +219,7 @@ export default function WebLayout() {
       <motion.main
         className="flex-1 min-h-[calc(100dvh-64px)]"
         key={pageKey}
-        initial={reduce ? false : { opacity: 0 }}
+        initial={reduce || !isIntro() ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.25, ease: 'easeOut' }}
       >

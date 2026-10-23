@@ -104,6 +104,26 @@ async def list_categories(slug: str, db: DbSession):
     return [_category_to_out(cat, delivery_map) for cat in categories]
 
 
+@router.get("/home")
+async def get_home_blocks(db: DbSession):
+    """Блоки главной сайта: обложки первого экрана и «Популярное» (настраиваются в админке)."""
+    from api.services.home_service import resolve_home
+
+    hero, popular = await resolve_home(db)
+    return {
+        "hero": [GameOut.model_validate(g) for g in hero],
+        "popular": [
+            TrendingCategoryOut(
+                id=c.id, name=c.name, slug=c.slug,
+                game_name=c.game.name if c.game else "",
+                game_slug=c.game.slug if c.game else "",
+                game_image_url=c.game.image_url if c.game else None,
+            )
+            for c in popular
+        ],
+    }
+
+
 @router.get("/categories/trending", response_model=list[TrendingCategoryOut])
 async def get_trending_categories(db: DbSession):
     svc = CatalogService(db)

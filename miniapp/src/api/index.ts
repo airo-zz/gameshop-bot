@@ -266,6 +266,10 @@ export const catalogApi = {
   getTrendingCategories: () =>
     apiClient.get<TrendingCategory[]>('/catalog/categories/trending').then(r => r.data),
 
+  /** Блоки главной сайта (выбираются в админке, иначе автоматически) */
+  getHome: () =>
+    apiClient.get<{ hero: Game[]; popular: TrendingCategory[] }>('/catalog/home').then(r => r.data),
+
   toggleFavorite: (productId: string) =>
     apiClient.post<{ added: boolean }>(`/catalog/products/${productId}/favorite`).then(r => r.data),
 

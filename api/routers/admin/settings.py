@@ -573,3 +573,34 @@ async def update_integrations(
         after_data={"enabled": body.enabled, "payment_method": body.payment_method},
     )
     return IntegrationsOut(**await get_admin_view(db))
+
+
+# ── Главная сайта: какие игры и разделы в блоках ─────────────────────────────
+
+
+class HomeBlocksIO(BaseModel):
+    hero_game_ids: list[uuid.UUID] = Field(default_factory=list, max_length=6)
+    popular_category_ids: list[uuid.UUID] = Field(default_factory=list, max_length=8)
+
+
+@router.get("/home", response_model=HomeBlocksIO, dependencies=[require_permission("settings.view")])
+async def get_home_blocks(db: DbSession, admin: CurrentAdmin) -> HomeBlocksIO:
+    from api.services.home_service import get_config
+
+    cfg = await get_config(db)
+    return HomeBlocksIO(hero_game_ids=cfg["hero"], popular_category_ids=cfg["popular"])
+
+
+@router.put("/home", response_model=HomeBlocksIO, dependencies=[require_permission("settings.edit")])
+async def update_home_blocks(body: HomeBlocksIO, db: DbSession, admin: CurrentAdmin) -> HomeBlocksIO:
+    from api.services.home_service import get_config, set_config
+
+    await set_config(db, body.hero_game_ids, body.popular_category_ids)
+    await log_admin_action(
+        db=db, admin=admin, action="shop_settings.home_update",
+        entity_type="shop_settings", entity_id=None,
+        after_data={"hero": [str(i) for i in body.hero_game_ids],
+                    "popular": [str(i) for i in body.popular_category_ids]},
+    )
+    cfg = await get_config(db)
+    return HomeBlocksIO(hero_game_ids=cfg["hero"], popular_category_ids=cfg["popular"])

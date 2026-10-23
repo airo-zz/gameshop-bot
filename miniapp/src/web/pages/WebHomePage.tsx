@@ -11,7 +11,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import {
   ChevronDown, ChevronRight, Smartphone, CreditCard, Bitcoin, Wallet, Zap, ShieldCheck, Headphones,
 } from '@/components/ui/icons'
-import { catalogApi, type Game } from '@/api'
+import { catalogApi, type Game, type TrendingCategory } from '@/api'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
 import GameCard from '@/web/components/GameCard'
@@ -20,6 +20,7 @@ import RequestCta from '@/web/components/RequestCta'
 import { EASE, Reveal, Stagger, StaggerItem } from '@/web/components/Motion'
 import { usePageMeta } from '@/web/seo'
 import { prefetchGame } from '@/web/prefetch'
+import { isIntro } from '@/web/intro'
 
 const cover = (g: Game) => (g.image_url ? normalizeImageUrl(g.image_url) ?? g.image_url : null)
 
@@ -28,10 +29,11 @@ const cover = (g: Game) => (g.image_url ? normalizeImageUrl(g.image_url) ?? g.im
 function Hero({ games }: { games: Game[] }) {
   const qc = useQueryClient()
   const reduce = useReducedMotion()
+  const [intro] = useState(isIntro)
   const covers = games.filter(cover).slice(0, 6)
 
   const item = (i: number) => ({
-    initial: reduce ? false : { opacity: 0, y: 16 },
+    initial: reduce || !intro ? false : { opacity: 0, y: 16 },
     animate: { opacity: 1, y: 0 },
     transition: { duration: 0.6, ease: EASE, delay: 0.06 * i },
   })
@@ -77,7 +79,7 @@ function Hero({ games }: { games: Game[] }) {
               <motion.div
                 key={g.id}
                 className={i >= 3 ? 'hidden lg:block' : ''}
-                initial={reduce ? false : { opacity: 0, y: 24 }}
+                initial={reduce || !intro ? false : { opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: i % 3 === 1 ? 28 : 0 }}
                 transition={{ duration: 0.7, ease: EASE, delay: 0.15 + 0.07 * i }}
               >
@@ -107,13 +109,8 @@ function Hero({ games }: { games: Game[] }) {
 
 // ── Популярное ────────────────────────────────────────────────────────────────
 
-function Popular() {
+function Popular({ trending }: { trending: TrendingCategory[] }) {
   const qc = useQueryClient()
-  const { data: trending = [] } = useQuery({
-    queryKey: ['web', 'trending-categories'],
-    queryFn: catalogApi.getTrendingCategories,
-    staleTime: 5 * 60_000,
-  })
   if (!trending.length) return null
   return (
     <section className="web-container py-10 md:py-12">
@@ -126,7 +123,7 @@ function Popular() {
           return (
             <StaggerItem key={c.id}>
               <Link
-                to={`/game/${c.game_slug}?cat=${c.id}`}
+                to={`/game/${c.game_slug}/${c.slug}`}
                 onMouseEnter={() => prefetchGame(qc, c.game_slug)}
                 className="group flex items-center gap-3 p-3 rounded-2xl bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors"
               >
@@ -231,7 +228,7 @@ function Cashback() {
                 <motion.div
                   className="w-full rounded-md"
                   style={{ background: lv.color_hex, transformOrigin: 'bottom', height: `${(lv.cashback_percent / max.cashback_percent) * 128}px` }}
-                  initial={{ scaleY: 0 }}
+                  initial={isIntro() ? { scaleY: 0 } : false}
                   whileInView={{ scaleY: 1 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, ease: EASE, delay: 0.05 * i }}
@@ -364,10 +361,16 @@ export default function WebHomePage() {
     queryFn: () => catalogApi.getGames(),
     staleTime: 5 * 60_000,
   })
+  // Обложки первого экрана и «Популярное» — как выбрано в админке (иначе автоматически)
+  const { data: home } = useQuery({
+    queryKey: ['web', 'home-blocks'],
+    queryFn: catalogApi.getHome,
+    staleTime: 5 * 60_000,
+  })
   return (
     <>
-      <Hero games={all.filter((g) => g.type !== 'service')} />
-      <Popular />
+      <Hero games={home?.hero ?? []} />
+      <Popular trending={home?.popular ?? []} />
       <Catalog all={all} isLoading={isLoading} isError={isError} />
       <Cashback />
       <HowItWorks />

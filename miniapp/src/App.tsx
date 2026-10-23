@@ -87,6 +87,7 @@ const AdminLogin       = lazy(() => import('@/pages/admin/LoginPage'))
 const AdminLoyalty     = lazy(() => import('@/pages/admin/LoyaltySettingsPage'))
 const AdminContent     = lazy(() => import('@/pages/admin/ContentPage'))
 const AdminPricing     = lazy(() => import('@/pages/admin/PricingSettingsPage'))
+const AdminHome        = lazy(() => import('@/pages/admin/HomeSettingsPage'))
 const AdminIntegrations = lazy(() => import('@/pages/admin/IntegrationsPage'))
 const AdminOrdersTrash = lazy(() => import('@/pages/admin/OrdersTrashPage'))
 const AdminChatsPage   = lazy(() => import('@/pages/admin/AdminChatsPage'))
@@ -165,11 +166,11 @@ export default function App() {
 
   // Приложение уже смонтировано под сплэшем — гасим его через 2 кадра после
   // первого рендера, чтобы тяжёлый mount главной не совпадал с анимацией.
-  // Не раньше конца анимации сплэша (~2 с от открытия).
+  // Не раньше конца анимации сплэша (~2,45 с от открытия).
   useEffect(() => {
     if (!isReady && !isError) return
-    // Сплэш «перо» (index.html) доигрывает до конца — ~2 с от старта страницы
-    const SPLASH_ANIM_MS = 2000
+    // Сплэш «перо» (index.html) доигрывает до конца — ~2,45 с от старта страницы
+    const SPLASH_ANIM_MS = 2450
     const splashStart = (window as Window & { __bootSplashStart?: number }).__bootSplashStart ?? initStartedAt.current
     const delay = Math.max(0, SPLASH_ANIM_MS - (Date.now() - splashStart))
     let raf = 0
@@ -252,6 +253,7 @@ export default function App() {
             <Route path="support" element={<AdminSupport />} />
             <Route path="settings/loyalty" element={<AdminLoyalty />} />
             <Route path="settings/pricing" element={<AdminPricing />} />
+            <Route path="settings/home" element={<AdminHome />} />
             <Route path="settings/integrations" element={<AdminIntegrations />} />
             <Route path="settings/content" element={<AdminContent />} />
             <Route path="chats" element={<AdminChatsPage />} />

@@ -269,6 +269,11 @@ export interface AdminProductDetail {
   meta?: Record<string, unknown> | null
 }
 
+export interface HomeBlocks {
+  hero_game_ids: string[]
+  popular_category_ids: string[]
+}
+
 export interface AdminCategory {
   id: string
   game_id: string
@@ -635,6 +640,13 @@ export const adminApi = {
 
   updatePricing: (data: { markup_crypto: number; markup_card: number; markup_sbp: number; markup_balance: number }) =>
     apiClient.patch<PricingSettings>('/admin/settings/pricing', data).then(r => r.data),
+
+  // Главная сайта: игры и разделы в блоках
+  getHomeBlocks: () =>
+    apiClient.get<HomeBlocks>('/admin/settings/home').then(r => r.data),
+
+  updateHomeBlocks: (data: HomeBlocks) =>
+    apiClient.put<HomeBlocks>('/admin/settings/home', data).then(r => r.data),
 
   // Catalog — Categories
   getCategories: (gameId: string) =>
