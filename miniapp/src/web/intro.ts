@@ -19,6 +19,13 @@ let active = (() => {
   }
 })()
 
+/**
+ * Первый экран главной пришёл с сервера уже видимым (api/routers/seo_hero.py):
+ * его не анимируем — иначе React спрятал бы готовый текст и проявил заново.
+ * Проверяется до первого рендера React (пока в #root серверная разметка).
+ */
+export const heroFromServer = typeof document !== 'undefined' && !!document.getElementById('hero-ssr')
+
 /** Анимировать ли появление (проверять при монтировании компонента). */
 export const isIntro = () => active
 

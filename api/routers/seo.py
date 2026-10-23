@@ -152,7 +152,7 @@ PAGE_MODULES = {
 _NAV_ITEMS = [("Каталог", "/catalog"), ("Кэшбэк", "/cashback"), ("Как это работает", "/#how"), ("Вопросы", "/#faq")]
 
 
-def _shell(active: str | None) -> str:
+def _shell(active: str | None, main_html: str = "") -> str:
     """Шапка сайта в той же вёрстке, что WebLayout (React нарисует её же — без подмены)."""
     links = "".join(
         f'<a href="{href}" class="text-sm whitespace-nowrap transition-colors  '
@@ -167,8 +167,34 @@ def _shell(active: str | None) -> str:
         f'<a class="flex items-center shrink-0" aria-label="{BRAND}" href="/">'
         f'<img src="/logo-full.svg" alt="{BRAND}" width="800" height="154" class="h-6 md:h-7 w-auto"></a>'
         f'<nav class="hidden md:flex items-center gap-5 lg:gap-6">{links}</nav>'
-        '</div></header></div>'
+        '</div></header>'
+        + (f'<main class="flex-1 min-h-[calc(100dvh-64px)]">{main_html}</main>' if main_html else "")
+        + '</div>'
     )
+
+
+_UPLOAD_RE = re.compile(r"^(.*/static/uploads/[^/?#]+?)\.(png|jpe?g|webp)$", re.I)
+
+
+def _hero_html(games) -> str:
+    """Первый экран главной — та же разметка, что у React-компонента Hero."""
+    from api.routers.seo_hero import COVER_ITEM, HERO_TEMPLATE
+
+    covers = [g for g in games if g.image_url][:6]
+    if len(covers) < 3:
+        return ""
+    items = []
+    for i, g in enumerate(covers):
+        url = g.image_url if g.image_url.startswith("http") else SITE + g.image_url
+        m = _UPLOAD_RE.match(url)
+        src = f"{m.group(1)}.w320.webp" if m else url
+        srcset = f' srcset="{_e(m.group(1))}.w320.webp 320w, {_e(m.group(1))}.w640.webp 640w"' if m else ""
+        items.append(COVER_ITEM.format(
+            hidden="hidden lg:block" if i >= 3 else "",
+            style=' style="transform: translateY(28px);"' if i % 3 == 1 else "",
+            slug=_e(g.slug), src=_e(src), srcset=srcset, name=_e(g.name),
+        ))
+    return HERO_TEMPLATE.format(covers="".join(items))
 
 
 # Плашка cookie в той же вёрстке, что web/components/CookieBanner.tsx: видна
@@ -216,7 +242,7 @@ def _money(v: object) -> str:
 
 def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex: bool = False,
             image: str | None = None, page: str | None = None, initial: list | None = None,
-            active: str | None = None) -> str:
+            active: str | None = None, main_html: str = "") -> str:
     template_page = page
     page = _template()
     url = SITE + (path if path != "/" else "/")
@@ -264,7 +290,7 @@ def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex
         'font-family:system-ui,sans-serif;color:#DCEBFF;background:#0B0C0F">'
         + body + "</div>"
     )
-    shell = (_shell(active) + COOKIE_SSR) if template_page else ""
+    shell = (_shell(active, main_html) + COOKIE_SSR) if template_page else ""
     data = _initial_script(initial) if initial else ""
     page = page.replace('<div id="root"></div>', f'<div id="root">{shell}{prerender}</div>{data}', 1)
     return page
@@ -369,7 +395,11 @@ async def _home(db) -> tuple[int, str]:
         (["web", "home-blocks"], await cat_api.get_home_blocks(db)),
         (["web", "loyalty"], await cat_api.get_loyalty_program(db)),
     ]
-    return 200, _render("/", DEFAULT_TITLE, DEFAULT_DESC, body, ld, page="home", initial=initial)
+    from api.services.home_service import resolve_home
+
+    hero_games, _ = await resolve_home(db)
+    return 200, _render("/", DEFAULT_TITLE, DEFAULT_DESC, body, ld, page="home", initial=initial,
+                        main_html=_hero_html(hero_games))
 
 
 async def _catalog(db) -> tuple[int, str]:

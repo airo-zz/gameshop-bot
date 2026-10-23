@@ -20,7 +20,7 @@ import GameSearch from '@/web/components/GameSearch'
 import { PenLogo } from '@/components/brand/BrandMotion'
 import { initMetrika, useMetrikaPageViews } from '@/web/seo'
 import { preloadRoutesWhenIdle } from '@/web/prefetch'
-import { endIntro, isIntro } from '@/web/intro'
+import { endIntro, heroFromServer, isIntro } from '@/web/intro'
 
 interface NavItem {
   label: string
@@ -219,7 +219,7 @@ export default function WebLayout() {
       <m.main
         className="flex-1 min-h-[calc(100dvh-64px)]"
         key={pageKey}
-        initial={reduce || !isIntro() ? false : { opacity: 0 }}
+        initial={reduce || !isIntro() || heroFromServer ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.25, ease: 'easeOut' }}
       >

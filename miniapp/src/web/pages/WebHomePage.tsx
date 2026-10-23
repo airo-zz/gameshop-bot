@@ -20,7 +20,7 @@ import RequestCta from '@/web/components/RequestCta'
 import { EASE, Reveal, Stagger, StaggerItem } from '@/web/components/Motion'
 import { DEFAULT_TITLE, usePageMeta } from '@/web/seo'
 import { prefetchGame } from '@/web/prefetch'
-import { isIntro } from '@/web/intro'
+import { heroFromServer, isIntro } from '@/web/intro'
 
 const cover = (g: Game) => (g.image_url ? normalizeImageUrl(g.image_url) ?? g.image_url : null)
 
@@ -29,7 +29,7 @@ const cover = (g: Game) => (g.image_url ? normalizeImageUrl(g.image_url) ?? g.im
 function Hero({ games }: { games: Game[] }) {
   const qc = useQueryClient()
   const reduce = useReducedMotion()
-  const [intro] = useState(isIntro)
+  const [intro] = useState(() => isIntro() && !heroFromServer)
   const covers = games.filter(cover).slice(0, 6)
 
   const item = (i: number) => ({
