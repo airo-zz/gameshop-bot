@@ -6,7 +6,7 @@
  * Только при первой загрузке сайта за сеанс (web/intro.ts), иначе — сразу.
  */
 import { useState, type ReactNode } from 'react'
-import { motion, useReducedMotion } from 'framer-motion'
+import { m, useReducedMotion } from 'framer-motion'
 import { isIntro } from '@/web/intro'
 
 /** Анимировать ли появление этого блока (решается при монтировании) */
@@ -23,7 +23,7 @@ export function Reveal({ children, delay = 0, className, y = 14 }: {
 }) {
   if (!useAnimateIn()) return <div className={className}>{children}</div>
   return (
-    <motion.div
+    <m.div
       className={className}
       initial={{ opacity: 0, y }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -31,14 +31,14 @@ export function Reveal({ children, delay = 0, className, y = 14 }: {
       transition={{ duration: 0.55, ease: EASE, delay }}
     >
       {children}
-    </motion.div>
+    </m.div>
   )
 }
 
 export function Stagger({ children, className }: { children: ReactNode; className?: string }) {
   if (!useAnimateIn()) return <div className={className}>{children}</div>
   return (
-    <motion.div
+    <m.div
       className={className}
       initial="hidden"
       whileInView="show"
@@ -46,14 +46,14 @@ export function Stagger({ children, className }: { children: ReactNode; classNam
       variants={{ hidden: {}, show: { transition: { staggerChildren: 0.04 } } }}
     >
       {children}
-    </motion.div>
+    </m.div>
   )
 }
 
 export function StaggerItem({ children, className }: { children: ReactNode; className?: string }) {
   if (!useAnimateIn()) return <div className={className}>{children}</div>
   return (
-    <motion.div
+    <m.div
       className={className}
       variants={{
         hidden: { opacity: 0, y: 12 },
@@ -61,6 +61,6 @@ export function StaggerItem({ children, className }: { children: ReactNode; clas
       }}
     >
       {children}
-    </motion.div>
+    </m.div>
   )
 }

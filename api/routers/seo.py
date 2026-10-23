@@ -171,6 +171,32 @@ def _shell(active: str | None) -> str:
     )
 
 
+# Плашка cookie в той же вёрстке, что web/components/CookieBanner.tsx: видна
+# с первой отрисовки (а не после загрузки JS). Кнопки работают и до JS;
+# если выбор уже сделан — скрыта скриптом в <head> (класс cc-ok).
+_CC_SET = "try{{localStorage.setItem('cookie_consent','{v}')}}catch(e){{}};document.getElementById('cookie-ssr').remove()"
+COOKIE_SSR = (
+    '<div id="cookie-ssr" class="pointer-events-none flex justify-start md:justify-center pl-4 pr-[88px] md:px-24" '
+    'style="position:fixed;left:0;right:0;bottom:16px;z-index:180;margin-bottom:env(safe-area-inset-bottom, 0px)">'
+    '<div role="region" aria-label="Cookie" class="pointer-events-auto w-full max-w-[560px] rounded-2xl border '
+    'border-[var(--border)] bg-[var(--bg2)] p-4 md:p-5" style="box-shadow:0 16px 40px rgba(0,0,0,0.45)">'
+    '<p class="text-[13px] leading-relaxed text-[var(--text-2)]">Мы используем cookie: необходимые — для входа и '
+    'корзины, аналитические (Яндекс.Метрика) — чтобы улучшать сайт. Подробнее — в '
+    '<a href="/app/legal/privacy.html#cookie" target="_blank" rel="noopener noreferrer" '
+    'class="underline hover:text-[var(--text)]">политике конфиденциальности</a>.</p>'
+    '<div class="mt-3 flex flex-wrap gap-2">'
+    f'<button type="button" onclick="{_CC_SET.format(v="all")}" class="h-10 px-4 rounded-xl text-sm font-semibold '
+    'text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors">Принять</button>'
+    f'<button type="button" onclick="{_CC_SET.format(v="necessary")}" class="h-10 px-4 rounded-xl text-sm '
+    'text-[var(--text-2)] bg-[var(--bg3)] hover:text-[var(--text)] transition-colors">Только необходимые</button>'
+    '</div></div></div>'
+)
+COOKIE_HEAD = (
+    '<style>.cc-ok #cookie-ssr{display:none}</style>'
+    '<script>try{if(localStorage.getItem("cookie_consent"))document.documentElement.classList.add("cc-ok")}catch(e){}</script>'
+)
+
+
 def _initial_script(entries: list[tuple[list, object]]) -> str:
     """Данные страницы для кэша React Query: [[queryKey, data], …] + время сборки."""
     payload = {"t": int(time.time() * 1000), "q": [[k, v] for k, v in entries]}
@@ -214,6 +240,8 @@ def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex
         if settings.GOOGLE_SITE_VERIFICATION:
             head.append(f'<meta name="google-site-verification" content="{_e(settings.GOOGLE_SITE_VERIFICATION)}" />')
     head.extend(preload)
+    if template_page:
+        head.append(COOKIE_HEAD)
     for block in ld:
         # </script> внутри JSON ломает разметку — экранируем «<»
         head.append('<script type="application/ld+json">'
@@ -236,7 +264,7 @@ def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex
         'font-family:system-ui,sans-serif;color:#DCEBFF;background:#0B0C0F">'
         + body + "</div>"
     )
-    shell = _shell(active) if template_page else ""
+    shell = (_shell(active) + COOKIE_SSR) if template_page else ""
     data = _initial_script(initial) if initial else ""
     page = page.replace('<div id="root"></div>', f'<div id="root">{shell}{prerender}</div>{data}', 1)
     return page

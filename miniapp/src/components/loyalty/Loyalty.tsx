@@ -1,7 +1,7 @@
 // src/components/loyalty/Loyalty.tsx
 // Программа лояльности (модель Bybit): карточка уровня, таблица уровней, шторка
 // «Как работает». Общие для профиля Mini App и сайта (стили — токены theme.css).
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { ChevronDown, Info } from '@/components/ui/icons'
 import type { Profile } from '@/api'
 import { fmtNum } from '@/utils/format'
@@ -182,14 +182,14 @@ export function LoyaltyInfoSheet({ open, onClose, levels }: { open: boolean; onC
     <AnimatePresence>
       {open && (
         <>
-          <motion.div
+          <m.div
             key="bg"
             onClick={onClose}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 200 }}
           />
-          <motion.div
+          <m.div
             key="sheet"
             role="dialog"
             aria-label="Как работает программа лояльности"
@@ -219,7 +219,7 @@ export function LoyaltyInfoSheet({ open, onClose, levels }: { open: boolean; onC
             <button type="button" onClick={onClose} className="btn-primary" style={{ marginTop: 22 }}>
               Понятно
             </button>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

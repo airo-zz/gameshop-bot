@@ -6,7 +6,7 @@
 import { useId, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Search } from '@/components/ui/icons'
 import { catalogApi } from '@/api'
 import { normalizeImageUrl } from '@/utils/imageUrl'
@@ -105,7 +105,7 @@ export default function GameSearch({ size = 'md', placeholder = 'Найти иг
 
       <AnimatePresence>
         {showList && (
-          <motion.ul
+          <m.ul
             id={listId}
             role="listbox"
             initial={{ opacity: 0, y: -4 }}
@@ -150,7 +150,7 @@ export default function GameSearch({ size = 'md', placeholder = 'Найти иг
                 </li>
               )
             })}
-          </motion.ul>
+          </m.ul>
         )}
       </AnimatePresence>
     </div>

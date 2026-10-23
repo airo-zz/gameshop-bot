@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { ChevronRight, Zap, Clock, Plus, Minus, ShoppingCart, MessageSquarePlus, ShieldCheck, Headphones } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { catalogApi } from '@/api'
@@ -201,7 +201,7 @@ function GameSeoBlock({ seo, gameName }: { seo: GameSeo; gameName: string }) {
             </button>
             <AnimatePresence initial={false}>
               {open === i && (
-                <motion.div
+                <m.div
                   initial={{ height: 0, opacity: 0 }}
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
@@ -209,7 +209,7 @@ function GameSeoBlock({ seo, gameName }: { seo: GameSeo; gameName: string }) {
                   className="overflow-hidden"
                 >
                   <p className="px-5 pb-4 text-sm leading-relaxed text-[var(--text-2)]">{f.a}</p>
-                </motion.div>
+                </m.div>
               )}
             </AnimatePresence>
           </div>
@@ -415,7 +415,7 @@ export default function WebGamePage() {
                 const active = currentRoot?.id === cat.id
                 return (
                   <button key={cat.id} onClick={() => selectRoot(cat)} className={tabClass(active)}>
-                    {active && <motion.span layoutId="web-game-tab" className="absolute inset-0 rounded-xl bg-[var(--bg3)]" transition={{ duration: 0.25, ease: EASE }} />}
+                    {active && <m.span layoutId="web-game-tab" className="absolute inset-0 rounded-xl bg-[var(--bg3)]" transition={{ duration: 0.25, ease: EASE }} />}
                     <span className="relative">{cat.name}</span>
                   </button>
                 )

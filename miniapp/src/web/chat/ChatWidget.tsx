@@ -10,7 +10,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
 import { PhotoProvider, PhotoView } from 'react-photo-view'
 import 'react-photo-view/dist/react-photo-view.css'
 import toast from 'react-hot-toast'
@@ -376,7 +376,7 @@ export default function ChatWidget() {
     <>
       <AnimatePresence>
         {!(open && full) && (
-          <motion.button
+          <m.button
             key="launcher"
             type="button"
             onClick={() => (open ? close() : openChat())}
@@ -402,13 +402,13 @@ export default function ChatWidget() {
                 {unread}
               </span>
             )}
-          </motion.button>
+          </m.button>
         )}
       </AnimatePresence>
 
       <AnimatePresence>
         {open && full && !mobile && (
-          <motion.div
+          <m.div
             key="backdrop"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={close}
@@ -416,7 +416,7 @@ export default function ChatWidget() {
           />
         )}
         {open && (
-          <motion.section
+          <m.section
             key="panel"
             role="dialog"
             aria-label="Чат с оператором"
@@ -476,7 +476,7 @@ export default function ChatWidget() {
             <div className={'flex-1 min-h-0 flex flex-col ' + (full && !mobile ? 'w-full max-w-3xl mx-auto' : '')}>
               <ChatThread key={mode} transport={transport} mode={mode} />
             </div>
-          </motion.section>
+          </m.section>
         )}
       </AnimatePresence>
     </>

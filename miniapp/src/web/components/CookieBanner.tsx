@@ -2,9 +2,11 @@
  * src/web/components/CookieBanner.tsx
  * Плашка о cookie при первом визите: «Принять» включает Яндекс.Метрику,
  * «Только необходимые» — без аналитики. Выбор хранится в браузере.
+ * Та же плашка приходит в HTML с сервера (api/routers/seo.py, видна сразу);
+ * поэтому здесь без анимации появления — React подхватывает её на месте.
  */
 import { useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { getCookieConsent, setCookieConsent, type CookieConsent } from '@/web/seo'
 
 export default function CookieBanner() {
@@ -15,17 +17,18 @@ export default function CookieBanner() {
     <AnimatePresence>
       {shown && (
         // Обёртка: по центру снизу; на телефоне справа место под кнопку чата
-        <motion.div
+        <m.div
           key="cookie"
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
           className="pointer-events-none flex justify-start md:justify-center pl-4 pr-[88px] md:px-24"
           style={{ position: 'fixed', left: 0, right: 0, bottom: 16, zIndex: 180, marginBottom: 'env(safe-area-inset-bottom, 0px)' }}
         >
-        <motion.div
+        <m.div
+          id="cookie-banner"
           role="region"
           aria-label="Cookie"
-          initial={{ opacity: 0, y: 16 }}
+          initial={false}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 16 }}
           transition={{ duration: 0.25 }}
@@ -55,8 +58,8 @@ export default function CookieBanner() {
               Только необходимые
             </button>
           </div>
-        </motion.div>
-        </motion.div>
+        </m.div>
+        </m.div>
       )}
     </AnimatePresence>
   )

@@ -8,7 +8,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, m } from 'framer-motion'
 import { Wallet, Package, Copy, MessageCircle, LogOut, ChevronRight, CheckCircle } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { profileApi } from '@/api'
@@ -74,7 +74,7 @@ export default function WebProfilePage() {
           </Reveal>
           <AnimatePresence initial={false}>
             {levelsOpen && (
-              <motion.div
+              <m.div
                 key="levels"
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
@@ -83,7 +83,7 @@ export default function WebProfilePage() {
                 className="overflow-hidden"
               >
                 <LevelsTable levels={user.loyalty_levels} currentIndex={user.loyalty_level_index} />
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </div>

@@ -33,7 +33,11 @@ export default defineConfig({
     {
       name: 'strip-boot-splash',
       transformIndexHtml(html) {
-        return isWeb ? html.replace(/<!-- boot-splash -->[\s\S]*?<!-- \/boot-splash -->/, '') : html
+        if (!isWeb) return html
+        return html
+          .replace(/<!-- boot-splash -->[\s\S]*?<!-- \/boot-splash -->/, '')
+          // SDK Telegram нужен только Mini App — сайту лишние 25 КБ стороннего скрипта
+          .replace(/\s*<script[^>]*telegram-web-app\.js[^>]*><\/script>/, '')
       },
     },
   ],
@@ -57,7 +61,8 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           query: ['@tanstack/react-query'],
-          motion: ['framer-motion'],
+          // Сайт: framer-motion не одним куском — ядро сразу, возможности лениво (LazyMotion)
+          ...(isWeb ? {} : { motion: ['framer-motion'] }),
           // Иконки Phosphor не собираем в один чанк: каждая страница грузит только свои
         },
       },

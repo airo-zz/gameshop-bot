@@ -7,7 +7,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
 import {
   ChevronDown, ChevronRight, Smartphone, CreditCard, Bitcoin, Wallet, Zap, ShieldCheck, Headphones,
 } from '@/components/ui/icons'
@@ -42,23 +42,23 @@ function Hero({ games }: { games: Game[] }) {
     <section className="web-container pt-12 md:pt-20 pb-12 md:pb-16">
       <div className="grid lg:grid-cols-[1.05fr_1fr] gap-10 lg:gap-14 items-center">
         <div>
-          <motion.h1 {...item(0)} className="text-[2.25rem] leading-[1.08] md:text-[3.25rem] text-[var(--text)]" style={{ margin: 0 }}>
+          <m.h1 {...item(0)} className="text-[2.25rem] leading-[1.08] md:text-[3.25rem] text-[var(--text)]" style={{ margin: 0 }}>
             Донат в игры<br />за пару минут
-          </motion.h1>
-          <motion.p {...item(1)} className="mt-5 text-base md:text-lg text-[var(--text-2)] max-w-md leading-relaxed">
+          </m.h1>
+          <m.p {...item(1)} className="mt-5 text-base md:text-lg text-[var(--text-2)] max-w-md leading-relaxed">
             Внутриигровая валюта, наборы и подписки для мобильных и компьютерных игр.
             Оплата через СБП, банковской картой или криптовалютой, кэшбэк с каждой покупки.
-          </motion.p>
+          </m.p>
 
-          <motion.div {...item(2)} className="mt-8 max-w-md">
+          <m.div {...item(2)} className="mt-8 max-w-md">
             <GameSearch size="lg" placeholder="Какую игру пополнить?" />
-          </motion.div>
+          </m.div>
 
-          <motion.ul {...item(3)} className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--hint)]">
+          <m.ul {...item(3)} className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--hint)]">
             <li className="flex items-center gap-1.5"><Zap size={16} className="text-[var(--link)]" />Автовыдача</li>
             <li className="flex items-center gap-1.5"><ShieldCheck size={16} className="text-[var(--link)]" />Безопасная оплата</li>
             <li className="flex items-center gap-1.5"><Headphones size={16} className="text-[var(--link)]" />Поддержка операторов</li>
-          </motion.ul>
+          </m.ul>
         </div>
 
         {/* Стена обложек — реальные игры из каталога; пока грузятся — заглушки того же размера */}
@@ -76,7 +76,7 @@ function Hero({ games }: { games: Game[] }) {
         {covers.length >= 3 && (
           <div className="grid grid-cols-3 gap-3 md:gap-4 pb-7">
             {covers.map((g, i) => (
-              <motion.div
+              <m.div
                 key={g.id}
                 className={i >= 3 ? 'hidden lg:block' : ''}
                 initial={reduce || !intro ? false : { opacity: 0, y: 24 }}
@@ -98,7 +98,7 @@ function Hero({ games }: { games: Game[] }) {
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                   />
                 </Link>
-              </motion.div>
+              </m.div>
             ))}
           </div>
         )}
@@ -163,7 +163,7 @@ function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean;
                 className={'relative px-4 h-9 rounded-lg text-sm font-medium transition-colors ' + (tab === t ? 'text-[var(--text)]' : 'text-[var(--hint)] hover:text-[var(--text-2)]')}
               >
                 {tab === t && (
-                  <motion.span layoutId="web-cat-tab" className="absolute inset-0 rounded-lg bg-[var(--bg3)]" transition={{ duration: 0.25, ease: EASE }} />
+                  <m.span layoutId="web-cat-tab" className="absolute inset-0 rounded-lg bg-[var(--bg3)]" transition={{ duration: 0.25, ease: EASE }} />
                 )}
                 <span className="relative">{t === 'game' ? 'Игры' : 'Сервисы'}</span>
               </button>
@@ -225,7 +225,7 @@ function Cashback() {
             {levels.map((lv, i) => (
               <div key={lv.name} className="flex-1 min-w-0 flex flex-col items-center justify-end gap-2 h-full" title={`${lv.name}: от ${lv.min_spent.toLocaleString('ru')} ₽ в месяц`}>
                 <span className="text-[11px] num text-[var(--text-2)]">{lv.cashback_percent}%</span>
-                <motion.div
+                <m.div
                   className="w-full rounded-md"
                   style={{ background: lv.color_hex, transformOrigin: 'bottom', height: `${(lv.cashback_percent / max.cashback_percent) * 128}px` }}
                   initial={isIntro() ? { scaleY: 0 } : false}
@@ -319,7 +319,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
       </button>
       <AnimatePresence initial={false}>
         {open && (
-          <motion.div
+          <m.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
@@ -327,7 +327,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
             className="overflow-hidden"
           >
             <p className="px-5 pb-5 text-sm text-[var(--text-2)] leading-relaxed max-w-2xl">{a}</p>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

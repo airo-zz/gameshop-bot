@@ -1,4 +1,5 @@
 // src/main.tsx
+import { LazyMotion } from 'framer-motion'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -60,6 +61,7 @@ if (!isWeb) {
 // Рендерим только ПОСЛЕ загрузки чанка: до этого в #root остаётся готовый HTML
 // с сервера (SEO-версия страницы) или сплэш — без мигания пустым экраном.
 const loadRoot = isWeb ? import('@/web/WebApp') : import('./App')
+const loadMotionFeatures = () => import('./motionFeatures').then((r) => r.default)
 
 loadRoot.then(({ default: RootApp }) => {
   // Сигнал для SEO-страниц: сайт загрузился, текст для роботов можно не показывать
@@ -67,7 +69,10 @@ loadRoot.then(({ default: RootApp }) => {
   ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
       <QueryClientProvider client={queryClient}>
-        <RootApp />
+        {/* Лёгкие m.* компоненты; возможности анимаций — отдельным чанком после отрисовки */}
+        <LazyMotion features={loadMotionFeatures}>
+          <RootApp />
+        </LazyMotion>
       </QueryClientProvider>
     </React.StrictMode>
   )

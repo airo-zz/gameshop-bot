@@ -6,7 +6,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
 import { Menu, X, LogOut, ShoppingCart, Wallet, User } from '@/components/ui/icons'
 import { SHOP_NAME, MINIAPP_URL, SITE_URL } from '@/config/appTarget'
 import ChatWidget from '@/web/chat/ChatWidget'
@@ -191,7 +191,7 @@ export default function WebLayout() {
 
         <AnimatePresence initial={false}>
           {menuOpen && (
-            <motion.div
+            <m.div
               key="mobile-menu"
               className="md:hidden overflow-hidden border-t border-[var(--border)]"
               style={{ background: 'var(--bg)' }}
@@ -210,13 +210,13 @@ export default function WebLayout() {
                 )}
                 <AuthArea onNavigate={() => setMenuOpen(false)} />
               </div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
       </header>
 
       {/* ── Content ────────────────────────────────────────────────────────── */}
-      <motion.main
+      <m.main
         className="flex-1 min-h-[calc(100dvh-64px)]"
         key={pageKey}
         initial={reduce || !isIntro() ? false : { opacity: 0 }}
@@ -224,7 +224,7 @@ export default function WebLayout() {
         transition={{ duration: 0.25, ease: 'easeOut' }}
       >
         <Outlet />
-      </motion.main>
+      </m.main>
 
       <ChatWidget />
       <CookieBanner />
