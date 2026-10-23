@@ -104,20 +104,17 @@ def game_seo(game, cat_names: list[str], min_price: Decimal | float | None,
     main = _lower_first(accusative(names[0])) if names else "внутриигровую валюту"
     what = ", ".join(_lower_first(n) for n in names[:3]) or "внутриигровая валюта и наборы"
     al = aliases(game)
-    price = f" от {money(min_price)}" if min_price else ""
     service = getattr(game, "type", "game") == "service"
 
-    title = (game.seo_title or "").strip() or _fit(
-        f"Донат {name} — купить {main}{price} | {BRAND}",
-        f"Донат {name} — купить {main} | {BRAND}",
-        f"Донат {name}{price} | {BRAND}",
-        f"Донат {name} | {BRAND}",
-    )
+    # Короткий заголовок как у маркетплейсов («Донат Raid: Shadow Legends»):
+    # название сайта Google показывает отдельно, над результатом
+    title = (game.seo_title or "").strip() or (f"Пополнение {name}" if service else f"Донат {name}")
     cashback = f", кэшбэк до {top_cashback:g}% на баланс" if top_cashback else ""
+    also = f" ({', '.join(al[:2])})" if al else ""
     description = (game.seo_description or "").strip() or (
-        f"{'Пополнение' if service else 'Донат в'} {name}"
-        + (f" ({', '.join(al[:2])})" if al else "")
-        + f": {what}. "
+        (f"Здесь вы можете пополнить {name}{also} по выгодной цене: {what} и другое. "
+         if service else
+         f"Здесь вы можете купить донат для {name}{also} по выгодной цене: {what} и другое. ")
         + (f"Цены от {money(min_price)}. " if min_price else "")
         + f"Оплата через СБП, банковской картой или криптовалютой{cashback}."
     )[:320]
@@ -151,15 +148,10 @@ def category_seo(game, cat, min_price: Decimal | float | None, has_auto: bool) -
     lc = _lower_first(accusative(cname))
     # «Discord Nitro» в игре Discord — не повторяем название игры
     suffix = "" if name.lower() in cname.lower() else f" {name}"
-    price = f" от {money(min_price)}" if min_price else ""
-    title = _fit(
-        f"Купить {lc}{suffix}{price} | {BRAND}",
-        f"Купить {lc}{suffix} | {BRAND}",
-        f"{cname}{suffix} | {BRAND}",
-    )
+    title = _fit(f"Купить {lc}{suffix}", f"{cname}{suffix}")
     description = (
-        f"{cname}{'' if not suffix else ' для ' + name}"
-        + (f" — цены от {money(min_price)}" if min_price else "")
+        f"Здесь вы можете купить {lc}{'' if not suffix else ' для ' + name} по выгодной цене"
+        + (f" — от {money(min_price)}" if min_price else "")
         + ". Оплата через СБП, банковской картой или криптовалютой, кэшбэк на баланс."
     )[:320]
     speed = ("Сразу после оплаты, если у позиции автовыдача; остальные заказы оператор "

@@ -3,13 +3,15 @@
  * Клиентская часть SEO сайта.
  *  • usePageMeta — title / description / canonical при переходах внутри SPA
  *    (первую загрузку отдаёт сервер с готовыми метаданными: api/routers/seo.py).
+ *    Пока title не известен (тексты страницы грузятся) — ничего не трогаем:
+ *    иначе Google, рендеря страницу, запомнит заголовок по умолчанию.
  *  • initMetrika / trackPageView — Яндекс.Метрика, если задан VITE_YM_ID.
  */
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 
 const SITE = 'https://redonate.gg'
-const DEFAULT_TITLE = 'reDonate — пополнение игр и цифровых сервисов'
+export const DEFAULT_TITLE = 'reDonate — пополнение игр и цифровых сервисов'
 const DEFAULT_DESCRIPTION =
   'Пополнение игровой валюты и цифровых сервисов. Оплата через СБП, банковской картой или криптовалютой. Автоматическая выдача заказов и поддержка операторов.'
 
@@ -19,10 +21,15 @@ function setMeta(selector: string, attr: 'content' | 'href', value: string, crea
   el.setAttribute(attr, value)
 }
 
-export function usePageMeta({ title, description }: { title?: string; description?: string }) {
+export function usePageMeta({ title, description, exact = false }: {
+  title?: string; description?: string
+  /** title уже готовый (с сервера) — не добавлять «| reDonate» */
+  exact?: boolean
+}) {
   const { pathname } = useLocation()
   useEffect(() => {
-    const fullTitle = title ? (title.includes('| reDonate') ? title : `${title} | reDonate`) : DEFAULT_TITLE
+    if (!title) return
+    const fullTitle = exact || title.includes('| reDonate') ? title : `${title} | reDonate`
     const desc = description ?? DEFAULT_DESCRIPTION
     document.title = fullTitle
     setMeta('meta[name="description"]', 'content', desc, () => Object.assign(document.createElement('meta'), { name: 'description' }))
@@ -34,7 +41,7 @@ export function usePageMeta({ title, description }: { title?: string; descriptio
     })
     setMeta('link[rel="canonical"]', 'href', SITE + (pathname === '/' ? '/' : pathname.replace(/\/$/, '')), () =>
       Object.assign(document.createElement('link'), { rel: 'canonical' }))
-  }, [title, description, pathname])
+  }, [title, description, exact, pathname])
 }
 
 // ── Яндекс.Метрика ────────────────────────────────────────────────────────────

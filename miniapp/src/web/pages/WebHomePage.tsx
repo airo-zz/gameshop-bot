@@ -18,7 +18,7 @@ import GameCard from '@/web/components/GameCard'
 import GameSearch from '@/web/components/GameSearch'
 import RequestCta from '@/web/components/RequestCta'
 import { EASE, Reveal, Stagger, StaggerItem } from '@/web/components/Motion'
-import { usePageMeta } from '@/web/seo'
+import { DEFAULT_TITLE, usePageMeta } from '@/web/seo'
 import { prefetchGame } from '@/web/prefetch'
 import { isIntro } from '@/web/intro'
 
@@ -355,7 +355,7 @@ function FaqSection() {
 // ── Страница ──────────────────────────────────────────────────────────────────
 
 export default function WebHomePage() {
-  usePageMeta({})
+  usePageMeta({ title: DEFAULT_TITLE, exact: true })
   const { data: all = [], isLoading, isError } = useQuery({
     queryKey: ['web', 'games', 'all'],
     queryFn: () => catalogApi.getGames(),

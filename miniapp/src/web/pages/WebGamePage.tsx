@@ -282,7 +282,7 @@ export default function WebGamePage() {
     staleTime: 10 * 60_000,
     retry: false,
   })
-  usePageMeta({ title: seo?.title, description: seo?.description })
+  usePageMeta({ title: seo?.title, description: seo?.description, exact: true })
   // Тот же H1, что даст сервер, — чтобы заголовок не менялся после загрузки текстов
   const fallbackH1 = catSlug && currentRoot
     ? `${currentRoot.name.replace(/^[^\p{L}\p{N}]+/u, '').trim()} ${gameName}`
