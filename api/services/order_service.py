@@ -559,6 +559,23 @@ class OrderService:
                     "Не удалось поставить задачу автовыдачи Fragment: %s", exc
                 )
 
+        # Позиции, привязанные к FazerCards (Product.meta["fazer"]) — тоже в воркере:
+        # покупка у поставщика + ожидание статуса до 150 с на номинал.
+        from api.services.fazer_service import is_fazer_product
+        if any(is_fazer_product(item.product) for item in items):
+            try:
+                from worker.main import celery_app
+                celery_app.send_task(
+                    "worker.tasks.fazer_tasks.deliver_fazer_order",
+                    args=[str(order.id)],
+                    countdown=5,  # дать вебхуку зафиксировать транзакцию
+                )
+            except Exception as exc:  # noqa: BLE001 — брокер недоступен: не рушим оплату
+                import logging
+                logging.getLogger(__name__).warning(
+                    "Не удалось поставить задачу автовыдачи FazerCards: %s", exc
+                )
+
         def _is_engine_item(it) -> bool:
             cat = getattr(it.product, "category", None)
             return getattr(cat, "auto_engine", None) in (

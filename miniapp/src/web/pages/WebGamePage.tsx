@@ -28,7 +28,7 @@ interface ProductCardProps {
   product: Product
   qty: number
   isAuthenticated: boolean
-  onAdd: (product: Product, inputData?: Record<string, string>) => void
+  onAdd: (product: Product, inputData?: Record<string, string>, quantity?: number) => void
   onDec: (product: Product) => void
   onRequireLogin: () => void
   singleAdd?: boolean // Telegram Premium — максимум 1 шт
@@ -40,11 +40,17 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
     ? Math.round((1 - Number(product.price) / Number(product.original_price!)) * 100)
     : 0
   const outOfStock = product.is_out_of_stock || (product.stock !== null && product.stock === 0)
-  const inputFields: InputField[] = product.input_fields ?? []
+  const allFields: InputField[] = product.input_fields ?? []
+  // Поле «Количество» — товар за единицу (Stars, сумма Steam): цена × количество
+  const qtyField = allFields.find((f) => f.type === 'quantity')
+  const inputFields = allFields.filter((f) => f.type !== 'quantity')
   const hasInputs = inputFields.length > 0
+  const minQty = Math.max(1, Number(qtyField?.min ?? 1))
 
   const [inputData, setInputData] = useState<Record<string, string>>({})
   const [showInputs, setShowInputs] = useState(false)
+  const [units, setUnits] = useState(String(minQty))
+  const unitsNum = Math.max(minQty, Math.floor(Number(units) || 0))
 
   const missingRequired = inputFields.some((f) => f.required && !(inputData[f.key] ?? '').trim())
 
@@ -52,7 +58,8 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
     if (!isAuthenticated) { onRequireLogin(); return }
     if (hasInputs && !showInputs && qty === 0) { setShowInputs(true); return }
     if (missingRequired) { toast.error('Заполните обязательные поля'); return }
-    onAdd(product, hasInputs ? inputData : undefined)
+    if (qtyField && Number(units) < minQty) { toast.error(`Минимум ${minQty} ${qtyField.unit || 'шт'}`); return }
+    onAdd(product, hasInputs ? inputData : undefined, qtyField ? unitsNum : 1)
   }
 
   return (
@@ -111,11 +118,36 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
         </div>
       )}
 
+      {/* Количество для товара «за единицу» */}
+      {qtyField && !outOfStock && qty === 0 && (
+        <div>
+          <label className="block text-xs text-[var(--hint)] mb-1">
+            {qtyField.label || 'Количество'} · от {minQty} {qtyField.unit || 'шт'}
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="text" inputMode="numeric" value={units}
+              onChange={(e) => setUnits(e.target.value.replace(/\D/g, ''))}
+              onBlur={() => setUnits(String(unitsNum))}
+              className="w-28 h-10 bg-[var(--bg3)] border border-transparent rounded-xl px-3 text-sm text-[var(--text)] num focus:outline-none focus:border-[var(--accent)]"
+            />
+            <span className="text-sm text-[var(--text-2)] num">= {money(Number(product.price) * unitsNum)}</span>
+          </div>
+        </div>
+      )}
+
       {/* Действие */}
       <div className="mt-auto pt-1">
         {outOfStock ? (
           <div className="text-sm text-center h-10 flex items-center justify-center rounded-xl bg-[var(--bg3)] text-[var(--hint)]">
             Нет в наличии
+          </div>
+        ) : qty > 0 && qtyField ? (
+          <div className="flex items-center justify-between h-10 rounded-xl bg-[var(--bg3)] px-3">
+            <span className="text-sm font-semibold text-[var(--text)] num">{qty} {qtyField.unit || 'шт'} в корзине</span>
+            <button onClick={() => onDec(product)} className="text-xs text-[var(--hint)] hover:text-[var(--text)]">
+              Убрать
+            </button>
           </div>
         ) : qty > 0 ? (
           <div className="flex items-center justify-between h-10 rounded-xl bg-[var(--bg3)] px-1">
@@ -299,7 +331,7 @@ export default function WebGamePage() {
   const [tgFields, setTgFields] = useState<Record<string, string>>({})
   useEffect(() => { setTgFields({}) }, [currentCatId])
 
-  const handleAdd = async (product: Product, inputData?: Record<string, string>) => {
+  const handleAdd = async (product: Product, inputData?: Record<string, string>, quantity = 1) => {
     if (isPremium && products.some((p) => p.id !== product.id && (qtyByProduct.get(p.id) ?? 0) > 0)) {
       toast.error('В корзине уже есть вариант этой подписки — сначала удалите его')
       return
@@ -315,7 +347,7 @@ export default function WebGamePage() {
       data = { ...tgFields, ...(inputData ?? {}) }
     }
     try {
-      await add(product.id, data)
+      await add(product.id, data, quantity)
       toast.success('Добавлено в корзину')
     } catch (e: any) {
       toast.error(e?.response?.data?.detail ?? 'Не удалось добавить')
@@ -325,8 +357,10 @@ export default function WebGamePage() {
   const handleDec = async (product: Product) => {
     const item = cart?.items.find((i) => i.product_id === product.id)
     if (!item) return
+    // Товар «за единицу» (Stars, сумма Steam) — убираем позицию целиком, а не по 1 ед.
+    const perUnit = (product.input_fields ?? []).some((f) => f.type === 'quantity')
     try {
-      await setQty(item.id, item.quantity - 1)
+      await setQty(item.id, perUnit ? 0 : item.quantity - 1)
     } catch (e: any) {
       toast.error(e?.response?.data?.detail ?? 'Не удалось изменить количество')
     }

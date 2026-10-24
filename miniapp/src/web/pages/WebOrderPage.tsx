@@ -118,13 +118,29 @@ export default function WebOrderPage() {
             {item.instruction && (
               <p className="text-xs text-[var(--hint)] mt-2 whitespace-pre-wrap">{item.instruction}</p>
             )}
-            {item.delivery_data && Object.keys(item.delivery_data).length > 0 && (
-              <div className="mt-2 rounded-lg bg-[var(--bg2)] border border-[var(--border)] p-2.5 space-y-1">
-                {Object.entries(item.delivery_data).map(([k, v]) => (
-                  <div key={k} className="text-xs text-[var(--text-2)] break-all"><span className="text-[var(--hint)]">{k}:</span> {String(v)}</div>
-                ))}
-              </div>
-            )}
+            {item.delivery_data && Object.keys(item.delivery_data).length > 0 && (() => {
+              const dd = item.delivery_data as { keys?: unknown; message?: unknown }
+              const keys = Array.isArray(dd.keys) ? dd.keys.map(String) : []
+              return (
+                <div className="mt-2 rounded-lg bg-[var(--bg2)] border border-[var(--border)] p-2.5 space-y-1.5">
+                  {keys.map((key, idx) => (
+                    <div key={idx} className="flex items-center justify-between gap-2">
+                      <code className="text-xs text-[var(--text)] break-all select-all">{key}</code>
+                      <button
+                        type="button"
+                        onClick={() => navigator.clipboard?.writeText(key).then(() => toast.success('Скопировано'), () => undefined)}
+                        className="shrink-0 text-[11px] text-[var(--hint)] hover:text-[var(--text)]"
+                      >
+                        Копировать
+                      </button>
+                    </div>
+                  ))}
+                  {keys.length === 0 && typeof dd.message === 'string' && (
+                    <p className="text-xs text-[var(--text-2)] whitespace-pre-wrap">{dd.message}</p>
+                  )}
+                </div>
+              )
+            })()}
           </div>
         ))}
 

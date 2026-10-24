@@ -209,7 +209,7 @@ async def _post_results(db, order_id, results: list[tuple[bool, str]]) -> None:
         logger.warning("fragment: не удалось запостить результат в чат: %s", exc)
 
 
-async def _finalize_if_complete(order_id: str) -> None:
+async def _finalize_if_complete(order_id: str, reason: str = "Автовыдача Fragment") -> None:
     """Если все авто-позиции выданы и нет ручных — завершает заказ (paid→completed)."""
     from sqlalchemy import select
     from sqlalchemy.orm import selectinload
@@ -258,7 +258,7 @@ async def _finalize_if_complete(order_id: str) -> None:
         try:
             await svc.change_status(
                 order, OrderStatus.completed,
-                changed_by_type="system", reason="Автовыдача Fragment",
+                changed_by_type="system", reason=reason,
             )
             await db.commit()
         except Exception as exc:  # noqa: BLE001

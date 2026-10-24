@@ -13,6 +13,10 @@ from sqlalchemy.orm import selectinload
 from shared.config import settings
 from shared.models import Cart, CartItem, Product, User
 
+# Пределы количества в позиции корзины
+MAX_PIECES = 99            # обычный товар — штуки
+MAX_UNITS = 1_000_000      # товар «за единицу» (Stars, сумма пополнения Steam)
+
 
 class CartService:
     def __init__(self, db: AsyncSession):
@@ -47,6 +51,13 @@ class CartService:
         )
         return result.scalar_one_or_none()
 
+    @staticmethod
+    def _max_quantity(product: Product) -> int:
+        """Товар «за единицу» (поле «Количество»: Stars, сумма Steam) — количество =
+        число единиц, до MAX_UNITS. Обычный товар — штуки, до MAX_PIECES."""
+        from api.services.pricing import has_quantity_field
+        return MAX_UNITS if has_quantity_field(product.input_fields) else MAX_PIECES
+
     async def add_item(
         self,
         cart: Cart,
@@ -77,6 +88,10 @@ class CartService:
             (item for item in cart.items if item.product_id == product_id),
             None,
         )
+
+        limit = self._max_quantity(product)
+        if (existing.quantity if existing else 0) + quantity > limit:
+            raise ValueError(f"Слишком большое количество (максимум {limit})")
 
         if existing:
             existing.quantity += quantity
@@ -113,6 +128,10 @@ class CartService:
         if quantity == 0:
             await self.db.delete(item)
             return None
+
+        product = await self.db.get(Product, item.product_id)
+        if product is not None and quantity > self._max_quantity(product):
+            raise ValueError(f"Слишком большое количество (максимум {self._max_quantity(product)})")
 
         item.quantity = quantity
         self._extend_cart_expiry(cart)

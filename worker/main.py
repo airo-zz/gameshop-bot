@@ -27,6 +27,7 @@ celery_app = Celery(
         "worker.tasks.chat_notifications",
         "worker.tasks.pricing_tasks",
         "worker.tasks.fulfillment_tasks",
+        "worker.tasks.fazer_tasks",
         "worker.tasks.review_tasks",
         "worker.tasks.integrity_tasks",
     ],
@@ -79,5 +80,10 @@ celery_app.conf.beat_schedule = {
     "sync-ggsel-reviews": {
         "task": "worker.tasks.review_tasks.sync_ggsel_reviews",
         "schedule": crontab(minute=20, hour="*/3"),
+    },
+    # Каждые 5 минут — FazerCards: баланс и досмотр выданных заказов (возвраты)
+    "watch-fazer": {
+        "task": "worker.tasks.fazer_tasks.watch_fazer",
+        "schedule": crontab(minute="*/5"),
     },
 }

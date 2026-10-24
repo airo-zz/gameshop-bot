@@ -26,6 +26,7 @@ import {
   Upload,
   Check,
   Settings,
+  Zap,
 } from '@/components/ui/icons'
 import {
   DndContext,
@@ -48,6 +49,7 @@ import SortableRow from '@/components/admin/SortableRow'
 import GgselImportModal from '@/pages/admin/GgselImportModal'
 import ProductEditModal from '@/pages/admin/ProductEditModal'
 import CategoryEditModal from '@/pages/admin/CategoryEditModal'
+import FazerImportModal from '@/pages/admin/FazerImportModal'
 import toast from 'react-hot-toast'
 
 type Step = 'games' | 'workspace'
@@ -354,6 +356,7 @@ interface CategorySectionProps {
   onEditProduct: (productId: string) => void
   onReloadCategory: () => void
   onEditCategory: () => void
+  onOpenFazer: () => void
 }
 
 function CategorySection({
@@ -369,6 +372,7 @@ function CategorySection({
   onEditProduct,
   onReloadCategory,
   onEditCategory,
+  onOpenFazer,
 }: CategorySectionProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [togglingId, setTogglingId] = useState<string | null>(null)
@@ -538,6 +542,14 @@ function CategorySection({
             </button>
             <button
               type="button"
+              onClick={onOpenFazer}
+              className="shrink-0 p-1.5 rounded-lg text-[var(--hint)] bg-[var(--bg2)] border border-[var(--border)] hover:text-[var(--link)] transition-all"
+              title="Добавить товары из FazerCards (автовыдача)"
+            >
+              <Zap size={13} />
+            </button>
+            <button
+              type="button"
               onClick={onOpenBulkPrice}
               className="shrink-0 p-1.5 rounded-lg text-[var(--hint)] bg-[var(--bg2)] border border-[var(--border)] hover:text-[var(--text-2)] transition-all"
               title="Изменить цены в категории"
@@ -571,9 +583,18 @@ function CategorySection({
                           onClick={() => onEditProduct(product.id)}
                         >
                           <div className="text-sm text-[var(--text)] truncate">{product.name}</div>
-                          <div className="text-xs text-[var(--hint)]">
-                            {product.delivery_type}
-                            {product.stock !== null && ` · склад: ${product.stock}`}
+                          <div className="text-xs text-[var(--hint)] flex items-center gap-1.5 min-w-0">
+                            {product.meta?.fazer ? (
+                              <span
+                                className="inline-flex items-center gap-0.5 text-[var(--link)] shrink-0"
+                                title={`FazerCards: ${product.meta.fazer.category_name ?? ''} ${(product.meta.fazer.offer_names ?? []).join(' + ')}`}
+                              >
+                                <Zap size={11} /> FazerCards
+                              </span>
+                            ) : (
+                              <span>{product.delivery_type}</span>
+                            )}
+                            {product.stock !== null && <span>· склад: {product.stock}</span>}
                           </div>
                         </div>
                         <div className="text-sm font-semibold text-[var(--text)] shrink-0 mr-0.5">
@@ -652,6 +673,7 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
   const [showImport, setShowImport] = useState(false)
   const [editor, setEditor] = useState<{ productId: string; categoryId: string } | null>(null)
   const [editCat, setEditCat] = useState<AdminCategory | null>(null)
+  const [fazerCat, setFazerCat] = useState<AdminCategory | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -834,6 +856,7 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
                         onEditProduct={(productId) => setEditor({ productId, categoryId: cat.id })}
                         onReloadCategory={() => reloadCategory(cat.id)}
                         onEditCategory={() => setEditCat(cat)}
+                        onOpenFazer={() => setFazerCat(cat)}
                       />
                     </SortableRow>
                   ))}
@@ -891,6 +914,19 @@ function GameWorkspaceLevel({ game, onBack }: GameWorkspaceLevelProps) {
           onSaved={(updated) => {
             reloadCategory(editor.categoryId)
             if (updated.category_id !== editor.categoryId) reloadCategory(updated.category_id)
+          }}
+        />
+      )}
+
+      {fazerCat && (
+        <FazerImportModal
+          category={fazerCat}
+          onClose={() => setFazerCat(null)}
+          onDone={() => {
+            reloadCategory(fazerCat.id)
+            setExpanded(prev => new Set(prev).add(fazerCat.id))
+            // поля покупателя категории могли обновиться
+            adminApi.getCategories(game.id).then(setCategories).catch(() => undefined)
           }}
         />
       )}

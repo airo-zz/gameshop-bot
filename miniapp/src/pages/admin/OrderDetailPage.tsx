@@ -12,6 +12,7 @@ import type { AdminOrderDetail } from '@/api/admin'
 import toast from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
 import { ADMIN_COLORS } from './OrdersPage'
+import FazerItemPanel from './FazerItemPanel'
 
 const STATUS_LABELS: Record<string, string> = {
   new:             'Новый',
@@ -71,6 +72,17 @@ export default function OrderDetailPage() {
   const [deleting, setDeleting] = useState(false)
   const [notifying, setNotifying] = useState(false)
   const [claiming, setClaiming] = useState(false)
+
+  // Перечитать заказ (после повтора выдачи FazerCards — с задержкой на работу воркера)
+  const refreshOrder = () => {
+    if (!id) return
+    adminApi.getOrder(id).then(setOrder).catch(() => undefined)
+  }
+  const refreshLater = () => {
+    refreshOrder()
+    setTimeout(refreshOrder, 15_000)
+    setTimeout(refreshOrder, 60_000)
+  }
 
   useEffect(() => {
     if (!id) return
@@ -305,6 +317,9 @@ export default function OrderDetailPage() {
       <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-3">
         <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider">Позиции</h2>
         {order.items.map((item) => {
+          const orderFields = Object.values((order.input_data ?? {}) as Record<string, { fields?: { key: string; label: string; value: string }[] }>)
+            .flatMap((g) => g?.fields ?? [])
+            .map((f) => ({ key: f.key, label: f.label || f.key, value: String(f.value ?? '') }))
           const fields = item.input_data
             ? Object.entries(item.input_data).filter(([, v]) => v !== null && v !== '' && v !== undefined)
             : []
@@ -343,6 +358,7 @@ export default function OrderDetailPage() {
                   ))}
                 </div>
               )}
+              <FazerItemPanel item={item} orderStatus={order.status} orderFields={orderFields} onRequeued={refreshLater} />
             </div>
           )
         })}

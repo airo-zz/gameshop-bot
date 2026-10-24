@@ -257,9 +257,11 @@ export default function OrderDetailPage() {
                         </button>
                       </div>
                     ))
-                  : <p className="text-xs" style={{ color: 'var(--text)' }}>
-                      {JSON.stringify(item.delivery_data)}
-                    </p>
+                  : (item.delivery_data as any).message
+                    ? <p className="text-xs whitespace-pre-wrap" style={{ color: 'var(--text)' }}>
+                        {String((item.delivery_data as any).message)}
+                      </p>
+                    : null
                 }
               </div>
             )}

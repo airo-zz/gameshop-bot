@@ -329,6 +329,7 @@ class ProductListItem(BaseModel):
     is_active: bool
     sort_order: int
     created_at: datetime
+    meta: dict[str, Any] = {}   # для пометки «FazerCards» в списке
 
 
 # ── Catalog — Reorder / BulkPrice ─────────────────────────────────────────────

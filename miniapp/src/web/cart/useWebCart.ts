@@ -22,8 +22,8 @@ export function useWebCart() {
 
   const refresh = () => qc.invalidateQueries({ queryKey: CART_KEY })
 
-  async function add(productId: string, inputData?: Record<string, string>) {
-    await cartApi.addItem({ product_id: productId, quantity: 1, input_data: inputData ?? {} })
+  async function add(productId: string, inputData?: Record<string, string>, quantity = 1) {
+    await cartApi.addItem({ product_id: productId, quantity, input_data: inputData ?? {} })
     await refresh()
   }
 

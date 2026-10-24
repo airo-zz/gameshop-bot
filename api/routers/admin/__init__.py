@@ -15,6 +15,7 @@ from . import (
     content,
     dashboard,
     discounts,
+    fazer,
     orders,
     reviews,
     session_auth,
@@ -39,5 +40,6 @@ router.include_router(catalog.router, prefix="/catalog", tags=["Admin Catalog"])
 router.include_router(discounts.router, prefix="/discounts", tags=["Admin Discounts"])
 router.include_router(support.router, prefix="/support", tags=["Admin Support"])
 router.include_router(settings.router, prefix="/settings", tags=["Admin Settings"])
+router.include_router(fazer.router, prefix="/fazer", tags=["Admin FazerCards"])
 router.include_router(chats.router, prefix="/chats", tags=["Admin Chats"])
 router.include_router(reviews.router, prefix="/reviews", tags=["Admin Reviews"])

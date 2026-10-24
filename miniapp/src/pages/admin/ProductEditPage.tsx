@@ -10,8 +10,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, AlertCircle, Save, ExternalLink, Copy, Plus, Trash2, X } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
-import { adminApi } from '@/api/admin'
-import type { AdminGame, AdminCategory, AdminProductDetail, PricingSettings } from '@/api/admin'
+import { adminApi, fazerApi } from '@/api/admin'
+import { useTelegram } from '@/hooks/useTelegram'
+import type { AdminGame, AdminCategory, AdminProductDetail, PricingSettings, FazerMapping } from '@/api/admin'
 
 /** Округление ₽ «в 9» — зеркало backend (api/services/pricing.py). */
 function roundToNine(amount: number): number {
@@ -203,6 +204,7 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
   const isModal = !!props.onClose
   const id = props.modalId ?? routeId
   const isNew = id === 'new'
+  const { showConfirm } = useTelegram()
   const presetCategoryId = isNew ? (props.modalCategoryId ?? searchParams.get('category_id')) : null
 
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
@@ -738,7 +740,42 @@ export default function ProductEditPage(props: ProductEditPageProps = {}) {
               </option>
             ))}
           </select>
-          {form.delivery_type === 'auto_external' && (
+          {(() => {
+            const fz = existingMeta.fazer as FazerMapping | undefined
+            if (!fz || isNew) return null
+            const kindLabel = fz.kind === 'giftcard' ? 'гифт-карта (код)' : fz.kind === 'steam_topup' ? `Steam по логину, ${fz.currency ?? 'USD'}` : 'пополнение по ID'
+            return (
+              <div className="mt-2 rounded-xl border border-[var(--border)] bg-[var(--bg3)] p-3 text-xs space-y-1">
+                <p className="font-semibold text-[var(--link)]">Выдаётся через FazerCards</p>
+                <p className="text-[var(--text-2)]">
+                  {kindLabel}{fz.category_name ? ` · ${fz.category_name}` : ''}
+                  {fz.offer_names?.length ? ` · ${fz.offer_names.join(' + ')}` : ''}
+                </p>
+                {fz.cost_usd != null && <p className="text-[var(--hint)]">Себестоимость при добавлении: ${fz.cost_usd}</p>}
+                {form.delivery_type !== 'auto_external' && (
+                  <p className="text-amber-300">Тип доставки не «без ключей» — автовыдача Fazer для товара выключена.</p>
+                )}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    if (!await showConfirm('Отвязать товар от FazerCards? Он станет с ручной выдачей.')) return
+                    try {
+                      const r = await fazerApi.link(id!, null)
+                      setExistingMeta(r.meta)
+                      setField('delivery_type', 'manual')
+                      toast.success('Товар отвязан от FazerCards')
+                    } catch {
+                      toast.error('Не удалось отвязать')
+                    }
+                  }}
+                  className="text-red-400 hover:text-red-300 font-medium"
+                >
+                  Отвязать от FazerCards
+                </button>
+              </div>
+            )
+          })()}
+          {form.delivery_type === 'auto_external' && !existingMeta.fazer && (
             <p className="text-xs text-emerald-400/80 mt-1.5">
               Внешняя выдача — пул ключей не нужен. Товар выдаётся через движок/API
               (напр. Telegram Stars или пополнение по ID), настроенный на уровне категории/интеграции.

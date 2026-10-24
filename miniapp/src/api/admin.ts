@@ -245,6 +245,7 @@ export interface AdminProductListItem {
   is_active: boolean
   sort_order: number
   created_at: string
+  meta?: { fazer?: FazerMapping } & Record<string, unknown>
 }
 
 export interface AdminProductDetail {
@@ -910,4 +911,100 @@ export const adminWorkspaceApi = {
     apiClient.get<{ total: number; items: AuditItem[] }>('/admin/audit', { params }).then(r => r.data),
   auditActions: () =>
     apiClient.get<{ action: string; label: string; count: number }[]>('/admin/audit/actions').then(r => r.data),
+}
+
+// ── FazerCards (автовыдача пополнений, гифт-карт и Steam) ─────────────────────
+
+export type FazerKind = 'topup' | 'giftcard' | 'steam_topup'
+
+/** Привязка товара к FazerCards — Product.meta.fazer */
+export interface FazerMapping {
+  kind: FazerKind
+  category_id?: string
+  category_name?: string
+  offer_ids?: string[]
+  card_ids?: string[]
+  offer_names?: string[]
+  cost_usd?: number
+  validate?: boolean
+  currency?: string
+  steam_amount?: number
+}
+
+export interface FazerOverview {
+  enabled: boolean
+  api_key_set: boolean
+  api_key_masked: string
+  low_balance: number
+  balance: number | null
+  balance_at: string | null
+  error: string
+  profile: { login?: string; plan?: string; planExpiresAt?: string; subscriptionActive?: boolean } | null
+}
+
+export interface FazerGame {
+  category_id: string
+  name: string
+  validate: boolean
+}
+
+export interface FazerOffer {
+  id: string
+  name: string
+  price_usd: number
+  stock: number | null
+}
+
+export interface FazerField {
+  key: string
+  label?: string
+  type?: string
+  options?: Record<string, unknown>[]
+}
+
+export interface FazerGameDetails {
+  category_id: string
+  name: string
+  note: string
+  offers: FazerOffer[]
+  fields: FazerField[]
+  validate: boolean
+}
+
+/** Результат выдачи в OrderItem.delivery_data.fazer */
+export interface FazerDeliveryInfo {
+  attempt?: number
+  kind?: FazerKind
+  state?: 'ok' | 'pending' | 'fail' | 'refunded' | 'queued'
+  detail?: string
+  cost_usd?: number | null
+  orders?: { id: string; state: string; status: string }[]
+  at?: string
+}
+
+export const fazerApi = {
+  overview: () => apiClient.get<FazerOverview>('/admin/fazer/overview').then(r => r.data),
+  updateConfig: (data: { enabled?: boolean; api_key?: string; low_balance?: number }) =>
+    apiClient.patch<FazerOverview>('/admin/fazer/config', data).then(r => r.data),
+  games: (kind: 'topup' | 'giftcard', q: string) =>
+    apiClient.get<{ total: number; found: number; items: FazerGame[] }>('/admin/fazer/games', { params: { kind, q } }).then(r => r.data),
+  game: (kind: 'topup' | 'giftcard', category_id: string, fresh = false) =>
+    apiClient.get<FazerGameDetails>('/admin/fazer/game', { params: { kind, category_id, fresh } }).then(r => r.data),
+  steamRates: () =>
+    apiClient.get<{ base: string; rates: Record<string, number>; updated_at: string }>('/admin/fazer/steam-rates').then(r => r.data),
+  importOffers: (data: {
+    category_id: string
+    kind: 'topup' | 'giftcard'
+    fazer_category_id: string
+    offer_ids: string[]
+    margin_percent: number
+    apply_fields: boolean
+    validate_id: boolean
+  }) => apiClient.post<{ created: number; fields_set: boolean; product_ids: string[] }>('/admin/fazer/import', data).then(r => r.data),
+  importSteam: (data: { category_id: string; currency: string; margin_percent: number; name?: string; min_amount: number }) =>
+    apiClient.post<{ created: number }>('/admin/fazer/import-steam', data).then(r => r.data),
+  link: (productId: string, mapping: FazerMapping | null) =>
+    apiClient.put<{ meta: Record<string, unknown>; delivery_type: string }>(`/admin/fazer/products/${productId}/link`, { mapping }).then(r => r.data),
+  redeliver: (itemId: string, fields: Record<string, string>) =>
+    apiClient.post<{ ok: boolean }>(`/admin/fazer/order-items/${itemId}/redeliver`, { fields }).then(r => r.data),
 }

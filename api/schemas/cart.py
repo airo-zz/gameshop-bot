@@ -18,13 +18,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 class AddToCartRequest(BaseModel):
     product_id: uuid.UUID
-    quantity: int = Field(1, ge=1, le=99)
+    # Предел зависит от товара (штуки ≤ 99, «за единицу» — больше), проверяет CartService
+    quantity: int = Field(1, ge=1, le=1_000_000)
     input_data: dict = Field(default_factory=dict)
     # {"game_id": "123", "server": "EU"} — все поля необязательны
 
 
 class UpdateCartItemRequest(BaseModel):
-    quantity: int = Field(..., ge=0, le=99)
+    quantity: int = Field(..., ge=0, le=1_000_000)
     # 0 = удалить
 
 
@@ -77,6 +78,12 @@ class CreateOrderRequest(BaseModel):
     input_data: dict[str, dict[str, str]] = Field(default_factory=dict)
 
 
+# Покупателю — только то, что ему выдано: коды/ключи и сообщение. Служебные
+# результаты движков (fragment/fazer: себестоимость, id заказов поставщика,
+# технические детали) остаются только в админке.
+PUBLIC_DELIVERY_KEYS = ("keys", "message")
+
+
 class OrderItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -91,6 +98,13 @@ class OrderItemOut(BaseModel):
     delivery_data: dict
     delivered_at: datetime | None
     instruction: str | None = None
+
+    @field_validator("delivery_data", mode="before")
+    @classmethod
+    def _public_delivery(cls, v):
+        if not isinstance(v, dict):
+            return {}
+        return {k: v[k] for k in PUBLIC_DELIVERY_KEYS if v.get(k) not in (None, "", [])}
 
 
 class OrderOut(BaseModel):

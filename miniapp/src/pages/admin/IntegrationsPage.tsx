@@ -10,6 +10,7 @@ import { Zap } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
 import type { IntegrationsSettings } from '@/api/admin'
+import FazerSettingsCard from '@/pages/admin/FazerSettingsCard'
 
 const inputCls =
   'w-full bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:border-[var(--accent)]'
@@ -81,7 +82,7 @@ export default function IntegrationsPage() {
         </div>
         <div>
           <h1 className="text-lg font-bold text-[var(--text)]">Интеграции</h1>
-          <p className="text-xs text-[var(--hint)]">Fragment — автопополнение Telegram Stars / Premium</p>
+          <p className="text-xs text-[var(--hint)]">Автовыдача: Fragment (Stars / Premium) и FazerCards</p>
         </div>
       </div>
 
@@ -89,7 +90,7 @@ export default function IntegrationsPage() {
         {/* Вкл/выкл */}
         <div className="flex items-center justify-between px-1">
           <div>
-            <p className="text-sm text-[var(--text)]">Автопополнение включено</p>
+            <p className="text-sm font-semibold text-[var(--text)]">Fragment</p>
             <p className="text-xs text-[var(--hint)] mt-0.5">Выдача Stars/Premium через Fragment</p>
           </div>
           <button
@@ -196,9 +197,7 @@ export default function IntegrationsPage() {
         </button>
       </div>
 
-      <p className="text-xs text-[var(--hint)]">
-        Движок выдачи (Fragment + TON-кошелёк) подключается отдельно. Пока это только хранение кредов.
-      </p>
+      <FazerSettingsCard />
     </div>
   )
 }
