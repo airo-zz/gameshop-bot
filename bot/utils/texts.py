@@ -216,8 +216,11 @@ class BotTexts:
         return (
             f"🎉 Заказ <b>{order_number}</b> выполнен!\n"
             f"Спасибо за покупку в {S.SHOP_NAME}!"
-            f"{delivery_text}"
+            f"{delivery_text}\n\n"
+            f"Будем благодарны за отзыв — это займёт полминуты."
         )
+
+    btn_leave_review = "Оставить отзыв"
 
     def order_cancelled(self, order_number: str, reason: str = "") -> str:
         reason_text = f"\n\nПричина: {escape(reason)}" if reason else ""

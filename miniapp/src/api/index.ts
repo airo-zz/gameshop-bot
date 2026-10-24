@@ -490,3 +490,46 @@ export const supportApi = {
   getByOrderId: (orderId: string) =>
     apiClient.get<Ticket>(`/support/by-order/${orderId}`).then(r => r.data),
 }
+
+// ── Reviews API ───────────────────────────────────────────────────────────────
+
+export interface Review {
+  id: string
+  source: 'site' | 'ggsel'
+  positive: boolean
+  text: string | null
+  reply: string | null
+  author: string
+  game_name: string | null
+  game_slug: string | null
+  game_image_url: string | null
+  product_name: string | null
+  created_at: string
+}
+
+export interface ReviewSummary {
+  total: number
+  positive: number
+  negative: number
+  percent: number
+}
+
+export type ReviewKind = 'all' | 'positive' | 'negative' | 'text'
+
+export interface ReviewList {
+  summary: ReviewSummary | null
+  items: Review[]
+  has_more: boolean
+}
+
+export const reviewsApi = {
+  /** Отзывы, новые сверху; summary — только при offset=0 */
+  list: (params: { game?: string; kind?: ReviewKind; offset?: number; limit?: number } = {}) =>
+    apiClient.get<ReviewList>('/reviews', { params }).then(r => r.data),
+
+  getForOrder: (orderId: string) =>
+    apiClient.get<{ can_review: boolean; review: Review | null }>(`/reviews/order/${orderId}`).then(r => r.data),
+
+  create: (orderId: string, data: { positive: boolean; text?: string }) =>
+    apiClient.post<Review>(`/reviews/order/${orderId}`, data).then(r => r.data),
+}

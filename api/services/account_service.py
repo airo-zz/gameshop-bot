@@ -156,7 +156,8 @@ async def merge_users(
     await db.execute(text(
         "DELETE FROM carts WHERE user_id = :s "
         "AND EXISTS (SELECT 1 FROM carts WHERE user_id = :t)"), p)
-    for table in ("user_favorites", "user_viewed_products", "reviews"):
+    # reviews не трогаем: отзыв уникален по заказу, заказы переносятся вместе с ним
+    for table in ("user_favorites", "user_viewed_products"):
         await db.execute(text(
             f"DELETE FROM {table} WHERE user_id = :s AND product_id IN "
             f"(SELECT product_id FROM {table} WHERE user_id = :t)"), p)

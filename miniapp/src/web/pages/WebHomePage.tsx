@@ -11,7 +11,8 @@ import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
 import {
   ChevronDown, ChevronRight, Smartphone, CreditCard, Bitcoin, Wallet, Zap, ShieldCheck, Headphones,
 } from '@/components/ui/icons'
-import { catalogApi, type Game, type TrendingCategory } from '@/api'
+import { catalogApi, reviewsApi, type Game, type TrendingCategory } from '@/api'
+import { ReviewCard, ReviewSummary } from '@/components/reviews/Reviews'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
 import GameCard from '@/web/components/GameCard'
@@ -197,6 +198,36 @@ function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean;
   )
 }
 
+// ── Отзывы ────────────────────────────────────────────────────────────────────
+
+function Reviews() {
+  // Свежие отзывы с текстом; сводка в ответе — по всем отзывам
+  const { data } = useQuery({
+    queryKey: ['reviews', 'home'],
+    queryFn: () => reviewsApi.list({ kind: 'text', limit: 6 }),
+    staleTime: 5 * 60_000,
+  })
+  if (!data?.items.length) return null
+  return (
+    <section className="web-container py-10 md:py-12">
+      <Reveal className="flex flex-wrap items-end justify-between gap-4 mb-6">
+        <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Отзывы</h2>
+        <Link to="/reviews" className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--link)] hover:text-[var(--text)] transition-colors">
+          Все отзывы <ChevronRight size={16} />
+        </Link>
+      </Reveal>
+      {data.summary && data.summary.total > 0 && (
+        <Reveal className="mb-4"><ReviewSummary summary={data.summary} /></Reveal>
+      )}
+      <Stagger className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {data.items.map((r) => (
+          <StaggerItem key={r.id} className="h-full"><ReviewCard review={r} gameHref={(slug) => `/game/${slug}`} clamp /></StaggerItem>
+        ))}
+      </Stagger>
+    </section>
+  )
+}
+
 // ── Кэшбэк ────────────────────────────────────────────────────────────────────
 
 function Cashback() {
@@ -372,6 +403,7 @@ export default function WebHomePage() {
       <Hero games={home?.hero ?? []} />
       <Popular trending={home?.popular ?? []} />
       <Catalog all={all} isLoading={isLoading} isError={isError} />
+      <Reviews />
       <Cashback />
       <HowItWorks />
       <FaqSection />

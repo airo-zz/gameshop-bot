@@ -27,6 +27,7 @@ celery_app = Celery(
         "worker.tasks.chat_notifications",
         "worker.tasks.pricing_tasks",
         "worker.tasks.fulfillment_tasks",
+        "worker.tasks.review_tasks",
     ],
 )
 
@@ -67,5 +68,10 @@ celery_app.conf.beat_schedule = {
     "refresh-usd-rate": {
         "task": "worker.tasks.pricing_tasks.refresh_usd_rate",
         "schedule": crontab(hour="6,18", minute=0),
+    },
+    # Каждые 3 часа — новые отзывы с GGSEL
+    "sync-ggsel-reviews": {
+        "task": "worker.tasks.review_tasks.sync_ggsel_reviews",
+        "schedule": crontab(minute=20, hour="*/3"),
     },
 }

@@ -146,16 +146,20 @@ PAGE_MODULES = {
     "home": "src/web/pages/WebHomePage.tsx",
     "catalog": "src/web/pages/WebCatalogPage.tsx",
     "cashback": "src/web/pages/WebCashbackPage.tsx",
+    "reviews": "src/web/pages/WebReviewsPage.tsx",
     "game": "src/web/pages/WebGamePage.tsx",
 }
 
-_NAV_ITEMS = [("Каталог", "/catalog"), ("Кэшбэк", "/cashback"), ("Как это работает", "/#how"), ("Вопросы", "/#faq")]
+_NAV_ITEMS = [("Каталог", "/catalog"), ("Кэшбэк", "/cashback"), ("Отзывы", "/reviews"),
+              ("Как это работает", "/#how"), ("Вопросы", "/#faq")]
+_NAV_WIDE_ONLY = {"/#how"}  # как wideOnly в WebLayout: в шапке только на 2xl
 
 
 def _shell(active: str | None, main_html: str = "") -> str:
     """Шапка сайта в той же вёрстке, что WebLayout (React нарисует её же — без подмены)."""
     links = "".join(
-        f'<a href="{href}" class="text-sm whitespace-nowrap transition-colors  '
+        f'<a href="{href}" class="text-sm whitespace-nowrap transition-colors '
+        + ("hidden 2xl:inline " if href in _NAV_WIDE_ONLY else " ")
         + ("text-[var(--text)]" if href == active else "text-[var(--text-2)] hover:text-[var(--text)]")
         + f'">{label}</a>'
         for label, href in _NAV_ITEMS
@@ -299,7 +303,7 @@ def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex
 def _nav() -> str:
     return (
         f'<header><a href="/">{BRAND}</a> · <a href="/catalog">Каталог</a> · '
-        '<a href="/cashback">Кэшбэк</a></header>'
+        '<a href="/cashback">Кэшбэк</a> · <a href="/reviews">Отзывы</a></header>'
     )
 
 
@@ -394,6 +398,7 @@ async def _home(db) -> tuple[int, str]:
     initial = await _data_common(db) + [
         (["web", "home-blocks"], await cat_api.get_home_blocks(db)),
         (["web", "loyalty"], await cat_api.get_loyalty_program(db)),
+        (["reviews", "home"], await _reviews_data(db, kind="text", limit=6)),
     ]
     from api.services.home_service import resolve_home
 
@@ -451,6 +456,44 @@ async def _cashback(db) -> tuple[int, str]:
 
     initial = await _data_common(db) + [(["web", "loyalty"], await cat_api.get_loyalty_program(db))]
     return 200, _render("/cashback", title, desc, body, ld, page="cashback", initial=initial, active="/cashback")
+
+
+REVIEWS_PAGE = 20
+
+
+async def _reviews_data(db, kind: str = "all", limit: int = REVIEWS_PAGE) -> dict:
+    """Тот же ответ, что GET /api/v1/reviews (api/routers/reviews.py)."""
+    from api.routers import reviews as rev_api
+
+    return (await rev_api.list_reviews(db, game=None, kind=kind, offset=0, limit=limit)).model_dump()
+
+
+async def _reviews(db) -> tuple[int, str]:
+    data = await _reviews_data(db)
+    sm = data["summary"] or {"total": 0, "positive": 0, "percent": 0}
+    items = "".join(
+        f"<li><b>{_e(r['author'])}</b>, {r['created_at']:%d.%m.%Y}"
+        + (f", {_e(r['game_name'])}" if r["game_name"] else "")
+        + f" — {'положительный' if r['positive'] else 'отрицательный'}"
+        + (f": {_e(r['text'])}" if r["text"] else "")
+        + "</li>"
+        for r in data["items"]
+    )
+    pct = f"{sm['percent']:g}".replace(".", ",")
+    body = (
+        _nav()
+        + "<h1>Отзывы покупателей</h1>"
+        + f"<p>{sm['total']} отзывов, {pct}% положительных. Отзывы с сайта, из Telegram и с маркетплейса GGSEL.</p>"
+        + f"<ul>{items}</ul>"
+    )
+    ld = [_breadcrumbs([("Главная", "/"), ("Отзывы", "/reviews")])]
+    title = "Отзывы покупателей | reDonate"
+    desc = (f"Отзывы о reDonate: {sm['total']} отзывов, {pct}% положительных. "
+            "Что пишут покупатели о пополнении игр и сервисов на сайте, в Telegram и на GGSEL.")
+    initial = await _data_common(db) + [
+        (["reviews", "", "all"], {"pages": [data], "pageParams": [0]}),
+    ]
+    return 200, _render("/reviews", title, desc, body, ld, page="reviews", initial=initial, active="/reviews")
 
 
 def _faq_ld(faq: list[tuple[str, str]]) -> dict:
@@ -577,6 +620,11 @@ async def render_cashback(db: DbSession):
     return await _cached("/cashback", lambda: _cashback(db))
 
 
+@router.get("/seo/render/reviews", response_class=HTMLResponse, include_in_schema=False)
+async def render_reviews(db: DbSession):
+    return await _cached("/reviews", lambda: _reviews(db))
+
+
 @router.get("/seo/render/game/{slug}", response_class=HTMLResponse, include_in_schema=False)
 async def render_game(slug: str, db: DbSession):
     return await _cached(f"/game/{slug}", lambda: _game(db, slug))
@@ -602,6 +650,7 @@ async def sitemap(db: DbSession):
         url("/", today, "1.0", "daily"),
         url("/catalog", today, "0.9", "daily"),
         url("/cashback", today, "0.5", "monthly"),
+        url("/reviews", today, "0.6", "daily"),
     ]
     svc = CatalogService(db)
     for g in games:

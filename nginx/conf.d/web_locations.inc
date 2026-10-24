@@ -28,7 +28,7 @@
     # ── SEO: индексируемые страницы сайта отдаёт API (api/routers/seo.py) ──────
     # Готовый HTML с метаданными, schema.org и текстом страницы; React затем
     # запускается как обычно. Если API недоступен — статический index.html.
-    location ~ ^/(catalog|cashback)?$ {
+    location ~ ^/(catalog|cashback|reviews)?$ {
         set $upstream_api http://api:8000;
         rewrite ^/(.*)$ /seo/render/$1 break;
         proxy_pass         $upstream_api;

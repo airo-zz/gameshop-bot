@@ -26,12 +26,16 @@ interface NavItem {
   label: string
   href: string
   external?: boolean
+  // В шапке только на широких экранах (иначе не влезает с балансом и поиском);
+  // в меню телефона и подвале — всегда
+  wideOnly?: boolean
 }
 
 const NAV: NavItem[] = [
   { label: 'Каталог', href: '/catalog' },
   { label: 'Кэшбэк', href: '/cashback' },
-  { label: 'Как это работает', href: '/#how' },
+  { label: 'Отзывы', href: '/reviews' },
+  { label: 'Как это работает', href: '/#how', wideOnly: true },
   { label: 'Вопросы', href: '/#faq' },
 ]
 
@@ -167,7 +171,7 @@ export default function WebLayout() {
           <Logo />
 
           <nav className="hidden md:flex items-center gap-5 lg:gap-6">
-            {NAV.map((item) => <NavItemLink key={item.href} item={item} />)}
+            {NAV.map((item) => <NavItemLink key={item.href} item={item} className={item.wideOnly ? 'hidden 2xl:inline' : ''} />)}
           </nav>
 
           <div className="hidden md:flex items-center gap-2 ml-auto">

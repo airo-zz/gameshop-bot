@@ -28,6 +28,7 @@ from shared.models import (
     Product, ProductKey, User,
 )
 # ProductLot removed — flat catalog model since migration 017
+from shared.config import settings
 from shared.models.order import ALLOWED_STATUS_TRANSITIONS
 from api.services.discount_service import DiscountService, DiscountResult
 from api.services.loyalty_service import LoyaltyService
@@ -372,7 +373,15 @@ class OrderService:
                         delivery_text = "\n".join(_escape_html(str(k)) for k in keys)
                         break
             from bot.utils.texts import texts as _texts
-            await self._notify_user(order, _texts.order_completed(order.order_number, delivery_text))
+            # Кнопка «Оставить отзыв» — страница заказа с формой отзыва
+            review_url = f"{settings.MINIAPP_URL.rstrip('/')}/orders/{order.id}?review=1"
+            await self._notify_user(
+                order, _texts.order_completed(order.order_number, delivery_text),
+                reply_markup={"inline_keyboard": [[
+                    {"text": _texts.btn_leave_review, "web_app": {"url": review_url}},
+                ]]} if settings.MINIAPP_URL else None,
+                email_path=f"/orders/{order.id}?review=1", email_button="Оставить отзыв",
+            )
 
         elif new_status == OrderStatus.cancelled:
             order.cancelled_at = now
@@ -807,7 +816,14 @@ class OrderService:
             import logging
             logging.getLogger(__name__).warning("_notify_admins_new_order error: %s", exc)
 
-    async def _notify_user(self, order: Order, text: str) -> None:
+    async def _notify_user(
+        self,
+        order: Order,
+        text: str,
+        reply_markup: dict | None = None,
+        email_path: str | None = None,
+        email_button: str = "Открыть заказ",
+    ) -> None:
         """Уведомление владельцу заказа: бот, а почтовому пользователю — письмо. Не критично."""
         try:
             from sqlalchemy.orm import selectinload as _sil
@@ -823,8 +839,8 @@ class OrderService:
                 return
 
             await send_tg_message(
-                order_with_user.user.telegram_id, text,
-                email_path=f"/orders/{order.id}", email_button="Открыть заказ",
+                order_with_user.user.telegram_id, text, reply_markup,
+                email_path=email_path or f"/orders/{order.id}", email_button=email_button,
             )
         except Exception as exc:
             import logging

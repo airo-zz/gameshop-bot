@@ -5,7 +5,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Zap, Clock, Plus, Minus, Info, Check, MessageSquarePlus } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
-import { catalogApi, cartApi, type Category, type Product, type InputField } from '@/api'
+import { catalogApi, cartApi, reviewsApi, type Category, type Product, type InputField } from '@/api'
+import { ReviewSummary, prefetchReviews, reviewsWord } from '@/components/reviews/Reviews'
+import { CaretRightIcon } from '@phosphor-icons/react'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useDragScroll } from '@/hooks/useDragScroll'
 import { useCartStore } from '@/store'
@@ -218,6 +220,49 @@ function ProductRow({ product, cartQty, onAdd, onRemove, singleAdd }: ProductRow
           </AnimatePresence>
         </div>
       </div>
+    </div>
+  )
+}
+
+// ── Отзывы по игре — сводка и переход ко всем ───────────────────────────────
+
+function GameReviewsLink({ slug }: { slug: string }) {
+  const qc = useQueryClient()
+  const navigate = useNavigate()
+  const busy = useRef(false)
+  const { data } = useQuery({
+    queryKey: ['reviews', 'game', slug],
+    queryFn: () => reviewsApi.list({ game: slug, kind: 'text', limit: 4 }),
+    staleTime: 5 * 60_000,
+  })
+  const summary = data?.summary
+  if (!summary || !summary.total) return null
+
+  async function open() {
+    if (busy.current) return
+    busy.current = true
+    try {
+      await Promise.all([import('@/pages/ReviewsPage'), prefetchReviews(qc, slug)])
+      navigate(`/reviews?game=${slug}`)
+    } finally {
+      busy.current = false
+    }
+  }
+
+  return (
+    <div className="px-4 pb-6">
+      <button
+        type="button"
+        onClick={open}
+        className="w-full flex items-center justify-between mb-2 active:opacity-80"
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+      >
+        <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text)' }}>Отзывы</span>
+        <span className="flex items-center gap-1 num" style={{ fontSize: 13, color: 'var(--link)' }}>
+          {summary.total} {reviewsWord(summary.total)} <CaretRightIcon size={14} />
+        </span>
+      </button>
+      <ReviewSummary summary={summary} />
     </div>
   )
 }
@@ -612,6 +657,7 @@ export default function GamePage() {
         )}
       </div>
 
+      {slug && <GameReviewsLink slug={slug} />}
     </div>
   )
 }

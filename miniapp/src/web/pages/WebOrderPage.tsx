@@ -13,12 +13,15 @@ import toast from 'react-hot-toast'
 import { ordersApi } from '@/api'
 import { PAY_SOURCE } from '@/config/appTarget'
 import { openChat } from '@/web/chat/chatStore'
+import { OrderReviewForm } from '@/components/reviews/Reviews'
 import { money, orderStatus, isAwaitingPayment, apiError } from '@/web/format'
 
 export default function WebOrderPage() {
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
   const justPaid = searchParams.get('success') === '1'
+  // ?review=1 — пришли по кнопке «Оставить отзыв» из уведомления
+  const wantReview = searchParams.get('review') === '1'
   const [repaying, setRepaying] = useState(false)
 
   const { data: order, isLoading, isError } = useQuery({
@@ -144,6 +147,12 @@ export default function WebOrderPage() {
               <RotateCcw size={13} /> {repaying ? 'Открываем оплату...' : 'Перейти к оплате'}
             </button>
           </div>
+        </div>
+      )}
+
+      {order.status === 'completed' && (
+        <div className="mt-5">
+          <OrderReviewForm orderId={order.id} gameHref={(slug) => `/game/${slug}`} autoFocus={wantReview} />
         </div>
       )}
 

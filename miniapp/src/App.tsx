@@ -68,6 +68,7 @@ const SupportPage    = lazy(() => import('@/pages/SupportPage'))
 const ChatPage       = lazy(() => import('@/pages/ChatPage'))
 const PayOrderPage   = lazy(() => import('@/pages/PayOrderPage'))
 const CustomOrderPage = lazy(() => import('@/pages/CustomOrderPage'))
+const ReviewsPage    = lazy(() => import('@/pages/ReviewsPage'))
 
 // Admin — structural components eagerly imported to avoid cascading Suspense flashes
 import AdminLayout from '@/components/admin/AdminLayout'
@@ -88,6 +89,7 @@ const AdminLoyalty     = lazy(() => import('@/pages/admin/LoyaltySettingsPage'))
 const AdminContent     = lazy(() => import('@/pages/admin/ContentPage'))
 const AdminPricing     = lazy(() => import('@/pages/admin/PricingSettingsPage'))
 const AdminHome        = lazy(() => import('@/pages/admin/HomeSettingsPage'))
+const AdminReviews     = lazy(() => import('@/pages/admin/ReviewsAdminPage'))
 const AdminIntegrations = lazy(() => import('@/pages/admin/IntegrationsPage'))
 const AdminOrdersTrash = lazy(() => import('@/pages/admin/OrdersTrashPage'))
 const AdminChatsPage   = lazy(() => import('@/pages/admin/AdminChatsPage'))
@@ -223,6 +225,7 @@ export default function App() {
           <Route path="support"      element={<LazyPage><SupportPage /></LazyPage>} />
           <Route path="balance"      element={<LazyPage><BalancePage /></LazyPage>} />
           <Route path="referrals"    element={<LazyPage><ReferralsPage /></LazyPage>} />
+          <Route path="reviews"      element={<LazyPage><ReviewsPage /></LazyPage>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
 
@@ -254,6 +257,7 @@ export default function App() {
             <Route path="settings/loyalty" element={<AdminLoyalty />} />
             <Route path="settings/pricing" element={<AdminPricing />} />
             <Route path="settings/home" element={<AdminHome />} />
+            <Route path="reviews" element={<AdminReviews />} />
             <Route path="settings/integrations" element={<AdminIntegrations />} />
             <Route path="settings/content" element={<AdminContent />} />
             <Route path="chats" element={<AdminChatsPage />} />

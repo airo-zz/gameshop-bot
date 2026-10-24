@@ -15,6 +15,7 @@ from . import (
     dashboard,
     discounts,
     orders,
+    reviews,
     settings,
     support,
     users,
@@ -31,3 +32,4 @@ router.include_router(discounts.router, prefix="/discounts", tags=["Admin Discou
 router.include_router(support.router, prefix="/support", tags=["Admin Support"])
 router.include_router(settings.router, prefix="/settings", tags=["Admin Settings"])
 router.include_router(chats.router, prefix="/chats", tags=["Admin Chats"])
+router.include_router(reviews.router, prefix="/reviews", tags=["Admin Reviews"])

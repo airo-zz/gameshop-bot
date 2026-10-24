@@ -19,7 +19,7 @@ from shared.config import settings
 from shared.database.session import engine
 
 from api.rate_limit import limiter
-from api.routers import avatar, catalog, seo, cart, chat, orders, payments, profile, support, webhooks, uploads
+from api.routers import avatar, catalog, seo, cart, chat, orders, payments, profile, reviews, support, webhooks, uploads
 from api.routers.admin import router as admin_router
 
 log = structlog.get_logger()
@@ -94,6 +94,7 @@ def create_app() -> FastAPI:
     app.include_router(support.router, prefix=f"{prefix}/support", tags=["Support"])
     app.include_router(chat.router, prefix=f"{prefix}/chat", tags=["Chat"])
     app.include_router(avatar.router, prefix=f"{prefix}/avatar", tags=["Avatar"])
+    app.include_router(reviews.router, prefix=f"{prefix}/reviews", tags=["Reviews"])
     app.include_router(webhooks.router, prefix="/webhooks", tags=["Webhooks"])
     # SEO: HTML-страницы сайта, sitemap.xml, robots.txt (nginx проксирует без /api)
     app.include_router(seo.router, tags=["SEO"])

@@ -7,6 +7,7 @@ import { CheckCircle, Clock, Copy, MessageCircle, XCircle, HelpCircle, RefreshCw
 import toast from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
 import { fmtNum } from '@/utils/format'
+import { OrderReviewForm } from '@/components/reviews/Reviews'
 
 const STATUS_LABEL: Record<string, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
   new:             { label: 'Новый',           color: '#94a3b8', bg: 'rgba(148,163,184,0.1)', Icon: Circle },
@@ -27,6 +28,8 @@ export default function OrderDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const isSuccess = searchParams.get('success') === '1'
+  // ?review=1 — открыли по кнопке «Оставить отзыв» из сообщения бота
+  const wantReview = searchParams.get('review') === '1'
   const { haptic } = useTelegram()
 
   async function handleChatClick() {
@@ -321,6 +324,10 @@ export default function OrderDetailPage() {
           </div>
         )}
       </div>
+
+      {order.status === 'completed' && (
+        <OrderReviewForm orderId={order.id} gameHref={(slug) => `/catalog/${slug}`} autoFocus={wantReview} />
+      )}
 
       {/* Кнопка поддержки для проблемных статусов */}
       {SUPPORT_STATUSES.has(order.status) && (

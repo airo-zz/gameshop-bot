@@ -7,6 +7,7 @@
  */
 
 import { apiClient } from './client'
+import type { Review, ReviewKind } from './index'
 
 // ── Admin Me ─────────────────────────────────────────────────────────────────
 
@@ -479,6 +480,12 @@ export interface AdminChatDetail {
 
 // ── Admin API ────────────────────────────────────────────────────────────────
 
+export interface AdminReview extends Review {
+  is_visible: boolean
+  external_id: string | null
+  order_id: string | null
+}
+
 export const adminApi = {
   // Auth
   getMe: () =>
@@ -647,6 +654,16 @@ export const adminApi = {
 
   updateHomeBlocks: (data: HomeBlocks) =>
     apiClient.put<HomeBlocks>('/admin/settings/home', data).then(r => r.data),
+
+  // Отзывы: модерация и загрузка с GGSEL
+  getReviews: (params: { source?: 'site' | 'ggsel'; kind?: ReviewKind; hidden?: boolean; offset?: number; limit?: number }) =>
+    apiClient.get<{ items: AdminReview[]; total: number }>('/admin/reviews', { params }).then(r => r.data),
+
+  setReviewVisible: (id: string, is_visible: boolean) =>
+    apiClient.patch<AdminReview>(`/admin/reviews/${id}`, { is_visible }).then(r => r.data),
+
+  syncGgselReviews: () =>
+    apiClient.post<{ added: number; updated: number; relinked: number }>('/admin/reviews/sync-ggsel').then(r => r.data),
 
   // Catalog — Categories
   getCategories: (gameId: string) =>

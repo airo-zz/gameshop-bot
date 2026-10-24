@@ -25,6 +25,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -320,29 +321,48 @@ class UserViewedProduct(Base):
 
 
 class Review(Base, UUIDMixin):
-    """Отзыв на товар после выполненного заказа."""
+    """
+    Отзыв о магазине. Источники (миграция 037):
+      site  — покупатель сайта/миниаппа после выполненного заказа (один на заказ);
+      ggsel — выгружен с GGSEL (api/services/ggsel_reviews.py), external_id — id там.
+    rating: 5 — положительный, 1 — отрицательный (как «хорошо/плохо» у GGSEL).
+    Игра: game_id, если она есть в каталоге, иначе game_name (для GGSEL).
+    """
 
     __tablename__ = "reviews"
     __table_args__ = (
-        UniqueConstraint("user_id", "product_id", name="uq_one_review_per_product"),
+        UniqueConstraint("source", "external_id", name="uq_review_source_external"),
+        Index("uq_review_order", "order_id", unique=True, postgresql_where=text("order_id IS NOT NULL")),
+        Index("ix_reviews_visible_created", "is_visible", "created_at"),
     )
 
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    source: Mapped[str] = mapped_column(String(16), nullable=False, default="site", server_default="site")
+    external_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=True
     )
-    product_id: Mapped[uuid.UUID] = mapped_column(
+    product_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("products.id", ondelete="CASCADE"),
-        nullable=False,
+        ForeignKey("products.id", ondelete="SET NULL"),
+        nullable=True,
         index=True,
     )
-    order_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
-    rating: Mapped[int] = mapped_column(Integer, nullable=False)  # 1–5
+    order_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("orders.id", ondelete="SET NULL"), nullable=True
+    )
+    game_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("games.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    game_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    product_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    rating: Mapped[int] = mapped_column(Integer, nullable=False)  # 5 — хорошо, 1 — плохо
     text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reply: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_visible: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    user: Mapped["User"] = relationship("User")
-    product: Mapped[Product] = relationship("Product", back_populates="reviews")
+    user: Mapped["User | None"] = relationship("User")
+    product: Mapped[Product | None] = relationship("Product", back_populates="reviews")
+    game: Mapped[Game | None] = relationship("Game")

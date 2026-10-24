@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import type { Icon as PhIcon } from '@phosphor-icons/react'
 import {
-  ArrowLeftIcon, ChartLineUpIcon, ChatsCircleIcon, CurrencyRubIcon, GearSixIcon, HeadsetIcon, LightningIcon, ListIcon, PackageIcon, ReceiptIcon, TagIcon, TextAaIcon, UsersIcon, XIcon, HouseIcon,
+  ArrowLeftIcon, ChartLineUpIcon, ChatsCircleIcon, CurrencyRubIcon, GearSixIcon, HeadsetIcon, LightningIcon, ListIcon, PackageIcon, ReceiptIcon, TagIcon, TextAaIcon, ThumbsUpIcon, UsersIcon, XIcon, HouseIcon,
 } from '@phosphor-icons/react'
 import logoFull from '@/assets/logo-full.png'
 
@@ -36,6 +36,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
       { to: '/admin/catalog',   label: 'Каталог',      Icon: PackageIcon },
       { to: '/admin/discounts', label: 'Скидки',       Icon: TagIcon },
       { to: '/admin/users',     label: 'Пользователи', Icon: UsersIcon },
+      { to: '/admin/reviews',   label: 'Отзывы',       Icon: ThumbsUpIcon },
     ],
   },
   {

@@ -37,6 +37,7 @@ export function preloadRoutesWhenIdle() {
     void import('./pages/WebGamePage')
     void import('./pages/WebCatalogPage')
     void import('./pages/WebCashbackPage')
+    void import('./pages/WebReviewsPage')
   }
   const w = window as Window & { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }
   if (w.requestIdleCallback) w.requestIdleCallback(run, { timeout: 4000 })

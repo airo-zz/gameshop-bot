@@ -7,9 +7,10 @@ import { motion } from 'framer-motion'
 import type { Icon as PhIcon } from '@phosphor-icons/react'
 import {
   CaretRightIcon, ChatCenteredTextIcon, GameControllerIcon, HeadsetIcon, HouseIcon, ListIcon,
-  MagnifyingGlassIcon, ReceiptIcon, ShoppingCartIcon, SquaresFourIcon, UserIcon, WalletIcon, XIcon,
+  MagnifyingGlassIcon, ReceiptIcon, ShoppingCartIcon, SquaresFourIcon, ThumbsUpIcon, UserIcon, WalletIcon, XIcon,
 } from '@phosphor-icons/react'
-import { catalogApi, profileApi } from '@/api'
+import { catalogApi, profileApi, reviewsApi } from '@/api'
+import { ReviewCard, ReviewSummary, prefetchReviews } from '@/components/reviews/Reviews'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useDragScroll } from '@/hooks/useDragScroll'
 import logoFullSrc from '@/assets/logo-full.png'
@@ -36,6 +37,7 @@ const MENU_GROUPS: { Icon: PhIcon; label: string; path: string }[][] = [
   ],
   [
     { Icon: HeadsetIcon,      label: 'Поддержка', path: '/support' },
+    { Icon: ThumbsUpIcon,     label: 'Отзывы',    path: '/reviews' },
   ],
 ]
 
@@ -178,6 +180,23 @@ export default function HomePage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const navigating = useRef(false)
+
+  const { data: reviews } = useQuery({
+    queryKey: ['reviews', 'home'],
+    queryFn: () => reviewsApi.list({ kind: 'text', limit: 2 }),
+    staleTime: 5 * 60_000,
+  })
+
+  async function handleReviewsClick() {
+    if (navigating.current) return
+    navigating.current = true
+    try {
+      await Promise.all([import('@/pages/ReviewsPage'), prefetchReviews(queryClient)])
+      navigate('/reviews')
+    } finally {
+      navigating.current = false
+    }
+  }
 
   async function handleGameClick(slug: string, specificCatId?: string) {
     if (navigating.current) return
@@ -502,6 +521,31 @@ export default function HomePage() {
           </span>
           <CaretRightIcon size={16} style={{ color: 'var(--hint)' }} />
         </Link>
+
+        {/* ── Отзывы ──────────────────────────────────────────────────────── */}
+        {reviews && reviews.items.length > 0 && (
+          <section className="mt-7">
+            <button
+              type="button"
+              onClick={handleReviewsClick}
+              className="w-full flex items-center justify-between mb-3 active:opacity-80"
+              style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+            >
+              <span style={{ fontSize: 17, fontWeight: 600, color: 'var(--text)' }}>Отзывы</span>
+              <span className="flex items-center gap-1" style={{ fontSize: 13, color: 'var(--link)' }}>
+                Все <CaretRightIcon size={14} />
+              </span>
+            </button>
+            {reviews.summary && reviews.summary.total > 0 && (
+              <div className="mb-2"><ReviewSummary summary={reviews.summary} /></div>
+            )}
+            <div className="space-y-2">
+              {reviews.items.map((r) => (
+                <ReviewCard key={r.id} review={r} gameHref={(slug) => `/catalog/${slug}`} clamp />
+              ))}
+            </div>
+          </section>
+        )}
 
       </div>
     </div>

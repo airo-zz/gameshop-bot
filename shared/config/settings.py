@@ -175,6 +175,10 @@ class AppSettings(BaseSettings):
     # только значение content из мета-тега. Пусто — тег не выводится.
     YANDEX_VERIFICATION: str = ""
     GOOGLE_SITE_VERIFICATION: str = ""
+    # API продавца GGSEL — выгрузка отзывов (api/services/ggsel_reviews.py).
+    # Пустой ключ — синхронизация выключена.
+    GGSEL_API_KEY: str = ""
+    GGSEL_SELLER_ID: int = 149869251
 
     model_config = SettingsConfigDict(
         env_file=".env",

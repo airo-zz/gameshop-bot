@@ -11,7 +11,8 @@ import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, m } from 'framer-motion'
 import { ChevronRight, Zap, Clock, Plus, Minus, ShoppingCart, MessageSquarePlus, ShieldCheck, Headphones } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
-import { catalogApi } from '@/api'
+import { catalogApi, reviewsApi } from '@/api'
+import { ReviewCard, ReviewSummary, reviewsWord } from '@/components/reviews/Reviews'
 import type { Category, Product, InputField, GameSeo } from '@/api'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { useWebCart } from '@/web/cart/useWebCart'
@@ -174,6 +175,38 @@ function CartSummary({ count, total }: { count: number; total: number }) {
 }
 
 // ── Вопросы и текст о донате (для людей и поисковиков) ──────────────────────
+
+// ── Отзывы по игре ────────────────────────────────────────────────────────────
+
+function GameReviews({ slug, gameName }: { slug: string; gameName: string }) {
+  const { data } = useQuery({
+    queryKey: ['reviews', 'game', slug],
+    queryFn: () => reviewsApi.list({ game: slug, kind: 'text', limit: 4 }),
+    staleTime: 5 * 60_000,
+  })
+  const total = data?.summary?.total ?? 0
+  if (!data || !total) return null
+  return (
+    <section className="mt-16" aria-labelledby="game-reviews">
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
+        <h2 id="game-reviews" className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text)]">
+          Отзывы о покупке {gameName}
+        </h2>
+        <Link to={`/reviews?game=${slug}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--link)] hover:text-[var(--text)] transition-colors">
+          Все {total} {reviewsWord(total)} <ChevronRight size={16} />
+        </Link>
+      </div>
+      {data.summary && <div className="mb-3"><ReviewSummary summary={data.summary} /></div>}
+      {data.items.length > 0 && (
+        <div className="grid md:grid-cols-2 gap-3">
+          {data.items.map((r) => (
+            <ReviewCard key={r.id} review={r} gameHref={(s) => `/game/${s}`} showGame={false} clamp />
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
 
 function GameSeoBlock({ seo, gameName }: { seo: GameSeo; gameName: string }) {
   const [open, setOpen] = useState<number | null>(null)
@@ -509,6 +542,7 @@ export default function WebGamePage() {
         </div>
       )}
 
+      {slug && <GameReviews slug={slug} gameName={gameName} />}
       {seo && <GameSeoBlock seo={seo} gameName={gameName} />}
 
       {/* Корзина: нижняя панель на телефоне */}

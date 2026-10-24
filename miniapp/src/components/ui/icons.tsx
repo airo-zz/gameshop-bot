@@ -18,11 +18,11 @@ import {
   LightningIcon, ListIcon, MagnifyingGlassIcon, MagnifyingGlassPlusIcon, MedalIcon, MinusIcon,
   PackageIcon, PaperPlaneRightIcon, PaperclipIcon, PercentIcon, PlusIcon, QuestionIcon,
   SealCheckIcon, ShareNetworkIcon, ShieldCheckIcon, ShieldIcon, ShoppingBagIcon,
-  ShoppingCartIcon, SignOutIcon, StarIcon, TagIcon, TrashIcon, TrendDownIcon, TrendUpIcon,
+  ShoppingCartIcon, SignOutIcon, StarIcon, TagIcon, ThumbsDownIcon, ThumbsUpIcon, TrashIcon, TrendDownIcon, TrendUpIcon,
   UsersIcon, WalletIcon, WarningCircleIcon, WifiSlashIcon, XCircleIcon, XIcon,
 } from '@phosphor-icons/react'
 import {
-  ArrowSquareOutIcon, ArrowsInSimpleIcon, ArrowsOutSimpleIcon, BellIcon, ChatCenteredIcon, CloudArrowUpIcon, EnvelopeSimpleIcon, CurrencyDollarIcon, FloppyDiskIcon, FolderOpenIcon, ImageBrokenIcon, ImageIcon, MinusCircleIcon, PencilSimpleIcon, PlusCircleIcon, PushPinIcon, ShieldSlashIcon, ShieldWarningIcon, ToggleLeftIcon, ToggleRightIcon, UploadSimpleIcon, UserCheckIcon, UserIcon, UserMinusIcon, WarningIcon,
+  ArrowSquareOutIcon, ArrowsInSimpleIcon, EyeIcon, EyeSlashIcon, ArrowsOutSimpleIcon, BellIcon, ChatCenteredIcon, CloudArrowUpIcon, EnvelopeSimpleIcon, CurrencyDollarIcon, FloppyDiskIcon, FolderOpenIcon, ImageBrokenIcon, ImageIcon, MinusCircleIcon, PencilSimpleIcon, PlusCircleIcon, PushPinIcon, ShieldSlashIcon, ShieldWarningIcon, ToggleLeftIcon, ToggleRightIcon, UploadSimpleIcon, UserCheckIcon, UserIcon, UserMinusIcon, WarningIcon,
 } from '@phosphor-icons/react'
 
 export interface IconProps {
@@ -96,6 +96,8 @@ export const ShoppingCart = wrap(ShoppingCartIcon)
 export const Smartphone = wrap(DeviceMobileIcon)
 export const Star = wrap(StarIcon)
 export const Tag = wrap(TagIcon)
+export const ThumbsDown = wrap(ThumbsDownIcon)
+export const ThumbsUp = wrap(ThumbsUpIcon)
 export const Trash2 = wrap(TrashIcon)
 export const TrendingDown = wrap(TrendDownIcon)
 export const TrendingUp = wrap(TrendUpIcon)
@@ -112,6 +114,8 @@ export const AlertTriangle = wrap(WarningIcon)
 export const Bell = wrap(BellIcon)
 export const DollarSign = wrap(CurrencyDollarIcon)
 export const ExternalLink = wrap(ArrowSquareOutIcon)
+export const Eye = wrap(EyeIcon)
+export const EyeOff = wrap(EyeSlashIcon)
 export const FolderOpen = wrap(FolderOpenIcon)
 export const Image = wrap(ImageIcon)
 export const ImageOff = wrap(ImageBrokenIcon)
