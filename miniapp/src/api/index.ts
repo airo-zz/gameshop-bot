@@ -495,7 +495,6 @@ export const supportApi = {
 
 export interface Review {
   id: string
-  source: 'site' | 'ggsel'
   positive: boolean
   text: string | null
   reply: string | null

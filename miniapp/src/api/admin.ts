@@ -481,6 +481,7 @@ export interface AdminChatDetail {
 // ── Admin API ────────────────────────────────────────────────────────────────
 
 export interface AdminReview extends Review {
+  source: 'site' | 'ggsel'
   is_visible: boolean
   external_id: string | null
   order_id: string | null

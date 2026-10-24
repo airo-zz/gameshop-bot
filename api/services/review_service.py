@@ -48,7 +48,6 @@ def review_out(r: Review, admin: bool = False) -> dict:
     game = r.game if r.game and r.game.is_active else None
     out = {
         "id": r.id,
-        "source": r.source,
         "positive": r.rating >= 4,
         "text": r.text,
         "reply": r.reply,
@@ -61,7 +60,7 @@ def review_out(r: Review, admin: bool = False) -> dict:
         "created_at": r.created_at,
     }
     if admin:
-        out.update(is_visible=r.is_visible, external_id=r.external_id,
+        out.update(source=r.source, is_visible=r.is_visible, external_id=r.external_id,
                    product_name=r.product_name, order_id=r.order_id)
     return out
 

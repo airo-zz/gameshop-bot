@@ -15,7 +15,6 @@ router = APIRouter()
 
 class ReviewOut(BaseModel):
     id: UUID
-    source: str
     positive: bool
     text: str | None
     reply: str | None

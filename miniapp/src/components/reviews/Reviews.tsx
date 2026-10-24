@@ -66,9 +66,6 @@ export function ReviewCard({ review, gameHref, showGame = true, clamp = false }:
             {game && <><span aria-hidden="true">·</span>{game}</>}
           </p>
         </div>
-        <span className="text-[10px] uppercase tracking-wide text-[var(--hint)] bg-[var(--bg3)] rounded-[var(--r-badge)] px-1.5 py-0.5 shrink-0">
-          {r.source === 'ggsel' ? 'GGSEL' : 'reDonate'}
-        </span>
       </header>
 
       {r.text ? (

@@ -483,13 +483,13 @@ async def _reviews(db) -> tuple[int, str]:
     body = (
         _nav()
         + "<h1>Отзывы покупателей</h1>"
-        + f"<p>{sm['total']} отзывов, {pct}% положительных. Отзывы с сайта, из Telegram и с маркетплейса GGSEL.</p>"
+        + f"<p>{sm['total']} отзывов, {pct}% положительных.</p>"
         + f"<ul>{items}</ul>"
     )
     ld = [_breadcrumbs([("Главная", "/"), ("Отзывы", "/reviews")])]
     title = "Отзывы покупателей | reDonate"
     desc = (f"Отзывы о reDonate: {sm['total']} отзывов, {pct}% положительных. "
-            "Что пишут покупатели о пополнении игр и сервисов на сайте, в Telegram и на GGSEL.")
+            "Что пишут покупатели о пополнении игр и цифровых сервисов.")
     initial = await _data_common(db) + [
         (["reviews", "", "all"], {"pages": [data], "pageParams": [0]}),
     ]

@@ -1,6 +1,6 @@
 /**
  * src/web/pages/WebReviewsPage.tsx
- * Все отзывы о магазине: с сайта, из Telegram и с GGSEL. ?game=<slug> — по одной игре.
+ * Все отзывы о магазине. ?game=<slug> — по одной игре.
  */
 
 import { Link, useSearchParams } from 'react-router-dom'
@@ -25,7 +25,7 @@ export default function WebReviewsPage() {
 
   usePageMeta({
     title: gameName ? `Отзывы: ${gameName}` : 'Отзывы покупателей',
-    description: 'Отзывы покупателей reDonate о пополнении игр и сервисов: с сайта, из Telegram и с GGSEL.',
+    description: 'Отзывы покупателей reDonate о пополнении игр и цифровых сервисов.',
   })
 
   return (
@@ -39,7 +39,7 @@ export default function WebReviewsPage() {
         {gameName ? `Отзывы: ${gameName}` : 'Отзывы покупателей'}
       </h1>
       <p className="mt-3 mb-8 text-[var(--text-2)] leading-relaxed max-w-xl">
-        Что пишут о нас покупатели на сайте, в Telegram и на маркетплейсе GGSEL.
+        Что пишут о нас покупатели после заказов.
       </p>
       <ReviewsFeed game={game} gameHref={gameHref} columns={2} />
     </div>
