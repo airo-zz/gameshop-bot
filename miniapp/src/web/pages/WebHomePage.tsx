@@ -372,6 +372,9 @@ function FaqSection() {
         <Reveal>
           <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Частые вопросы</h2>
           <p className="mt-3 text-sm text-[var(--hint)] max-w-xs">Не нашли ответ — напишите в чат с оператором.</p>
+          <Link to="/faq" className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-[var(--link)] hover:text-[var(--text)] transition-colors">
+            Все вопросы и ответы <ChevronRight size={16} />
+          </Link>
         </Reveal>
         <Stagger className="space-y-2">
           {FAQ.map((item) => (

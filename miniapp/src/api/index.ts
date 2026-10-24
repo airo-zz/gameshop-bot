@@ -222,7 +222,6 @@ export interface GameSeo {
   description: string
   h1: string
   intro: string
-  faq: { q: string; a: string }[]
   aliases: string[]
   text: string | null
 }
@@ -230,6 +229,12 @@ export interface GameSeo {
 export interface LoyaltyProgram {
   levels: { name: string; min_spent: number; cashback_percent: number; monthly_cashback_cap: number | null; color_hex: string }[]
   referral: { percent: number; period_months: number; new_user_discount_percent: number }
+}
+
+export interface FaqSection {
+  slug: string
+  title: string
+  items: { q: string; a: string }[]
 }
 
 export const catalogApi = {
@@ -265,6 +270,10 @@ export const catalogApi = {
 
   getTrendingCategories: () =>
     apiClient.get<TrendingCategory[]>('/catalog/categories/trending').then(r => r.data),
+
+  /** Страница «Вопросы и ответы» (api/services/faq_content.py) */
+  getFaq: () =>
+    apiClient.get<FaqSection[]>('/catalog/faq').then(r => r.data),
 
   /** Блоки главной сайта (выбираются в админке, иначе автоматически) */
   getHome: () =>

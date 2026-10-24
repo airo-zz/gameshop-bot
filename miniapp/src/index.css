@@ -34,6 +34,22 @@ html, body, #root {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Сайт (web-сборка, <html class="web">): прокручивается само окно, как на обычных
+   сайтах, — иначе window.scrollTo и восстановление прокрутки браузером не работают.
+   Миниапп оставляет прокрутку у #root (Telegram WebView). */
+html.web {
+  height: auto;
+  min-height: 100%;
+  overflow-x: hidden;   /* у <html> применяется к окну */
+  overflow-y: auto;
+}
+html.web body,
+html.web #root {
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+}
+
 button { user-select: none; font-family: inherit; }
 
 /* Один шрифт — Onest. Заголовки и цифры выделяются весом и плотным трекингом. */

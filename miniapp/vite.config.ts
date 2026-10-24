@@ -35,6 +35,8 @@ export default defineConfig({
       transformIndexHtml(html) {
         if (!isWeb) return html
         return html
+          // Класс сайта с первой отрисовки: прокрутка у окна, а не у #root (src/index.css)
+          .replace('<html lang="ru">', '<html lang="ru" class="web">')
           .replace(/<!-- boot-splash -->[\s\S]*?<!-- \/boot-splash -->/, '')
           // SDK Telegram нужен только Mini App — сайту лишние 25 КБ стороннего скрипта
           .replace(/\s*<script[^>]*telegram-web-app\.js[^>]*><\/script>/, '')

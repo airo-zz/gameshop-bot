@@ -72,7 +72,7 @@ def _category_to_out(
 async def get_game_seo(slug: str, db: DbSession, cat: str | None = None):
     """
     Тексты страницы игры (или раздела ?cat=<slug>) — те же, что видит поисковик:
-    заголовок, описание, H1, вопросы-ответы, другие названия, текст о донате.
+    заголовок, описание, H1, другие названия, текст о донате.
     """
     from api.services.seo_content import load_game_page
 
@@ -85,7 +85,6 @@ async def get_game_seo(slug: str, db: DbSession, cat: str | None = None):
         "description": page.description,
         "h1": page.h1,
         "intro": page.intro,
-        "faq": [{"q": q, "a": a} for q, a in page.faq],
         "aliases": page.aliases,
         "text": page.text,
     }
@@ -102,6 +101,17 @@ async def list_categories(slug: str, db: DbSession):
     categories = await svc.get_categories_by_game(game.id)
     delivery_map = await svc.get_delivery_types_for_game(game.id)
     return [_category_to_out(cat, delivery_map) for cat in categories]
+
+
+@router.get("/faq")
+async def get_faq():
+    """Страница «Вопросы и ответы»: разделы с вопросами (api/services/faq_content.py)."""
+    from api.services.faq_content import FAQ_SECTIONS
+
+    return [
+        {"slug": s["slug"], "title": s["title"], "items": [{"q": q, "a": a} for q, a in s["items"]]}
+        for s in FAQ_SECTIONS
+    ]
 
 
 @router.get("/home")

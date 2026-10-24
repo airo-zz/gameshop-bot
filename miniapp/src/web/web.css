@@ -5,7 +5,6 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 body.web {
-  overflow-y: auto;
   -webkit-user-select: text;
   user-select: text;
   -webkit-touch-callout: default;

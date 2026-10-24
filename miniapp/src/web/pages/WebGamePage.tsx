@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { AnimatePresence, m } from 'framer-motion'
+import { m } from 'framer-motion'
 import { ChevronRight, Zap, Clock, Plus, Minus, ShoppingCart, MessageSquarePlus, ShieldCheck, Headphones } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { catalogApi, reviewsApi } from '@/api'
@@ -208,49 +208,15 @@ function GameReviews({ slug, gameName }: { slug: string; gameName: string }) {
   )
 }
 
-function GameSeoBlock({ seo, gameName }: { seo: GameSeo; gameName: string }) {
-  const [open, setOpen] = useState<number | null>(null)
+// Свой текст о донате из админки и другие названия игры (для поиска) — без блока вопросов
+function GameSeoBlock({ seo }: { seo: GameSeo }) {
+  if (!seo.text && !seo.aliases.length) return null
   return (
-    <section className="mt-16 grid lg:grid-cols-[1fr_2fr] gap-8" aria-labelledby="game-faq">
-      <div>
-        <h2 id="game-faq" className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text)]" style={{ margin: 0 }}>
-          Вопросы о донате в {gameName}
-        </h2>
-        {seo.aliases.length > 0 && (
-          <p className="mt-3 text-xs text-[var(--hint)] leading-relaxed">Также ищут: {seo.aliases.join(', ')}</p>
-        )}
-      </div>
-      <div className="space-y-2">
-        {seo.faq.map((f, i) => (
-          <div key={f.q} className="rounded-2xl bg-[var(--bg2)] overflow-hidden">
-            <button
-              type="button"
-              onClick={() => setOpen(open === i ? null : i)}
-              aria-expanded={open === i}
-              className="w-full flex items-center justify-between gap-4 px-5 py-4 text-left text-[15px] font-medium text-[var(--text)]"
-            >
-              {f.q}
-              <ChevronRight size={18} className={'shrink-0 text-[var(--hint)] transition-transform ' + (open === i ? 'rotate-90' : '')} />
-            </button>
-            <AnimatePresence initial={false}>
-              {open === i && (
-                <m.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.25, ease: EASE }}
-                  className="overflow-hidden"
-                >
-                  <p className="px-5 pb-4 text-sm leading-relaxed text-[var(--text-2)]">{f.a}</p>
-                </m.div>
-              )}
-            </AnimatePresence>
-          </div>
-        ))}
-        {seo.text && (
-          <p className="pt-4 text-sm leading-relaxed text-[var(--hint)] whitespace-pre-line">{seo.text}</p>
-        )}
-      </div>
+    <section className="mt-16 max-w-3xl">
+      {seo.text && <p className="text-sm leading-relaxed text-[var(--hint)] whitespace-pre-line">{seo.text}</p>}
+      {seo.aliases.length > 0 && (
+        <p className={(seo.text ? 'mt-3 ' : '') + 'text-xs text-[var(--hint)] leading-relaxed'}>Также ищут: {seo.aliases.join(', ')}</p>
+      )}
     </section>
   )
 }
@@ -543,7 +509,7 @@ export default function WebGamePage() {
       )}
 
       {slug && <GameReviews slug={slug} gameName={gameName} />}
-      {seo && <GameSeoBlock seo={seo} gameName={gameName} />}
+      {seo && <GameSeoBlock seo={seo} />}
 
       {/* Корзина: нижняя панель на телефоне */}
       {count > 0 && (

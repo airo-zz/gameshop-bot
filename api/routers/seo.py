@@ -147,19 +147,17 @@ PAGE_MODULES = {
     "catalog": "src/web/pages/WebCatalogPage.tsx",
     "cashback": "src/web/pages/WebCashbackPage.tsx",
     "reviews": "src/web/pages/WebReviewsPage.tsx",
+    "faq": "src/web/pages/WebFaqPage.tsx",
     "game": "src/web/pages/WebGamePage.tsx",
 }
 
-_NAV_ITEMS = [("Каталог", "/catalog"), ("Кэшбэк", "/cashback"), ("Отзывы", "/reviews"),
-              ("Как это работает", "/#how"), ("Вопросы", "/#faq")]
-_NAV_WIDE_ONLY = {"/#how"}  # как wideOnly в WebLayout: в шапке только на 2xl
+_NAV_ITEMS = [("Каталог", "/catalog"), ("Кэшбэк", "/cashback"), ("Отзывы", "/reviews"), ("Вопросы", "/faq")]
 
 
 def _shell(active: str | None, main_html: str = "") -> str:
     """Шапка сайта в той же вёрстке, что WebLayout (React нарисует её же — без подмены)."""
     links = "".join(
-        f'<a href="{href}" class="text-sm whitespace-nowrap transition-colors '
-        + ("hidden 2xl:inline " if href in _NAV_WIDE_ONLY else " ")
+        f'<a href="{href}" class="text-sm whitespace-nowrap transition-colors  '
         + ("text-[var(--text)]" if href == active else "text-[var(--text-2)] hover:text-[var(--text)]")
         + f'">{label}</a>'
         for label, href in _NAV_ITEMS
@@ -303,7 +301,7 @@ def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex
 def _nav() -> str:
     return (
         f'<header><a href="/">{BRAND}</a> · <a href="/catalog">Каталог</a> · '
-        '<a href="/cashback">Кэшбэк</a> · <a href="/reviews">Отзывы</a></header>'
+        '<a href="/cashback">Кэшбэк</a> · <a href="/reviews">Отзывы</a> · <a href="/faq">Вопросы и ответы</a></header>'
     )
 
 
@@ -496,6 +494,22 @@ async def _reviews(db) -> tuple[int, str]:
     return 200, _render("/reviews", title, desc, body, ld, page="reviews", initial=initial, active="/reviews")
 
 
+async def _faq_page(db) -> tuple[int, str]:
+    from api.routers import catalog as cat_api
+    from api.services.faq_content import FAQ_SECTIONS, faq_flat
+
+    body = _nav() + "<h1>Вопросы и ответы</h1>" + "".join(
+        f"<h2>{_e(s['title'])}</h2>" + "".join(f"<h3>{_e(q)}</h3><p>{_e(a)}</p>" for q, a in s["items"])
+        for s in FAQ_SECTIONS
+    )
+    ld = [_breadcrumbs([("Главная", "/"), ("Вопросы и ответы", "/faq")]), _faq_ld(faq_flat())]
+    title = "Вопросы и ответы | reDonate"
+    desc = ("Как оформить и оплатить заказ, сколько ждать выполнения, как вернуть деньги, "
+            "как работают аккаунт, кэшбэк и бонусы reDonate.")
+    initial = await _data_common(db) + [(["web", "faq"], await cat_api.get_faq())]
+    return 200, _render("/faq", title, desc, body, ld, page="faq", initial=initial, active="/faq")
+
+
 def _faq_ld(faq: list[tuple[str, str]]) -> dict:
     return {
         "@context": "https://schema.org",
@@ -537,7 +551,6 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
         f'<li><a href="/game/{_e(game.slug)}/{_e(c.slug)}">{_e(clean_name(c.name))}</a></li>'
         for c in roots if not current or c.id != current.id
     )
-    faq_html = "".join(f"<h3>{_e(q)}</h3><p>{_e(a)}</p>" for q, a in page.faq)
     body = (
         _nav()
         + "<nav>" + " / ".join(
@@ -547,12 +560,11 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
         + (f"<p>Также ищут: {_e(', '.join(page.aliases))}.</p>" if page.aliases else "")
         + sections_html
         + (f"<h2>{'Другие разделы' if current else 'Разделы'} {_e(game.name)}</h2><ul>{other_cats}</ul>" if other_cats else "")
-        + f"<h2>Вопросы и ответы</h2>{faq_html}"
         + (f"<div>{_e(page.text)}</div>" if page.text else "")
     )
 
     image = f"{SITE}{game.image_url}" if game.image_url and game.image_url.startswith("/") else game.image_url
-    ld: list[dict] = [_breadcrumbs(crumbs), _faq_ld(page.faq)]
+    ld: list[dict] = [_breadcrumbs(crumbs)]
     if offers:
         ld.append({
             "@context": "https://schema.org",
@@ -625,6 +637,11 @@ async def render_reviews(db: DbSession):
     return await _cached("/reviews", lambda: _reviews(db))
 
 
+@router.get("/seo/render/faq", response_class=HTMLResponse, include_in_schema=False)
+async def render_faq(db: DbSession):
+    return await _cached("/faq", lambda: _faq_page(db))
+
+
 @router.get("/seo/render/game/{slug}", response_class=HTMLResponse, include_in_schema=False)
 async def render_game(slug: str, db: DbSession):
     return await _cached(f"/game/{slug}", lambda: _game(db, slug))
@@ -651,6 +668,7 @@ async def sitemap(db: DbSession):
         url("/catalog", today, "0.9", "daily"),
         url("/cashback", today, "0.5", "monthly"),
         url("/reviews", today, "0.6", "daily"),
+        url("/faq", today, "0.5", "monthly"),
     ]
     svc = CatalogService(db)
     for g in games:
