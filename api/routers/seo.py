@@ -640,44 +640,44 @@ async def _cached(key: str, builder) -> HTMLResponse:
     return HTMLResponse(page, status_code=status)
 
 
-@router.get("/seo/render/", response_class=HTMLResponse, include_in_schema=False)
+@router.api_route("/seo/render/", methods=["GET", "HEAD"], response_class=HTMLResponse, include_in_schema=False)
 async def render_home(db: DbSession):
     return await _cached("/", lambda: _home(db))
 
 
-@router.get("/seo/render/catalog", response_class=HTMLResponse, include_in_schema=False)
+@router.api_route("/seo/render/catalog", methods=["GET", "HEAD"], response_class=HTMLResponse, include_in_schema=False)
 async def render_catalog(db: DbSession):
     return await _cached("/catalog", lambda: _catalog(db))
 
 
-@router.get("/seo/render/cashback", response_class=HTMLResponse, include_in_schema=False)
+@router.api_route("/seo/render/cashback", methods=["GET", "HEAD"], response_class=HTMLResponse, include_in_schema=False)
 async def render_cashback(db: DbSession):
     return await _cached("/cashback", lambda: _cashback(db))
 
 
-@router.get("/seo/render/reviews", response_class=HTMLResponse, include_in_schema=False)
+@router.api_route("/seo/render/reviews", methods=["GET", "HEAD"], response_class=HTMLResponse, include_in_schema=False)
 async def render_reviews(db: DbSession):
     return await _cached("/reviews", lambda: _reviews(db))
 
 
-@router.get("/seo/render/faq", response_class=HTMLResponse, include_in_schema=False)
+@router.api_route("/seo/render/faq", methods=["GET", "HEAD"], response_class=HTMLResponse, include_in_schema=False)
 async def render_faq(db: DbSession):
     return await _cached("/faq", lambda: _faq_page(db))
 
 
-@router.get("/seo/render/game/{slug}", response_class=HTMLResponse, include_in_schema=False)
+@router.api_route("/seo/render/game/{slug}", methods=["GET", "HEAD"], response_class=HTMLResponse, include_in_schema=False)
 async def render_game(slug: str, db: DbSession):
     return await _cached(f"/game/{slug}", lambda: _game(db, slug))
 
 
-@router.get("/seo/render/game/{slug}/{cat_slug}", response_class=HTMLResponse, include_in_schema=False)
+@router.api_route("/seo/render/game/{slug}/{cat_slug}", methods=["GET", "HEAD"], response_class=HTMLResponse, include_in_schema=False)
 async def render_game_category(slug: str, cat_slug: str, db: DbSession):
     return await _cached(f"/game/{slug}/{cat_slug}", lambda: _game(db, slug, cat_slug))
 
 
 # ── sitemap.xml / robots.txt ──────────────────────────────────────────────────
 
-@router.get("/sitemap.xml", include_in_schema=False)
+@router.api_route("/sitemap.xml", methods=["GET", "HEAD"], include_in_schema=False)
 async def sitemap(db: DbSession):
     games = await CatalogService(db).get_active_games()
     today = datetime.now(timezone.utc).date().isoformat()
@@ -741,6 +741,6 @@ Sitemap: {SITE}/sitemap.xml
 """
 
 
-@router.get("/robots.txt", include_in_schema=False)
+@router.api_route("/robots.txt", methods=["GET", "HEAD"], include_in_schema=False)
 async def robots():
     return PlainTextResponse(ROBOTS)
