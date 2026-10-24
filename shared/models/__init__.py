@@ -65,6 +65,7 @@ from .support import (
     DEFAULT_PERMISSIONS,
     AdminUser,
     AdminActionLog,
+    AdminSession,
 )
 
 from .chat import (
@@ -91,7 +92,7 @@ __all__ = [
     "Order", "OrderItem", "OrderStatusHistory", "OrderDiscountLog", "Payment",
     # Support & Admin
     "TicketStatus", "SupportTicket", "TicketMessage", "SupportTemplate",
-    "AdminRole", "DEFAULT_PERMISSIONS", "AdminUser", "AdminActionLog",
+    "AdminRole", "DEFAULT_PERMISSIONS", "AdminUser", "AdminActionLog", "AdminSession",
     # Chat
     "Chat", "ChatMessage",
 ]

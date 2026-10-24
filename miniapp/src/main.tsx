@@ -4,7 +4,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
-import { isWeb } from '@/config/appTarget'
+import { isAdminApp, isTelegram, isWeb } from '@/config/appTarget'
 import './index.css'
 
 const queryClient = new QueryClient({
@@ -43,7 +43,7 @@ if (isWeb) {
 // сохраняя экран: /app/orders/X → /orders/X, /app/balance → /balance и т.д.
 // (так возврат с Platega, открытый во внешнем браузере, не теряет контекст).
 // Только на проде (redonate.su / redonate.gg), чтобы не мешать локальной разработке/preview.
-if (!isWeb) {
+if (isTelegram) {
   const inTelegram = !!window.Telegram?.WebApp?.initData
   const { pathname, search } = window.location
   const isAdmin = pathname.startsWith('/app/admin')
@@ -60,7 +60,7 @@ if (!isWeb) {
 // сайт не тянет каркас Mini App/админки, Mini App — код сайта.
 // Рендерим только ПОСЛЕ загрузки чанка: до этого в #root остаётся готовый HTML
 // с сервера (SEO-версия страницы) или сплэш — без мигания пустым экраном.
-const loadRoot = isWeb ? import('@/web/WebApp') : import('./App')
+const loadRoot = isWeb ? import('@/web/WebApp') : isAdminApp ? import('@/admin/AdminApp') : import('./App')
 const loadMotionFeatures = () => import('./motionFeatures').then((r) => r.default)
 
 loadRoot.then(({ default: RootApp }) => {

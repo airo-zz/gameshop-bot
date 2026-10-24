@@ -222,3 +222,5 @@ build/
 miniapp/dist/
 dist-web/
 miniapp/dist-web/
+dist-admin/
+miniapp/dist-admin/

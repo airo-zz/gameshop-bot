@@ -177,6 +177,14 @@ class AppSettings(BaseSettings):
     GOOGLE_SITE_VERIFICATION: str = ""
     # API продавца GGSEL — выгрузка отзывов (api/services/ggsel_reviews.py).
     # Пустой ключ — синхронизация выключена.
+    # Админка на отдельном поддомене (cookie-сессии, вход через бот поддержки)
+    ADMIN_ORIGIN: str = "https://admin.redonate.gg"
+    SUPPORT_BOT_USERNAME: str = "reDonateSupport_bot"
+    ADMIN_SESSION_DAYS: int = 14          # максимум жизни сессии
+    ADMIN_SESSION_IDLE_HOURS: int = 72    # без активности дольше — вход заново
+    # Переходный период: админка внутри /app по токену покупателя ещё работает.
+    # После проверки входа на admin.redonate.gg — выключить (ADMIN_LEGACY_BEARER=false)
+    ADMIN_LEGACY_BEARER: bool = True
     GGSEL_API_KEY: str = ""
     GGSEL_SELLER_ID: int = 149869251
 

@@ -199,6 +199,8 @@ services:
       # без вложенности (вложенный ro-маунт ломает создание точки монтирования)
       - ./miniapp/dist:/usr/share/nginx/html/app:ro
       - ./miniapp/dist-web:/usr/share/nginx/web:ro
+      # админка admin.redonate.gg (сборка VITE_APP_TARGET=admin)
+      - ./miniapp/dist-admin:/usr/share/nginx/admin:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
       - certbot_www:/var/www/certbot:ro
       - static_files:/usr/share/nginx/static:ro

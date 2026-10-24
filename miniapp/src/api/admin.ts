@@ -817,3 +817,97 @@ export const adminApi = {
   notifyUserChat: (chatId: string, text?: string) =>
     apiClient.post(`/admin/chats/${chatId}/notify`, { text }).then(r => r.data),
 }
+
+// ── Админка: сессии, сотрудники, журнал, счётчики, поиск ─────────────────────
+
+export interface AdminSessionInfo {
+  id: string
+  method: string
+  method_label: string
+  ip: string | null
+  user_agent: string | null
+  created_at: string
+  last_seen_at: string
+  current: boolean
+}
+
+export interface AdminSecurity {
+  email: string | null
+  has_password: boolean
+  password_set_at: string | null
+  sessions: AdminSessionInfo[]
+}
+
+export type StaffRole = 'owner' | 'admin' | 'manager' | 'operator' | 'content'
+
+export interface StaffMember {
+  id: string
+  telegram_id: number
+  username: string | null
+  first_name: string
+  role: StaffRole
+  role_label: string
+  is_active: boolean
+  email: string | null
+  has_password: boolean
+  created_at: string
+  last_seen_at: string | null
+  sessions: number
+}
+
+export interface StaffRoleInfo {
+  role: StaffRole
+  label: string
+  description: string
+  permissions: string[]
+}
+
+export interface AuditItem {
+  id: string
+  created_at: string
+  action: string
+  action_label: string
+  entity_type: string | null
+  entity_id: string | null
+  before: Record<string, unknown> | null
+  after: Record<string, unknown> | null
+  description: string | null
+  ip: string | null
+  admin: { id: string; name: string; username: string | null }
+}
+
+export interface AdminSearchResult {
+  orders: { id: string; order_number: string; status: string; total: number; created_at: string; user: string | null }[]
+  users: { id: string; telegram_id: number; name: string; email: string | null; orders_count: number }[]
+  products: { id: string; name: string; game: string; price: number; is_active: boolean }[]
+  games: { id: string; name: string; slug: string; is_active: boolean }[]
+}
+
+export const adminWorkspaceApi = {
+  badges: () =>
+    apiClient.get<{ new_orders: number; unread_chats: number }>('/admin/badges').then(r => r.data),
+  search: (q: string) =>
+    apiClient.get<AdminSearchResult>('/admin/search', { params: { q } }).then(r => r.data),
+  logout: () => apiClient.post('/admin/auth/logout').then(r => r.data),
+
+  security: () => apiClient.get<AdminSecurity>('/admin/auth/security').then(r => r.data),
+  revokeSession: (id: string) => apiClient.delete(`/admin/auth/sessions/${id}`).then(r => r.data),
+  revokeOtherSessions: () => apiClient.post<{ revoked: number }>('/admin/auth/sessions/revoke-others').then(r => r.data),
+  credentialsRequest: (email: string) => apiClient.post('/admin/auth/credentials/request', { email }),
+  credentialsSave: (data: { email: string; code: string; password: string }) =>
+    apiClient.post('/admin/auth/credentials', data).then(r => r.data),
+
+  staff: () => apiClient.get<StaffMember[]>('/admin/staff').then(r => r.data),
+  staffRoles: () => apiClient.get<StaffRoleInfo[]>('/admin/staff/roles').then(r => r.data),
+  staffAdd: (query: string, role: StaffRole) =>
+    apiClient.post<StaffMember>('/admin/staff', { query, role }).then(r => r.data),
+  staffUpdate: (id: string, data: { role?: StaffRole; is_active?: boolean }) =>
+    apiClient.patch<StaffMember>(`/admin/staff/${id}`, data).then(r => r.data),
+  staffSessions: (id: string) => apiClient.get<AdminSessionInfo[]>(`/admin/staff/${id}/sessions`).then(r => r.data),
+  staffRevoke: (id: string) => apiClient.post<{ revoked: number }>(`/admin/staff/${id}/revoke-sessions`).then(r => r.data),
+
+  audit: (params: { admin_id?: string; action?: string; date_from?: string; date_to?: string; offset?: number; limit?: number }) =>
+    apiClient.get<{ total: number; items: AuditItem[] }>('/admin/audit', { params }).then(r => r.data),
+  auditActions: () =>
+    apiClient.get<{ action: string; label: string; count: number }[]>('/admin/audit/actions').then(r => r.data),
+}

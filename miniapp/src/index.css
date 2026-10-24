@@ -214,3 +214,7 @@ h1, .font-display {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Общий поиск админки (cmdk): поверх шапки и меню */
+[cmdk-overlay] { z-index: 300; }
+[cmdk-dialog] { z-index: 301; }

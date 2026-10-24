@@ -77,6 +77,11 @@ def decode_token(token: str) -> dict:
 
 
 def verify_telegram_init_data(init_data: str) -> dict:
+    """initData Mini App магазина (основной бот)."""
+    return verify_telegram_init_data_with(init_data, settings.BOT_TOKEN)
+
+
+def verify_telegram_init_data_with(init_data: str, bot_token: str) -> dict:
     """
     Верифицирует подпись Telegram WebApp initData.
     Алгоритм: HMAC-SHA256 с ключом = HMAC-SHA256("WebAppData", BOT_TOKEN)
@@ -96,7 +101,7 @@ def verify_telegram_init_data(init_data: str) -> dict:
     # Вычисляем секретный ключ: HMAC-SHA256(key="WebAppData", msg=BOT_TOKEN)
     secret_key = hmac.new(
         b"WebAppData",
-        settings.BOT_TOKEN.encode(),
+        bot_token.encode(),
         hashlib.sha256,
     ).digest()
 

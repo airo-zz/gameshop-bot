@@ -14,12 +14,14 @@
 import axios, {
   AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig
 } from 'axios'
+import { isAdminApp } from '@/config/appTarget'
 
 export const BASE_URL = import.meta.env.VITE_API_URL ?? '/api/v1'
 
 // ── Хранилище токенов ────────────────────────────────────────────────────────
 // В MiniApp — только в памяти. В браузере — дополнительно в localStorage.
-const isBrowser = !window.Telegram?.WebApp?.initData
+// Админка (admin.redonate.gg) токены не хранит: вход — HttpOnly-cookie сессии
+const isBrowser = !window.Telegram?.WebApp?.initData && !isAdminApp
 
 let accessToken: string | null = isBrowser ? localStorage.getItem('access_token') : null
 let refreshToken: string | null = isBrowser ? localStorage.getItem('refresh_token') : null
@@ -51,8 +53,20 @@ function clearTokens() {
 export const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,
   timeout: 15_000,
-  headers: { 'Content-Type': 'application/json' },
+  // X-Admin-Request: сервер принимает cookie-сессию админки только с этим
+  // заголовком (чужой сайт не может его выставить) — защита от CSRF
+  headers: isAdminApp
+    ? { 'Content-Type': 'application/json', 'X-Admin-Request': '1' }
+    : { 'Content-Type': 'application/json' },
+  withCredentials: isAdminApp,
 })
+
+/** Админка: сессия истекла — на страницу входа (с возвратом на текущую страницу). */
+function toAdminLogin() {
+  const { pathname, search } = window.location
+  if (pathname.startsWith('/admin/login')) return
+  window.location.replace('/admin/login?next=' + encodeURIComponent(pathname + search))
+}
 
 // ── Request interceptor — добавляем Authorization + fix multipart ────────────
 apiClient.interceptors.request.use(
@@ -73,6 +87,13 @@ apiClient.interceptors.response.use(
   (res: AxiosResponse) => res,
   async (error) => {
     const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
+
+    if (isAdminApp) {
+      // Вход/выход и проверка сессии сами решают, что делать с 401
+      const url = original?.url ?? ''
+      if (error.response?.status === 401 && !url.startsWith('/admin/auth/') && url !== '/admin/me') toAdminLogin()
+      return Promise.reject(error)
+    }
 
     if (error.response?.status !== 401 || original._retry) {
       return Promise.reject(error)

@@ -8,6 +8,7 @@ api/routers/admin/__init__.py
 from fastapi import APIRouter
 
 from . import (
+    audit,
     auth,
     catalog,
     chats,
@@ -16,13 +17,20 @@ from . import (
     discounts,
     orders,
     reviews,
+    session_auth,
     settings,
+    staff,
     support,
     users,
+    workspace,
 )
 
 router = APIRouter()
 router.include_router(auth.router, tags=["Admin Auth"])
+router.include_router(session_auth.router, tags=["Admin Auth"])
+router.include_router(workspace.router, tags=["Admin Workspace"])
+router.include_router(staff.router, prefix="/staff", tags=["Admin Staff"])
+router.include_router(audit.router, prefix="/audit", tags=["Admin Audit"])
 router.include_router(content.router, prefix="/content", tags=["Admin Content"])
 router.include_router(dashboard.router, prefix="/dashboard", tags=["Admin Dashboard"])
 router.include_router(orders.router, prefix="/orders", tags=["Admin Orders"])

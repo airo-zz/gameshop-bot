@@ -132,5 +132,23 @@ class SupportBotTexts:
     def group_test_failed(self) -> str:
         return "Не удалось доставить тестовое уведомление — проверьте логи worker/api."
 
+    # ── Вход в админку (admin.redonate.gg) ───────────────────────────────────
+
+    def admin_login_confirm(self, ip: str | None, ua: str | None) -> str:
+        from html import escape
+
+        return (
+            "<b>Вход в админку</b>\n\n"
+            "Кто-то нажал «Войти через Telegram» на admin.redonate.gg.\n"
+            f"IP: <code>{escape(ip or '—')}</code>\n"
+            f"Браузер: {escape((ua or '—')[:120])}\n\n"
+            "Если это не вы — нажмите «Отклонить»."
+        )
+
+    admin_login_btn_ok = "Подтвердить вход"
+    admin_login_btn_no = "Отклонить"
+    admin_login_expired = "Запрос входа устарел. Обновите страницу входа и попробуйте снова."
+    admin_login_no_access = "У этого аккаунта нет доступа к админке."
+
 
 texts = SupportBotTexts()

@@ -153,6 +153,7 @@ DEFAULT_PERMISSIONS: dict[AdminRole, list[str]] = {
         "discounts.*",
         "support.*",
         "analytics.view",
+        "audit.view",     # журнал действий сотрудников
     ],
     AdminRole.manager: [
         "orders.*",
@@ -202,6 +203,11 @@ class AdminUser(Base, UUIDMixin, TimestampMixin):
         ForeignKey("admin_users.id", ondelete="SET NULL"),
         nullable=True,
     )
+
+    # Вход в админку без Telegram: почта + пароль + код из письма (миграция 038)
+    email: Mapped[str | None] = mapped_column(String(254), nullable=True)
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    password_set_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     action_logs: Mapped[list["AdminActionLog"]] = relationship(
@@ -270,3 +276,26 @@ class AdminActionLog(Base, UUIDMixin):
 
     def __repr__(self) -> str:
         return f"<AdminLog {self.action} by {self.admin_id}>"
+
+
+class AdminSession(Base, UUIDMixin):
+    """
+    Сессия админки (admin.redonate.gg). В cookie — случайный токен, здесь —
+    только его SHA-256. method: telegram_webapp | telegram_confirm | email.
+    """
+
+    __tablename__ = "admin_sessions"
+
+    admin_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("admin_users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+    method: Mapped[str] = mapped_column(String(24), nullable=False)
+    ip: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    admin: Mapped[AdminUser] = relationship("AdminUser")

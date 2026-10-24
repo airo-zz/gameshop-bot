@@ -160,7 +160,7 @@ jobs:
           cache: npm
           cache-dependency-path: miniapp/package-lock.json
 
-      - name: Install & Build (Mini App + Website)
+      - name: Install & Build (Mini App + Website + Admin)
         working-directory: miniapp
         env:
           VITE_SHOP_NAME: reDonate
@@ -169,6 +169,7 @@ jobs:
           npm ci
           npm run build                        # Telegram Mini App → dist (base /app/)
           VITE_APP_TARGET=web npx vite build    # Публичный сайт → dist-web (base /)
+          VITE_APP_TARGET=admin npx vite build  # Админка admin.redonate.gg → dist-admin (base /)
 
       - name: Upload dist artifact
         uses: actions/upload-artifact@v4
@@ -182,6 +183,13 @@ jobs:
         with:
           name: miniapp-dist-web
           path: miniapp/dist-web/
+          retention-days: 1
+
+      - name: Upload admin dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: miniapp-dist-admin
+          path: miniapp/dist-admin/
           retention-days: 1
 
   # ─── Деплой Mini App ─────────────────────────────────────────────────────────
@@ -206,6 +214,12 @@ jobs:
           name: miniapp-dist-web
           path: miniapp-dist-web/
 
+      - name: Download Admin build
+        uses: actions/download-artifact@v4
+        with:
+          name: miniapp-dist-admin
+          path: miniapp-dist-admin/
+
       - name: Copy Mini App dist to VPS
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -226,6 +240,16 @@ jobs:
           target:      "/tmp/redonate-miniapp-web/"
           strip_components: 1
 
+      - name: Copy Admin dist to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host:        ${{ secrets.VPS_HOST }}
+          username:    ${{ secrets.VPS_USER }}
+          password:    ${{ secrets.VPS_PASSWORD }}
+          source:      "miniapp-dist-admin/"
+          target:      "/tmp/redonate-miniapp-admin/"
+          strip_components: 1
+
       - name: Swap dist on VPS and reload nginx
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -239,7 +263,7 @@ jobs:
 
             # Обновляем miniapp/dist и miniapp/dist-web без удаления самих папок
             # (удаление ломает Docker bind mount до рестарта nginx)
-            mkdir -p "$APP_DIR/miniapp/dist" "$APP_DIR/miniapp/dist-web"
+            mkdir -p "$APP_DIR/miniapp/dist" "$APP_DIR/miniapp/dist-web" "$APP_DIR/miniapp/dist-admin"
 
             find "$APP_DIR/miniapp/dist" -mindepth 1 -delete
             cp -r /tmp/redonate-miniapp/. "$APP_DIR/miniapp/dist/"
@@ -248,6 +272,10 @@ jobs:
             find "$APP_DIR/miniapp/dist-web" -mindepth 1 -delete
             cp -r /tmp/redonate-miniapp-web/. "$APP_DIR/miniapp/dist-web/"
             rm -rf /tmp/redonate-miniapp-web
+
+            find "$APP_DIR/miniapp/dist-admin" -mindepth 1 -delete
+            cp -r /tmp/redonate-miniapp-admin/. "$APP_DIR/miniapp/dist-admin/"
+            rm -rf /tmp/redonate-miniapp-admin
 
             # Перезагружаем nginx — он подхватывает новые файлы из bind mount
             docker compose -f "$APP_DIR/docker-compose.yml" exec -T nginx nginx -s reload
@@ -284,7 +312,7 @@ jobs:
             git reset --hard origin/main
 
             # Каталоги статики должны существовать до старта nginx (bind mount)
-            mkdir -p miniapp/dist miniapp/dist-web
+            mkdir -p miniapp/dist miniapp/dist-web miniapp/dist-admin
 
             # Собираем ДВА образа последовательно: gameshop-app (api/worker/beat/
             # flower/migrations) и gameshop-botimg (bot/support_bot). Параллельная
