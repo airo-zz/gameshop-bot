@@ -9,18 +9,21 @@
         index index.html;
         try_files $uri $uri/index.html @spa_fallback;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
+        include /etc/nginx/conf.d/security_headers.inc;
         add_header Pragma "no-cache";
 
         location ~* \.(js|css|png|jpg|svg|ico|woff2)$ {
             root /usr/share/nginx/html;
             expires 30d;
             add_header Cache-Control "public, immutable";
+            include /etc/nginx/conf.d/security_headers.inc;
         }
     }
 
     location @spa_fallback {
         root /usr/share/nginx/html;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
+        include /etc/nginx/conf.d/security_headers.inc;
         add_header Pragma "no-cache";
         try_files /app/index.html =404;
     }
@@ -34,13 +37,14 @@
         proxy_pass         $upstream_api;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;
-        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-For $remote_addr;  # только реальный адрес: клиентский заголовок не пропускаем (лимиты API)
         proxy_set_header   X-Forwarded-Proto $scheme;
         proxy_connect_timeout 3s;
         proxy_read_timeout 10s;
         proxy_intercept_errors on;
         error_page 502 503 504 = @web_index;
         add_header Cache-Control "no-cache";
+        include /etc/nginx/conf.d/security_headers.inc;
     }
 
     # Страница игры и страница раздела (/game/<игра>/<раздел>)
@@ -51,13 +55,14 @@
         proxy_pass         $upstream_api;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;
-        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-For $remote_addr;  # только реальный адрес: клиентский заголовок не пропускаем (лимиты API)
         proxy_set_header   X-Forwarded-Proto $scheme;
         proxy_connect_timeout 3s;
         proxy_read_timeout 10s;
         proxy_intercept_errors on;
         error_page 502 503 504 = @web_index;
         add_header Cache-Control "no-cache";
+        include /etc/nginx/conf.d/security_headers.inc;
     }
 
     location ~ ^/(sitemap\.xml|robots\.txt)$ {
@@ -71,6 +76,7 @@
     location @web_index {
         root /usr/share/nginx/web;
         add_header Cache-Control "no-cache";
+        include /etc/nginx/conf.d/security_headers.inc;
         try_files /index.html =404;
     }
 
@@ -83,11 +89,13 @@
         index index.html;
         try_files $uri /index.html;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
+        include /etc/nginx/conf.d/security_headers.inc;
 
         location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico|woff2?)$ {
             root /usr/share/nginx/web;
             expires 30d;
             add_header Cache-Control "public, immutable";
+            include /etc/nginx/conf.d/security_headers.inc;
         }
     }
 

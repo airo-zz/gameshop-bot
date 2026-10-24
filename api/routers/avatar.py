@@ -19,8 +19,11 @@ from pathlib import Path
 import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
+from sqlalchemy import select
 
+from api.deps import DbSession
 from shared.config import settings
+from shared.models import User
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -49,7 +52,7 @@ async def _download(telegram_id: int) -> bytes | None:
 
 
 @router.get("/{telegram_id}")
-async def get_avatar(telegram_id: int):
+async def get_avatar(telegram_id: int, db: DbSession):
     if telegram_id <= 0 or not settings.BOT_TOKEN:
         raise HTTPException(status_code=404)
 
@@ -62,6 +65,13 @@ async def get_avatar(telegram_id: int):
         return p.exists() and now - p.stat().st_mtime < ttl
 
     if not fresh(img, CACHE_TTL) and not fresh(miss, MISS_TTL):
+        # Только наши пользователи: перебор чужих ID не должен тратить лимиты
+        # Bot API токена бота и засорять диск файлами-заглушками
+        known = (await db.execute(
+            select(User.id).where(User.telegram_id == telegram_id).limit(1)
+        )).scalar_one_or_none()
+        if known is None:
+            raise HTTPException(status_code=404)
         lock = _locks.setdefault(telegram_id, asyncio.Lock())
         async with lock:
             if not fresh(img, CACHE_TTL) and not fresh(miss, MISS_TTL):

@@ -329,7 +329,8 @@ async def adjust_balance(
             detail=f"Допустимые типы: {', '.join(sorted(_ALLOWED_MANUAL_TYPES))}",
         )
 
-    result = await db.execute(select(User).where(User.id == user_id))
+    # FOR UPDATE: параллельная оплата/кэшбэк не затрёт ручное изменение (и наоборот)
+    result = await db.execute(select(User).where(User.id == user_id).with_for_update())
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Пользователь не найден")

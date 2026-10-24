@@ -81,7 +81,7 @@ cd "$APP_DIR"
 mkdir -p "$APP_DIR/backups" "$APP_DIR/miniapp/dist"
 chmod +x "$APP_DIR/scripts/backup_db.sh" || true
 
-CRON_LINE="0 */6 * * * cd $APP_DIR && ./scripts/backup_db.sh >> /var/log/redonate-backup.log 2>&1"
+CRON_LINE="0 * * * * cd $APP_DIR && bash ./scripts/backup_db.sh >> /var/log/redonate-backup.log 2>&1"
 if ! crontab -l 2>/dev/null | grep -qF "scripts/backup_db.sh"; then
     ( crontab -l 2>/dev/null; echo "$CRON_LINE" ) | crontab -
     log "Cron офсайт-бэкапа установлен (каждые 6 часов)"

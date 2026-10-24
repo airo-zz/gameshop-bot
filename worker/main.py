@@ -28,6 +28,7 @@ celery_app = Celery(
         "worker.tasks.pricing_tasks",
         "worker.tasks.fulfillment_tasks",
         "worker.tasks.review_tasks",
+        "worker.tasks.integrity_tasks",
     ],
 )
 
@@ -68,6 +69,11 @@ celery_app.conf.beat_schedule = {
     "refresh-usd-rate": {
         "task": "worker.tasks.pricing_tasks.refresh_usd_rate",
         "schedule": crontab(hour="6,18", minute=0),
+    },
+    # Каждые 3 часа — сверка балансов с историей операций и свежесть бэкапа БД
+    "check-integrity": {
+        "task": "worker.tasks.integrity_tasks.check_integrity",
+        "schedule": crontab(minute=40, hour="*/3"),
     },
     # Каждые 3 часа — новые отзывы с GGSEL
     "sync-ggsel-reviews": {

@@ -9,8 +9,13 @@
 #    4. Чистит старые дампы в S3 за пределами ретеншена
 #
 #  Запуск: host-cron (НЕ celery) — работает даже если приложение лежит.
-#  Пример cron (устанавливает scripts/bootstrap_vps.sh):
-#    0 */6 * * * cd /opt/gameshop && ./scripts/backup_db.sh >> /var/log/redonate-backup.log 2>&1
+#  Cron (каждый час; через bash — не зависит от права на запуск файла):
+#    0 * * * * cd /opt/gameshop && bash ./scripts/backup_db.sh >> /var/log/redonate-backup.log 2>&1
+#
+#  Контроль: при сбое — уведомление персоналу (shared/staff_notify через контейнер
+#  api); при успехе — отметка shop_settings.last_backup_at, которую каждые 3 часа
+#  проверяет worker (worker/tasks/integrity_tasks.py) — если бэкап давно не
+#  проходил (cron пропал, скрипт не запускается), персонал тоже узнает.
 #
 #  Зависит от: docker compose, aws cli (см. bootstrap_vps.sh).
 #  Читает креды из .env в корне проекта.
@@ -19,6 +24,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$SCRIPT_DIR"
+
+notify_fail() {
+    local line="$1"
+    echo "[backup] FAILED at line $line" >&2
+    docker compose exec -T api python -c         "from shared.staff_notify import send_staff_sync; send_staff_sync('Бэкап базы НЕ выполнен (scripts/backup_db.sh, строка $line). Лог: /var/log/redonate-backup.log')"         >/dev/null 2>&1 || echo "[backup] не удалось отправить уведомление персоналу" >&2
+}
+trap 'notify_fail $LINENO' ERR
 
 # ── Загружаем .env ──
 if [ ! -f .env ]; then
@@ -87,5 +99,10 @@ aws --endpoint-url "$S3_ENDPOINT" s3 ls "s3://${BACKUP_S3_BUCKET}/db/" \
             echo "[backup] s3 removed old: $key"
         fi
     done
+
+# ── 5. Отметка об успешном бэкапе (проверяет worker) ──
+docker compose exec -T db psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -q -c     "INSERT INTO shop_settings (key, value, description, updated_at)
+     VALUES ('last_backup_at', extract(epoch from now())::bigint::text, 'Время последнего успешного бэкапа БД, unix-время (scripts/backup_db.sh)', now())
+     ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()"
 
 echo "[backup] $(date -u +%FT%TZ) done ✓"

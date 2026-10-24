@@ -71,7 +71,9 @@ services:
       dockerfile: Dockerfile.api
     image: gameshop-app:latest
     <<: *common-env
-    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 2 --log-level info
+    # --proxy-headers: адрес посетителя из X-Forwarded-For (nginx пишет туда только $remote_addr) —
+    # лимиты запросов считаются по посетителю, а не по адресу nginx
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --workers 2 --log-level info --proxy-headers --forwarded-allow-ips=*
     expose:
       - "8000"
     depends_on:

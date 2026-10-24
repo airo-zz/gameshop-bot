@@ -403,7 +403,16 @@ class PaymentService:
         )
         topup = topup_result.scalar_one_or_none()
         if topup is not None:
-            if topup.status == "credited":
+            if topup.status == "credited" and status == "CHARGEBACKED":
+                # Пополнение оспорено через банк ПОСЛЕ зачисления: баланс не трогаем
+                # (мог быть уже потрачен) — решает персонал
+                topup.status = "chargeback"
+                await self._alert_chargeback(
+                    f"Пополнение баланса на {topup.amount} ₽ оспорено через банк (chargeback) "
+                    f"после зачисления.", topup.user_id, external_id,
+                )
+                return True
+            if topup.status in ("credited", "chargeback"):
                 return True  # Идемпотентность
             if status == "CONFIRMED":
                 # Зачисляем всегда серверную сумму (topup.amount), не из webhook.
@@ -436,7 +445,18 @@ class PaymentService:
             )
             return False
 
-        if payment.status == PaymentStatus.succeeded:
+        if payment.status == PaymentStatus.succeeded and status == "CHARGEBACKED":
+            # Оплата заказа оспорена через банк после подтверждения — заказ мог быть
+            # уже выдан; статус заказа не меняем, решает персонал
+            payment.status = PaymentStatus.refunded
+            payment.raw_response = payload
+            order = (await self.db.execute(select(Order).where(Order.id == payment.order_id))).scalar_one_or_none()
+            await self._alert_chargeback(
+                f"Оплата заказа {order.order_number if order else payment.order_id} на {payment.amount} ₽ "
+                f"оспорена через банк (chargeback).", order.user_id if order else None, external_id,
+            )
+            return True
+        if payment.status in (PaymentStatus.succeeded, PaymentStatus.refunded):
             return True  # Идемпотентность
 
         payment.raw_response = payload
@@ -476,6 +496,26 @@ class PaymentService:
                 await self.order_svc.release_balance_hold(order, "платёж отменён")
 
         return True
+
+    async def _alert_chargeback(self, what: str, user_id, external_id: str) -> None:
+        """Сообщение персоналу об оспоренном платеже. Сбой отправки не мешает вебхуку."""
+        from html import escape
+
+        from shared.staff_notify import send_staff_async
+
+        who = ""
+        if user_id is not None:
+            user = (await self.db.execute(select(User).where(User.id == user_id))).scalar_one_or_none()
+            if user:
+                who = f"\nПокупатель: {escape(user.display_name)} (ID {user.telegram_id}), баланс {user.balance} ₽"
+        logger.error("Platega CHARGEBACK: %s ext=%s user=%s", what, external_id, user_id)
+        try:
+            await send_staff_async(
+                self.db,
+                f"<b>Chargeback</b>\n{escape(what)}{who}\nПлатёж Platega: <code>{escape(external_id)}</code>",
+            )
+        except Exception as exc:  # noqa: BLE001 — уведомление не должно ронять обработку вебхука
+            logger.error("chargeback alert не отправлен: %s", exc)
 
     async def topup_yukassa(self, user: User, amount: Decimal) -> dict:
         """Создаёт платёж ЮKassa для пополнения баланса."""

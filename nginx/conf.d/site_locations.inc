@@ -14,6 +14,7 @@
         alias /usr/share/nginx/static/;
         expires 30d;
         add_header Cache-Control "public, immutable";
+        include /etc/nginx/conf.d/security_headers.inc;
     }
 
     # ── 429 JSON response ─────────────────────────────────────────────────────
@@ -32,7 +33,7 @@
         proxy_pass         $upstream_api;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;
-        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-For $remote_addr;  # только реальный адрес: клиентский заголовок не пропускаем (лимиты API)
         proxy_set_header   X-Forwarded-Proto $scheme;
         proxy_read_timeout 60s;
         proxy_connect_timeout 5s;
@@ -48,7 +49,7 @@
         proxy_pass         $upstream_api;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;
-        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-For $remote_addr;  # только реальный адрес: клиентский заголовок не пропускаем (лимиты API)
         proxy_set_header   X-Forwarded-Proto $scheme;
         proxy_read_timeout 60s;
         proxy_connect_timeout 5s;
@@ -77,7 +78,7 @@
         proxy_pass         $upstream_api;
         proxy_set_header   Host $host;
         proxy_set_header   X-Real-IP $remote_addr;
-        proxy_set_header   X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-For $remote_addr;  # только реальный адрес: клиентский заголовок не пропускаем (лимиты API)
         proxy_set_header   X-Forwarded-Proto $scheme;
         proxy_read_timeout 60s;
         proxy_connect_timeout 5s;

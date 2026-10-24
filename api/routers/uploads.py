@@ -14,6 +14,7 @@ POST /api/v1/admin/upload
 """
 
 import asyncio
+import hmac
 import uuid
 from pathlib import Path
 from typing import Annotated
@@ -22,6 +23,7 @@ import aiofiles
 from fastapi import APIRouter, Depends, Header, HTTPException, UploadFile, status
 
 from api.deps_admin import CurrentAdmin, require_permission
+from api.utils.images import BadImage, verify_image
 from api.utils.thumbs import make_thumbs
 from shared.config import settings
 
@@ -46,7 +48,7 @@ async def require_internal_token(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="INTERNAL_API_KEY не настроен на сервере",
         )
-    if x_internal_token != settings.INTERNAL_API_KEY:
+    if not x_internal_token or not hmac.compare_digest(x_internal_token, settings.INTERNAL_API_KEY):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Неверный внутренний токен",
@@ -80,6 +82,11 @@ async def upload_image(file: UploadFile) -> dict:
         )
 
     # Создаём директорию если не существует
+    try:
+        verify_image(contents)  # Content-Type от клиента — не доказательство
+    except BadImage as e:
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(e))
+
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
     filename = f"{uuid.uuid4()}.{ext}"
@@ -124,6 +131,11 @@ async def upload_image_jwt(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail="Файл слишком большой. Максимум 10 МБ.",
         )
+
+    try:
+        verify_image(contents)  # Content-Type от клиента — не доказательство
+    except BadImage as e:
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(e))
 
     UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 

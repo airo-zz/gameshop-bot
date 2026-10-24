@@ -9,9 +9,12 @@ import uuid
 from pathlib import Path
 
 import aiofiles
-from fastapi import APIRouter, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, HTTPException, Query, Request, UploadFile, status
+from starlette.concurrency import run_in_threadpool
 
 from api.deps import ChatUser, CurrentUser, DbSession
+from api.rate_limit import limiter
+from api.utils.images import BadImage, compress_to_webp
 from api.schemas.support import (
     CreateTicketRequest,
     ReplyTicketRequest,
@@ -33,8 +36,13 @@ MAX_UPLOAD_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
 @router.post("/upload")
-async def upload_attachment(file: UploadFile, user: ChatUser) -> dict:
-    """Загрузка вложения к тикету. Только изображения, макс 5 МБ."""
+@limiter.limit("20/hour")
+async def upload_attachment(request: Request, file: UploadFile, user: ChatUser) -> dict:
+    """
+    Вложение в чат/тикет: только картинки до 5 МБ. Содержимое проверяется и
+    пересохраняется в WebP (до 1920 px) — меньше места на диске, без EXIF.
+    Не чаще 20 в час с одного адреса (гостям чат доступен без входа).
+    """
     content_type = (file.content_type or "").lower()
     ext = ALLOWED_TYPES.get(content_type)
     if ext is None:
@@ -50,8 +58,13 @@ async def upload_attachment(file: UploadFile, user: ChatUser) -> dict:
             detail="Файл слишком большой. Максимум 5 МБ.",
         )
 
+    try:
+        contents = await run_in_threadpool(compress_to_webp, contents)
+    except BadImage as e:
+        raise HTTPException(status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE, detail=str(e))
+
     SUPPORT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    filename = f"{uuid.uuid4()}.{ext}"
+    filename = f"{uuid.uuid4()}.webp"
     dest = SUPPORT_UPLOAD_DIR / filename
 
     async with aiofiles.open(dest, "wb") as f:
