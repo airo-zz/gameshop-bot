@@ -58,7 +58,7 @@ DEFAULT_DESC = (
 
 FAQ = [
     ("Как быстро приходит товар?",
-     "Товары с автовыдачей приходят сразу после оплаты. Остальные заказы оператор обрабатывает в чате, обычно за несколько минут."),
+     "Товары с автовыдачей приходят сразу после оплаты. Остальные заказы оператор выполняет в чате — обычно за несколько минут, максимум до 12 часов."),
     ("Какие способы оплаты доступны?",
      "СБП, банковские карты (Visa, Mastercard, МИР), криптовалюта (USDT, TON, BTC и др.) и баланс аккаунта."),
     ("Нужна ли регистрация?",
@@ -366,7 +366,29 @@ async def _data_game(db, slug: str, cat_slug: str | None) -> list:
         products = await cat_api.list_products(db, category_id=current.id, page=0, page_size=20)
         out.append((["web", "products", str(current.id)], products))
     out.append((["web", "game-seo", slug, cat_slug or ""], await cat_api.get_game_seo(slug, db, cat_slug)))
+    out.append((["reviews", "game", slug], await _game_reviews(db, slug)))
     return out
+
+
+async def _game_reviews(db, slug: str) -> dict:
+    """Отзывы игры — тот же запрос, что делает блок отзывов на странице игры (WebGamePage)."""
+    from api.routers import reviews as rev_api
+
+    return (await rev_api.list_reviews(db, game=slug, kind="text", offset=0, limit=4)).model_dump()
+
+
+def _reviews_html(data: dict, game_name: str) -> str:
+    sm = data.get("summary") or {}
+    if not sm.get("total"):
+        return ""
+    pct = f"{sm['percent']:g}".replace(".", ",")
+    items = "".join(
+        f"<li>{_e(r['author'])}, {r['created_at']:%d.%m.%Y} — "
+        f"{'положительный' if r['positive'] else 'отрицательный'}: {_e(r['text'])}</li>"
+        for r in data["items"] if r["text"]
+    )
+    return (f"<h2>Отзывы о покупке {_e(game_name)}</h2>"
+            f"<p>{sm['total']} отзывов, {pct}% положительных.</p><ul>{items}</ul>")
 
 
 # ── Страницы ──────────────────────────────────────────────────────────────────
@@ -560,6 +582,7 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
         + (f"<p>Также ищут: {_e(', '.join(page.aliases))}.</p>" if page.aliases else "")
         + sections_html
         + (f"<h2>{'Другие разделы' if current else 'Разделы'} {_e(game.name)}</h2><ul>{other_cats}</ul>" if other_cats else "")
+        + _reviews_html(await _game_reviews(db, slug), game.name)
         + (f"<div>{_e(page.text)}</div>" if page.text else "")
     )
 
