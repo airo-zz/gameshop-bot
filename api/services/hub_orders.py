@@ -179,6 +179,7 @@ async def push_order(db: AsyncSession, order_id: str, expect_status: str | None)
                 "author_username": "reDonate",
                 "text": text,
                 "image_url": "",
+                "sent_at": payload["date"],
             }]}))
     return True
 
