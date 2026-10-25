@@ -7,6 +7,10 @@ x-common-env: &common-env
   restart: unless-stopped
   networks:
     - redonate-net
+  # Хаб UchetFP переехал 25.10.2026 (старый 185.23.19.112 умер). У DNS-записи TTL сутки —
+  # пока кэши не обновились, адрес прописан явно. Удалить после 27.10.2026.
+  extra_hosts:
+    - "airo.uchet.tech:146.103.115.128"
 
 x-healthcheck-postgres: &hc-postgres
   healthcheck:
