@@ -22,7 +22,7 @@ import { fmtNum } from '@/utils/format'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import logoMark from '@/assets/logo-mark.png'
 import { useChatWidget } from './chatStore'
-import ChatHint from './ChatHint'
+import ChatHint, { useChatGreeting } from './ChatHint'
 import { guestTransport, userTransport, type ChatTransport } from './chatTransport'
 
 type Msg = ChatMessage & { optimistic?: boolean }
@@ -375,11 +375,19 @@ export default function ChatWidget() {
 
   const fabRight = mobile ? 16 : 24
   const fabBottom = (mobile ? 16 : 24) + lift
+  const greeting = useChatGreeting(open)
 
   return (
     <>
-      {/* Облачко «Есть вопрос?» слева от кнопки, по её центру (кнопка 56px) */}
-      <ChatHint chatOpen={open} onOpen={openChat} right={fabRight + 56 + 10} bottom={fabBottom + 6} />
+      {/* Приветствие оператора — над кнопкой чата (кнопка 56px) */}
+      <ChatHint
+        show={greeting.card}
+        onOpen={openChat}
+        onDismiss={greeting.dismiss}
+        right={fabRight}
+        bottom={fabBottom + 56 + 12}
+        mobile={mobile}
+      />
       <AnimatePresence>
         {!(open && full) && (
           <m.button
@@ -400,12 +408,16 @@ export default function ChatWidget() {
             }}
           >
             {open ? <X size={24} /> : <MessageCircle size={26} weight="fill" />}
-            {!open && unread > 0 && (
-              <span
-                className="absolute -top-0.5 -right-0.5 min-w-[20px] h-5 px-1 rounded-full text-[11px] font-semibold text-white flex items-center justify-center"
-                style={{ background: '#ef4444', boxShadow: '0 0 0 2px var(--bg)' }}
-              >
-                {unread}
+            {!open && (unread > 0 || greeting.badge) && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[20px] h-5">
+                {/* «пинг» только для приветствия — непрочитанные и так видны */}
+                {unread === 0 && <span className="anim-ping absolute inset-0 rounded-full" style={{ background: '#ef4444' }} />}
+                <span
+                  className="relative min-w-[20px] h-5 px-1 rounded-full text-[11px] font-semibold text-white flex items-center justify-center"
+                  style={{ background: '#ef4444', boxShadow: '0 0 0 2px var(--bg)' }}
+                >
+                  {unread > 0 ? unread : 1}
+                </span>
               </span>
             )}
           </m.button>
