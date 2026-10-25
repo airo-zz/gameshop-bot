@@ -103,12 +103,14 @@ class ChatService:
         sender_type: str,
         text: str | None,
         attachments: list[str] | None = None,
+        source: str | None = None,
     ) -> ChatMessage:
         """
         Добавляет сообщение в чат.
         sender_type: "user" | "admin" | "system"
+        source: "hub" — ответ ночника из хаба UchetFP (обратно в хаб не отправляем)
         Обновляет last_message_at чата.
-        Запускает Celery-задачи уведомлений.
+        Запускает Celery-задачи уведомлений и пересылку в хаб.
         """
         now = datetime.now(timezone.utc)
 
@@ -133,8 +135,20 @@ class ChatService:
 
         # Celery уведомления запускаем после flush (чтобы данные были в БД)
         self._schedule_notification(str(chat_id), sender_type)
+        if source != "hub":
+            self._schedule_hub_push(str(msg.id), str(chat_id))
 
         return msg
+
+    def _schedule_hub_push(self, msg_id: str, chat_id: str) -> None:
+        """Копия сообщения в хаб UchetFP (если связь включена — проверит задача).
+        countdown — чтобы транзакция отправителя успела закоммититься."""
+        try:
+            from worker.tasks.hub_tasks import push_to_hub
+
+            push_to_hub.apply_async(args=[msg_id, chat_id], countdown=1)
+        except Exception as e:
+            logger.warning("hub push enqueue failed (celery?): %s", e)
 
     def _schedule_notification(self, chat_id: str, sender_type: str) -> None:
         """Запускает Celery-задачу уведомления в зависимости от типа отправителя."""

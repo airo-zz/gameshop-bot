@@ -11,6 +11,7 @@ import toast from 'react-hot-toast'
 import { adminApi } from '@/api/admin'
 import type { IntegrationsSettings } from '@/api/admin'
 import FazerSettingsCard from '@/pages/admin/FazerSettingsCard'
+import HubSettingsCard from '@/pages/admin/HubSettingsCard'
 
 const inputCls =
   'w-full bg-[var(--bg2)] border border-[var(--border)] rounded-xl px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:border-[var(--accent)]'
@@ -82,7 +83,7 @@ export default function IntegrationsPage() {
         </div>
         <div>
           <h1 className="text-lg font-bold text-[var(--text)]">Интеграции</h1>
-          <p className="text-xs text-[var(--hint)]">Автовыдача: Fragment (Stars / Premium) и FazerCards</p>
+          <p className="text-xs text-[var(--hint)]">Автовыдача Fragment и FazerCards, чаты в хабе UchetFP</p>
         </div>
       </div>
 
@@ -198,6 +199,7 @@ export default function IntegrationsPage() {
       </div>
 
       <FazerSettingsCard />
+      <HubSettingsCard />
     </div>
   )
 }

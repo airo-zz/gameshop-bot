@@ -11,6 +11,8 @@ worker/main.py + worker/tasks/ — Celery фоновые задачи
 
 # ── worker/main.py ────────────────────────────────────────────────────────────
 
+from datetime import timedelta
+
 from celery import Celery
 from celery.schedules import crontab
 
@@ -31,6 +33,7 @@ celery_app = Celery(
         "worker.tasks.decor_tasks",
         "worker.tasks.review_tasks",
         "worker.tasks.integrity_tasks",
+        "worker.tasks.hub_tasks",
     ],
 )
 
@@ -91,5 +94,12 @@ celery_app.conf.beat_schedule = {
     "sync-decor-catalog": {
         "task": "worker.tasks.decor_tasks.sync_decor_catalog",
         "schedule": crontab(minute=15),
+    },
+    # Каждые 5 секунд — ответы ночника из хаба UchetFP в чаты (если связь включена).
+    # expires: пока воркер занят/лежал, опросы не копятся в очереди.
+    "poll-hub": {
+        "task": "worker.tasks.hub_tasks.poll_hub",
+        "schedule": timedelta(seconds=5),
+        "options": {"expires": 4},
     },
 }

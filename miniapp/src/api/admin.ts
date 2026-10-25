@@ -982,6 +982,25 @@ export interface FazerDeliveryInfo {
   at?: string
 }
 
+// ── Хаб UchetFP (чаты магазина у ночника) ───────────────────────────────────
+
+export interface HubOverview {
+  enabled: boolean
+  url: string
+  token_set: boolean
+  token_masked: string
+  ok_at: string | null
+  error: string
+  test_error?: string
+}
+
+export const hubApi = {
+  overview: () => apiClient.get<HubOverview>('/admin/hub/overview').then(r => r.data),
+  updateConfig: (data: { enabled?: boolean; url?: string; token?: string }) =>
+    apiClient.patch<HubOverview>('/admin/hub/config', data).then(r => r.data),
+  test: () => apiClient.post<HubOverview>('/admin/hub/test').then(r => r.data),
+}
+
 export const fazerApi = {
   overview: () => apiClient.get<FazerOverview>('/admin/fazer/overview').then(r => r.data),
   updateConfig: (data: { enabled?: boolean; api_key?: string; low_balance?: number }) =>
