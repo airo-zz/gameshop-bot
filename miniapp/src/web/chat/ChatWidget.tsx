@@ -375,7 +375,7 @@ export default function ChatWidget() {
 
   const fabRight = mobile ? 16 : 24
   const fabBottom = (mobile ? 16 : 24) + lift
-  const greeting = useChatGreeting(open)
+  const greeting = useChatGreeting(open, mobile)
 
   return (
     <>
@@ -385,7 +385,7 @@ export default function ChatWidget() {
         onOpen={openChat}
         onDismiss={greeting.dismiss}
         right={fabRight}
-        bottom={fabBottom + 56 + 12}
+        bottom={`calc(${fabBottom + 56 + 12}px + var(--cookie-h, 0px))`}
         mobile={mobile}
       />
       <AnimatePresence>
@@ -402,7 +402,8 @@ export default function ChatWidget() {
             transition={{ duration: 0.18 }}
             className="w-14 h-14 rounded-full flex items-center justify-center text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors"
             style={{
-              position: 'fixed', right: fabRight, bottom: fabBottom, zIndex: 190,
+              // над плашкой cookie, пока она на экране (--cookie-h ставит CookieBanner)
+              position: 'fixed', right: fabRight, bottom: `calc(${fabBottom}px + var(--cookie-h, 0px))`, zIndex: 190,
               boxShadow: '0 8px 24px rgba(37,99,235,0.35), 0 2px 6px rgba(0,0,0,0.4)',
               marginBottom: 'env(safe-area-inset-bottom, 0px)',
             }}

@@ -296,7 +296,7 @@ export default function DecorCatalog({ data, qty, onAdd, onRemove, cart, onCheck
       {limit < filtered.length && <div ref={sentinel} className="h-10" />}
 
       {cart.count > 0 && (
-        <div className="fixed left-0 right-0 z-30 px-4 anim-rise" style={{ bottom: bottomOffset + 12 }}>
+        <div className="fixed left-0 right-0 z-30 px-4 anim-rise" style={{ bottom: `calc(${bottomOffset + 12}px + var(--cookie-h, 0px))` }}>
           <div className="max-w-xl mx-auto flex items-center gap-3 rounded-2xl p-2 pl-4" style={{ background: 'var(--bg3)', boxShadow: '0 10px 28px rgba(0,0,0,0.5)' }}>
             <ShoppingCart size={18} className="text-[var(--link)] shrink-0" />
             <p className="flex-1 min-w-0 text-sm text-[var(--text)] truncate">

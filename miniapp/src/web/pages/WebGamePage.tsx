@@ -561,7 +561,7 @@ function GamePageContent() {
 
       {/* Корзина: нижняя панель на телефоне */}
       {count > 0 && (
-        <div className="lg:hidden fixed left-0 right-0 bottom-0 z-30 border-t border-[var(--border)] bg-[var(--bg)]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+        <div className="lg:hidden fixed left-0 right-0 z-30 border-t border-[var(--border)] bg-[var(--bg)]" style={{ bottom: 'var(--cookie-h, 0px)', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
           <div className="web-container flex items-center gap-3 py-3">
             <div className="flex-1 min-w-0">
               <p className="text-xs text-[var(--hint)]">{count} в корзине</p>

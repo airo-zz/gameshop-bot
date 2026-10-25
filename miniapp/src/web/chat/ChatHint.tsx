@@ -6,7 +6,8 @@
  *
  * Правила, чтобы не раздражать:
  *  • пока человек ни разу не открывал чат (DONE_KEY), не чаще раза за визит (SESSION_KEY);
- *  • через GREET_DELAY_MS и только после ответа на плашку cookie — два окна разом не всплывают;
+ *  • через GREET_DELAY_MS; на телефоне — только после ответа на плашку cookie (иначе две
+ *    карточки займут пол-экрана), на ПК плашка — полоса снизу, карточка над ней и не мешает;
  *  • карточка прячется сама через GREET_SHOW_MS (счётчик остаётся до конца визита
  *    или до открытия чата), по крестику, при открытии чата;
  *  • звук — только если человек уже кликал по странице (иначе браузер его и не даст)
@@ -58,7 +59,7 @@ function chime() {
 }
 
 /** Состояние приветствия: card — карточка на экране, badge — красная «1» на кнопке */
-export function useChatGreeting(chatOpen: boolean) {
+export function useChatGreeting(chatOpen: boolean, mobile: boolean) {
   const reduce = useReducedMotion()
   const [card, setCard] = useState(false)
   const [badge, setBadge] = useState(false)
@@ -67,7 +68,7 @@ export function useChatGreeting(chatOpen: boolean) {
     if (get('local', DONE_KEY) || get('session', SESSION_KEY)) return
     const startedAt = Date.now()
     const t = setInterval(() => {
-      if (Date.now() - startedAt < GREET_DELAY_MS || getCookieConsent() === null) return
+      if (Date.now() - startedAt < GREET_DELAY_MS || (mobile && getCookieConsent() === null)) return
       clearInterval(t)
       put('session', SESSION_KEY)
       setCard(true)
@@ -75,7 +76,7 @@ export function useChatGreeting(chatOpen: boolean) {
       if (!reduce) chime()
     }, 1000)
     return () => clearInterval(t)
-  }, [reduce])
+  }, [reduce, mobile])
 
   useEffect(() => {
     if (!card) return
@@ -100,7 +101,7 @@ export default function ChatHint({ show, onOpen, onDismiss, right, bottom, mobil
   onOpen: () => void
   onDismiss: () => void
   right: number
-  bottom: number
+  bottom: number | string
   mobile: boolean
 }) {
   const reduce = useReducedMotion()

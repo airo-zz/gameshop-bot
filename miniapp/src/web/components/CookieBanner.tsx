@@ -1,64 +1,78 @@
 /**
  * src/web/components/CookieBanner.tsx
- * Плашка о cookie при первом визите: «Принять» включает Яндекс.Метрику,
- * «Только необходимые» — без аналитики. Выбор хранится в браузере.
- * Та же плашка приходит в HTML с сервера (api/routers/seo.py, видна сразу);
- * поэтому здесь без анимации появления — React подхватывает её на месте.
+ * Плашка о cookie при первом визите — полоса во всю ширину внизу экрана, как на
+ * большинстве сайтов. «Принять» включает аналитику; «Только необходимые» — без
+ * неё (по 152-ФЗ отказ от аналитики должен быть возможен). Выбор — в браузере.
+ *
+ * Та же плашка приходит в HTML с сервера (api/routers/seo.py, COOKIE_SSR — вёрстку
+ * держать одинаковой), поэтому здесь без анимации появления.
+ *
+ * Пока плашка на экране, её высота — в CSS-переменной --cookie-h на <html>:
+ * кнопка чата, приветствие и нижние панели поднимаются над ней.
  */
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, m } from 'framer-motion'
 import { getCookieConsent, setCookieConsent, type CookieConsent } from '@/web/seo'
 
+function setCookieHeight(px: number) {
+  document.documentElement.style.setProperty('--cookie-h', `${Math.round(px)}px`)
+}
+
 export default function CookieBanner() {
   const [shown, setShown] = useState(() => getCookieConsent() === null)
+  const ref = useRef<HTMLDivElement>(null)
   const choose = (v: CookieConsent) => { setCookieConsent(v); setShown(false) }
+
+  useEffect(() => {
+    const el = ref.current
+    if (!shown || !el) { setCookieHeight(0); return }
+    const ro = new ResizeObserver(() => setCookieHeight(el.offsetHeight))
+    ro.observe(el)
+    setCookieHeight(el.offsetHeight)
+    return () => { ro.disconnect(); setCookieHeight(0) }
+  }, [shown])
 
   return (
     <AnimatePresence>
       {shown && (
-        // Обёртка: по центру снизу; на телефоне справа место под кнопку чата
         <m.div
           key="cookie"
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
-          className="pointer-events-none flex justify-start md:justify-center pl-4 pr-[88px] md:px-24"
-          style={{ position: 'fixed', left: 0, right: 0, bottom: 16, zIndex: 180, marginBottom: 'env(safe-area-inset-bottom, 0px)' }}
-        >
-        <m.div
+          ref={ref}
           id="cookie-banner"
           role="region"
           aria-label="Cookie"
-          initial={false}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 16 }}
-          transition={{ duration: 0.25 }}
-          className="pointer-events-auto w-full max-w-[560px] rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-4 md:p-5"
-          style={{ boxShadow: '0 16px 40px rgba(0,0,0,0.45)' }}
+          exit={{ opacity: 0, y: 24 }}
+          transition={{ duration: 0.2 }}
+          className="border-t border-[var(--border)] bg-[var(--bg3)]"
+          style={{
+            position: 'fixed', left: 0, right: 0, bottom: 0, zIndex: 180,
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)', boxShadow: '0 -12px 32px rgba(0,0,0,0.45)',
+          }}
         >
-          <p className="text-[13px] leading-relaxed text-[var(--text-2)]">
-            Мы используем cookie: необходимые — для входа и корзины, аналитические (Яндекс.Метрика) —
-            чтобы улучшать сайт. Подробнее — в{' '}
-            <a href="/app/legal/privacy.html#cookie" target="_blank" rel="noopener noreferrer" className="underline hover:text-[var(--text)]">
-              политике конфиденциальности
-            </a>.
-          </p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => choose('all')}
-              className="h-10 px-4 rounded-xl text-sm font-semibold text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors"
-            >
-              Принять
-            </button>
-            <button
-              type="button"
-              onClick={() => choose('necessary')}
-              className="h-10 px-4 rounded-xl text-sm text-[var(--text-2)] bg-[var(--bg3)] hover:text-[var(--text)] transition-colors"
-            >
-              Только необходимые
-            </button>
+          <div className="web-container py-3.5 md:py-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-8">
+            <p className="flex-1 text-[14px] md:text-[15px] leading-relaxed text-[var(--text)]">
+              Мы используем cookie, чтобы сайт работал удобнее. Подробнее — в{' '}
+              <a href="/app/legal/privacy.html#cookie" target="_blank" rel="noopener noreferrer" className="underline text-[var(--link)] hover:text-[var(--text)]">
+                политике конфиденциальности
+              </a>.
+            </p>
+            <div className="flex items-center gap-4 shrink-0">
+              <button
+                type="button"
+                onClick={() => choose('all')}
+                className="h-11 px-7 rounded-xl text-[15px] font-semibold text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors"
+              >
+                Принять
+              </button>
+              <button
+                type="button"
+                onClick={() => choose('necessary')}
+                className="text-sm text-[var(--text-2)] underline-offset-4 hover:underline hover:text-[var(--text)]"
+              >
+                Только необходимые
+              </button>
+            </div>
           </div>
-        </m.div>
         </m.div>
       )}
     </AnimatePresence>

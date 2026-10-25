@@ -204,19 +204,19 @@ def _hero_html(games) -> str:
 # если выбор уже сделан — скрыта скриптом в <head> (класс cc-ok).
 _CC_SET = "try{{localStorage.setItem('cookie_consent','{v}')}}catch(e){{}};document.getElementById('cookie-ssr').remove()"
 COOKIE_SSR = (
-    '<div id="cookie-ssr" class="pointer-events-none flex justify-start md:justify-center pl-4 pr-[88px] md:px-24" '
-    'style="position:fixed;left:0;right:0;bottom:16px;z-index:180;margin-bottom:env(safe-area-inset-bottom, 0px)">'
-    '<div role="region" aria-label="Cookie" class="pointer-events-auto w-full max-w-[560px] rounded-2xl border '
-    'border-[var(--border)] bg-[var(--bg2)] p-4 md:p-5" style="box-shadow:0 16px 40px rgba(0,0,0,0.45)">'
-    '<p class="text-[13px] leading-relaxed text-[var(--text-2)]">Мы используем cookie: необходимые — для входа и '
-    'корзины, аналитические (Яндекс.Метрика) — чтобы улучшать сайт. Подробнее — в '
+    '<div id="cookie-ssr" role="region" aria-label="Cookie" class="border-t border-[var(--border)] bg-[var(--bg3)]" '
+    'style="position:fixed;left:0;right:0;bottom:0;z-index:180;padding-bottom:env(safe-area-inset-bottom, 0px);'
+    'box-shadow:0 -12px 32px rgba(0,0,0,0.45)">'
+    '<div class="web-container py-3.5 md:py-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-8">'
+    '<p class="flex-1 text-[14px] md:text-[15px] leading-relaxed text-[var(--text)]">Мы используем cookie, чтобы '
+    'сайт работал удобнее. Подробнее — в '
     '<a href="/app/legal/privacy.html#cookie" target="_blank" rel="noopener noreferrer" '
-    'class="underline hover:text-[var(--text)]">политике конфиденциальности</a>.</p>'
-    '<div class="mt-3 flex flex-wrap gap-2">'
-    f'<button type="button" onclick="{_CC_SET.format(v="all")}" class="h-10 px-4 rounded-xl text-sm font-semibold '
+    'class="underline text-[var(--link)] hover:text-[var(--text)]">политике конфиденциальности</a>.</p>'
+    '<div class="flex items-center gap-4 shrink-0">'
+    f'<button type="button" onclick="{_CC_SET.format(v="all")}" class="h-11 px-7 rounded-xl text-[15px] font-semibold '
     'text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors">Принять</button>'
-    f'<button type="button" onclick="{_CC_SET.format(v="necessary")}" class="h-10 px-4 rounded-xl text-sm '
-    'text-[var(--text-2)] bg-[var(--bg3)] hover:text-[var(--text)] transition-colors">Только необходимые</button>'
+    f'<button type="button" onclick="{_CC_SET.format(v="necessary")}" class="text-sm text-[var(--text-2)] '
+    'underline-offset-4 hover:underline hover:text-[var(--text)]">Только необходимые</button>'
     '</div></div></div>'
 )
 COOKIE_HEAD = (
