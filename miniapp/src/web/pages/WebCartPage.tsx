@@ -3,6 +3,8 @@
  * Корзина на сайте: позиции, количество, промокод, итог, переход к оформлению.
  */
 
+import Bump from '@/components/ui/Bump'
+import { pressBtn } from '@/utils/pressAnim'
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Minus, Trash2, ShoppingCart, Tag } from '@/components/ui/icons'
@@ -74,16 +76,16 @@ export default function WebCartPage() {
             </div>
 
             <div className="flex items-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--bg2)] px-1.5 py-1">
-              <button onClick={() => changeQty(item.id, item.quantity - 1)} className="p-1.5 rounded-lg text-[var(--text-2)] hover:bg-[var(--bg3)]" aria-label="Меньше">
+              <button onClick={(e) => { pressBtn(e); changeQty(item.id, item.quantity - 1) }} className="p-1.5 rounded-lg text-[var(--text-2)] hover:bg-[var(--bg3)]" aria-label="Меньше">
                 <Minus size={14} />
               </button>
-              <span className="w-6 text-center text-sm font-semibold text-[var(--text)]">{item.quantity}</span>
-              <button onClick={() => changeQty(item.id, item.quantity + 1)} className="p-1.5 rounded-lg text-[var(--text-2)] hover:bg-[var(--bg3)]" aria-label="Больше">
+              <span className="w-6 text-center text-sm font-semibold text-[var(--text)]"><Bump value={item.quantity} className="num">{item.quantity}</Bump></span>
+              <button onClick={(e) => { pressBtn(e); changeQty(item.id, item.quantity + 1) }} className="p-1.5 rounded-lg text-[var(--text-2)] hover:bg-[var(--bg3)]" aria-label="Больше">
                 <Plus size={14} />
               </button>
             </div>
 
-            <div className="w-20 text-right text-sm font-semibold text-[var(--text)] shrink-0">{money(item.subtotal)}</div>
+            <div className="w-20 text-right text-sm font-semibold text-[var(--text)] shrink-0"><Bump value={item.subtotal} className="num">{money(item.subtotal)}</Bump></div>
 
             <button onClick={() => changeQty(item.id, 0)} className="p-2 rounded-lg text-[var(--hint)] hover:text-red-400 hover:bg-red-500/10 transition-colors" aria-label="Удалить">
               <Trash2 size={16} />
@@ -127,7 +129,7 @@ export default function WebCartPage() {
         )}
         <div className="flex justify-between text-base font-bold pt-2 border-t border-[var(--border)]">
           <span className="text-[var(--text)]">Итого</span>
-          <span style={{ color: 'var(--link)' }}>{money(cart.total)}</span>
+          <Bump value={cart.total} className="num" style={{ color: 'var(--link)' }}>{money(cart.total)}</Bump>
         </div>
       </div>
 

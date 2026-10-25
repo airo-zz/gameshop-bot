@@ -4,12 +4,19 @@
  * Устройство как у discordcatalog.net (поиск, тип, коллекция, цветовые варианты,
  * панель выбранного), оформление — дизайн-система reDonate.
  *
- * Каждый цветовой вариант — отдельный товар; карточка объединяет варианты одного
- * украшения, кружки цвета переключают вариант. Корзину ведёт обёртка (onAdd/onRemove).
+ * Карточка = один товар Discord: коллекция + номер товара в ней (как в магазине
+ * Discord). Цветовые варианты одного украшения — кружки на карточке; разные типы
+ * с одинаковым названием (украшение аватара «Jack Skellington» и бейджик) —
+ * отдельные карточки. Каждый вариант — отдельный товар reDonate. Корзину ведёт
+ * обёртка (onAdd/onRemove).
+ *
+ * Анимации — CSS-классы anim-pop / anim-press / anim-rise (index.css), без JS.
  */
 
+import Bump from '@/components/ui/Bump'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Search, Plus, Minus, Check, X } from '@/components/ui/icons'
+import { pressBtn as press } from '@/utils/pressAnim'
+import { Search, Plus, Minus, ShoppingCart, X } from '@/components/ui/icons'
 import type { DecorCatalogData, DecorItem } from '@/api'
 
 const PAGE = 48
@@ -26,6 +33,8 @@ export function decorWord(n: number) {
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/ё/g, 'е')
+const cap = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s)
+
 
 interface Card {
   key: string
@@ -48,8 +57,9 @@ interface Props {
   bottomOffset?: number
 }
 
-function DecorCard({ card, qty, onAdd, onRemove }: {
+function DecorCard({ card, typeLabel, qty, onAdd, onRemove }: {
   card: Card
+  typeLabel: string
   qty: Map<string, number>
   onAdd: (i: DecorItem) => void
   onRemove: (i: DecorItem) => void
@@ -61,68 +71,75 @@ function DecorCard({ card, qty, onAdd, onRemove }: {
   const multi = card.variants.length > 1
 
   return (
-    <div className="flex flex-col gap-2 min-w-0">
-      <div
-        className="relative aspect-square rounded-xl flex items-center justify-center overflow-hidden"
-        style={{ background: 'var(--bg3)', outline: n > 0 ? '2px solid var(--accent)' : 'none', outlineOffset: -2 }}
-      >
+    <div
+      className="flex flex-col gap-2.5 min-w-0 rounded-2xl p-2 pb-2.5 transition-shadow"
+      style={{ background: 'var(--bg2)', boxShadow: n > 0 ? 'inset 0 0 0 2px var(--accent)' : 'none' }}
+    >
+      <div className="relative aspect-square rounded-xl flex items-center justify-center overflow-hidden" style={{ background: 'var(--bg3)' }}>
         {v.img ? (
           <img src={v.img} alt={card.name} loading="lazy" decoding="async" className="w-full h-full object-contain p-2.5" />
         ) : (
           <span className="text-xs text-[var(--hint)] px-3 text-center">{card.name}</span>
         )}
         {n > 0 && (
-          <span className="absolute top-1.5 right-1.5 min-w-[22px] h-[22px] px-1.5 rounded-lg text-[12px] font-semibold text-white flex items-center justify-center num" style={{ background: 'var(--accent)' }}>
+          <Bump
+            value={n}
+            className="absolute top-1.5 right-1.5 min-w-[22px] h-[22px] px-1.5 rounded-lg text-[12px] font-semibold text-white text-center leading-[22px] num"
+            style={{ background: 'var(--accent)' }}
+          >
             {n}
-          </span>
+          </Bump>
         )}
       </div>
 
-      <div className="min-w-0">
+      <div className="min-w-0 px-0.5">
         <p className="text-[13px] leading-snug text-[var(--text)] line-clamp-2" title={card.en && card.en !== card.name ? card.en : undefined}>
           {card.name}
         </p>
+        <p className="text-[11px] text-[var(--hint)] mt-0.5 truncate">
+          {typeLabel}{multi && v.color ? `, ${v.color}` : ''}
+        </p>
         {multi && (
-          <div className="flex flex-wrap items-center gap-1.5 mt-1.5" role="radiogroup" aria-label="Цвет">
+          <div className="flex flex-wrap items-center gap-1.5 mt-2" role="radiogroup" aria-label="Цвет">
             {card.variants.map((x, i) => (
               <button
                 key={x.id}
                 type="button"
                 role="radio"
                 aria-checked={i === vi}
+                aria-label={x.color || `Вариант ${i + 1}`}
                 title={x.color}
                 onClick={() => setVi(i)}
-                className="w-[18px] h-[18px] rounded-full shrink-0"
+                className="w-[18px] h-[18px] rounded-full shrink-0 transition-shadow"
                 style={{
                   background: x.hex ? `#${x.hex}` : 'var(--bg3)',
-                  boxShadow: i === vi ? '0 0 0 2px var(--bg), 0 0 0 4px var(--accent)' : 'inset 0 0 0 1px rgba(255,255,255,0.12)',
+                  boxShadow: i === vi ? '0 0 0 2px var(--bg2), 0 0 0 4px var(--accent)' : 'inset 0 0 0 1px rgba(255,255,255,0.14)',
                 }}
               />
             ))}
           </div>
         )}
-        {multi && v.color && <p className="text-[11px] text-[var(--hint)] mt-1 truncate">{v.color}</p>}
       </div>
 
-      <div className="mt-auto flex items-center justify-between gap-2">
+      <div className="mt-auto flex items-center justify-between gap-2 px-0.5">
         <span className="text-[15px] font-semibold text-[var(--text)] num">{rub(v.price)}</span>
         {v.out ? (
           <span className="text-[11px] text-[var(--hint)]">Нет в продаже</span>
         ) : n === 0 ? (
           <button
             type="button"
-            onClick={() => onAdd(v)}
-            aria-label={`Добавить ${card.name}`}
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] active:scale-[0.96] transition-transform"
+            onClick={(e) => { press(e); onAdd(v) }}
+            aria-label={`Добавить в корзину: ${card.name}`}
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors"
           >
             <Plus size={18} />
           </button>
         ) : (
           <div className="flex items-center h-9 rounded-xl bg-[var(--bg3)]">
-            <button type="button" onClick={() => onRemove(v)} aria-label="Убрать одно" className="w-8 h-9 flex items-center justify-center text-[var(--text-2)]">
+            <button type="button" onClick={(e) => { press(e); onRemove(v) }} aria-label="Убрать одно" className="w-8 h-9 flex items-center justify-center text-[var(--text-2)] hover:text-[var(--text)]">
               <Minus size={15} />
             </button>
-            <button type="button" onClick={() => onAdd(v)} aria-label="Добавить ещё" className="w-8 h-9 flex items-center justify-center text-[var(--text-2)]">
+            <button type="button" onClick={(e) => { press(e); onAdd(v) }} aria-label="Добавить ещё" className="w-8 h-9 flex items-center justify-center text-[var(--text-2)] hover:text-[var(--text)]">
               <Plus size={15} />
             </button>
           </div>
@@ -144,7 +161,9 @@ export default function DecorCatalog({ data, qty, onAdd, onRemove, cart, onCheck
   const cards = useMemo(() => {
     const map = new Map<string, Card>()
     for (const it of data.items) {
-      const key = `${it.c}|${it.name}`
+      // Один товар Discord = коллекция + номер в ней (цвета делят номер);
+      // без номера — по названию и типу, чтобы разные типы не склеились
+      const key = it.i != null ? `${it.c}|${it.i}` : `${it.c}|${it.t}|${it.name}`
       const card = map.get(key)
       if (card) card.variants.push(it)
       else map.set(key, { key, c: it.c, name: it.name, en: it.en, t: it.t, variants: [it] })
@@ -164,6 +183,12 @@ export default function DecorCatalog({ data, qty, onAdd, onRemove, cart, onCheck
     })
   }, [cards, q, type, coll, collName])
 
+  const countByColl = useMemo(() => {
+    const m = new Map<string, number>()
+    filtered.forEach((c) => m.set(c.c, (m.get(c.c) ?? 0) + 1))
+    return m
+  }, [filtered])
+
   useEffect(() => { setLimit(PAGE) }, [q, type, coll])
 
   // Догружаем карточки по мере прокрутки
@@ -176,7 +201,7 @@ export default function DecorCatalog({ data, qty, onAdd, onRemove, cart, onCheck
   }, [filtered.length])
 
   const visible = filtered.slice(0, limit)
-  const grouped = !q.trim() && !coll
+  const grouped = !q.trim()
   const sections: { id: string; cards: Card[] }[] = []
   if (grouped) {
     for (const card of visible) {
@@ -194,13 +219,13 @@ export default function DecorCatalog({ data, qty, onAdd, onRemove, cart, onCheck
 
   return (
     <div className="pb-28">
-      <div className="space-y-3 mb-5">
+      <div className="space-y-3 mb-6">
         <div className="relative">
           <Search size={17} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--hint)] pointer-events-none" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Название, код или цвет"
+            placeholder="Название или цвет"
             aria-label="Поиск украшений"
             className="w-full h-11 rounded-xl bg-[var(--bg2)] pl-10 pr-10 text-[15px] text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
           />
@@ -215,7 +240,7 @@ export default function DecorCatalog({ data, qty, onAdd, onRemove, cart, onCheck
           <button type="button" className={chip(type === -1)} onClick={() => setType(-1)}>Все</button>
           {data.types.map((t, i) => (
             <button key={t} type="button" className={chip(type === i)} onClick={() => setType(i)}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+              {cap(t)}
             </button>
           ))}
         </div>
@@ -237,17 +262,30 @@ export default function DecorCatalog({ data, qty, onAdd, onRemove, cart, onCheck
         </p>
       )}
 
-      <div className="space-y-7">
-        {sections.map((sec) => (
-          <section key={sec.id || 'all'}>
+      <div>
+        {sections.map((sec, si) => (
+          <section key={sec.id || 'all'} className={si > 0 ? 'mt-10' : ''}>
             {grouped && (
-              <h2 className="sticky z-10 py-2 text-[17px] font-semibold text-[var(--text)]" style={{ top: 'var(--decor-sticky-top, 0px)', background: 'var(--bg)' }}>
-                {collName.get(sec.id)}
-              </h2>
+              <div
+                className="sticky z-10 -mx-1 px-1 pt-3 pb-3 mb-1 flex items-baseline gap-2.5"
+                style={{ top: 'var(--decor-sticky-top, 0px)', background: 'var(--bg)', borderTop: si > 0 ? '1px solid var(--border)' : 'none' }}
+              >
+                <h2 className="text-[19px] md:text-[21px] font-semibold tracking-[-0.01em] text-[var(--text)] leading-tight">
+                  {collName.get(sec.id)}
+                </h2>
+                <span className="text-sm text-[var(--hint)] num">{countByColl.get(sec.id) ?? sec.cards.length}</span>
+              </div>
             )}
-            <div className="grid grid-cols-2 min-[480px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-x-3 gap-y-5">
+            <div className="grid grid-cols-2 min-[480px]:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 md:gap-3">
               {sec.cards.map((card) => (
-                <DecorCard key={card.key} card={card} qty={qty} onAdd={onAdd} onRemove={onRemove} />
+                <DecorCard
+                  key={card.key}
+                  card={card}
+                  typeLabel={cap(data.types[card.t] ?? '')}
+                  qty={qty}
+                  onAdd={onAdd}
+                  onRemove={onRemove}
+                />
               ))}
             </div>
           </section>
@@ -256,11 +294,12 @@ export default function DecorCatalog({ data, qty, onAdd, onRemove, cart, onCheck
       {limit < filtered.length && <div ref={sentinel} className="h-10" />}
 
       {cart.count > 0 && (
-        <div className="fixed left-0 right-0 z-30 px-4" style={{ bottom: bottomOffset + 12 }}>
-          <div className="max-w-xl mx-auto flex items-center gap-3 rounded-2xl p-2 pl-4" style={{ background: 'var(--bg2)', boxShadow: '0 8px 24px rgba(0,0,0,0.45)' }}>
-            <Check size={18} className="text-[var(--link)] shrink-0" />
+        <div className="fixed left-0 right-0 z-30 px-4 anim-rise" style={{ bottom: bottomOffset + 12 }}>
+          <div className="max-w-xl mx-auto flex items-center gap-3 rounded-2xl p-2 pl-4" style={{ background: 'var(--bg3)', boxShadow: '0 10px 28px rgba(0,0,0,0.5)' }}>
+            <ShoppingCart size={18} className="text-[var(--link)] shrink-0" />
             <p className="flex-1 min-w-0 text-sm text-[var(--text)] truncate">
-              {cart.count} {decorWord(cart.count)} на <span className="font-semibold num">{rub(cart.total)}</span>
+              <Bump value={cart.count} className="font-semibold num">{cart.count}</Bump> {decorWord(cart.count)} на{' '}
+              <Bump value={cart.total} className="font-semibold num">{rub(cart.total)}</Bump>
             </p>
             <button
               type="button"

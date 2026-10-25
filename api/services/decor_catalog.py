@@ -368,7 +368,9 @@ async def public_catalog(db: AsyncSession) -> dict | None:
         if t and t not in types:
             types.append(t)
         items.append({
-            "id": str(p.id), "c": str(p.category_id), "code": d.get("code"),
+            # i — номер товара в коллекции: цветовые варианты одного украшения
+            # делят его, разные типы с одним названием — нет (как в Discord)
+            "id": str(p.id), "c": str(p.category_id), "i": d.get("index"), "code": d.get("code"),
             "name": d.get("name") or p.name.split(" · ")[0], "en": d.get("en") or "",
             "t": types.index(t) if t in types else -1, "color": d.get("color") or "",
             "hex": d.get("hex") or "", "img": f"{site}/img/{d['img']}" if d.get("img") else "",

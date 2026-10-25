@@ -1,4 +1,6 @@
 // src/pages/CartPage.tsx
+import Bump from '@/components/ui/Bump'
+import { pressBtn } from '@/utils/pressAnim'
 import { useState, useCallback, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -202,12 +204,12 @@ export default function CartPage() {
 
               <div className="flex items-center justify-between mt-2">
                 <p className="font-display num text-sm" style={{ color: 'var(--text)' }}>
-                  {fmtPrice(item.subtotal)} ₽
+                  <Bump value={item.subtotal} className="num">{fmtPrice(item.subtotal)} ₽</Bump>
                 </p>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={() => handleQtyChange(item, -1)}
+                    onClick={(e) => { pressBtn(e); handleQtyChange(item, -1) }}
                     className="w-7 h-7 rounded-full flex items-center justify-center active:scale-[0.97] transition-transform"
                     style={{ background: 'var(--bg3)', color: 'var(--text)' }}
                     disabled={!!updatingId}
@@ -218,11 +220,11 @@ export default function CartPage() {
                     }
                   </button>
                   <span className="text-sm font-bold w-5 text-center" style={{ color: 'var(--text)' }}>
-                    {item.quantity}
+                    <Bump value={item.quantity} className="num">{item.quantity}</Bump>
                   </span>
                   <button
                     type="button"
-                    onClick={() => handleQtyChange(item, 1)}
+                    onClick={(e) => { pressBtn(e); handleQtyChange(item, 1) }}
                     className="w-7 h-7 rounded-full flex items-center justify-center active:scale-[0.97] transition-transform"
                     style={{ background: 'var(--bg3)', color: 'var(--text)' }}
                     disabled={!!updatingId}
@@ -292,7 +294,7 @@ export default function CartPage() {
           <div className="divider" />
           <div className="flex justify-between font-bold text-base">
             <span style={{ color: 'var(--text)' }}>Итого</span>
-            <span className="font-display num" style={{ color: 'var(--text)' }}>{fmtPrice(cart.total)} ₽</span>
+            <Bump value={cart.total} className="font-display num" style={{ color: 'var(--text)' }}>{fmtPrice(cart.total)} ₽</Bump>
           </div>
         </div>
 

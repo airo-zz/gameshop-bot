@@ -191,6 +191,17 @@ h1, .font-display {
 .animate-slide-down { animation: slideDown 0.2s ease-out both; }
 .animate-scale-in   { animation: scaleIn   0.2s ease-out both; }
 
+/* ── Отклик на действия с корзиной (CSS, без JS) ─────────────────────────────
+   .anim-pop  — число/значок «подпрыгивает» при изменении (вешать с key={значение})
+   .anim-rise — панель появляется снизу
+   .anim-press — кнопка мягко «вдавливается» и отпускается                     */
+@keyframes rdPop   { 0% { transform: scale(1) } 40% { transform: scale(1.22) } 100% { transform: scale(1) } }
+@keyframes rdRise  { from { transform: translateY(16px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+@keyframes rdPress { 0% { transform: scale(1) } 35% { transform: scale(0.88) } 100% { transform: scale(1) } }
+.anim-pop   { display: inline-block; animation: rdPop 0.28s cubic-bezier(0.34, 1.4, 0.64, 1) both; }
+.anim-rise  { animation: rdRise 0.24s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-press { animation: rdPress 0.22s ease-out; }
+
 /* ── Акцентный текст (раньше был градиентным) ────────────────────────────── */
 .gradient-text,
 .gradient-text-gaming { color: var(--link); }

@@ -30,6 +30,7 @@ export interface Game {
 export interface DecorItem {
   id: string        // product_id
   c: string         // id коллекции (категории)
+  i?: number | null // номер товара в коллекции (варианты цвета делят его)
   code: string
   name: string
   en: string
