@@ -275,7 +275,7 @@ async def sync(db: AsyncSession, *, force: bool = False) -> dict:
         m = media.get(code) or {}
         prev_decor = (by_code.get(code).meta or {}).get("decor", {}) if code in by_code else {}
         img = m.get("img") or prev_decor.get("img") or ""
-        if not img:
+        if not img and rec.get("expected_tzs"):   # считаем только продаваемые (Orbs/бесплатные — не в счёт)
             no_image += 1
         decor = {
             "code": code, "name": rec.get("name") or code, "sku": str(rec.get("sku") or ""),
