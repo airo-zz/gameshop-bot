@@ -40,6 +40,7 @@ CHAT_PREFIX = "rd-"
 HISTORY_LIMIT = 30
 TIMEOUT = httpx.Timeout(15.0, connect=5.0)
 LOT_RE = re.compile(r"^__lot__\|[0-9a-f-]+\|(\d+)\|([\s\S]+)$")
+OID_RE = re.compile(r"\|oid=[0-9a-f-]+$")
 AUTHOR = {"user": "buyer", "admin": "seller", "system": "system"}
 
 
@@ -108,6 +109,8 @@ def _text_for_hub(msg: ChatMessage) -> str:
         m = LOT_RE.match(text)
         if m:
             return f"Индивидуальный лот «{m.group(2).strip()}» — {m.group(1)} ₽ (ждёт оплаты)"
+        # «Заказ … оплачен…|oid=<uuid>» — метка для кнопки заказа в чате, ночнику не нужна
+        return OID_RE.sub("", text)
     return text
 
 
