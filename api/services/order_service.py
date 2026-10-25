@@ -10,6 +10,7 @@ api/services/order_service.py
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+import logging
 import uuid
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -408,8 +409,22 @@ class OrderService:
             changed_by_type=changed_by_type,
             reason=reason,
         ))
+        self._schedule_hub_order_push(order)
 
         return order
+
+    @staticmethod
+    def _schedule_hub_order_push(order: Order) -> None:
+        """Заказ в хаб UchetFP (вкладка reDonate) — после коммита; задача сама
+        проверит, включена ли связь, и дождётся нового статуса в БД."""
+        if order.paid_at is None:
+            return
+        try:
+            from worker.tasks.hub_tasks import push_order_to_hub
+
+            push_order_to_hub.apply_async(args=[str(order.id), order.status.value], countdown=2)
+        except Exception as e:  # noqa: BLE001 — Celery недоступен: учёт хаба не блокирует заказ
+            logging.getLogger(__name__).warning("hub order push enqueue failed: %s", e)
 
     # ── Доплата с баланса (холд) ──────────────────────────────────────────────
     # Часть заказа списывается с баланса заранее и хранится в order.meta

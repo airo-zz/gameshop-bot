@@ -164,6 +164,8 @@ services:
     volumes:
       # Каталог украшений Discord (git-копия UchetFP, cron pull) — только чтение
       - /opt/decor-catalog/ggsel_bot/discord_decor/catalog:/decor-catalog:ro
+      # Картинки из хаба UchetFP (ответы ночника) сохраняются в /static/uploads/chat
+      - static_files:/static
 
   # ── Celery Beat (планировщик) ───────────────
   beat:

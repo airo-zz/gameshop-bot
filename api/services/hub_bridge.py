@@ -19,10 +19,12 @@ platform=redonate (протокол /agent/* хаба, заголовок X-Agen
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import uuid
 from datetime import datetime, timezone
+from pathlib import Path
 
 import httpx
 from sqlalchemy import select
@@ -40,6 +42,11 @@ CHAT_PREFIX = "rd-"
 HISTORY_LIMIT = 30
 TIMEOUT = httpx.Timeout(15.0, connect=5.0)
 LOT_RE = re.compile(r"^__lot__\|[0-9a-f-]+\|(\d+)\|([\s\S]+)$")
+CHAT_UPLOAD_DIR = Path("/static/uploads/chat")   # тот же каталог, что у вложений админки
+MAX_IMAGE_SIZE = 10 * 1024 * 1024
+IMAGE_TYPES = {"image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png",
+               "image/webp": "webp", "image/gif": "gif"}
+IMAGE_EXT = {"jpg": "jpg", "jpeg": "jpg", "png": "png", "webp": "webp", "gif": "gif"}
 OID_RE = re.compile(r"\|oid=[0-9a-f-]+$")
 AUTHOR = {"user": "buyer", "admin": "seller", "system": "system"}
 
@@ -167,7 +174,28 @@ async def push_message(db: AsyncSession, msg_id: str, with_history: bool) -> boo
     return True
 
 
-async def _deliver_outgoing(db: AsyncSession, cfg: hub_config.HubConfig, item: dict) -> str:
+async def _save_hub_image(c: httpx.AsyncClient, cfg: hub_config.HubConfig, path: str) -> str:
+    """Картинка ночника из хаба → /static/uploads/chat (как вложения из админки).
+    Возвращает путь для ChatMessage.attachments."""
+    url = path if path.startswith("http") else f"{cfg.url}{path}"
+    r = await c.get(url)
+    if r.status_code != 200:
+        raise HubError(f"Картинка из хаба не скачалась ({r.status_code})")
+    ctype = (r.headers.get("content-type") or "").split(";")[0].strip().lower()
+    ext = IMAGE_TYPES.get(ctype) or IMAGE_EXT.get(Path(path).suffix.lower().lstrip("."))
+    if ext is None:
+        raise HubError(f"Неподдерживаемый тип вложения: {ctype or path}")
+    if len(r.content) > MAX_IMAGE_SIZE:
+        raise HubError("Картинка больше 10 МБ")
+    CHAT_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    name = f"{uuid.uuid4()}.{ext}"
+    await asyncio.to_thread((CHAT_UPLOAD_DIR / name).write_bytes, r.content)
+    return f"/static/uploads/chat/{name}"
+
+
+async def _deliver_outgoing(
+    db: AsyncSession, c: httpx.AsyncClient, cfg: hub_config.HubConfig, item: dict
+) -> str:
     """Ответ ночника → сообщение админа в чате покупателя. Возвращает id сообщения."""
     chat_key = str(item.get("funpay_chat_id") or "")
     if not chat_key.startswith(CHAT_PREFIX):
@@ -181,7 +209,7 @@ async def _deliver_outgoing(db: AsyncSession, cfg: hub_config.HubConfig, item: d
         raise HubError("Чат не найден в reDonate")
     text = (item.get("text") or "").strip() or None
     image = (item.get("image_path") or "").strip()
-    attachments = [image if image.startswith("http") else f"{cfg.url}{image}"] if image else []
+    attachments = [await _save_hub_image(c, cfg, image)] if image else []
     if not text and not attachments:
         raise HubError("Пустое сообщение")
     msg = await svc.send_message(chat_id, "admin", text, attachments, source="hub")
@@ -211,7 +239,7 @@ async def poll_once(db: AsyncSession, redis, heartbeat: bool) -> int:
                     ack = {"success": True, "funpay_msg_id": msg_id.decode() if isinstance(msg_id, bytes) else msg_id}
                 else:
                     try:
-                        new_id = await _deliver_outgoing(db, cfg, item)
+                        new_id = await _deliver_outgoing(db, c, cfg, item)
                         await redis.set(done_key, new_id, ex=7 * 86400)
                         ack = {"success": True, "funpay_msg_id": new_id}
                         delivered += 1
@@ -220,6 +248,18 @@ async def poll_once(db: AsyncSession, redis, heartbeat: bool) -> int:
                         ack = {"success": False, "error_message": str(e)[:300]}
                         logger.warning("hub: ответ %s не доставлен: %s", oid, e)
                 _check(await c.post(f"/agent/outgoing/{oid}/ack", json=ack))
+            # Задачи из хаба: «Выполнен» у заказа reDonate (см. hub_orders.apply_task)
+            from api.services import hub_orders
+
+            for task in _check(await c.get("/agent/tasks")) or []:
+                try:
+                    result = await hub_orders.apply_task(db, task)
+                    task_ack = {"success": True, "result": result}
+                except HubError as e:
+                    await db.rollback()
+                    task_ack = {"success": False, "error_message": str(e)[:300]}
+                    logger.warning("hub: задача %s не выполнена: %s", task.get("id"), e)
+                _check(await c.post(f"/agent/tasks/{task['id']}/ack", json=task_ack))
         await hub_config.mark_result(db)
     except (httpx.HTTPError, HubError) as e:
         err = str(e) if isinstance(e, HubError) else f"Хаб недоступен: {type(e).__name__}"
