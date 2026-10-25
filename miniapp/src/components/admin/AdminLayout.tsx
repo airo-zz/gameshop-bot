@@ -18,7 +18,7 @@ import type { Icon as PhIcon } from '@phosphor-icons/react'
 import {
   ArrowLeftIcon, ChartLineUpIcon, ChatsCircleIcon, ClockCounterClockwiseIcon, CurrencyRubIcon, GearSixIcon,
   HeadsetIcon, IdentificationBadgeIcon, LightningIcon, ListIcon, LockKeyIcon, MagnifyingGlassIcon, PackageIcon,
-  ReceiptIcon, SignOutIcon, TagIcon, TextAaIcon, ThumbsUpIcon, UsersIcon, XIcon, HouseIcon,
+  ReceiptIcon, SignOutIcon, TagIcon, TextAaIcon, ThumbsUpIcon, UsersIcon, XIcon, HouseIcon, GiftIcon,
 } from '@phosphor-icons/react'
 import logoFull from '@/assets/logo-full.png'
 import { adminWorkspaceApi } from '@/api/admin'
@@ -50,6 +50,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     title: 'Магазин',
     items: [
       { to: '/admin/catalog',   label: 'Каталог',      Icon: PackageIcon },
+      { to: '/admin/decor',     label: 'Украшения Discord', Icon: GiftIcon, perm: 'catalog.edit' },
       { to: '/admin/discounts', label: 'Скидки',       Icon: TagIcon },
       { to: '/admin/users',     label: 'Пользователи', Icon: UsersIcon },
       { to: '/admin/reviews',   label: 'Отзывы',       Icon: ThumbsUpIcon },

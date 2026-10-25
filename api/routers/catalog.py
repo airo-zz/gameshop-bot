@@ -253,3 +253,14 @@ async def get_loyalty_program(db: DbSession):
             "new_user_discount_percent": float(ref[REFERRAL_DISCOUNT_KEY]),
         },
     }
+
+
+@router.get("/decor")
+async def decor_catalog(db: DbSession) -> dict:
+    """Каталог украшений Discord для страницы-витрины (все позиции одним ответом)."""
+    from api.services.decor_catalog import public_catalog
+
+    data = await public_catalog(db)
+    if data is None:
+        raise HTTPException(status_code=404, detail="Каталог украшений недоступен")
+    return data

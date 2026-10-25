@@ -91,6 +91,7 @@ const AdminPricing     = lazy(() => import('@/pages/admin/PricingSettingsPage'))
 const AdminHome        = lazy(() => import('@/pages/admin/HomeSettingsPage'))
 const AdminReviews     = lazy(() => import('@/pages/admin/ReviewsAdminPage'))
 const AdminIntegrations = lazy(() => import('@/pages/admin/IntegrationsPage'))
+const AdminDecor = lazy(() => import('@/pages/admin/DecorSettingsPage'))
 const AdminOrdersTrash = lazy(() => import('@/pages/admin/OrdersTrashPage'))
 const AdminChatsPage   = lazy(() => import('@/pages/admin/AdminChatsPage'))
 
@@ -259,6 +260,7 @@ export default function App() {
             <Route path="settings/home" element={<AdminHome />} />
             <Route path="reviews" element={<AdminReviews />} />
             <Route path="settings/integrations" element={<AdminIntegrations />} />
+            <Route path="decor" element={<AdminDecor />} />
             <Route path="settings/content" element={<AdminContent />} />
             <Route path="chats" element={<AdminChatsPage />} />
             <Route path="chats/:id" element={<AdminChatsPage />} />

@@ -171,6 +171,10 @@ class AppSettings(BaseSettings):
     ABANDONED_CART_HOURS: int = 1
     CART_PRICE_RESERVE_HOURS: int = 24
     FRONTEND_URL: str = "https://redonate.gg"
+    # Украшения Discord: каталог UchetFP (git-копия на хосте, монтируется только на
+    # чтение) и витрина discordcatalog.net — источник картинок
+    DECOR_CATALOG_DIR: str = "/decor-catalog"
+    DECOR_SITE_URL: str = "https://discordcatalog.net"
     # Коды подтверждения прав на сайт (Яндекс.Вебмастер / Google Search Console):
     # только значение content из мета-тега. Пусто — тег не выводится.
     YANDEX_VERIFICATION: str = ""

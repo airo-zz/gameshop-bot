@@ -1008,3 +1008,37 @@ export const fazerApi = {
   redeliver: (itemId: string, fields: Record<string, string>) =>
     apiClient.post<{ ok: boolean }>(`/admin/fazer/order-items/${itemId}/redeliver`, { fields }).then(r => r.data),
 }
+
+// ── Украшения Discord (общий каталог с UchetFP / discordcatalog.net) ───────────
+
+export interface DecorSyncStatus {
+  at?: string
+  error?: string
+  codes?: number
+  created?: number
+  updated?: number
+  hidden?: number
+  collections?: number
+  no_image?: number
+  site_ok?: boolean
+  tiers?: number
+  game_id?: string
+  game_active?: boolean
+  unpriced?: { kind: string; price_usd: number | null; count: number }[]
+}
+
+export interface DecorSettings {
+  price_tiers: string
+  tiers_parsed: number
+  base_rub: number
+  status: DecorSyncStatus
+  catalog_dir_ok: boolean
+  site_url: string
+}
+
+export const decorAdminApi = {
+  get: () => apiClient.get<DecorSettings>('/admin/decor').then(r => r.data),
+  save: (data: { price_tiers?: string; base_rub?: number }) =>
+    apiClient.put<DecorSettings>('/admin/decor', data).then(r => r.data),
+  sync: () => apiClient.post<DecorSettings>('/admin/decor/sync').then(r => r.data),
+}

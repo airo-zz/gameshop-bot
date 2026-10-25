@@ -8,7 +8,7 @@ Pydantic схемы для каталога — игры, категории, т
 import uuid
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
 class GameOut(BaseModel):
@@ -26,6 +26,14 @@ class GameOut(BaseModel):
     type: str
     input_fields: list[dict] = []
     custom_order_enabled: bool = False
+    # служебные данные игры — наружу не отдаём, только признаки ниже
+    meta: dict = Field(default_factory=dict, exclude=True)
+
+    @computed_field
+    @property
+    def decor_catalog(self) -> bool:
+        """Игра «Украшения Discord» — фронт открывает страницу-каталог вместо вкладок."""
+        return bool((self.meta or {}).get("decor_catalog"))
 
 
 class CategoryOut(BaseModel):

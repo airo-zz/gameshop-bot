@@ -22,6 +22,30 @@ export interface Game {
   type: 'game' | 'service'
   input_fields?: InputField[]
   custom_order_enabled?: boolean
+  /** «Украшения Discord» — открывается страница-каталог вместо вкладок */
+  decor_catalog?: boolean
+}
+
+/** Каталог украшений Discord (общий с discordcatalog.net), GET /catalog/decor */
+export interface DecorItem {
+  id: string        // product_id
+  c: string         // id коллекции (категории)
+  code: string
+  name: string
+  en: string
+  t: number         // индекс в types
+  color: string
+  hex: string
+  img: string
+  price: number
+  out: boolean
+}
+
+export interface DecorCatalogData {
+  game: { id: string; slug: string; name: string }
+  collections: { id: string; name: string }[]
+  types: string[]
+  items: DecorItem[]
 }
 
 export interface Category {
@@ -238,6 +262,9 @@ export interface FaqSection {
 }
 
 export const catalogApi = {
+  getDecor: () =>
+    apiClient.get<DecorCatalogData>('/catalog/decor').then(r => r.data),
+
   getLoyaltyProgram: () =>
     apiClient.get<LoyaltyProgram>('/catalog/loyalty').then(r => r.data),
 

@@ -1,4 +1,5 @@
 // src/pages/GamePage.tsx
+import DecorPage from '@/pages/DecorPage'
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -270,6 +271,19 @@ function GameReviewsLink({ slug }: { slug: string }) {
 // ── GamePage ─────────────────────────────────────────────────────────────────
 
 export default function GamePage() {
+  const { slug } = useParams<{ slug: string }>()
+  const { data: games = [] } = useQuery({
+    queryKey: ['games'],
+    queryFn: () => catalogApi.getGames(),
+    staleTime: 5 * 60 * 1000,
+  })
+  const game = games.find((g) => g.slug === slug)
+  // «Украшения Discord» — своя страница-каталог вместо вкладок категорий
+  if (game?.decor_catalog) return <DecorPage game={game} />
+  return <GamePageContent />
+}
+
+function GamePageContent() {
   const { slug } = useParams<{ slug: string }>()
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()

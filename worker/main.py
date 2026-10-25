@@ -28,6 +28,7 @@ celery_app = Celery(
         "worker.tasks.pricing_tasks",
         "worker.tasks.fulfillment_tasks",
         "worker.tasks.fazer_tasks",
+        "worker.tasks.decor_tasks",
         "worker.tasks.review_tasks",
         "worker.tasks.integrity_tasks",
     ],
@@ -85,5 +86,10 @@ celery_app.conf.beat_schedule = {
     "watch-fazer": {
         "task": "worker.tasks.fazer_tasks.watch_fazer",
         "schedule": crontab(minute="*/5"),
+    },
+    # Раз в час — каталог украшений Discord (общий с UchetFP / discordcatalog.net)
+    "sync-decor-catalog": {
+        "task": "worker.tasks.decor_tasks.sync_decor_catalog",
+        "schedule": crontab(minute=15),
     },
 }

@@ -21,6 +21,7 @@ import { normalizeImageUrl } from '@/utils/imageUrl'
 import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
 import { EASE, Stagger, StaggerItem } from '@/web/components/Motion'
 import { usePageMeta } from '@/web/seo'
+import WebDecorPage from '@/web/pages/WebDecorPage'
 
 // ── Карточка товара ───────────────────────────────────────────────────────────
 
@@ -256,6 +257,19 @@ function GameSeoBlock({ seo }: { seo: GameSeo }) {
 // ── Страница ──────────────────────────────────────────────────────────────────
 
 export default function WebGamePage() {
+  const { slug } = useParams<{ slug: string }>()
+  const { data: games = [] } = useQuery({
+    queryKey: ['web', 'games', 'all'],
+    queryFn: () => catalogApi.getGames(),
+    staleTime: 5 * 60_000,
+  })
+  const game = games.find((g) => g.slug === slug)
+  // «Украшения Discord» — своя страница-каталог вместо вкладок категорий
+  if (game?.decor_catalog) return <WebDecorPage game={game} />
+  return <GamePageContent />
+}
+
+function GamePageContent() {
   const { slug, cat: catSlug } = useParams<{ slug: string; cat?: string }>()
   const navigate = useNavigate()
   const location = useLocation()
