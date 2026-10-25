@@ -22,6 +22,7 @@ import { fmtNum } from '@/utils/format'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import logoMark from '@/assets/logo-mark.png'
 import { useChatWidget } from './chatStore'
+import ChatHint from './ChatHint'
 import { guestTransport, userTransport, type ChatTransport } from './chatTransport'
 
 type Msg = ChatMessage & { optimistic?: boolean }
@@ -372,8 +373,13 @@ export default function ChatWidget() {
     ? { position: 'fixed', inset: mobile ? 0 : 24, zIndex: 200 }
     : { position: 'fixed', right: 24, bottom: 96, width: 380, height: 'min(600px, calc(100dvh - 128px))', zIndex: 200 }
 
+  const fabRight = mobile ? 16 : 24
+  const fabBottom = (mobile ? 16 : 24) + lift
+
   return (
     <>
+      {/* Облачко «Есть вопрос?» слева от кнопки, по её центру (кнопка 56px) */}
+      <ChatHint chatOpen={open} onOpen={openChat} right={fabRight + 56 + 10} bottom={fabBottom + 6} />
       <AnimatePresence>
         {!(open && full) && (
           <m.button
@@ -388,7 +394,7 @@ export default function ChatWidget() {
             transition={{ duration: 0.18 }}
             className="w-14 h-14 rounded-full flex items-center justify-center text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors"
             style={{
-              position: 'fixed', right: mobile ? 16 : 24, bottom: (mobile ? 16 : 24) + lift, zIndex: 190,
+              position: 'fixed', right: fabRight, bottom: fabBottom, zIndex: 190,
               boxShadow: '0 8px 24px rgba(37,99,235,0.35), 0 2px 6px rgba(0,0,0,0.4)',
               marginBottom: 'env(safe-area-inset-bottom, 0px)',
             }}
