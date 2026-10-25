@@ -43,3 +43,15 @@ def test_unpriced_and_not_for_sale_are_hidden():
 def test_same_nitro_price_picks_cheaper_variant():
     tiers = [("набор", 15.99, 20.99, 829), ("набор", 15.99, 21.99, 900)]
     assert price_rub({"kind": "set", "price_usd": 15.99, "expected_tzs": 1}, tiers, 0) == 829
+
+
+def test_decor_seo_texts_are_russian_and_keep_collection_case():
+    from types import SimpleNamespace
+    from api.services.seo_content import game_seo
+    g = SimpleNamespace(name="Украшения Discord", type="service", meta={"decor_catalog": True},
+                        seo_title="", seo_description="", seo_text="", seo_aliases="", description="", slug="discord-decor")
+    page = game_seo(g, ["Кошмар перед Рождеством", "Dead by Daylight"], 289, False, 6)
+    assert page.title == "Купить украшения Discord — наборы, рамки и эффекты профиля"
+    assert page.h1 == "Украшения Discord"
+    assert "Пополн" not in page.title + page.h1 + page.description
+    assert "Кошмар перед Рождеством" in page.description and "от 289" in page.description

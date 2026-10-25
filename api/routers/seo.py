@@ -33,7 +33,7 @@ from pathlib import Path
 
 from fastapi import APIRouter
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import HTMLResponse, PlainTextResponse, Response
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 
 from api.deps import DbSession
 from api.services.catalog_service import CatalogService
@@ -399,7 +399,8 @@ async def _home(db) -> tuple[int, str]:
     faq_html = "".join(f"<h3>{_e(q)}</h3><p>{_e(a)}</p>" for q, a in FAQ)
     body = (
         _nav()
-        + "<h1>Пополнение игр и цифровых сервисов</h1>"
+        # <h1> страницы — в первом экране (_hero_html); здесь вторым <h1> не дублируем
+        + "<h2>Пополнение игр и цифровых сервисов</h2>"
         + "<p>Внутриигровая валюта, наборы и подписки для мобильных и компьютерных игр. "
           "Оплата через СБП, банковской картой или криптовалютой, кэшбэк с каждой покупки.</p>"
         + f"<h2>Каталог</h2><ul>{links}</ul>"
@@ -550,6 +551,9 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
         body = _nav() + "<h1>Страница не найдена</h1><p><a href='/catalog'>Перейти в каталог</a></p>"
         return 404, _render(path, "Страница не найдена | reDonate", DEFAULT_DESC, body, [], noindex=True)
     game, roots, offers, current, page = data
+    # Каталог украшений Discord: коллекции — фильтр одной страницы, а не отдельные
+    # страницы (иначе ~100 дублей); ссылок на /game/<slug>/<коллекция> не даём
+    decor = bool((getattr(game, "meta", None) or {}).get("decor_catalog"))
 
     sections: dict = {}
     for cat, p in offers:
@@ -560,7 +564,7 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
             f"<li>{_e(p.name)} — {_money(p.price)}" + (" (нет в наличии)" if p.is_out_of_stock else "") + "</li>"
             for p in products
         )
-        heading = _e(clean_name(cat.name)) if current else (
+        heading = _e(clean_name(cat.name)) if (current or decor) else (
             f'<a href="/game/{_e(game.slug)}/{_e(cat.slug)}">{_e(clean_name(cat.name))} {_e(game.name)}</a>'
         )
         desc_html = f"<p>{_e(cat.description)}</p>" if getattr(cat, "description", None) and not current else ""
@@ -571,7 +575,7 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
         crumbs.append((clean_name(current.name), path))
     other_cats = "".join(
         f'<li><a href="/game/{_e(game.slug)}/{_e(c.slug)}">{_e(clean_name(c.name))}</a></li>'
-        for c in roots if not current or c.id != current.id
+        for c in roots if (not current or c.id != current.id) and not decor
     )
     body = (
         _nav()
@@ -670,8 +674,22 @@ async def render_game(slug: str, db: DbSession):
     return await _cached(f"/game/{slug}", lambda: _game(db, slug))
 
 
+# Старые адреса разделов, заменённые другими страницами (постоянный редирект —
+# ссылки и вес страницы в поиске переходят на новую)
+_LEGACY_CATEGORY = {
+    ("discord", "ukrasheniya-podarkom"): "/game/discord-decor",   # → общий каталог украшений
+}
+
+
 @router.api_route("/seo/render/game/{slug}/{cat_slug}", methods=["GET", "HEAD"], response_class=HTMLResponse, include_in_schema=False)
 async def render_game_category(slug: str, cat_slug: str, db: DbSession):
+    target = _LEGACY_CATEGORY.get((slug, cat_slug))
+    if target is None:
+        game = await CatalogService(db).get_game_by_slug(slug)
+        if game is not None and (game.meta or {}).get("decor_catalog"):
+            target = f"/game/{slug}"   # коллекция украшений — фильтр каталога, не страница
+    if target:
+        return RedirectResponse(SITE + target, status_code=301)
     return await _cached(f"/game/{slug}/{cat_slug}", lambda: _game(db, slug, cat_slug))
 
 
@@ -698,6 +716,8 @@ async def sitemap(db: DbSession):
         updated = getattr(g, "updated_at", None)
         lastmod = updated.date().isoformat() if updated else today
         parts.append(url(f"/game/{g.slug}", lastmod, "0.8", "daily"))
+        if (g.meta or {}).get("decor_catalog"):
+            continue   # коллекции украшений — фильтр одной страницы, не отдельные адреса
         for c in await svc.get_categories_by_game(g.id):
             if c.parent_id is None and c.is_active:
                 parts.append(url(f"/game/{g.slug}/{c.slug}", lastmod, "0.7", "daily"))

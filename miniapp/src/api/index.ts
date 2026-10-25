@@ -44,7 +44,7 @@ export interface DecorItem {
 
 export interface DecorCatalogData {
   game: { id: string; slug: string; name: string }
-  collections: { id: string; name: string }[]
+  collections: { id: string; name: string; slug?: string }[]
   types: string[]
   items: DecorItem[]
 }

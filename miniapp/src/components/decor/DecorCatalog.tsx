@@ -55,6 +55,8 @@ interface Props {
   checkoutLabel: string
   /** Отступ панели снизу (нижняя навигация Mini App) */
   bottomOffset?: number
+  /** Коллекция, выбранная заранее (ссылка на коллекцию) */
+  initialColl?: string
 }
 
 function DecorCard({ card, typeLabel, qty, onAdd, onRemove }: {
@@ -149,10 +151,10 @@ function DecorCard({ card, typeLabel, qty, onAdd, onRemove }: {
   )
 }
 
-export default function DecorCatalog({ data, qty, onAdd, onRemove, cart, onCheckout, checkoutLabel, bottomOffset = 0 }: Props) {
+export default function DecorCatalog({ data, qty, onAdd, onRemove, cart, onCheckout, checkoutLabel, bottomOffset = 0, initialColl }: Props) {
   const [q, setQ] = useState('')
   const [type, setType] = useState(-1)
-  const [coll, setColl] = useState('')
+  const [coll, setColl] = useState(initialColl ?? '')
   const [limit, setLimit] = useState(PAGE)
   const sentinel = useRef<HTMLDivElement>(null)
 

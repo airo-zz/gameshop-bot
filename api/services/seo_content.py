@@ -99,6 +99,8 @@ def accusative(phrase: str) -> str:
 def game_seo(game, cat_names: list[str], min_price: Decimal | float | None,
              has_auto: bool, top_cashback: float | None) -> PageSeo:
     name = game.name
+    if (getattr(game, "meta", None) or {}).get("decor_catalog"):
+        return _decor_seo(game, cat_names, min_price, top_cashback)
     names = [clean_name(c) for c in cat_names if clean_name(c)]
     what = ", ".join(_lower_first(n) for n in names[:3]) or "внутриигровая валюта и наборы"
     al = aliases(game)
@@ -121,6 +123,24 @@ def game_seo(game, cat_names: list[str], min_price: Decimal | float | None,
              or f"Купить {what} для {name} онлайн: оплата через СБП, банковской картой или криптовалютой.")
 
     return PageSeo(title, description, h1, intro, al, (game.seo_text or "").strip() or None)
+
+
+def _decor_seo(game, cat_names: list[str], min_price, top_cashback) -> PageSeo:
+    """Каталог украшений Discord: «пополнить украшения» не по-русски — свои тексты.
+    Коллекции — в исходном регистре (это названия, «Кошмар перед Рождеством»)."""
+    names = [clean_name(c) for c in cat_names if clean_name(c)][:3]
+    title = (game.seo_title or "").strip() or "Купить украшения Discord — наборы, рамки и эффекты профиля"
+    cashback = f", кэшбэк до {top_cashback:g}%" if top_cashback else ""
+    description = (game.seo_description or "").strip() or (
+        "Украшения Discord подарком на ваш аккаунт: наборы, декорации аватара, эффекты и рамки "
+        "профиля, бейджики. Nitro не нужен"
+        + (f". Коллекции {', '.join(names)} и другие" if names else "")
+        + (f". Цены от {money(min_price)}" if min_price else "")
+        + f". Оплата через СБП, картой или криптовалютой{cashback}."
+    )[:320]
+    intro = ((game.description or "").strip()
+             or "Выберите украшение — после оплаты придёт ссылка на подарок Discord.")
+    return PageSeo(title, description, game.name, intro, aliases(game), (game.seo_text or "").strip() or None)
 
 
 def category_seo(game, cat, min_price: Decimal | float | None, has_auto: bool) -> PageSeo:

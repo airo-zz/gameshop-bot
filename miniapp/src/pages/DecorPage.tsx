@@ -2,15 +2,19 @@
  * src/pages/DecorPage.tsx
  * «Украшения Discord» в Mini App: общий каталог DecorCatalog + корзина Mini App.
  * Открывается вместо обычной страницы игры для игры с признаком decor_catalog.
+ *
+ * Корзина — оптимистично (useOptimisticQty): счётчик, сумма и бейдж навбара
+ * меняются сразу, запрос уходит в фоне, как на обычных страницах игр.
  */
 
-import { useMemo, useRef } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { cartApi, catalogApi } from '@/api'
-import type { DecorItem, Game } from '@/api'
+import type { Cart, DecorItem, Game } from '@/api'
 import DecorCatalog from '@/components/decor/DecorCatalog'
+import { useOptimisticQty } from '@/components/decor/useOptimisticQty'
 import { NAV_HEIGHT } from '@/components/layout/Layout'
 import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
@@ -19,8 +23,7 @@ export default function DecorPage({ game }: { game: Game }) {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { haptic } = useTelegram()
-  const { increment, decrement } = useCartStore()
-  const pending = useRef(new Set<string>())
+  const { increment, decrement, setItemsCount } = useCartStore()
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['decor'],
@@ -29,44 +32,47 @@ export default function DecorPage({ game }: { game: Game }) {
   })
   const { data: cart } = useQuery({ queryKey: ['cart'], queryFn: cartApi.get, staleTime: 30_000 })
 
-  const ids = useMemo(() => new Set((data?.items ?? []).map((i) => i.id)), [data])
-  const qty = useMemo(() => {
+  const byId = useMemo(() => new Map((data?.items ?? []).map((i) => [i.id, i])), [data])
+  const server = useMemo(() => {
     const m = new Map<string, number>()
-    cart?.items.forEach((i) => { if (ids.has(i.product_id)) m.set(i.product_id, (m.get(i.product_id) ?? 0) + i.quantity) })
+    cart?.items.forEach((i) => { if (byId.has(i.product_id)) m.set(i.product_id, (m.get(i.product_id) ?? 0) + i.quantity) })
     return m
-  }, [cart, ids])
+  }, [cart, byId])
+
+  const commit = useCallback(async (id: string, target: number) => {
+    const fresh = qc.getQueryData<Cart>(['cart'])
+    const row = fresh?.items.find((i) => i.product_id === id)
+    if (row) await cartApi.updateItem(row.id, target)
+    else if (target > 0) await cartApi.addItem({ product_id: id, quantity: target, input_data: {} })
+  }, [qc])
+  const settle = useCallback(async () => {
+    await qc.refetchQueries({ queryKey: ['cart'] })
+    const c = qc.getQueryData<Cart>(['cart'])
+    if (c) setItemsCount(c.items_count)          // бейдж навбара — по факту сервера
+  }, [qc, setItemsCount])
+  const onError = useCallback((e: any) => {
+    haptic.error()
+    toast.error(e?.response?.data?.detail ?? 'Не удалось изменить корзину')
+    settle().catch(() => undefined)
+  }, [haptic, settle])
+  const { qty, change } = useOptimisticQty(server, commit, settle, onError)
+
   const inCart = useMemo(() => {
-    const items = (cart?.items ?? []).filter((i) => ids.has(i.product_id))
-    return { count: items.reduce((s, i) => s + i.quantity, 0), total: items.reduce((s, i) => s + Number(i.subtotal), 0) }
-  }, [cart, ids])
+    let count = 0, total = 0
+    qty.forEach((n, id) => { const it = byId.get(id); if (it && n > 0) { count += n; total += n * it.price } })
+    return { count, total }
+  }, [qty, byId])
 
-  const run = async (id: string, fn: () => Promise<unknown>) => {
-    if (pending.current.has(id)) return
-    pending.current.add(id)
-    try {
-      await fn()
-      await qc.refetchQueries({ queryKey: ['cart'] })
-    } catch (e: any) {
-      haptic.error()
-      toast.error(e?.response?.data?.detail ?? 'Не удалось изменить корзину')
-    } finally {
-      pending.current.delete(id)
-    }
+  const onAdd = (item: DecorItem) => {
+    haptic.impact('light')
+    if (!(qty.get(item.id) ?? 0)) increment()       // новая позиция — бейдж сразу
+    change(item.id, 1)
   }
-
-  const onAdd = (item: DecorItem) => run(item.id, async () => {
+  const onRemove = (item: DecorItem) => {
     haptic.impact('light')
-    const isNew = !(qty.get(item.id) ?? 0)
-    await cartApi.addItem({ product_id: item.id, quantity: 1, input_data: {} })
-    if (isNew) increment()
-  })
-  const onRemove = (item: DecorItem) => run(item.id, async () => {
-    const row = cart?.items.find((i) => i.product_id === item.id)
-    if (!row) return
-    haptic.impact('light')
-    await cartApi.updateItem(row.id, row.quantity - 1)
-    if (row.quantity <= 1) decrement()
-  })
+    if ((qty.get(item.id) ?? 0) === 1) decrement()
+    change(item.id, -1)
+  }
 
   return (
     <div className="px-4 pt-5" style={{ ['--decor-sticky-top' as string]: '0px' }}>
@@ -76,7 +82,7 @@ export default function DecorPage({ game }: { game: Game }) {
       </p>
       {isLoading ? (
         <div className="grid grid-cols-2 gap-3">
-          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="aspect-square rounded-xl bg-[var(--bg2)] animate-pulse" />)}
+          {Array.from({ length: 6 }).map((_, i) => <div key={i} className="aspect-square rounded-2xl bg-[var(--bg2)] animate-pulse" />)}
         </div>
       ) : isError || !data ? (
         <div className="text-center py-16">

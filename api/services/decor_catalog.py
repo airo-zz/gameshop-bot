@@ -378,7 +378,7 @@ async def public_catalog(db: AsyncSession) -> dict | None:
         })
     data = {
         "game": {"id": str(game.id), "slug": game.slug, "name": game.name},
-        "collections": [{"id": str(c.id), "name": c.name} for c in cats],
+        "collections": [{"id": str(c.id), "name": c.name, "slug": c.slug} for c in cats],
         "types": types,
         "items": items,
     }
