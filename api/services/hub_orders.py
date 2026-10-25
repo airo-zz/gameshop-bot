@@ -159,7 +159,8 @@ async def push_order(db: AsyncSession, order_id: str, expect_status: str | None)
     async with _client(cfg) as c:
         _check(await c.post("/agent/redonate_order", json=payload))
         # Карточка с данными покупателя — в чат хаба, один раз (id сообщения постоянный)
-        if order.status in (OrderStatus.paid, OrderStatus.processing) and order.user is not None:
+        open_states = (OrderStatus.paid, OrderStatus.processing, OrderStatus.clarification)
+        if order.status in open_states and order.user is not None:
             from api.services.chat_service import ChatService
 
             chat = await ChatService(db).get_or_create_chat(order.user.telegram_id)
