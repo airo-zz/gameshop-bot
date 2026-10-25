@@ -753,7 +753,7 @@ Disallow: /chat
 Disallow: /app/
 Disallow: /api/
 Disallow: /webhooks/
-Clean-param: q /catalog
+Clean-param: q&type /catalog
 Clean-param: cat /game/
 Clean-param: q /game/
 

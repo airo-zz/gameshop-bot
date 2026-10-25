@@ -24,7 +24,7 @@ const queryClient = new QueryClient({
 if (isWeb) {
   document
     .querySelector('meta[name="viewport"]')
-    ?.setAttribute('content', 'width=device-width, initial-scale=1, viewport-fit=cover')
+    ?.setAttribute('content', 'width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content')
   document.body.classList.add('web')
 
   // Данные страницы, которые сервер положил прямо в HTML (api/routers/seo.py):

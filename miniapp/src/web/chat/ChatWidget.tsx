@@ -163,7 +163,9 @@ function ChatThread({ transport, mode }: { transport: ChatTransport; mode: 'user
   useEffect(() => {
     const p = takePrefill()
     if (p) setText((t) => t || p)
-    inputRef.current?.focus()
+    // На телефоне клавиатуру сами не открываем: она сдвигает экран раньше, чем
+    // человек увидел чат. Он сам нажмёт на поле.
+    if (!window.matchMedia('(max-width: 767px)').matches) inputRef.current?.focus()
   }, [prefill, takePrefill])
 
   // Прочитано: при открытии и при новых сообщениях оператора
@@ -331,6 +333,31 @@ function useIsMobile() {
   return mobile
 }
 
+/** Видимая часть экрана без клавиатуры (visualViewport): на телефоне панель чата
+ *  держим ровно в ней — клавиатура больше не «утаскивает» шапку и поле ввода. */
+function useVisualViewport(active: boolean) {
+  const read = () => ({
+    height: window.visualViewport?.height ?? window.innerHeight,
+    top: window.visualViewport?.offsetTop ?? 0,
+  })
+  const [vv, setVv] = useState(read)
+  useEffect(() => {
+    if (!active) return
+    const v = window.visualViewport
+    const on = () => setVv(read())
+    on()
+    v?.addEventListener('resize', on)
+    v?.addEventListener('scroll', on)
+    window.addEventListener('resize', on)
+    return () => {
+      v?.removeEventListener('resize', on)
+      v?.removeEventListener('scroll', on)
+      window.removeEventListener('resize', on)
+    }
+  }, [active])
+  return vv
+}
+
 export default function ChatWidget() {
   const { isAuthenticated, ready } = useWebAuth()
   const { open, expanded, openChat, close, toggleExpanded } = useChatWidget()
@@ -361,16 +388,30 @@ export default function ChatWidget() {
     if (!open) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
     window.addEventListener('keydown', onKey)
-    const prev = document.body.style.overflow
-    if (full) document.body.style.overflow = 'hidden'
-    return () => { window.removeEventListener('keydown', onKey); document.body.style.overflow = prev }
-  }, [open, full, close])
+    // iOS не останавливает прокрутку по overflow:hidden — фиксируем body на месте
+    // и возвращаем ту же позицию при закрытии (страница не «прыгает»)
+    const b = document.body.style
+    const prev = { overflow: b.overflow, position: b.position, top: b.top, width: b.width }
+    const y = window.scrollY
+    if (full) {
+      b.overflow = 'hidden'
+      if (mobile) { b.position = 'fixed'; b.top = `-${y}px`; b.width = '100%' }
+    }
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      Object.assign(b, prev)
+      if (full && mobile) window.scrollTo(0, y)
+    }
+  }, [open, full, mobile, close])
 
   // На странице игры внизу на телефоне — панель корзины: поднимаем кнопку
   const lift = mobile && location.pathname.startsWith('/game/') ? 84 : 0
 
-  const panelStyle: React.CSSProperties = full
-    ? { position: 'fixed', inset: mobile ? 0 : 24, zIndex: 200 }
+  const vv = useVisualViewport(open && mobile)
+  const panelStyle: React.CSSProperties = mobile
+    ? { position: 'fixed', left: 0, right: 0, top: vv.top, height: vv.height, zIndex: 200 }
+    : full
+    ? { position: 'fixed', inset: 24, zIndex: 200 }
     : { position: 'fixed', right: 24, bottom: 96, width: 380, height: 'min(600px, calc(100dvh - 128px))', zIndex: 200 }
 
   const fabRight = mobile ? 16 : 24
@@ -439,10 +480,10 @@ export default function ChatWidget() {
             key="panel"
             role="dialog"
             aria-label="Чат с оператором"
-            initial={reduce ? false : { opacity: 0, y: 16, scale: full ? 1 : 0.96 }}
+            initial={reduce ? false : mobile ? { y: '100%' } : { opacity: 0, y: 16, scale: full ? 1 : 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: full ? 1 : 0.96 }}
-            transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
+            exit={mobile ? { y: '100%' } : { opacity: 0, y: 16, scale: full ? 1 : 0.96 }}
+            transition={mobile ? { duration: 0.32, ease: [0.32, 0.72, 0, 1] } : { duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
             className={'flex flex-col overflow-hidden bg-[var(--bg2)] ' + (mobile ? '' : 'rounded-3xl border border-[var(--border)]')}
             style={{
               ...panelStyle,

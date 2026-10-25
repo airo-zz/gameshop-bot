@@ -1,6 +1,7 @@
 /**
  * src/web/pages/WebCatalogPage.tsx
- * Полный каталог сайта: поиск (?q=), игры и сервисы отдельными секциями.
+ * Полный каталог сайта: переключатель «Игры / Сервисы» вверху (?type=service),
+ * поиск (?q=) — по обоим разделам сразу, чтобы найденное не пряталось за вкладкой.
  */
 
 import { useQuery } from '@tanstack/react-query'
@@ -34,6 +35,7 @@ function Grid({ title, items }: { title: string; items: Game[] }) {
 export default function WebCatalogPage() {
   const [params, setParams] = useSearchParams()
   const q = params.get('q') ?? ''
+  const tab: 'game' | 'service' = params.get('type') === 'service' ? 'service' : 'game'
   usePageMeta({
     title: 'Каталог игр и сервисов',
     description: 'Все игры и цифровые сервисы, которые можно пополнить в reDonate: внутриигровая валюта, наборы и подписки. Оплата через СБП, банковской картой или криптовалютой.',
@@ -59,7 +61,17 @@ export default function WebCatalogPage() {
   const games = (all ?? []).filter((g) => g.type !== 'service' && match(g))
   const services = (all ?? []).filter((g) => g.type === 'service' && match(g))
 
-  const setQ = (v: string) => setParams(v ? { q: v } : {}, { replace: true })
+  const setQ = (v: string) => setParams((prev) => {
+    const n = new URLSearchParams(prev)
+    if (v) n.set('q', v); else n.delete('q')
+    return n
+  }, { replace: true })
+  const setTab = (t: 'game' | 'service') => setParams((prev) => {
+    const n = new URLSearchParams(prev)
+    if (t === 'service') n.set('type', 'service'); else n.delete('type')
+    return n
+  }, { replace: true })
+  const tabCount = { game: (all ?? []).filter((g) => g.type !== 'service').length, service: (all ?? []).filter((g) => g.type === 'service').length }
 
   return (
     <div className="web-container py-10 md:py-14">
@@ -84,6 +96,25 @@ export default function WebCatalogPage() {
           )}
         </label>
       </div>
+
+      {/* Игры / Сервисы — сразу под заголовком */}
+      {!q && tabCount.service > 0 && (
+        <div className="-mt-4 mb-8 inline-flex rounded-xl bg-[var(--bg2)] p-1" role="tablist" aria-label="Раздел каталога">
+          {(['game', 'service'] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              role="tab"
+              aria-selected={tab === t}
+              onClick={() => setTab(t)}
+              className={'h-10 px-5 rounded-lg text-[15px] font-semibold transition-colors ' + (tab === t ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-2)] hover:text-[var(--text)]')}
+            >
+              {t === 'game' ? 'Игры' : 'Сервисы'}
+              <span className={'ml-1.5 text-sm font-normal num ' + (tab === t ? 'text-white/70' : 'text-[var(--hint)]')}>{tabCount[t]}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {!q && (popular.length > 0 || isLoading) && (
         <div className="-mt-4 mb-10 flex flex-wrap items-center gap-2 min-h-8">
@@ -116,8 +147,14 @@ export default function WebCatalogPage() {
         </div>
       ) : (
         <>
-          <Grid title="Игры" items={games} />
-          <Grid title="Сервисы" items={services} />
+          {q ? (
+            <>
+              <Grid title="Игры" items={games} />
+              <Grid title="Сервисы" items={services} />
+            </>
+          ) : (
+            <Grid key={tab} title={tab === 'game' ? 'Игры' : 'Сервисы'} items={tab === 'game' ? games : services} />
+          )}
           <RequestCta query={q} />
         </>
       )}
