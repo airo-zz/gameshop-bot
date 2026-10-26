@@ -162,65 +162,82 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
 
   const unitLabel = kind === 'stars' ? starsWord(units) : CURRENCY_SIGN[currency] ?? currency
 
+  const label = 'block text-sm text-[var(--text-2)] mb-1.5 h-5'
+  const chip = (active: boolean) =>
+    'rounded-lg text-sm num border transition-colors ' +
+    (active ? 'border-[var(--accent)] text-[var(--text)] bg-[var(--bg3)]' : 'border-transparent text-[var(--text-2)] bg-[var(--bg3)] hover:text-[var(--text)]')
+  const sectionLink = (
+    <Link
+      to={`/game/${opt.game_slug}/${opt.category_slug}`}
+      className="inline-flex items-center gap-1 text-sm text-[var(--hint)] hover:text-[var(--text)] transition-colors"
+    >
+      Раздел «{opt.category_name}» <ChevronRight size={14} />
+    </Link>
+  )
+
   return (
-    <div id="topup" className="rounded-2xl bg-[var(--bg2)] p-4 md:p-5 scroll-mt-24">
-      {/* Вкладки */}
-      {options.length > 1 && (
-        <div className="flex gap-1 p-1 rounded-xl bg-[var(--bg)] mb-5" role="tablist" aria-label="Что пополнить">
-          {options.map((o) => {
-            const { label, Icon } = TABS[o.kind]
-            const active = o.kind === kind
+    <div id="topup" className="rounded-2xl bg-[var(--bg2)] p-4 md:p-6 scroll-mt-24">
+      {/* Вкладки + ссылка на раздел */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+        {options.length > 1 ? (
+          <div className="flex gap-1 p-1 rounded-xl bg-[var(--bg)] w-full sm:w-auto" role="tablist" aria-label="Что пополнить">
+            {options.map((o) => {
+              const { label: tab, Icon } = TABS[o.kind]
+              const active = o.kind === kind
+              return (
+                <button
+                  key={o.kind}
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => switchKind(o.kind)}
+                  className={'relative flex-1 sm:flex-none h-10 px-2 sm:px-5 rounded-lg text-sm font-medium transition-colors ' + (active ? 'text-[var(--text)]' : 'text-[var(--hint)] hover:text-[var(--text-2)]')}
+                >
+                  {active && <m.span layoutId="web-topup-tab" className="absolute inset-0 rounded-lg bg-[var(--bg3)]" transition={{ duration: 0.25, ease: EASE }} />}
+                  <span className="relative inline-flex items-center justify-center gap-1.5">
+                    <Icon size={16} fill={active && o.kind !== 'steam' ? 'currentColor' : undefined} />
+                    {tab}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        ) : <span />}
+        <span className="hidden sm:block">{sectionLink}</span>
+      </div>
+
+      {/* Одна полоса: получатель | сумма или срок | итог и оплата */}
+      <div className="grid gap-4 lg:gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)_minmax(0,0.85fr)] items-start">
+        {/* Получатель */}
+        <div className="flex flex-col gap-4">
+          {recipientFields.map((f) => {
+            const err = touched && f.required && !(fields[f.key] ?? '').replace('@', '').trim()
+            const tg = isTelegram(kind) && f.type === 'text'
             return (
-              <button
-                key={o.kind}
-                role="tab"
-                aria-selected={active}
-                onClick={() => switchKind(o.kind)}
-                className={'relative flex-1 h-10 rounded-lg text-sm font-medium transition-colors ' + (active ? 'text-[var(--text)]' : 'text-[var(--hint)] hover:text-[var(--text-2)]')}
-              >
-                {active && <m.span layoutId="web-topup-tab" className="absolute inset-0 rounded-lg bg-[var(--bg3)]" transition={{ duration: 0.25, ease: EASE }} />}
-                <span className="relative inline-flex items-center justify-center gap-1.5">
-                  <Icon size={16} fill={active && o.kind !== 'steam' ? 'currentColor' : undefined} />
-                  {label}
-                </span>
-              </button>
+              <div key={f.key}>
+                <label htmlFor={`topup-${f.key}`} className={label}>{tg ? 'Кому отправить' : f.label}</label>
+                <div className="relative">
+                  {tg && <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[15px] text-[var(--hint)] pointer-events-none">@</span>}
+                  <input
+                    id={`topup-${f.key}`}
+                    value={fields[f.key] ?? ''}
+                    onChange={(e) => setFields((p) => ({ ...p, [f.key]: tg ? e.target.value.replace(/^@+/, '').replace(/\s/g, '') : e.target.value }))}
+                    placeholder={tg ? 'username в Telegram' : f.placeholder || f.label}
+                    autoComplete="off"
+                    spellCheck={false}
+                    aria-invalid={err || undefined}
+                    className={inputBox(!!err) + (tg ? ' pl-8' : '')}
+                  />
+                </div>
+                {err && <p className="mt-1.5 text-xs text-[#f87171]">{tg ? 'Укажите username получателя' : `Укажите: ${f.label}`}</p>}
+              </div>
             )
           })}
         </div>
-      )}
 
-      <div className="flex flex-col gap-4">
-        {/* Получатель */}
-        {recipientFields.map((f) => {
-          const err = touched && f.required && !(fields[f.key] ?? '').replace('@', '').trim()
-          const tg = isTelegram(kind) && f.type === 'text'
-          return (
-            <div key={f.key}>
-              <label htmlFor={`topup-${f.key}`} className="block text-sm text-[var(--text-2)] mb-1.5">
-                {tg ? 'Кому отправить' : f.label}
-              </label>
-              <div className="relative">
-                {tg && <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[15px] text-[var(--hint)] pointer-events-none">@</span>}
-                <input
-                  id={`topup-${f.key}`}
-                  value={fields[f.key] ?? ''}
-                  onChange={(e) => setFields((p) => ({ ...p, [f.key]: tg ? e.target.value.replace(/^@+/, '').replace(/\s/g, '') : e.target.value }))}
-                  placeholder={tg ? 'username в Telegram' : f.placeholder || f.label}
-                  autoComplete="off"
-                  spellCheck={false}
-                  aria-invalid={err || undefined}
-                  className={inputBox(!!err) + (tg ? ' pl-8' : '')}
-                />
-              </div>
-              {err && <p className="mt-1.5 text-xs text-[#f87171]">{tg ? 'Укажите username получателя' : `Укажите: ${f.label}`}</p>}
-            </div>
-          )
-        })}
-
-        {/* Premium — выбор срока */}
+        {/* Premium — срок подписки */}
         {kind === 'premium' && (
-          <fieldset>
-            <legend className="text-sm text-[var(--text-2)] mb-1.5">Срок подписки</legend>
+          <fieldset className="min-w-0">
+            <legend className={label}>Срок подписки</legend>
             <div className="grid grid-cols-3 gap-2">
               {opt.products.map((p) => {
                 const { term, months } = premiumTerm(p.name)
@@ -231,10 +248,10 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
                     type="button"
                     onClick={() => setProductId(p.id)}
                     aria-pressed={active}
-                    className={'rounded-xl px-3 py-3 text-left border transition-colors ' + (active ? 'border-[var(--accent)] bg-[var(--bg3)]' : 'border-transparent bg-[var(--bg3)] hover:border-[var(--border)]')}
+                    className={'rounded-xl px-3 py-2.5 text-left border transition-colors ' + (active ? 'border-[var(--accent)] bg-[var(--bg3)]' : 'border-transparent bg-[var(--bg3)] hover:border-[var(--border)]')}
                   >
                     <span className="block text-[15px] font-medium text-[var(--text)]">{term}</span>
-                    <span className="block mt-1 text-sm font-semibold text-[var(--text)] num">{money(p.price)}</span>
+                    <span className="block mt-0.5 text-sm font-semibold text-[var(--text)] num">{money(p.price)}</span>
                     {months > 1 && <span className="block text-xs text-[var(--hint)] num">{money(Math.round(Number(p.price) / months))} в месяц</span>}
                   </button>
                 )
@@ -243,37 +260,35 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
           </fieldset>
         )}
 
-        {/* Steam — валюта аккаунта, если заведено несколько */}
-        {kind === 'steam' && opt.products.length > 1 && (
-          <div>
-            <p className="text-sm text-[var(--text-2)] mb-1.5">Валюта аккаунта Steam</p>
-            <div className="flex flex-wrap gap-2">
-              {opt.products.map((p) => {
-                const cur = (qtyField(p)?.unit || '').toUpperCase()
-                const active = p.id === product.id
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => { setProductId(p.id); setAmount(null) }}
-                    aria-pressed={active}
-                    className={'h-9 px-3 rounded-lg text-sm border transition-colors ' + (active ? 'border-[var(--accent)] text-[var(--text)] bg-[var(--bg3)]' : 'border-transparent text-[var(--text-2)] bg-[var(--bg3)] hover:text-[var(--text)]')}
-                  >
-                    {cur || p.name}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
         {/* Количество звёзд / сумма Steam */}
         {qf && (
-          <div>
-            <label htmlFor="topup-amount" className="block text-sm text-[var(--text-2)] mb-1.5">
-              {kind === 'stars' ? 'Количество звёзд' : 'Сумма пополнения'}
-            </label>
-            <div className={'flex items-center h-16 rounded-xl bg-[var(--bg3)] border px-4 transition-colors focus-within:border-[var(--accent)] ' + (touched && amountError ? 'border-[#f87171]' : 'border-transparent')}>
+          <div className="min-w-0">
+            <div className="flex items-center justify-between gap-3 mb-1.5 h-5">
+              <label htmlFor="topup-amount" className="text-sm text-[var(--text-2)]">
+                {kind === 'stars' ? 'Количество звёзд' : 'Сумма пополнения'}
+              </label>
+              {/* Steam — валюта аккаунта, если заведено несколько */}
+              {kind === 'steam' && opt.products.length > 1 && (
+                <div className="flex gap-1" aria-label="Валюта аккаунта Steam">
+                  {opt.products.map((p) => {
+                    const cur = (qtyField(p)?.unit || '').toUpperCase()
+                    const active = p.id === product.id
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => { setProductId(p.id); setAmount(null) }}
+                        aria-pressed={active}
+                        className={'h-6 px-2 text-xs ' + chip(active)}
+                      >
+                        {cur || p.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+            <div className={'flex items-center h-12 rounded-xl bg-[var(--bg3)] border px-4 transition-colors focus-within:border-[var(--accent)] ' + (touched && amountError ? 'border-[#f87171]' : 'border-transparent')}>
               <input
                 id="topup-amount"
                 type="text"
@@ -281,60 +296,46 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
                 maxLength={7}
                 value={amount ?? fallbackAmount}
                 onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
-                className="input-display flex-1 min-w-0 bg-transparent outline-none font-display num text-[1.75rem] text-[var(--text)]"
+                className="input-display flex-1 min-w-0 bg-transparent outline-none font-display num text-[1.375rem] text-[var(--text)]"
               />
               <span className="text-[15px] text-[var(--text-2)] shrink-0">{unitLabel}</span>
             </div>
             {touched && amountError && <p className="mt-1.5 text-xs text-[#f87171]">{amountError}</p>}
             {presets.length > 0 && (
               <div className="mt-2 grid grid-cols-3 sm:grid-cols-6 gap-1.5">
-                {presets.map((v) => {
-                  const active = units === v
-                  return (
-                    <button
-                      key={v}
-                      type="button"
-                      onClick={() => setAmount(String(v))}
-                      aria-pressed={active}
-                      className={'h-9 px-1 rounded-lg text-sm num border transition-colors ' + (active ? 'border-[var(--accent)] text-[var(--text)] bg-[var(--bg3)]' : 'border-transparent text-[var(--text-2)] bg-[var(--bg3)] hover:text-[var(--text)]')}
-                    >
-                      {v.toLocaleString('ru')}{kind === 'steam' ? ' ' + (CURRENCY_SIGN[currency] ?? currency) : ''}
-                    </button>
-                  )
-                })}
+                {presets.map((v) => (
+                  <button key={v} type="button" onClick={() => setAmount(String(v))} aria-pressed={units === v} className={'h-9 px-1 ' + chip(units === v)}>
+                    {v.toLocaleString('ru')}{kind === 'steam' ? ' ' + (CURRENCY_SIGN[currency] ?? currency) : ''}
+                  </button>
+                ))}
               </div>
             )}
           </div>
         )}
 
         {/* Итог и покупка */}
-        <div className="pt-4 border-t border-[var(--border)]">
-          <div className="flex items-baseline justify-between gap-3">
+        <div className="min-w-0 pt-4 border-t border-[var(--border)] lg:pt-0 lg:border-t-0">
+          <div className="flex items-center justify-between gap-3 mb-1.5 h-5">
             <span className="text-sm text-[var(--text-2)]">К оплате</span>
-            <span className="text-2xl font-semibold tracking-tight num text-[var(--text)]">{money(Math.round(total * 100) / 100)}</span>
+            {qf && (
+              <span className="text-xs text-[var(--hint)] num">
+                {kind === 'stars' ? `1 звезда — ${money(product.price)}` : `1 ${CURRENCY_SIGN[currency] ?? currency} — ${money(product.price)}`}
+              </span>
+            )}
           </div>
-          {qf && (
-            <p className="mt-1 text-xs text-[var(--hint)] num text-right">
-              {kind === 'stars'
-                ? `1 звезда — ${money(product.price)}`
-                : `1 ${CURRENCY_SIGN[currency] ?? currency} на Steam — ${money(product.price)}`}
-            </p>
-          )}
+          <div className="h-12 flex items-center">
+            <span className="text-[1.75rem] leading-none font-semibold tracking-tight num text-[var(--text)]">{money(Math.round(total * 100) / 100)}</span>
+          </div>
           <button
             type="button"
             onClick={buy}
             disabled={busy || product.is_out_of_stock}
-            className="mt-4 w-full h-12 rounded-xl text-[15px] font-semibold text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] disabled:opacity-60 transition-colors inline-flex items-center justify-center gap-2"
+            className="mt-2 w-full h-11 rounded-xl text-[15px] font-semibold text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] disabled:opacity-60 transition-colors inline-flex items-center justify-center gap-2"
           >
             {busy && <Loader2 size={18} className="animate-spin" />}
             {product.is_out_of_stock ? 'Временно нет в наличии' : user ? 'Перейти к оплате' : 'Войти и оплатить'}
           </button>
-          <Link
-            to={`/game/${opt.game_slug}/${opt.category_slug}`}
-            className="mt-3 flex items-center justify-center gap-1 text-sm text-[var(--hint)] hover:text-[var(--text)] transition-colors"
-          >
-            Раздел «{opt.category_name}» <ChevronRight size={14} />
-          </Link>
+          <div className="sm:hidden mt-3 flex justify-center">{sectionLink}</div>
         </div>
       </div>
     </div>

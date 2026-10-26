@@ -130,6 +130,7 @@ async def get_home_blocks(db: DbSession):
                 game_name=c.game.name if c.game else "",
                 game_slug=c.game.slug if c.game else "",
                 game_image_url=c.game.image_url if c.game else None,
+                image_url=c.image_url,
                 **summary.get(c.id, {}),
             )
             for c in popular

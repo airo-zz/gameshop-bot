@@ -5,7 +5,7 @@
  * кэшбэк, как это работает, способы оплаты, вопросы.
  */
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
@@ -111,87 +111,104 @@ function Hero({ games }: { games: Game[] }) {
   )
 }
 
-// ── Популярное + быстрое пополнение ───────────────────────────────────────────
+// ── Популярное ────────────────────────────────────────────────────────────────
 
-const POPULAR_MOBILE = 5  // на телефоне остальные — по кнопке (в разметке есть всегда, для поиска)
 const sectionName = (s: string) => s.replace(/^[^\p{L}\p{N}]+/u, '').trim() || s
 
-function PopularRow({ c, rank }: { c: TrendingCategory; rank: number }) {
+function PopularCard({ c }: { c: TrendingCategory }) {
   const qc = useQueryClient()
-  const img = normalizeImageUrl(c.game_image_url)
+  const img = normalizeImageUrl(c.image_url || c.game_image_url)
   return (
     <Link
       to={`/game/${c.game_slug}/${c.slug}`}
       onMouseEnter={() => prefetchGame(qc, c.game_slug)}
-      className="group flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-[var(--bg3)] transition-colors"
+      className="group flex flex-col h-full rounded-2xl bg-[var(--bg2)] overflow-hidden hover:bg-[var(--bg3)] transition-colors"
     >
-      <span className="w-6 shrink-0 text-center text-sm font-semibold num text-[var(--hint)] group-hover:text-[var(--text-2)]" aria-hidden="true">
-        {rank}
-      </span>
-      <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--bg3)] shrink-0">
-        {img && <img src={thumbUrl(img, 320) ?? img} onError={onThumbError(img)} alt="" loading="lazy" width={48} height={48} className="w-full h-full object-cover" />}
-      </div>
-      <div className="min-w-0 flex-1">
-        <h3 className="text-[15px] font-medium leading-snug text-[var(--text)] truncate" style={{ margin: 0 }}>{sectionName(c.name)}</h3>
-        <p className="text-sm text-[var(--hint)] truncate">{c.game_name}</p>
-      </div>
-      <div className="shrink-0 text-right">
-        {c.min_price != null && <p className="text-sm font-semibold num text-[var(--text)]">от {money(c.min_price)}</p>}
+      <div className="relative aspect-square overflow-hidden bg-[var(--bg3)]">
+        {img && (
+          <img
+            src={thumbUrl(img, 640) ?? img}
+            srcSet={thumbSrcSet(img)}
+            sizes="(min-width: 1024px) 240px, (min-width: 640px) 30vw, 45vw"
+            onError={onThumbError(img)}
+            alt={`${sectionName(c.name)} ${c.game_name}`}
+            loading="lazy"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          />
+        )}
         {c.has_auto && (
-          <p className="mt-0.5 inline-flex items-center gap-1 text-xs" style={{ color: '#34d399' }}>
-            <Zap size={12} fill="#34d399" /> сразу
-          </p>
+          <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 h-6 px-2 rounded-lg text-xs font-medium text-white" style={{ background: 'rgba(11,12,15,0.78)' }}>
+            <Zap size={12} fill="#34d399" color="#34d399" /> Автовыдача
+          </span>
+        )}
+      </div>
+      <div className="flex flex-col flex-1 p-3.5">
+        <h3 className="text-[15px] font-semibold leading-snug text-[var(--text)] truncate" style={{ margin: 0 }}>{c.game_name}</h3>
+        <p className="mt-0.5 text-sm text-[var(--hint)] truncate">{sectionName(c.name)}</p>
+        {c.min_price != null && (
+          <p className="mt-auto pt-3 text-[15px] font-semibold num text-[var(--text)]">от {money(c.min_price)}</p>
         )}
       </div>
     </Link>
   )
 }
 
-function PopularAndTopup({ trending, topup }: { trending: TrendingCategory[]; topup: HomeTopup[] }) {
-  const [expanded, setExpanded] = useState(false)
+function Popular({ trending }: { trending: TrendingCategory[] }) {
+  const rail = useRef<HTMLDivElement>(null)
   const items = trending.slice(0, 8)
-  if (!items.length && !topup.length) return null
-  const wide = !topup.length  // без пополнения список занимает всю ширину в две колонки
+  if (!items.length) return null
+  const scroll = (dir: 1 | -1) => {
+    const el = rail.current
+    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' })
+  }
+  const arrow = 'hidden md:flex w-9 h-9 items-center justify-center rounded-xl bg-[var(--bg2)] text-[var(--text-2)] hover:bg-[var(--bg3)] hover:text-[var(--text)] transition-colors'
 
   return (
     <section className="web-container py-10 md:py-12">
-      <div className={'grid gap-8 lg:gap-6 items-start ' + (topup.length && items.length ? 'lg:grid-cols-[1.3fr_1fr]' : '')}>
-        {items.length > 0 && (
-          <div className="min-w-0">
-            <Reveal>
-              <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Популярное</h2>
-            </Reveal>
-            <Reveal className="mt-6">
-              <ol className={'rounded-2xl bg-[var(--bg2)] p-2 grid ' + (wide ? 'md:grid-cols-2 md:gap-x-2' : '')}>
-                {items.map((c, i) => (
-                  <li key={c.id} className={!expanded && i >= POPULAR_MOBILE ? 'hidden md:block' : ''}>
-                    <PopularRow c={c} rank={i + 1} />
-                  </li>
-                ))}
-              </ol>
-              {!expanded && items.length > POPULAR_MOBILE && (
-                <button
-                  onClick={() => setExpanded(true)}
-                  className="md:hidden mt-2 w-full h-11 rounded-xl bg-[var(--bg2)] text-sm font-medium text-[var(--text-2)] hover:text-[var(--text)] transition-colors"
-                >
-                  Ещё {items.length - POPULAR_MOBILE}
-                </button>
-              )}
-            </Reveal>
+      <Reveal className="flex items-end justify-between gap-4">
+        <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Популярное</h2>
+        {items.length > 5 && (
+          <div className="flex gap-2">
+            <button onClick={() => scroll(-1)} className={arrow} aria-label="Прокрутить назад"><ChevronRight size={18} style={{ transform: 'rotate(180deg)' }} /></button>
+            <button onClick={() => scroll(1)} className={arrow} aria-label="Прокрутить вперёд"><ChevronRight size={18} /></button>
           </div>
         )}
+      </Reveal>
+      {/* Лента: на телефоне ~2 карточки, на компьютере 5; все ссылки в разметке сразу */}
+      <Reveal className="mt-6">
+        <div
+          ref={rail}
+          className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-5 px-5 scroll-px-5 md:mx-0 md:px-0 md:scroll-px-0"
+        >
+          {items.map((c) => (
+            <div key={c.id} className="snap-start shrink-0 w-[44%] sm:w-[30%] lg:w-[calc((100%-4rem)/5)]">
+              <PopularCard c={c} />
+            </div>
+          ))}
+        </div>
+      </Reveal>
+    </section>
+  )
+}
 
-        {topup.length > 0 && (
-          <div className={'min-w-0 ' + (items.length ? '' : 'max-w-xl')}>
-            <Reveal>
-              <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Быстрое пополнение</h2>
-            </Reveal>
-            <Reveal className="mt-6">
-              <QuickTopup options={topup} />
-            </Reveal>
-          </div>
-        )}
-      </div>
+// ── Быстрое пополнение ────────────────────────────────────────────────────────
+
+function topupTitle(topup: HomeTopup[]) {
+  const tg = topup.some((t) => t.kind !== 'steam')
+  const steam = topup.some((t) => t.kind === 'steam')
+  return tg && steam ? 'Пополнение Telegram и Steam' : steam ? 'Пополнение Steam' : 'Звёзды и Premium в Telegram'
+}
+
+function Topup({ topup }: { topup: HomeTopup[] }) {
+  if (!topup.length) return null
+  return (
+    <section className="web-container py-10 md:py-12">
+      <Reveal>
+        <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">{topupTitle(topup)}</h2>
+      </Reveal>
+      <Reveal className="mt-6">
+        <QuickTopup options={topup} />
+      </Reveal>
     </section>
   )
 }
@@ -457,7 +474,8 @@ export default function WebHomePage() {
   return (
     <>
       <Hero games={home?.hero ?? []} />
-      <PopularAndTopup trending={home?.popular ?? []} topup={home?.topup ?? []} />
+      <Popular trending={home?.popular ?? []} />
+      <Topup topup={home?.topup ?? []} />
       <Catalog all={all} isLoading={isLoading} isError={isError} />
       <Reviews />
       <Cashback />

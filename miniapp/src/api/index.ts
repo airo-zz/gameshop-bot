@@ -72,7 +72,8 @@ export interface TrendingCategory {
   game_name: string
   game_slug: string
   game_image_url: string | null
-  // «Популярное» на главной сайта: цена «от» и есть ли автовыдача
+  // «Популярное» на главной сайта: обложка раздела, цена «от» и есть ли автовыдача
+  image_url?: string | null
   min_price?: string | null
   has_auto?: boolean
 }
