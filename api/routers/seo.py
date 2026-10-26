@@ -394,8 +394,22 @@ def _reviews_html(data: dict, game_name: str) -> str:
 # ── Страницы ──────────────────────────────────────────────────────────────────
 
 async def _home(db) -> tuple[int, str]:
+    from api.routers import catalog as cat_api
+
     games = await CatalogService(db).get_active_games()
+    blocks = await cat_api.get_home_blocks(db)
     links = "".join(f'<li><a href="/game/{_e(g.slug)}">Пополнить {_e(g.name)}</a></li>' for g in games)
+    popular = "".join(
+        f'<li><a href="/game/{_e(c.game_slug)}/{_e(c.slug)}">{_e(clean_name(c.name))} {_e(c.game_name)}</a>'
+        + (f" — от {_money(c.min_price)}" if c.min_price is not None else "")
+        + "</li>"
+        for c in blocks["popular"]
+    )
+    topup_titles = {"stars": "Telegram Stars", "premium": "Telegram Premium", "steam": "Пополнение Steam"}
+    topup = "".join(
+        f'<li><a href="/game/{_e(t["game_slug"])}/{_e(t["category_slug"])}">{topup_titles[t["kind"]]}</a></li>'
+        for t in blocks["topup"]
+    )
     faq_html = "".join(f"<h3>{_e(q)}</h3><p>{_e(a)}</p>" for q, a in FAQ)
     body = (
         _nav()
@@ -403,6 +417,8 @@ async def _home(db) -> tuple[int, str]:
         + "<h2>Пополнение игр и цифровых сервисов</h2>"
         + "<p>Внутриигровая валюта, наборы и подписки для мобильных и компьютерных игр. "
           "Оплата через СБП, банковской картой или криптовалютой, кэшбэк с каждой покупки.</p>"
+        + (f"<h2>Популярное</h2><ol>{popular}</ol>" if popular else "")
+        + (f"<h2>Быстрое пополнение</h2><ul>{topup}</ul>" if topup else "")
         + f"<h2>Каталог</h2><ul>{links}</ul>"
         + f"<h2>Частые вопросы</h2>{faq_html}"
     )
@@ -414,10 +430,9 @@ async def _home(db) -> tuple[int, str]:
             for q, a in FAQ
         ],
     }]
-    from api.routers import catalog as cat_api
 
     initial = await _data_common(db) + [
-        (["web", "home-blocks"], await cat_api.get_home_blocks(db)),
+        (["web", "home-blocks"], blocks),
         (["web", "loyalty"], await cat_api.get_loyalty_program(db)),
         (["reviews", "home"], await _reviews_data(db, kind="text", limit=6)),
     ]

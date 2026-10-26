@@ -48,9 +48,10 @@ html { scroll-behavior: smooth; }
 }
 
 /* iOS приближает страницу при фокусе на поле со шрифтом меньше 16px — экран
-   «прыгает». На телефоне поля ввода всегда 16px (стандартное решение). */
+   «прыгает». На телефоне поля ввода всегда 16px (стандартное решение).
+   .input-display — крупный ввод суммы (больше 16px, iOS не приближает). */
 @media (max-width: 767px) {
-  body.web input:not([type="checkbox"]):not([type="radio"]),
+  body.web input:not([type="checkbox"]):not([type="radio"]):not(.input-display),
   body.web textarea,
   body.web select {
     font-size: 16px !important;

@@ -18,7 +18,7 @@ import {
   LightningIcon, ListIcon, MagnifyingGlassIcon, MagnifyingGlassPlusIcon, MedalIcon, MinusIcon,
   PackageIcon, PaperPlaneRightIcon, PaperclipIcon, PercentIcon, PlusIcon, QuestionIcon,
   SealCheckIcon, ShareNetworkIcon, ShieldCheckIcon, ShieldIcon, ShoppingBagIcon,
-  ShoppingCartIcon, SignOutIcon, StarIcon, TagIcon, ThumbsDownIcon, ThumbsUpIcon, TrashIcon, TrendDownIcon, TrendUpIcon,
+  ShoppingCartIcon, SignOutIcon, StarIcon, SteamLogoIcon, TelegramLogoIcon, TagIcon, ThumbsDownIcon, ThumbsUpIcon, TrashIcon, TrendDownIcon, TrendUpIcon,
   UsersIcon, WalletIcon, WarningCircleIcon, WifiSlashIcon, XCircleIcon, XIcon,
 } from '@phosphor-icons/react'
 import {
@@ -95,6 +95,8 @@ export const ShoppingBag = wrap(ShoppingBagIcon)
 export const ShoppingCart = wrap(ShoppingCartIcon)
 export const Smartphone = wrap(DeviceMobileIcon)
 export const Star = wrap(StarIcon)
+export const SteamLogo = wrap(SteamLogoIcon)
+export const TelegramLogo = wrap(TelegramLogoIcon)
 export const Tag = wrap(TagIcon)
 export const ThumbsDown = wrap(ThumbsDownIcon)
 export const ThumbsUp = wrap(ThumbsUpIcon)

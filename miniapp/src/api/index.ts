@@ -72,6 +72,19 @@ export interface TrendingCategory {
   game_name: string
   game_slug: string
   game_image_url: string | null
+  // «Популярное» на главной сайта: цена «от» и есть ли автовыдача
+  min_price?: string | null
+  has_auto?: boolean
+}
+
+/** Вариант блока быстрого пополнения на главной сайта (api/services/home_service.resolve_topup) */
+export interface HomeTopup {
+  kind: 'stars' | 'premium' | 'steam'
+  game_slug: string
+  category_slug: string
+  category_name: string
+  fields: InputField[]  // поля получателя (@username, логин Steam)
+  products: Product[]
 }
 
 export interface Product {
@@ -305,7 +318,7 @@ export const catalogApi = {
 
   /** Блоки главной сайта (выбираются в админке, иначе автоматически) */
   getHome: () =>
-    apiClient.get<{ hero: Game[]; popular: TrendingCategory[] }>('/catalog/home').then(r => r.data),
+    apiClient.get<{ hero: Game[]; popular: TrendingCategory[]; topup?: HomeTopup[] }>('/catalog/home').then(r => r.data),
 
   toggleFavorite: (productId: string) =>
     apiClient.post<{ added: boolean }>(`/catalog/products/${productId}/favorite`).then(r => r.data),

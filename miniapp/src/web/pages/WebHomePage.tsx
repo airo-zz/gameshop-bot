@@ -1,6 +1,7 @@
 /**
  * src/web/pages/WebHomePage.tsx
- * Главная redonate.gg: первый экран с обложками игр, популярное, каталог,
+ * Главная redonate.gg: первый экран с обложками игр, популярное и быстрое
+ * пополнение (Stars / Premium / Steam), каталог,
  * кэшбэк, как это работает, способы оплаты, вопросы.
  */
 
@@ -11,13 +12,15 @@ import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
 import {
   ChevronDown, ChevronRight, Smartphone, CreditCard, Bitcoin, Wallet, Zap, ShieldCheck, Headphones,
 } from '@/components/ui/icons'
-import { catalogApi, reviewsApi, type Game, type TrendingCategory } from '@/api'
+import { catalogApi, reviewsApi, type Game, type HomeTopup, type TrendingCategory } from '@/api'
 import { ReviewCard, ReviewSummary } from '@/components/reviews/Reviews'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
 import GameCard from '@/web/components/GameCard'
 import GameSearch from '@/web/components/GameSearch'
 import RequestCta from '@/web/components/RequestCta'
+import QuickTopup from '@/web/components/QuickTopup'
+import { money } from '@/web/format'
 import { EASE, Reveal, Stagger, StaggerItem } from '@/web/components/Motion'
 import { DEFAULT_TITLE, usePageMeta } from '@/web/seo'
 import { prefetchGame } from '@/web/prefetch'
@@ -108,38 +111,87 @@ function Hero({ games }: { games: Game[] }) {
   )
 }
 
-// ── Популярное ────────────────────────────────────────────────────────────────
+// ── Популярное + быстрое пополнение ───────────────────────────────────────────
 
-function Popular({ trending }: { trending: TrendingCategory[] }) {
+const POPULAR_MOBILE = 5  // на телефоне остальные — по кнопке (в разметке есть всегда, для поиска)
+const sectionName = (s: string) => s.replace(/^[^\p{L}\p{N}]+/u, '').trim() || s
+
+function PopularRow({ c, rank }: { c: TrendingCategory; rank: number }) {
   const qc = useQueryClient()
-  if (!trending.length) return null
+  const img = normalizeImageUrl(c.game_image_url)
+  return (
+    <Link
+      to={`/game/${c.game_slug}/${c.slug}`}
+      onMouseEnter={() => prefetchGame(qc, c.game_slug)}
+      className="group flex items-center gap-3 rounded-xl px-2 py-2 hover:bg-[var(--bg3)] transition-colors"
+    >
+      <span className="w-6 shrink-0 text-center text-sm font-semibold num text-[var(--hint)] group-hover:text-[var(--text-2)]" aria-hidden="true">
+        {rank}
+      </span>
+      <div className="w-12 h-12 rounded-xl overflow-hidden bg-[var(--bg3)] shrink-0">
+        {img && <img src={thumbUrl(img, 320) ?? img} onError={onThumbError(img)} alt="" loading="lazy" width={48} height={48} className="w-full h-full object-cover" />}
+      </div>
+      <div className="min-w-0 flex-1">
+        <h3 className="text-[15px] font-medium leading-snug text-[var(--text)] truncate" style={{ margin: 0 }}>{sectionName(c.name)}</h3>
+        <p className="text-sm text-[var(--hint)] truncate">{c.game_name}</p>
+      </div>
+      <div className="shrink-0 text-right">
+        {c.min_price != null && <p className="text-sm font-semibold num text-[var(--text)]">от {money(c.min_price)}</p>}
+        {c.has_auto && (
+          <p className="mt-0.5 inline-flex items-center gap-1 text-xs" style={{ color: '#34d399' }}>
+            <Zap size={12} fill="#34d399" /> сразу
+          </p>
+        )}
+      </div>
+    </Link>
+  )
+}
+
+function PopularAndTopup({ trending, topup }: { trending: TrendingCategory[]; topup: HomeTopup[] }) {
+  const [expanded, setExpanded] = useState(false)
+  const items = trending.slice(0, 8)
+  if (!items.length && !topup.length) return null
+  const wide = !topup.length  // без пополнения список занимает всю ширину в две колонки
+
   return (
     <section className="web-container py-10 md:py-12">
-      <Reveal>
-        <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Популярное</h2>
-      </Reveal>
-      <Stagger className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-        {trending.slice(0, 8).map((c) => {
-          const img = normalizeImageUrl(c.game_image_url)
-          return (
-            <StaggerItem key={c.id}>
-              <Link
-                to={`/game/${c.game_slug}/${c.slug}`}
-                onMouseEnter={() => prefetchGame(qc, c.game_slug)}
-                className="group flex items-center gap-3 p-3 rounded-2xl bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors"
-              >
-                <div className="w-14 h-14 rounded-xl overflow-hidden bg-[var(--bg3)] shrink-0">
-                  {img && <img src={thumbUrl(img, 320) ?? img} onError={onThumbError(img)} alt="" className="w-full h-full object-cover" />}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-[var(--text)] truncate">{c.name}</p>
-                  <p className="text-xs text-[var(--hint)] truncate mt-0.5">{c.game_name}</p>
-                </div>
-              </Link>
-            </StaggerItem>
-          )
-        })}
-      </Stagger>
+      <div className={'grid gap-8 lg:gap-6 items-start ' + (topup.length && items.length ? 'lg:grid-cols-[1.3fr_1fr]' : '')}>
+        {items.length > 0 && (
+          <div className="min-w-0">
+            <Reveal>
+              <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Популярное</h2>
+            </Reveal>
+            <Reveal className="mt-6">
+              <ol className={'rounded-2xl bg-[var(--bg2)] p-2 grid ' + (wide ? 'md:grid-cols-2 md:gap-x-2' : '')}>
+                {items.map((c, i) => (
+                  <li key={c.id} className={!expanded && i >= POPULAR_MOBILE ? 'hidden md:block' : ''}>
+                    <PopularRow c={c} rank={i + 1} />
+                  </li>
+                ))}
+              </ol>
+              {!expanded && items.length > POPULAR_MOBILE && (
+                <button
+                  onClick={() => setExpanded(true)}
+                  className="md:hidden mt-2 w-full h-11 rounded-xl bg-[var(--bg2)] text-sm font-medium text-[var(--text-2)] hover:text-[var(--text)] transition-colors"
+                >
+                  Ещё {items.length - POPULAR_MOBILE}
+                </button>
+              )}
+            </Reveal>
+          </div>
+        )}
+
+        {topup.length > 0 && (
+          <div className={'min-w-0 ' + (items.length ? '' : 'max-w-xl')}>
+            <Reveal>
+              <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Быстрое пополнение</h2>
+            </Reveal>
+            <Reveal className="mt-6">
+              <QuickTopup options={topup} />
+            </Reveal>
+          </div>
+        )}
+      </div>
     </section>
   )
 }
@@ -395,7 +447,8 @@ export default function WebHomePage() {
     queryFn: () => catalogApi.getGames(),
     staleTime: 5 * 60_000,
   })
-  // Обложки первого экрана и «Популярное» — как выбрано в админке (иначе автоматически)
+  // Обложки первого экрана и «Популярное» — как выбрано в админке (иначе автоматически),
+  // варианты быстрого пополнения — по заведённым товарам
   const { data: home } = useQuery({
     queryKey: ['web', 'home-blocks'],
     queryFn: catalogApi.getHome,
@@ -404,7 +457,7 @@ export default function WebHomePage() {
   return (
     <>
       <Hero games={home?.hero ?? []} />
-      <Popular trending={home?.popular ?? []} />
+      <PopularAndTopup trending={home?.popular ?? []} topup={home?.topup ?? []} />
       <Catalog all={all} isLoading={isLoading} isError={isError} />
       <Reviews />
       <Cashback />

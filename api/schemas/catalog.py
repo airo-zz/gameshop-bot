@@ -137,6 +137,9 @@ class TrendingCategoryOut(BaseModel):
     game_name: str
     game_slug: str
     game_image_url: str | None = None
+    # Для «Популярного» на главной: цена «от» и есть ли автовыдача
+    min_price: Decimal | None = None
+    has_auto: bool = False
 
 
 class CatalogSearchParams(BaseModel):

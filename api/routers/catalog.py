@@ -116,10 +116,12 @@ async def get_faq():
 
 @router.get("/home")
 async def get_home_blocks(db: DbSession):
-    """Блоки главной сайта: обложки первого экрана и «Популярное» (настраиваются в админке)."""
-    from api.services.home_service import resolve_home
+    """Блоки главной сайта: обложки первого экрана, «Популярное» (настраиваются
+    в админке) и быстрое пополнение Stars / Premium / Steam."""
+    from api.services.home_service import category_summaries, resolve_home, resolve_topup
 
     hero, popular = await resolve_home(db)
+    summary = await category_summaries(db, [c.id for c in popular])
     return {
         "hero": [GameOut.model_validate(g) for g in hero],
         "popular": [
@@ -128,9 +130,11 @@ async def get_home_blocks(db: DbSession):
                 game_name=c.game.name if c.game else "",
                 game_slug=c.game.slug if c.game else "",
                 game_image_url=c.game.image_url if c.game else None,
+                **summary.get(c.id, {}),
             )
             for c in popular
         ],
+        "topup": await resolve_topup(db),
     }
 
 
