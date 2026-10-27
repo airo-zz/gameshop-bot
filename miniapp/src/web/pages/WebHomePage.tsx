@@ -244,52 +244,19 @@ const TG_BLUE = '42,171,238'
 function Topup({ topup }: { topup: HomeTopup[] }) {
   if (!topup.length) return null
   return (
-    <section className="web-container py-10 md:py-12 overflow-x-clip">
+    <section className="web-container py-10 md:py-12">
       <Reveal>
         <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">{topupTitle(topup)}</h2>
       </Reveal>
-      {/* Лёгкая подсветка в цвет Telegram: тонкая рамка, ярче в двух углах, и слабое свечение за ними */}
+      {/* Тонкая обводка в цвет Telegram — по краю самой панели, размер и скругление как у остальных блоков */}
       <Reveal className="mt-6">
-        <div className="relative isolate">
+        <div className="relative">
+          <QuickTopup options={topup} />
           <div
             aria-hidden="true"
-            className="absolute -z-10 -left-6 -top-8 w-[55%] h-40 pointer-events-none"
-            style={{ background: `radial-gradient(closest-side, rgba(${TG_BLUE},0.22), transparent)`, filter: 'blur(12px)' }}
+            className="absolute inset-0 rounded-2xl pointer-events-none"
+            style={{ boxShadow: `inset 0 0 0 1px rgba(${TG_BLUE},0.45)` }}
           />
-          <div
-            aria-hidden="true"
-            className="absolute -z-10 -right-6 -bottom-8 w-[45%] h-36 pointer-events-none"
-            style={{ background: `radial-gradient(closest-side, rgba(${TG_BLUE},0.18), transparent)`, filter: 'blur(12px)' }}
-          />
-          <div className="relative">
-            <QuickTopup options={topup} />
-            {/* Рамка по краю самой панели (тот же размер и скругление): ярче в двух углах */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 rounded-2xl pointer-events-none p-[1.5px]"
-              style={{
-                background: [
-                  `radial-gradient(300px 220px at 0 0, rgba(${TG_BLUE},1) 0%, rgba(${TG_BLUE},0.65) 35%, rgba(${TG_BLUE},0) 100%)`,
-                  `radial-gradient(300px 220px at 100% 100%, rgba(${TG_BLUE},1) 0%, rgba(${TG_BLUE},0.65) 35%, rgba(${TG_BLUE},0) 100%)`,
-                  'rgba(255,255,255,0.06)',
-                ].join(', '),
-                WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
-                WebkitMaskComposite: 'xor',
-                mask: 'linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)',
-              }}
-            />
-            {/* свечение изнутри у тех же двух углов */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 rounded-2xl pointer-events-none"
-              style={{
-                background: [
-                  `radial-gradient(320px 200px at 0 0, rgba(${TG_BLUE},0.13), transparent 100%)`,
-                  `radial-gradient(320px 200px at 100% 100%, rgba(${TG_BLUE},0.11), transparent 100%)`,
-                ].join(', '),
-              }}
-            />
-          </div>
         </div>
       </Reveal>
     </section>
