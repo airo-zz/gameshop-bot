@@ -4,6 +4,7 @@ api/services/home_service.py
 Блоки главной страницы сайта, которые настраиваются в админке:
   • hero    — обложки игр на первом экране (до 6, по порядку);
   • popular — разделы в блоке «Популярное» (до 8, по порядку);
+  • banners — карусель баннеров (акции) на первом экране, до 8;
   • topup   — блок быстрого пополнения: Telegram Stars / Premium и Steam
               (находится сам: по Category.auto_engine и товару FazerCards steam_topup).
 Если ничего не выбрано — автоматически, как раньше: первые игры каталога
@@ -31,8 +32,11 @@ logger = logging.getLogger(__name__)
 
 HERO_KEY = "home_hero_games"
 POPULAR_KEY = "home_popular_categories"
+BANNERS_KEY = "home_banners"
 HERO_MAX = 6
 POPULAR_MAX = 8
+BANNERS_MAX = 8
+BANNER_FIELDS = ("image_url", "title", "subtitle", "button", "link")
 
 
 async def _read_ids(db: AsyncSession, key: str) -> list[uuid.UUID]:
@@ -64,6 +68,34 @@ async def set_config(db: AsyncSession, hero: list[uuid.UUID], popular: list[uuid
                      "Обложки игр на первом экране сайта (id по порядку)")
     await _write_ids(db, POPULAR_KEY, list(dict.fromkeys(popular))[:POPULAR_MAX],
                      "Разделы в блоке «Популярное» на главной сайта (id по порядку)")
+
+
+async def get_banners(db: AsyncSession, only_active: bool = False) -> list[dict]:
+    """Баннеры карусели: [{image_url, title, subtitle, button, link, is_active}] по порядку."""
+    row = (await db.execute(select(ShopSettings).where(ShopSettings.key == BANNERS_KEY))).scalar_one_or_none()
+    try:
+        items = json.loads(row.value) if row and row.value else []
+    except ValueError:
+        logger.warning("Некорректное значение shop_settings %s", BANNERS_KEY)
+        items = []
+    out = [
+        {**{k: str(b.get(k) or "") for k in BANNER_FIELDS}, "is_active": bool(b.get("is_active", True))}
+        for b in items if isinstance(b, dict) and b.get("image_url")
+    ]
+    return [b for b in out if b["is_active"]] if only_active else out
+
+
+async def set_banners(db: AsyncSession, banners: list[dict]) -> None:
+    clean = [
+        {**{k: str(b.get(k) or "").strip() for k in BANNER_FIELDS}, "is_active": bool(b.get("is_active", True))}
+        for b in banners if (b.get("image_url") or "").strip()
+    ][:BANNERS_MAX]
+    row = (await db.execute(select(ShopSettings).where(ShopSettings.key == BANNERS_KEY))).scalar_one_or_none()
+    value = json.dumps(clean, ensure_ascii=False)
+    if row:
+        row.value = value
+    else:
+        db.add(ShopSettings(key=BANNERS_KEY, value=value, description="Баннеры карусели на главной сайта"))
 
 
 async def resolve_home(db: AsyncSession) -> tuple[list[Game], list[Category]]:

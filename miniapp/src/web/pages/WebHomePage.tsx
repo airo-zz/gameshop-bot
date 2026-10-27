@@ -12,7 +12,8 @@ import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
 import {
   ChevronDown, ChevronRight, Smartphone, CreditCard, Bitcoin, Wallet, Zap, ShieldCheck, Headphones,
 } from '@/components/ui/icons'
-import { catalogApi, reviewsApi, type Game, type HomeTopup, type TrendingCategory } from '@/api'
+import { catalogApi, reviewsApi, type Game, type HomeBanner, type HomeTopup, type TrendingCategory } from '@/api'
+import BannerCarousel from '@/web/components/BannerCarousel'
 import { ReviewCard, ReviewSummary } from '@/components/reviews/Reviews'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
@@ -30,7 +31,7 @@ const cover = (g: Game) => (g.image_url ? normalizeImageUrl(g.image_url) ?? g.im
 
 // ── Первый экран ──────────────────────────────────────────────────────────────
 
-function Hero({ games }: { games: Game[] }) {
+function Hero({ games, banners, loaded }: { games: Game[]; banners: HomeBanner[]; loaded: boolean }) {
   const qc = useQueryClient()
   const reduce = useReducedMotion()
   const [intro] = useState(() => isIntro() && !heroFromServer)
@@ -65,8 +66,14 @@ function Hero({ games }: { games: Game[] }) {
           </m.ul>
         </div>
 
-        {/* Стена обложек — реальные игры из каталога; пока грузятся — заглушки того же размера */}
-        {games.length === 0 && (
+        {/* Карусель акций (из админки); пока грузится — заглушка того же размера */}
+        {banners.length > 0 && <BannerCarousel banners={banners} intro={intro} />}
+        {!loaded && (
+          <div className="aspect-[16/9] w-full rounded-2xl bg-[var(--bg2)] mb-[18px]" aria-hidden="true" />
+        )}
+
+        {/* Баннеров нет — стена обложек: реальные игры из каталога */}
+        {loaded && !banners.length && games.length === 0 && (
           <div className="grid grid-cols-3 gap-3 md:gap-4 pb-7" aria-hidden="true">
             {Array.from({ length: 6 }).map((_, i) => (
               <div
@@ -77,7 +84,7 @@ function Hero({ games }: { games: Game[] }) {
             ))}
           </div>
         )}
-        {covers.length >= 3 && (
+        {loaded && !banners.length && covers.length >= 3 && (
           <div className="grid grid-cols-3 gap-3 md:gap-4 pb-7">
             {covers.map((g, i) => (
               <m.div
@@ -473,7 +480,7 @@ export default function WebHomePage() {
   })
   return (
     <>
-      <Hero games={home?.hero ?? []} />
+      <Hero games={home?.hero ?? []} banners={home?.banners ?? []} loaded={!!home} />
       {/* Пополнение (звёзды, Premium, Steam) — сразу под первым экраном, «Популярное» ниже */}
       <Topup topup={home?.topup ?? []} />
       <Popular trending={home?.popular ?? []} />

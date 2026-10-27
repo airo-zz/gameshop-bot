@@ -178,9 +178,34 @@ def _shell(active: str | None, main_html: str = "") -> str:
 _UPLOAD_RE = re.compile(r"^(.*/static/uploads/[^/?#]+?)\.(png|jpe?g|webp)$", re.I)
 
 
-def _hero_html(games) -> str:
-    """Первый экран главной — та же разметка, что у React-компонента Hero."""
-    from api.routers.seo_hero import COVER_ITEM, HERO_TEMPLATE
+def _banner_html(b: dict, count: int) -> str:
+    from api.routers.seo_hero import BANNER_CAPTION, BANNER_ITEM
+
+    url = b["image_url"] if b["image_url"].startswith("http") else SITE + b["image_url"]
+    caption = ""
+    if b["title"] or b["subtitle"] or (b["button"] and b["link"]):
+        caption = BANNER_CAPTION.format(
+            title=f'<p class="text-lg md:text-2xl font-semibold leading-tight text-white">{_e(b["title"])}</p>' if b["title"] else "",
+            subtitle=f'<p class="mt-1 text-sm md:text-[15px] text-white/80 line-clamp-2">{_e(b["subtitle"])}</p>' if b["subtitle"] else "",
+            button=('<span class="hidden sm:inline-flex shrink-0 h-10 px-5 items-center rounded-xl text-sm font-semibold '
+                    f'text-white bg-[var(--accent)]">{_e(b["button"])}</span>') if b["button"] and b["link"] else "",
+        )
+    dots = "".join(
+        f'<span class="h-1.5 rounded-full" style="width: {22 if k == 0 else 8}px; '
+        f'background: var({"--accent" if k == 0 else "--bg3"});"></span>'
+        for k in range(count)
+    ) if count > 1 else ""
+    return BANNER_ITEM.format(href=_e(b["link"] or "/"), src=_e(url), alt=_e(b["title"] or "Акция"),
+                              caption=caption, dots=dots)
+
+
+def _hero_html(games, banners: list[dict] | None = None) -> str:
+    """Первый экран главной — та же разметка, что у React-компонента Hero:
+    справа карусель баннеров (первый баннер), а если их нет — стена обложек."""
+    from api.routers.seo_hero import COVER_ITEM, COVERS_WRAP, HERO_TEMPLATE
+
+    if banners:
+        return HERO_TEMPLATE.format(right=_banner_html(banners[0], len(banners)))
 
     covers = [g for g in games if g.image_url][:6]
     if len(covers) < 3:
@@ -196,7 +221,7 @@ def _hero_html(games) -> str:
             style=' style="transform: translateY(28px);"' if i % 3 == 1 else "",
             slug=_e(g.slug), src=_e(src), srcset=srcset, name=_e(g.name),
         ))
-    return HERO_TEMPLATE.format(covers="".join(items))
+    return HERO_TEMPLATE.format(right=COVERS_WRAP.format(covers="".join(items)))
 
 
 # Плашка cookie в той же вёрстке, что web/components/CookieBanner.tsx: видна
@@ -440,7 +465,7 @@ async def _home(db) -> tuple[int, str]:
 
     hero_games, _ = await resolve_home(db)
     return 200, _render("/", DEFAULT_TITLE, DEFAULT_DESC, body, ld, page="home", initial=initial,
-                        main_html=_hero_html(hero_games))
+                        main_html=_hero_html(hero_games, blocks.get("banners")))
 
 
 async def _catalog(db) -> tuple[int, str]:

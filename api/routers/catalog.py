@@ -118,7 +118,7 @@ async def get_faq():
 async def get_home_blocks(db: DbSession):
     """Блоки главной сайта: обложки первого экрана, «Популярное» (настраиваются
     в админке) и быстрое пополнение Stars / Premium / Steam."""
-    from api.services.home_service import category_summaries, resolve_home, resolve_topup
+    from api.services.home_service import category_summaries, get_banners, resolve_home, resolve_topup
 
     hero, popular = await resolve_home(db)
     summary = await category_summaries(db, [c.id for c in popular])
@@ -136,6 +136,7 @@ async def get_home_blocks(db: DbSession):
             for c in popular
         ],
         "topup": await resolve_topup(db),
+        "banners": await get_banners(db, only_active=True),
     }
 
 

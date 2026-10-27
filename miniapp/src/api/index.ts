@@ -78,6 +78,16 @@ export interface TrendingCategory {
   has_auto?: boolean
 }
 
+/** Баннер карусели первого экрана (api/services/home_service.get_banners) */
+export interface HomeBanner {
+  image_url: string
+  title: string
+  subtitle: string
+  button: string
+  link: string  // «/game/…» — внутри сайта, «https://…» — в новой вкладке
+  is_active: boolean
+}
+
 /** Вариант блока быстрого пополнения на главной сайта (api/services/home_service.resolve_topup) */
 export interface HomeTopup {
   kind: 'stars' | 'premium' | 'steam'
@@ -319,7 +329,7 @@ export const catalogApi = {
 
   /** Блоки главной сайта (выбираются в админке, иначе автоматически) */
   getHome: () =>
-    apiClient.get<{ hero: Game[]; popular: TrendingCategory[]; topup?: HomeTopup[] }>('/catalog/home').then(r => r.data),
+    apiClient.get<{ hero: Game[]; popular: TrendingCategory[]; topup?: HomeTopup[]; banners?: HomeBanner[] }>('/catalog/home').then(r => r.data),
 
   toggleFavorite: (productId: string) =>
     apiClient.post<{ added: boolean }>(`/catalog/products/${productId}/favorite`).then(r => r.data),

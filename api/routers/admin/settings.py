@@ -578,29 +578,43 @@ async def update_integrations(
 # ── Главная сайта: какие игры и разделы в блоках ─────────────────────────────
 
 
+class HomeBannerIO(BaseModel):
+    image_url: str = Field(max_length=500)
+    title: str = Field(default="", max_length=120)
+    subtitle: str = Field(default="", max_length=240)
+    button: str = Field(default="", max_length=40)
+    link: str = Field(default="", max_length=500)
+    is_active: bool = True
+
+
 class HomeBlocksIO(BaseModel):
     hero_game_ids: list[uuid.UUID] = Field(default_factory=list, max_length=6)
     popular_category_ids: list[uuid.UUID] = Field(default_factory=list, max_length=8)
+    banners: list[HomeBannerIO] = Field(default_factory=list, max_length=8)
 
 
 @router.get("/home", response_model=HomeBlocksIO, dependencies=[require_permission("settings.view")])
 async def get_home_blocks(db: DbSession, admin: CurrentAdmin) -> HomeBlocksIO:
-    from api.services.home_service import get_config
+    from api.services.home_service import get_banners, get_config
 
     cfg = await get_config(db)
-    return HomeBlocksIO(hero_game_ids=cfg["hero"], popular_category_ids=cfg["popular"])
+    return HomeBlocksIO(hero_game_ids=cfg["hero"], popular_category_ids=cfg["popular"],
+                        banners=await get_banners(db))
 
 
 @router.put("/home", response_model=HomeBlocksIO, dependencies=[require_permission("settings.edit")])
 async def update_home_blocks(body: HomeBlocksIO, db: DbSession, admin: CurrentAdmin) -> HomeBlocksIO:
-    from api.services.home_service import get_config, set_config
+    from api.services.home_service import get_banners, get_config, set_banners, set_config
 
     await set_config(db, body.hero_game_ids, body.popular_category_ids)
+    await set_banners(db, [b.model_dump() for b in body.banners])
     await log_admin_action(
         db=db, admin=admin, action="shop_settings.home_update",
         entity_type="shop_settings", entity_id=None,
         after_data={"hero": [str(i) for i in body.hero_game_ids],
-                    "popular": [str(i) for i in body.popular_category_ids]},
+                    "popular": [str(i) for i in body.popular_category_ids],
+                    "banners": len(body.banners)},
     )
     cfg = await get_config(db)
-    return HomeBlocksIO(hero_game_ids=cfg["hero"], popular_category_ids=cfg["popular"])
+    return HomeBlocksIO(hero_game_ids=cfg["hero"], popular_category_ids=cfg["popular"],
+                        banners=await get_banners(db))

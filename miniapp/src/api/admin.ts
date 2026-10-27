@@ -7,7 +7,7 @@
  */
 
 import { apiClient } from './client'
-import type { Review, ReviewKind } from './index'
+import type { HomeBanner, Review, ReviewKind } from './index'
 
 // ── Admin Me ─────────────────────────────────────────────────────────────────
 
@@ -274,6 +274,7 @@ export interface AdminProductDetail {
 export interface HomeBlocks {
   hero_game_ids: string[]
   popular_category_ids: string[]
+  banners: HomeBanner[]
 }
 
 export interface AdminCategory {
