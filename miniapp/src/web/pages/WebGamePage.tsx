@@ -456,8 +456,9 @@ function GamePageContent() {
       ) : (
         <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
           <div className="min-w-0">
-            {/* Категории */}
-            <div className="flex gap-1 p-1 rounded-2xl bg-[var(--bg2)] w-fit max-w-full overflow-x-auto no-scrollbar mb-3">
+            {/* Категории: переносятся на новую строку — лента с прокруткой без полосы
+                на ПК не листалась мышью, дальние разделы были недоступны */}
+            <div className="flex flex-wrap gap-1 p-1 rounded-2xl bg-[var(--bg2)] w-fit max-w-full mb-3">
               {rootCats.map((cat) => {
                 const active = currentRoot?.id === cat.id
                 return (
