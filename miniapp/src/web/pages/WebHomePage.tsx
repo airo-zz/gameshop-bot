@@ -254,18 +254,37 @@ function Topup({ topup }: { topup: HomeTopup[] }) {
           <div
             aria-hidden="true"
             className="absolute -z-10 -left-6 -top-8 w-[55%] h-40 pointer-events-none"
-            style={{ background: `radial-gradient(closest-side, rgba(${TG_BLUE},0.16), transparent)`, filter: 'blur(12px)' }}
+            style={{ background: `radial-gradient(closest-side, rgba(${TG_BLUE},0.22), transparent)`, filter: 'blur(12px)' }}
           />
           <div
             aria-hidden="true"
             className="absolute -z-10 -right-6 -bottom-8 w-[45%] h-36 pointer-events-none"
-            style={{ background: `radial-gradient(closest-side, rgba(${TG_BLUE},0.12), transparent)`, filter: 'blur(12px)' }}
+            style={{ background: `radial-gradient(closest-side, rgba(${TG_BLUE},0.18), transparent)`, filter: 'blur(12px)' }}
           />
           <div
-            className="rounded-[17px] p-px"
-            style={{ background: `linear-gradient(135deg, rgba(${TG_BLUE},0.6) 0%, rgba(${TG_BLUE},0.14) 22%, rgba(255,255,255,0.05) 42%, rgba(255,255,255,0.05) 58%, rgba(${TG_BLUE},0.14) 78%, rgba(${TG_BLUE},0.6) 100%)` }}
+            className="rounded-[18px] p-[2px]"
+            style={{
+              background: [
+                `radial-gradient(300px 220px at 0 0, rgba(${TG_BLUE},1) 0%, rgba(${TG_BLUE},0.65) 35%, rgba(${TG_BLUE},0) 100%)`,
+                `radial-gradient(300px 220px at 100% 100%, rgba(${TG_BLUE},1) 0%, rgba(${TG_BLUE},0.65) 35%, rgba(${TG_BLUE},0) 100%)`,
+                'rgba(255,255,255,0.06)',
+              ].join(', '),
+            }}
           >
-            <QuickTopup options={topup} />
+            <div className="relative">
+              <QuickTopup options={topup} />
+              {/* свечение изнутри у тех же двух углов */}
+              <div
+                aria-hidden="true"
+                className="absolute inset-0 rounded-2xl pointer-events-none"
+                style={{
+                  background: [
+                    `radial-gradient(320px 200px at 0 0, rgba(${TG_BLUE},0.13), transparent 100%)`,
+                    `radial-gradient(320px 200px at 100% 100%, rgba(${TG_BLUE},0.11), transparent 100%)`,
+                  ].join(', '),
+                }}
+              />
+            </div>
           </div>
         </div>
       </Reveal>
