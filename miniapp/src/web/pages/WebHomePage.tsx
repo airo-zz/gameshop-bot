@@ -261,30 +261,34 @@ function Topup({ topup }: { topup: HomeTopup[] }) {
             className="absolute -z-10 -right-6 -bottom-8 w-[45%] h-36 pointer-events-none"
             style={{ background: `radial-gradient(closest-side, rgba(${TG_BLUE},0.18), transparent)`, filter: 'blur(12px)' }}
           />
-          <div
-            className="rounded-[18px] p-[2px]"
-            style={{
-              background: [
-                `radial-gradient(300px 220px at 0 0, rgba(${TG_BLUE},1) 0%, rgba(${TG_BLUE},0.65) 35%, rgba(${TG_BLUE},0) 100%)`,
-                `radial-gradient(300px 220px at 100% 100%, rgba(${TG_BLUE},1) 0%, rgba(${TG_BLUE},0.65) 35%, rgba(${TG_BLUE},0) 100%)`,
-                'rgba(255,255,255,0.06)',
-              ].join(', '),
-            }}
-          >
-            <div className="relative">
-              <QuickTopup options={topup} />
-              {/* свечение изнутри у тех же двух углов */}
-              <div
-                aria-hidden="true"
-                className="absolute inset-0 rounded-2xl pointer-events-none"
-                style={{
-                  background: [
-                    `radial-gradient(320px 200px at 0 0, rgba(${TG_BLUE},0.13), transparent 100%)`,
-                    `radial-gradient(320px 200px at 100% 100%, rgba(${TG_BLUE},0.11), transparent 100%)`,
-                  ].join(', '),
-                }}
-              />
-            </div>
+          <div className="relative">
+            <QuickTopup options={topup} />
+            {/* Рамка по краю самой панели (тот же размер и скругление): ярче в двух углах */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 rounded-2xl pointer-events-none p-[1.5px]"
+              style={{
+                background: [
+                  `radial-gradient(300px 220px at 0 0, rgba(${TG_BLUE},1) 0%, rgba(${TG_BLUE},0.65) 35%, rgba(${TG_BLUE},0) 100%)`,
+                  `radial-gradient(300px 220px at 100% 100%, rgba(${TG_BLUE},1) 0%, rgba(${TG_BLUE},0.65) 35%, rgba(${TG_BLUE},0) 100%)`,
+                  'rgba(255,255,255,0.06)',
+                ].join(', '),
+                WebkitMask: 'linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)',
+                WebkitMaskComposite: 'xor',
+                mask: 'linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0)',
+              }}
+            />
+            {/* свечение изнутри у тех же двух углов */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 rounded-2xl pointer-events-none"
+              style={{
+                background: [
+                  `radial-gradient(320px 200px at 0 0, rgba(${TG_BLUE},0.13), transparent 100%)`,
+                  `radial-gradient(320px 200px at 100% 100%, rgba(${TG_BLUE},0.11), transparent 100%)`,
+                ].join(', '),
+              }}
+            />
           </div>
         </div>
       </Reveal>
