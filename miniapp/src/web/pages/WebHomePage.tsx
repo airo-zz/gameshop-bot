@@ -153,8 +153,8 @@ function PopularCard({ c }: { c: TrendingCategory }) {
       className="group relative block w-full min-w-0 h-full rounded-2xl outline-none"
     >
       {small && (
-        <div aria-hidden="true" className="absolute left-6 right-6 top-1/3 -bottom-3 pointer-events-none">
-          <img src={small} alt="" loading="lazy" className="w-full h-full object-cover rounded-2xl opacity-40 blur-2xl saturate-150 transition-opacity duration-500 group-hover:opacity-70" />
+        <div aria-hidden="true" className="absolute left-6 right-6 top-1/2 bottom-1 pointer-events-none">
+          <img src={small} alt="" loading="lazy" className="w-full h-full object-cover rounded-2xl opacity-40 blur-xl saturate-150 transition-opacity duration-500 group-hover:opacity-70" />
         </div>
       )}
       <div className="relative flex flex-col h-full rounded-2xl overflow-hidden bg-[var(--bg3)] transition-transform duration-300 ease-out group-hover:-translate-y-1">
@@ -218,7 +218,7 @@ function Popular({ trending }: { trending: TrendingCategory[] }) {
       <Reveal className="mt-4">
         <div
           ref={rail}
-          className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-5 px-5 scroll-px-5 md:mx-0 md:px-0 md:scroll-px-0 pt-2 pb-8 -mb-6"
+          className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-5 px-5 scroll-px-5 pt-2 pb-14 -mb-12"
         >
           {items.map((c) => (
             <div key={c.id} className="snap-start shrink-0 flex w-[44%] sm:w-[30%] lg:w-[calc((100%-4rem)/5)]">
@@ -244,11 +244,11 @@ const TG_BLUE = '42,171,238'
 function Topup({ topup }: { topup: HomeTopup[] }) {
   if (!topup.length) return null
   return (
-    <section className="web-container py-10 md:py-12">
+    <section className="web-container py-10 md:py-12 overflow-x-clip">
       <Reveal>
         <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">{topupTitle(topup)}</h2>
       </Reveal>
-      {/* Лёгкая подсветка в цвет Telegram: тонкая рамка-градиент из угла и слабое свечение за панелью */}
+      {/* Лёгкая подсветка в цвет Telegram: тонкая рамка, ярче в двух углах, и слабое свечение за ними */}
       <Reveal className="mt-6">
         <div className="relative isolate">
           <div
@@ -257,8 +257,13 @@ function Topup({ topup }: { topup: HomeTopup[] }) {
             style={{ background: `radial-gradient(closest-side, rgba(${TG_BLUE},0.16), transparent)`, filter: 'blur(12px)' }}
           />
           <div
+            aria-hidden="true"
+            className="absolute -z-10 -right-6 -bottom-8 w-[45%] h-36 pointer-events-none"
+            style={{ background: `radial-gradient(closest-side, rgba(${TG_BLUE},0.12), transparent)`, filter: 'blur(12px)' }}
+          />
+          <div
             className="rounded-[17px] p-px"
-            style={{ background: `linear-gradient(135deg, rgba(${TG_BLUE},0.55) 0%, rgba(${TG_BLUE},0.14) 28%, rgba(255,255,255,0.05) 60%, rgba(255,255,255,0.03) 100%)` }}
+            style={{ background: `linear-gradient(135deg, rgba(${TG_BLUE},0.6) 0%, rgba(${TG_BLUE},0.14) 22%, rgba(255,255,255,0.05) 42%, rgba(255,255,255,0.05) 58%, rgba(${TG_BLUE},0.14) 78%, rgba(${TG_BLUE},0.6) 100%)` }}
           >
             <QuickTopup options={topup} />
           </div>
@@ -295,8 +300,8 @@ function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean;
   const cols = useCatalogCols()
   const hasServices = all.some((g) => g.type === 'service')
   const games = all.filter((g) => (tab === 'service' ? g.type === 'service' : g.type !== 'service'))
-  // Свёрнуто: на компьютере 2 ряда, на планшете и телефоне — 3
-  const limit = cols * (cols === 5 ? 2 : 3)
+  // Свёрнуто: открыты первые 4 ряда
+  const limit = cols * 4
   const folded = !open && games.length > limit
   const rest = games.length - limit
 
