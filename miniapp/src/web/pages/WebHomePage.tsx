@@ -129,7 +129,7 @@ function PopularCard({ c }: { c: TrendingCategory }) {
     <Link
       to={`/game/${c.game_slug}/${c.slug}`}
       onMouseEnter={() => prefetchGame(qc, c.game_slug)}
-      className="group flex flex-col h-full rounded-2xl bg-[var(--bg2)] overflow-hidden hover:bg-[var(--bg3)] transition-colors"
+      className="group flex flex-col h-full rounded-2xl bg-[color-mix(in_srgb,var(--bg)_70%,transparent)] backdrop-blur-md overflow-hidden hover:bg-[var(--bg3)] transition-colors"
     >
       <div className="relative aspect-square overflow-hidden bg-[var(--bg3)]">
         {img && (
@@ -168,10 +168,26 @@ function Popular({ trending }: { trending: TrendingCategory[] }) {
     const el = rail.current
     if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' })
   }
-  const arrow = 'hidden md:flex w-9 h-9 items-center justify-center rounded-xl bg-[var(--bg2)] text-[var(--text-2)] hover:bg-[var(--bg3)] hover:text-[var(--text)] transition-colors'
+  const arrow = 'hidden md:flex w-9 h-9 items-center justify-center rounded-xl bg-[var(--bg3)] text-[var(--text-2)] hover:bg-[var(--bg3)] hover:text-[var(--text)] transition-colors'
+
+  // Фон блока — размытые обложки этих же игр: панель «окрашена» в то, что сейчас популярно
+  const glow = items
+    .map((c) => normalizeImageUrl(c.image_url || c.game_image_url))
+    .filter((u): u is string => !!u)
+    .slice(0, 4)
 
   return (
     <section className="web-container py-10 md:py-12">
+      <div className="relative isolate overflow-hidden rounded-3xl p-5 md:p-8 bg-[var(--bg2)]">
+      <div aria-hidden="true" className="absolute inset-0 -z-10 pointer-events-none">
+        <div className="absolute -inset-16 grid grid-cols-2 md:grid-cols-4 opacity-60" style={{ filter: 'blur(56px) saturate(1.4)' }}>
+          {glow.map((u, i) => (
+            <img key={i} src={thumbUrl(u, 320) ?? u} alt="" className="w-full h-full object-cover" />
+          ))}
+        </div>
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, color-mix(in srgb, var(--bg2) 55%, transparent) 0%, color-mix(in srgb, var(--bg2) 88%, transparent) 70%, var(--bg2) 100%)' }} />
+        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(color-mix(in srgb, var(--text) 9%, transparent) 1px, transparent 1px)', backgroundSize: '18px 18px', maskImage: 'linear-gradient(180deg, #000, transparent 60%)', WebkitMaskImage: 'linear-gradient(180deg, #000, transparent 60%)' }} />
+      </div>
       <Reveal className="flex items-end justify-between gap-4">
         <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Популярное</h2>
         {items.length > 5 && (
@@ -194,6 +210,7 @@ function Popular({ trending }: { trending: TrendingCategory[] }) {
           ))}
         </div>
       </Reveal>
+      </div>
     </section>
   )
 }
