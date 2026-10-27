@@ -74,7 +74,7 @@ class TemplateUnavailable(Exception):
 
 
 _template_cache: tuple[float, str] | None = None
-_page_cache: dict[str, tuple[float, int, str]] = {}
+_page_cache: dict[str, tuple[float, int, str, float | None]] = {}
 
 
 # ── Шаблон ────────────────────────────────────────────────────────────────────
@@ -665,10 +665,20 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
     return 200, _render(path, page.title, page.description, body, ld, image=image, page="game", initial=initial)
 
 
+def _build_id() -> float | None:
+    """Версия сборки сайта — mtime index.html. Сменилась (деплой) — кэш страниц
+    устарел: в нём ссылки на файлы прошлой сборки, которых уже нет (сайт без стилей)."""
+    try:
+        return TEMPLATE_PATH.stat().st_mtime
+    except OSError:
+        return None
+
+
 async def _cached(key: str, builder) -> HTMLResponse:
     now = time.time()
+    build = _build_id()
     hit = _page_cache.get(key)
-    if hit and now - hit[0] < CACHE_TTL:
+    if hit and now - hit[0] < CACHE_TTL and (build is None or hit[3] == build):
         return HTMLResponse(hit[2], status_code=hit[1])
     try:
         status, page = await builder()
@@ -678,7 +688,7 @@ async def _cached(key: str, builder) -> HTMLResponse:
         # SEO не должен ронять сайт: 503 → nginx отдаёт статический index.html
         logger.exception("seo render failed: %s", key)
         return Response(status_code=503)
-    _page_cache[key] = (now, status, page)
+    _page_cache[key] = (now, status, page, build)
     if len(_page_cache) > 500:
         _page_cache.clear()
     return HTMLResponse(page, status_code=status)

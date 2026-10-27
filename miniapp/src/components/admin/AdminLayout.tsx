@@ -213,6 +213,13 @@ export default function AdminLayout() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // В админке текст выделяется и копируется (глобально в miniapp выделение выключено,
+  // см. index.css). Класс на body — чтобы работало и в модалках, вынесенных порталом.
+  useEffect(() => {
+    document.body.classList.add('admin-ui')
+    return () => document.body.classList.remove('admin-ui')
+  }, [])
+
   // Закрываем drawer при смене маршрута
   useEffect(() => {
     setDrawerOpen(false)

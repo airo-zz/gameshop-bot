@@ -21,6 +21,15 @@ input, textarea, [contenteditable="true"] {
   user-select: text;
 }
 
+/* Админка: текст можно выделять и копировать (кнопки — нет, чтобы не мешало кликам) */
+body.admin-ui *, body.admin-ui *::before, body.admin-ui *::after {
+  -webkit-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+body.admin-ui button { -webkit-user-select: none; user-select: none; }
+
 html, body, #root {
   height: 100%;
   margin: 0;
