@@ -5,7 +5,7 @@
  * кэшбэк, как это работает, способы оплаты, вопросы.
  */
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
@@ -122,39 +122,72 @@ function Hero({ games, banners, loaded }: { games: Game[]; banners: HomeBanner[]
 
 const sectionName = (s: string) => s.replace(/^[^\p{L}\p{N}]+/u, '').trim() || s
 
+// Игры, у которых разделы — коллекции одного товара (украшения Discord): в «Популярном»
+// показываем саму игру одной карточкой, без названия коллекции
+const GAME_LEVEL = new Set(['discord-decor'])
+
+function popularItems(trending: TrendingCategory[]) {
+  const seen = new Set<string>()
+  return trending
+    .filter((c) => {
+      if (!GAME_LEVEL.has(c.game_slug)) return true
+      if (seen.has(c.game_slug)) return false
+      seen.add(c.game_slug)
+      return true
+    })
+    .slice(0, 8)
+}
+
+/** Карточка: квадратный арт целиком, а плашка с названием и ценой окрашена размытой
+ *  копией этой же обложки — у каждой игры свой цвет; под карточкой — мягкое свечение */
 function PopularCard({ c }: { c: TrendingCategory }) {
   const qc = useQueryClient()
-  const img = normalizeImageUrl(c.image_url || c.game_image_url)
+  const whole = GAME_LEVEL.has(c.game_slug)
+  const img = normalizeImageUrl(whole ? c.game_image_url || c.image_url : c.image_url || c.game_image_url)
+  const small = img ? thumbUrl(img, 320) ?? img : null
+  const sub = whole ? null : sectionName(c.name)
   return (
     <Link
-      to={`/game/${c.game_slug}/${c.slug}`}
+      to={whole ? `/game/${c.game_slug}` : `/game/${c.game_slug}/${c.slug}`}
       onMouseEnter={() => prefetchGame(qc, c.game_slug)}
-      className="group flex flex-col h-full rounded-2xl bg-[color-mix(in_srgb,var(--bg)_70%,transparent)] backdrop-blur-md overflow-hidden hover:bg-[var(--bg3)] transition-colors"
+      className="group relative block w-full min-w-0 h-full rounded-2xl outline-none"
     >
-      <div className="relative aspect-square overflow-hidden bg-[var(--bg3)]">
-        {img && (
-          <img
-            src={thumbUrl(img, 640) ?? img}
-            srcSet={thumbSrcSet(img)}
-            sizes="(min-width: 1024px) 240px, (min-width: 640px) 30vw, 45vw"
-            onError={onThumbError(img)}
-            alt={`${sectionName(c.name)} ${c.game_name}`}
-            loading="lazy"
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-          />
-        )}
-        {c.has_auto && (
-          <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 h-6 px-2 rounded-lg text-xs font-medium text-white" style={{ background: 'rgba(11,12,15,0.78)' }}>
-            <Zap size={12} fill="#34d399" color="#34d399" /> Автовыдача
-          </span>
-        )}
-      </div>
-      <div className="flex flex-col flex-1 p-3.5">
-        <h3 className="text-[15px] font-semibold leading-snug text-[var(--text)] truncate" style={{ margin: 0 }}>{c.game_name}</h3>
-        <p className="mt-0.5 text-sm text-[var(--hint)] truncate">{sectionName(c.name)}</p>
-        {c.min_price != null && (
-          <p className="mt-auto pt-3 text-[15px] font-semibold num text-[var(--text)]">от {money(c.min_price)}</p>
-        )}
+      {small && (
+        <div aria-hidden="true" className="absolute left-6 right-6 top-1/3 -bottom-3 pointer-events-none">
+          <img src={small} alt="" loading="lazy" className="w-full h-full object-cover rounded-2xl opacity-40 blur-2xl saturate-150 transition-opacity duration-500 group-hover:opacity-70" />
+        </div>
+      )}
+      <div className="relative flex flex-col h-full rounded-2xl overflow-hidden bg-[var(--bg3)] transition-transform duration-300 ease-out group-hover:-translate-y-1">
+        <div className="relative aspect-square overflow-hidden">
+          {img && (
+            <img
+              src={thumbUrl(img, 640) ?? img}
+              srcSet={thumbSrcSet(img)}
+              sizes="(min-width: 1024px) 230px, (min-width: 640px) 30vw, 45vw"
+              onError={onThumbError(img)}
+              alt={sub ? `${sub} ${c.game_name}` : c.game_name}
+              loading="lazy"
+              className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
+            />
+          )}
+          {c.has_auto && (
+            <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 h-6 px-2 rounded-lg text-xs font-medium text-white" style={{ background: 'rgba(8,9,12,0.72)' }}>
+              <Zap size={12} fill="#34d399" color="#34d399" /> Автовыдача
+            </span>
+          )}
+        </div>
+        <div className="relative flex-1 flex flex-col p-3.5 overflow-hidden">
+          {small && (
+            <img aria-hidden="true" src={small} alt="" className="absolute inset-0 w-full h-full object-cover scale-[2.2] blur-2xl saturate-[1.3] pointer-events-none" style={{ objectPosition: 'bottom' }} />
+          )}
+          <div aria-hidden="true" className="absolute inset-0" style={{ background: 'rgba(8,9,12,0.58)' }} />
+          <h3 className="relative text-[15px] font-semibold leading-snug text-white truncate" style={{ margin: 0 }}>{c.game_name}</h3>
+          {sub && <p className="relative mt-0.5 text-[13px] text-white/70 truncate">{sub}</p>}
+          {c.min_price != null && (
+            <p className="relative mt-auto pt-3 text-[15px] font-semibold num text-white">от {money(c.min_price)}</p>
+          )}
+        </div>
+        <div className="absolute inset-0 rounded-2xl pointer-events-none ring-1 ring-inset ring-white/10 group-focus-visible:ring-2 group-focus-visible:ring-[var(--accent)]" />
       </div>
     </Link>
   )
@@ -162,35 +195,16 @@ function PopularCard({ c }: { c: TrendingCategory }) {
 
 function Popular({ trending }: { trending: TrendingCategory[] }) {
   const rail = useRef<HTMLDivElement>(null)
-  const items = trending.slice(0, 8)
+  const items = popularItems(trending)
   if (!items.length) return null
   const scroll = (dir: 1 | -1) => {
     const el = rail.current
     if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: 'smooth' })
   }
-  const arrow = 'hidden md:flex w-9 h-9 items-center justify-center rounded-xl bg-[var(--bg3)] text-[var(--text-2)] hover:bg-[var(--bg3)] hover:text-[var(--text)] transition-colors'
-
-  // Фон блока — размытые обложки этих же игр: панель «окрашена» в то, что сейчас популярно
-  const glow = items
-    .map((c) => normalizeImageUrl(c.image_url || c.game_image_url))
-    .filter((u): u is string => !!u)
-    .slice(0, 4)
-  // меньше 4 игр — повторяем, чтобы цвет шёл по всей ширине
-  const tiles = glow.length ? Array.from({ length: 4 }, (_, i) => glow[i % glow.length]) : []
+  const arrow = 'hidden md:flex w-9 h-9 items-center justify-center rounded-xl bg-[var(--bg2)] text-[var(--text-2)] hover:bg-[var(--bg3)] hover:text-[var(--text)] transition-colors'
 
   return (
     <section className="web-container py-10 md:py-12">
-      <div className="relative isolate overflow-hidden rounded-3xl p-5 md:p-8 bg-[var(--bg2)]">
-      <div aria-hidden="true" className="absolute inset-0 -z-10 pointer-events-none">
-        <div className="absolute -inset-16 grid grid-cols-4 opacity-90" style={{ filter: 'blur(48px) saturate(1.6)' }}>
-          {tiles.map((u, i) => (
-            <img key={i} src={thumbUrl(u, 320) ?? u} alt="" className="w-full h-full object-cover" />
-          ))}
-        </div>
-        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, color-mix(in srgb, var(--bg2) 25%, transparent) 0%, color-mix(in srgb, var(--bg2) 60%, transparent) 55%, color-mix(in srgb, var(--bg2) 92%, transparent) 100%)' }} />
-        <div className="absolute inset-0" style={{ background: 'radial-gradient(60% 80% at 100% 100%, color-mix(in srgb, var(--accent) 35%, transparent), transparent 70%)' }} />
-        <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(color-mix(in srgb, var(--text) 9%, transparent) 1px, transparent 1px)', backgroundSize: '18px 18px', maskImage: 'linear-gradient(180deg, #000, transparent 60%)', WebkitMaskImage: 'linear-gradient(180deg, #000, transparent 60%)' }} />
-      </div>
       <Reveal className="flex items-end justify-between gap-4">
         <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Популярное</h2>
         {items.length > 5 && (
@@ -200,20 +214,19 @@ function Popular({ trending }: { trending: TrendingCategory[] }) {
           </div>
         )}
       </Reveal>
-      {/* Лента: на телефоне ~2 карточки, на компьютере 5; все ссылки в разметке сразу */}
-      <Reveal className="mt-6">
+      {/* Лента постеров: на телефоне ~2, на компьютере 5; запас сверху/снизу — под подъём при наведении и свечение */}
+      <Reveal className="mt-4">
         <div
           ref={rail}
-          className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-5 px-5 scroll-px-5 md:mx-0 md:px-0 md:scroll-px-0"
+          className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar snap-x snap-mandatory -mx-5 px-5 scroll-px-5 md:mx-0 md:px-0 md:scroll-px-0 pt-2 pb-8 -mb-6"
         >
           {items.map((c) => (
-            <div key={c.id} className="snap-start shrink-0 w-[44%] sm:w-[30%] lg:w-[calc((100%-4rem)/5)]">
+            <div key={c.id} className="snap-start shrink-0 flex w-[44%] sm:w-[30%] lg:w-[calc((100%-4rem)/5)]">
               <PopularCard c={c} />
             </div>
           ))}
         </div>
       </Reveal>
-      </div>
     </section>
   )
 }
@@ -226,6 +239,8 @@ function topupTitle(topup: HomeTopup[]) {
   return tg && steam ? 'Пополнение Telegram и Steam' : steam ? 'Пополнение Steam' : 'Звёзды и Premium в Telegram'
 }
 
+const TG_BLUE = '42,171,238'
+
 function Topup({ topup }: { topup: HomeTopup[] }) {
   if (!topup.length) return null
   return (
@@ -233,8 +248,21 @@ function Topup({ topup }: { topup: HomeTopup[] }) {
       <Reveal>
         <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">{topupTitle(topup)}</h2>
       </Reveal>
+      {/* Лёгкая подсветка в цвет Telegram: тонкая рамка-градиент из угла и слабое свечение за панелью */}
       <Reveal className="mt-6">
-        <QuickTopup options={topup} />
+        <div className="relative isolate">
+          <div
+            aria-hidden="true"
+            className="absolute -z-10 -left-6 -top-8 w-[55%] h-40 pointer-events-none"
+            style={{ background: `radial-gradient(closest-side, rgba(${TG_BLUE},0.16), transparent)`, filter: 'blur(12px)' }}
+          />
+          <div
+            className="rounded-[17px] p-px"
+            style={{ background: `linear-gradient(135deg, rgba(${TG_BLUE},0.55) 0%, rgba(${TG_BLUE},0.14) 28%, rgba(255,255,255,0.05) 60%, rgba(255,255,255,0.03) 100%)` }}
+          >
+            <QuickTopup options={topup} />
+          </div>
+        </div>
       </Reveal>
     </section>
   )
@@ -242,13 +270,44 @@ function Topup({ topup }: { topup: HomeTopup[] }) {
 
 // ── Каталог ───────────────────────────────────────────────────────────────────
 
+// Сколько колонок у сетки каталога сейчас (как в классах grid-cols-2 sm:3 lg:5)
+function useCatalogCols() {
+  const get = () =>
+    typeof window === 'undefined' ? 5 : window.matchMedia('(min-width: 1024px)').matches ? 5 : window.matchMedia('(min-width: 640px)').matches ? 3 : 2
+  const [cols, setCols] = useState(get)
+  useEffect(() => {
+    const on = () => setCols(get())
+    window.addEventListener('resize', on)
+    return () => window.removeEventListener('resize', on)
+  }, [])
+  return cols
+}
+
+function plural(n: number, forms: [string, string, string]) {
+  const a = n % 100, b = n % 10
+  return forms[a > 10 && a < 20 ? 2 : b === 1 ? 0 : b >= 2 && b <= 4 ? 1 : 2]
+}
+
 function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean; isError: boolean }) {
   const [tab, setTab] = useState<'game' | 'service'>('game')
+  const [open, setOpen] = useState(false)
+  const top = useRef<HTMLElement>(null)
+  const cols = useCatalogCols()
   const hasServices = all.some((g) => g.type === 'service')
   const games = all.filter((g) => (tab === 'service' ? g.type === 'service' : g.type !== 'service'))
+  // Свёрнуто: на компьютере 2 ряда, на планшете и телефоне — 3
+  const limit = cols * (cols === 5 ? 2 : 3)
+  const folded = !open && games.length > limit
+  const rest = games.length - limit
+
+  const collapse = () => {
+    setOpen(false)
+    const el = top.current
+    if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
-    <section id="catalog" className="web-container py-10 md:py-12 scroll-mt-20">
+    <section ref={top} id="catalog" className="web-container py-10 md:py-12 scroll-mt-20">
       <Reveal className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Каталог</h2>
         {hasServices && (
@@ -256,7 +315,7 @@ function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean;
             {(['game', 'service'] as const).map((t) => (
               <button
                 key={t}
-                onClick={() => setTab(t)}
+                onClick={() => { setTab(t); setOpen(false) }}
                 className={'relative px-4 h-9 rounded-lg text-sm font-medium transition-colors ' + (tab === t ? 'text-[var(--text)]' : 'text-[var(--hint)] hover:text-[var(--text-2)]')}
               >
                 {tab === t && (
@@ -283,13 +342,55 @@ function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean;
       ) : games.length === 0 ? (
         <p className="text-sm text-[var(--hint)] py-10 text-center">Скоро здесь появятся игры</p>
       ) : (
-        <Stagger key={tab} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
-          {games.map((g) => (
-            <StaggerItem key={g.id}><GameCard game={g} /></StaggerItem>
-          ))}
-        </Stagger>
+        <>
+          {/* Все игры в разметке (ссылки для поисковиков); свёрнутые — скрыты */}
+          <div className="relative">
+            <Stagger key={tab} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+              {games.map((g, i) => (
+                <StaggerItem key={g.id} className={folded && i >= limit ? 'hidden' : undefined}>
+                  <GameCard game={g} />
+                </StaggerItem>
+              ))}
+            </Stagger>
+            {/* Последний видимый ряд растворяется в фон — видно, что дальше есть ещё */}
+            {folded && (
+              <div
+                aria-hidden="true"
+                className="absolute inset-x-0 bottom-0 h-40 md:h-44 pointer-events-none"
+                style={{ background: 'linear-gradient(to bottom, color-mix(in srgb, var(--bg) 0%, transparent), var(--bg) 88%)' }}
+              />
+            )}
+          </div>
+
+          {games.length > limit && (
+            <div className={'relative flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 ' + (folded ? '-mt-10' : 'mt-6')}>
+              {folded ? (
+                <button
+                  onClick={() => setOpen(true)}
+                  className="h-11 px-6 inline-flex items-center gap-2 rounded-xl bg-[var(--bg3)] hover:bg-[var(--bg2)] ring-1 ring-inset ring-[var(--border)] text-sm font-semibold text-[var(--text)] transition-colors"
+                >
+                  Показать ещё {rest} {tab === 'service' ? plural(rest, ['сервис', 'сервиса', 'сервисов']) : plural(rest, ['игру', 'игры', 'игр'])}
+                  <ChevronDown size={16} />
+                </button>
+              ) : (
+                <button
+                  onClick={collapse}
+                  className="h-11 px-6 inline-flex items-center gap-2 rounded-xl bg-[var(--bg2)] hover:bg-[var(--bg3)] text-sm font-medium text-[var(--text-2)] hover:text-[var(--text)] transition-colors"
+                >
+                  Свернуть <ChevronDown size={16} style={{ transform: 'rotate(180deg)' }} />
+                </button>
+              )}
+              <Link
+                to="/catalog"
+                className="h-11 px-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--link)] hover:text-[var(--text)] transition-colors"
+              >
+                Открыть каталог <ChevronRight size={16} />
+              </Link>
+            </div>
+          )}
+        </>
       )}
-      <Reveal className="mt-6"><RequestCta /></Reveal>
+      <Reveal className="mt-8"><RequestCta /></Reveal>
     </section>
   )
 }
