@@ -474,8 +474,9 @@ export default function WebHomePage() {
   return (
     <>
       <Hero games={home?.hero ?? []} />
-      <Popular trending={home?.popular ?? []} />
+      {/* Пополнение (звёзды, Premium, Steam) — сразу под первым экраном, «Популярное» ниже */}
       <Topup topup={home?.topup ?? []} />
+      <Popular trending={home?.popular ?? []} />
       <Catalog all={all} isLoading={isLoading} isError={isError} />
       <Reviews />
       <Cashback />

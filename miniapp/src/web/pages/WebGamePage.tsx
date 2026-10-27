@@ -454,10 +454,10 @@ function GamePageContent() {
       ) : rootCats.length === 0 ? (
         <p className="text-sm text-[var(--hint)] py-16 text-center">Товары для этой игры скоро появятся</p>
       ) : (
-        <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
-          <div className="min-w-0">
+        <>
             {/* Категории: переносятся на новую строку — лента с прокруткой без полосы
-                на ПК не листалась мышью, дальние разделы были недоступны */}
+                на ПК не листалась мышью, дальние разделы были недоступны. Над сеткой во
+                всю ширину: корзина справа начинается вровень с товарами, а не с вкладками */}
             <div className="flex flex-wrap gap-1 p-1 rounded-2xl bg-[var(--bg2)] w-fit max-w-full mb-3">
               {rootCats.map((cat) => {
                 const active = currentRoot?.id === cat.id
@@ -487,6 +487,8 @@ function GamePageContent() {
               </div>
             ) : <div className="mb-1" />}
 
+        <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
+          <div className="min-w-0">
             {isTgAuto && tgFieldDefs.length > 0 && (
               <div id="tg-recipient" className="rounded-2xl p-5 mb-4 bg-[var(--bg2)]">
                 <p className="text-base font-semibold text-[var(--text)] mb-3">Данные получателя</p>
@@ -555,6 +557,7 @@ function GamePageContent() {
             <CartSummary count={count} total={Number(cart?.total ?? 0)} />
           </aside>
         </div>
+        </>
       )}
 
       {slug && <GameReviews slug={slug} gameName={gameName} />}
