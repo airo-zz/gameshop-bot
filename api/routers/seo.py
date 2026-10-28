@@ -627,7 +627,9 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
         + sections_html
         + (f"<h2>{'Другие разделы' if current else 'Разделы'} {_e(game.name)}</h2><ul>{other_cats}</ul>" if other_cats else "")
         + _reviews_html(await _game_reviews(db, slug), game.name)
-        + (f"<div>{_e(page.text)}</div>" if page.text else "")
+        # свой текст игры — абзацами (на сайте он выводится с переносами строк)
+        + ("<div>" + "".join(f"<p>{_e(t.strip())}</p>" for t in page.text.splitlines() if t.strip()) + "</div>"
+           if page.text else "")
     )
 
     image = f"{SITE}{game.image_url}" if game.image_url and game.image_url.startswith("/") else game.image_url
