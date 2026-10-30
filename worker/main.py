@@ -34,6 +34,7 @@ celery_app = Celery(
         "worker.tasks.review_tasks",
         "worker.tasks.integrity_tasks",
         "worker.tasks.hub_tasks",
+        "worker.tasks.seo_tasks",
     ],
 )
 
@@ -101,5 +102,10 @@ celery_app.conf.beat_schedule = {
         "task": "worker.tasks.hub_tasks.poll_hub",
         "schedule": timedelta(seconds=5),
         "options": {"expires": 4},
+    },
+    # Раз в сутки — новые и изменённые страницы сайта в IndexNow (Bing, Яндекс)
+    "submit-indexnow": {
+        "task": "worker.tasks.seo_tasks.submit_indexnow",
+        "schedule": crontab(hour=5, minute=30),
     },
 }

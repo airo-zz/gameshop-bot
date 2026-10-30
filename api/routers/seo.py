@@ -28,7 +28,6 @@ import json
 import logging
 import re
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import APIRouter
@@ -39,6 +38,7 @@ from api.deps import DbSession
 from api.services.catalog_service import CatalogService
 from api.services.loyalty_service import LoyaltyService
 from api.services.seo_content import clean_name, load_game_page
+from api.services.seo_feeds import build_llms_txt, site_urls
 from shared.config import settings
 
 logger = logging.getLogger(__name__)
@@ -295,6 +295,10 @@ def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex
     head.extend(preload)
     if template_page:
         head.append(COOKIE_HEAD)
+    # магазин как организация — на каждой странице (по нему поиск и нейросети
+    # связывают страницу с брендом), на главной он уже есть в _org_ld()
+    if not noindex and not any(b.get("@type") == "OnlineStore" for b in ld):
+        ld = [_organization(), *ld]
     for block in ld:
         # </script> внутри JSON ломает разметку — экранируем «<»
         head.append('<script type="application/ld+json">'
@@ -330,15 +334,28 @@ def _nav() -> str:
     )
 
 
+def _organization() -> dict:
+    return {
+        "@context": "https://schema.org",
+        "@type": "OnlineStore",
+        "name": BRAND,
+        "url": SITE,
+        "logo": f"{SITE}/apple-touch-icon.png",
+        "description": DEFAULT_DESC,
+        "areaServed": ["RU", "BY", "KZ"],
+        "sameAs": [f"https://t.me/{settings.BOT_USERNAME}"],
+        "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer support",
+            "url": f"https://t.me/{settings.SUPPORT_BOT_USERNAME}",
+            "availableLanguage": "ru",
+        },
+    }
+
+
 def _org_ld() -> list[dict]:
     return [
-        {
-            "@context": "https://schema.org",
-            "@type": "Organization",
-            "name": BRAND,
-            "url": SITE,
-            "logo": f"{SITE}/apple-touch-icon.png",
-        },
+        _organization(),
         {
             "@context": "https://schema.org",
             "@type": "WebSite",
@@ -749,65 +766,43 @@ async def render_game_category(slug: str, cat_slug: str, db: DbSession):
 
 @router.api_route("/sitemap.xml", methods=["GET", "HEAD"], include_in_schema=False)
 async def sitemap(db: DbSession):
-    games = await CatalogService(db).get_active_games()
-    today = datetime.now(timezone.utc).date().isoformat()
-
-    def url(loc: str, lastmod: str, priority: str, freq: str) -> str:
-        return (f"<url><loc>{_e(SITE + loc)}</loc><lastmod>{lastmod}</lastmod>"
-                f"<changefreq>{freq}</changefreq><priority>{priority}</priority></url>")
-
     parts = [
-        url("/", today, "1.0", "daily"),
-        url("/catalog", today, "0.9", "daily"),
-        url("/cashback", today, "0.5", "monthly"),
-        url("/reviews", today, "0.6", "daily"),
-        url("/faq", today, "0.5", "monthly"),
+        f"<url><loc>{_e(SITE + u.path)}</loc><lastmod>{u.lastmod}</lastmod>"
+        f"<changefreq>{u.freq}</changefreq><priority>{u.priority}</priority></url>"
+        for u in await site_urls(db)
     ]
-    svc = CatalogService(db)
-    for g in games:
-        updated = getattr(g, "updated_at", None)
-        lastmod = updated.date().isoformat() if updated else today
-        parts.append(url(f"/game/{g.slug}", lastmod, "0.8", "daily"))
-        if (g.meta or {}).get("decor_catalog"):
-            continue   # коллекции украшений — фильтр одной страницы, не отдельные адреса
-        for c in await svc.get_categories_by_game(g.id):
-            if c.parent_id is None and c.is_active:
-                parts.append(url(f"/game/{g.slug}/{c.slug}", lastmod, "0.7", "daily"))
     xml = ('<?xml version="1.0" encoding="UTF-8"?>'
            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' + "".join(parts) + "</urlset>")
     return Response(xml, media_type="application/xml")
 
 
+_DISALLOW = "\n".join(f"Disallow: {p}" for p in (
+    "/cart", "/checkout", "/orders", "/balance", "/profile", "/login", "/request", "/chat",
+    "/app/", "/api/", "/webhooks/",
+))
+# Поисковые и «отвечающие» боты нейросетей — явно разрешены: по ним ассистенты
+# (ChatGPT, Claude, Perplexity, Gemini, Алиса) находят и цитируют сайт.
+_AI_BOTS = (
+    "GPTBot", "OAI-SearchBot", "ChatGPT-User", "ClaudeBot", "Claude-SearchBot", "Claude-User",
+    "PerplexityBot", "Perplexity-User", "Google-Extended", "Applebot-Extended", "YandexAdditional",
+)
+
+_AI_AGENTS = "\n".join(f"User-agent: {b}" for b in _AI_BOTS)
+
 ROBOTS = f"""User-agent: *
 Allow: /
-Disallow: /cart
-Disallow: /checkout
-Disallow: /orders
-Disallow: /balance
-Disallow: /profile
-Disallow: /login
-Disallow: /request
-Disallow: /chat
-Disallow: /app/
-Disallow: /api/
-Disallow: /webhooks/
+{_DISALLOW}
 
 User-agent: Yandex
 Allow: /
-Disallow: /cart
-Disallow: /checkout
-Disallow: /orders
-Disallow: /balance
-Disallow: /profile
-Disallow: /login
-Disallow: /request
-Disallow: /chat
-Disallow: /app/
-Disallow: /api/
-Disallow: /webhooks/
+{_DISALLOW}
 Clean-param: q&type /catalog
 Clean-param: cat /game/
 Clean-param: q /game/
+
+{_AI_AGENTS}
+Allow: /
+{_DISALLOW}
 
 Sitemap: {SITE}/sitemap.xml
 """
@@ -816,3 +811,23 @@ Sitemap: {SITE}/sitemap.xml
 @router.api_route("/robots.txt", methods=["GET", "HEAD"], include_in_schema=False)
 async def robots():
     return PlainTextResponse(ROBOTS)
+
+
+_llms_cache: tuple[float, str] | None = None
+
+
+@router.api_route("/llms.txt", methods=["GET", "HEAD"], include_in_schema=False)
+async def llms_txt(db: DbSession):
+    global _llms_cache
+    now = time.time()
+    if not _llms_cache or now - _llms_cache[0] > CACHE_TTL:
+        _llms_cache = (now, await build_llms_txt(db))
+    return PlainTextResponse(_llms_cache[1], media_type="text/markdown; charset=utf-8")
+
+
+@router.api_route("/{name}.txt", methods=["GET", "HEAD"], include_in_schema=False)
+async def indexnow_key(name: str):
+    """Файл ключа IndexNow: поисковик сверяет его с ключом в уведомлении."""
+    if not settings.INDEXNOW_KEY or name != settings.INDEXNOW_KEY:
+        return Response(status_code=404)
+    return PlainTextResponse(settings.INDEXNOW_KEY)

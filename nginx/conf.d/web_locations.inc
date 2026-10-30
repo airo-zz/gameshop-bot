@@ -65,7 +65,9 @@
         include /etc/nginx/conf.d/security_headers.inc;
     }
 
-    location ~ ^/(sitemap\.xml|robots\.txt)$ {
+    # llms.txt — описание магазина для нейросетей; <32 hex>.txt — ключ IndexNow.
+    # Регулярка с {} в nginx — только в кавычках.
+    location ~ "^/(sitemap\.xml|robots\.txt|llms\.txt|[0-9a-f]{32}\.txt)$" {
         set $upstream_api http://api:8000;
         proxy_pass         $upstream_api;
         proxy_set_header   Host $host;

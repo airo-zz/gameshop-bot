@@ -179,6 +179,9 @@ class AppSettings(BaseSettings):
     # только значение content из мета-тега. Пусто — тег не выводится.
     YANDEX_VERIFICATION: str = ""
     GOOGLE_SITE_VERIFICATION: str = ""
+    # IndexNow (Bing, Яндекс и др.): ключ не секретный — сайт сам отдаёт его
+    # файлом /<ключ>.txt, по нему поисковик проверяет, что уведомление от нас.
+    INDEXNOW_KEY: str = "c3e35340410b3f0a2c6c650a196914ce"
     # API продавца GGSEL — выгрузка отзывов (api/services/ggsel_reviews.py).
     # Пустой ключ — синхронизация выключена.
     # Админка на отдельном поддомене (cookie-сессии, вход через бот поддержки)
