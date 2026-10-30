@@ -643,10 +643,11 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
         + (f"<p>Также ищут: {_e(', '.join(page.aliases))}.</p>" if page.aliases else "")
         + sections_html
         + (f"<h2>{'Другие разделы' if current else 'Разделы'} {_e(game.name)}</h2><ul>{other_cats}</ul>" if other_cats else "")
-        + _reviews_html(await _game_reviews(db, slug), game.name)
-        # свой текст игры — абзацами (на сайте он выводится с переносами строк)
-        + ("<div>" + "".join(f"<p>{_e(t.strip())}</p>" for t in page.text.splitlines() if t.strip()) + "</div>"
+        # свой текст игры («как купить») — под товарами, как на сайте (WebGamePage, GameSeoBlock)
+        + (f"<h2>Как купить {'' if game.type == 'service' else 'донат в '}{_e(game.name)}</h2>"
+           + "<div>" + "".join(f"<p>{_e(t.strip())}</p>" for t in page.text.splitlines() if t.strip()) + "</div>"
            if page.text else "")
+        + _reviews_html(await _game_reviews(db, slug), game.name)
     )
 
     image = f"{SITE}{game.image_url}" if game.image_url and game.image_url.startswith("/") else game.image_url

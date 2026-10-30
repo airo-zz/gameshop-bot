@@ -241,14 +241,25 @@ function GameReviews({ slug, gameName }: { slug: string; gameName: string }) {
   )
 }
 
-// Свой текст о донате из админки и другие названия игры (для поиска) — без блока вопросов
-function GameSeoBlock({ seo }: { seo: GameSeo }) {
+// Свой текст игры из админки («как купить») — под товарами, на всех вкладках;
+// другие названия игры (для поиска) — мелко под ним. Без блока вопросов.
+function GameSeoBlock({ seo, title }: { seo: GameSeo; title: string }) {
   if (!seo.text && !seo.aliases.length) return null
+  const paragraphs = (seo.text ?? '').split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean)
   return (
-    <section className="mt-16 max-w-3xl">
-      {seo.text && <p className="text-sm leading-relaxed text-[var(--hint)] whitespace-pre-line">{seo.text}</p>}
+    <section className="mt-16 max-w-3xl" aria-labelledby={seo.text ? 'game-about' : undefined}>
+      {seo.text && (
+        <>
+          <h2 id="game-about" className="text-xl md:text-2xl font-semibold tracking-tight text-[var(--text)] mb-4">
+            {title}
+          </h2>
+          <div className="space-y-3 text-[15px] leading-relaxed text-[var(--text-2)]">
+            {paragraphs.map((t, i) => <p key={i} className="whitespace-pre-line">{t}</p>)}
+          </div>
+        </>
+      )}
       {seo.aliases.length > 0 && (
-        <p className={(seo.text ? 'mt-3 ' : '') + 'text-xs text-[var(--hint)] leading-relaxed'}>Также ищут: {seo.aliases.join(', ')}</p>
+        <p className={(seo.text ? 'mt-5 ' : '') + 'text-xs text-[var(--hint)] leading-relaxed'}>Также ищут: {seo.aliases.join(', ')}</p>
       )}
     </section>
   )
@@ -560,8 +571,13 @@ function GamePageContent() {
         </>
       )}
 
+      {seo && (
+        <GameSeoBlock
+          seo={seo}
+          title={game?.type === 'service' ? `Как купить ${gameName}` : `Как купить донат в ${gameName}`}
+        />
+      )}
       {slug && <GameReviews slug={slug} gameName={gameName} />}
-      {seo && <GameSeoBlock seo={seo} />}
 
       {/* Корзина: нижняя панель на телефоне */}
       {count > 0 && (

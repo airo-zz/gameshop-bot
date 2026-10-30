@@ -156,7 +156,8 @@ def category_seo(game, cat, min_price: Decimal | float | None, has_auto: bool) -
     )[:320]
     intro = ((getattr(cat, "description", None) or "").strip()
              or f"{cname}{suffix} — выберите вариант и оплатите онлайн.")
-    return PageSeo(title, description, f"{cname}{suffix}", intro, aliases(game), None)
+    # текст игры («как купить») — и на страницах разделов: из поиска часто попадают сразу в раздел
+    return PageSeo(title, description, f"{cname}{suffix}", intro, aliases(game), (game.seo_text or "").strip() or None)
 
 
 # ── Данные страницы ──────────────────────────────────────────────────────────
