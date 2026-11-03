@@ -239,7 +239,7 @@ function ChatThread({ transport, mode }: { transport: ChatTransport; mode: 'user
 
   return (
     <>
-      <div ref={listRef} className="flex-1 overflow-y-auto px-4 py-4" style={{ overscrollBehavior: 'contain' }}>
+      <div ref={listRef} className="ym-hide-content flex-1 overflow-y-auto px-4 py-4" style={{ overscrollBehavior: 'contain' }}>
         {empty ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-6">
             <p className="text-[15px] font-medium text-[var(--text)]">Здравствуйте!</p>

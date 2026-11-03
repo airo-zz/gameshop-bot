@@ -47,7 +47,7 @@ export default function WebProfilePage() {
   return (
     <div className="web-container py-10 md:py-14 max-w-5xl">
       {/* Шапка профиля */}
-      <div className="flex items-center gap-4 mb-8">
+      <div className="ym-hide-content flex items-center gap-4 mb-8">
         <Avatar src={user.photo_url} name={user.first_name} size={64} />
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl md:text-3xl text-[var(--text)] truncate" style={{ margin: 0 }}>{user.first_name}</h1>
@@ -158,7 +158,7 @@ export default function WebProfilePage() {
             </div>
 
             {referrals && referrals.referrals.length > 0 && (
-              <div className="mt-5 rounded-xl overflow-hidden border border-[var(--border)]">
+              <div className="ym-hide-content mt-5 rounded-xl overflow-hidden border border-[var(--border)]">
                 {referrals.referrals.map((r, i) => (
                   <div key={r.telegram_id} className={'px-4 py-3 ' + (i ? 'border-t border-[var(--border)]' : '')}>
                     <div className="flex items-center justify-between gap-3">

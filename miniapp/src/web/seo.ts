@@ -74,19 +74,54 @@ export function initMetrika() {
   if (!YM_ID || window.ym || getCookieConsent() !== 'all') return
   // Официальный сниппет Метрики (тег), без noscript-пикселя
   const w = window as any
+  w.dataLayer = w.dataLayer || []
   w.ym = w.ym || function (...a: unknown[]) { (w.ym.a = w.ym.a || []).push(a) }
   w.ym.l = Date.now()
   const s = document.createElement('script')
   s.async = true
-  s.src = 'https://mc.yandex.ru/metrika/tag.js'
+  s.src = `https://mc.yandex.ru/metrika/tag.js?id=${YM_ID}`
   document.head.appendChild(s)
-  window.ym!(YM_ID, 'init', { clickmap: true, trackLinks: true, accurateTrackBounce: true, webvisor: true, defer: true })
+  // Просмотр текущей страницы Метрика отправит сама при init (в т.ч. если согласие дали позже)
+  lastHitUrl = location.href
+  window.ym!(YM_ID, 'init', {
+    ssr: true, webvisor: true, clickmap: true, ecommerce: 'dataLayer',
+    referrer: document.referrer, url: location.href,
+    accurateTrackBounce: true, trackLinks: true,
+  })
 }
+
+let lastHitUrl = ''
 
 /** Отправляет просмотр страницы при навигации внутри SPA. */
 export function useMetrikaPageViews() {
   const { pathname, search } = useLocation()
   useEffect(() => {
-    if (YM_ID && window.ym) window.ym(YM_ID, 'hit', SITE + pathname + search)
+    const url = SITE + pathname + search
+    if (!YM_ID || !window.ym || url === lastHitUrl) return
+    window.ym(YM_ID, 'hit', url, { referer: lastHitUrl || document.referrer })
+    lastHitUrl = url
   }, [pathname, search])
+}
+
+// ── Электронная коммерция (dataLayer → отчёты «Товары» и «Заказы» в Метрике) ──
+
+export type EcomProduct = { id: string; name: string; price: number; quantity?: number; category?: string }
+
+function ecommerce(payload: Record<string, unknown>) {
+  if (!YM_ID || !window.ym) return
+  const w = window as any
+  w.dataLayer = w.dataLayer || []
+  w.dataLayer.push({ ecommerce: { currencyCode: 'RUB', ...payload } })
+}
+
+export const trackAdd = (p: EcomProduct) => ecommerce({ add: { products: [p] } })
+export const trackRemove = (p: EcomProduct) => ecommerce({ remove: { products: [p] } })
+export const trackDetail = (products: EcomProduct[]) => products.length && ecommerce({ detail: { products } })
+
+/** Покупка — один раз на заказ (страницу заказа могут открыть повторно). */
+export function trackPurchase(orderId: string, revenue: number, products: EcomProduct[]) {
+  if (!YM_ID || !window.ym) return
+  const key = `ym_purchase_${orderId}`
+  try { if (localStorage.getItem(key)) return; localStorage.setItem(key, '1') } catch { /* приватный режим */ }
+  ecommerce({ purchase: { actionField: { id: orderId, revenue }, products } })
 }

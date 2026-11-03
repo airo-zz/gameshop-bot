@@ -8,13 +8,14 @@ import { useSearchParams, useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { CheckCircle2, Clock, Loader2, XCircle, RotateCcw } from '@/components/ui/icons'
 import { PenLoader } from '@/components/brand/BrandMotion'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 import { ordersApi } from '@/api'
 import { PAY_SOURCE } from '@/config/appTarget'
 import { openChat } from '@/web/chat/chatStore'
 import { OrderReviewForm } from '@/components/reviews/Reviews'
 import { money, orderStatus, isAwaitingPayment, apiError } from '@/web/format'
+import { trackPurchase } from '@/web/seo'
 
 export default function WebOrderPage() {
   const { id } = useParams<{ id: string }>()
@@ -34,6 +35,14 @@ export default function WebOrderPage() {
       return s === 'new' || s === 'pending_payment' ? 4000 : false
     },
   })
+
+  // Метрика: покупка — когда вернулись с оплаты и заказ оплачен (один раз на заказ)
+  useEffect(() => {
+    if (!justPaid || !order?.paid_at || !order.items) return
+    trackPurchase(order.order_number, order.total_amount, order.items.map((i) => ({
+      id: i.product_id, name: i.product_name, price: i.unit_price, quantity: i.quantity, category: i.game_name ?? undefined,
+    })))
+  }, [justPaid, order])
 
   async function repay() {
     if (!id || repaying) return

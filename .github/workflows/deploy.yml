@@ -165,6 +165,7 @@ jobs:
         env:
           VITE_SHOP_NAME: reDonate
           VITE_BOT_USERNAME: redonate_robot
+          VITE_YM_ID: "114052924"             # Яндекс.Метрика (только сайт, после согласия на cookie)
         run: |
           npm ci
           npm run build                        # Telegram Mini App → dist (base /app/)

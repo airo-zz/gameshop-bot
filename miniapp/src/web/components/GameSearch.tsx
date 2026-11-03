@@ -94,7 +94,7 @@ export default function GameSearch({ size = 'md', placeholder = 'Найти иг
           aria-expanded={showList}
           aria-controls={listId}
           aria-autocomplete="list"
-          className={'flex-1 min-w-0 bg-transparent outline-none text-[var(--text)] placeholder:text-[var(--hint)] ' + (lg ? 'text-base' : 'text-sm')}
+          className={'ym-record-keys flex-1 min-w-0 bg-transparent outline-none text-[var(--text)] placeholder:text-[var(--hint)] ' + (lg ? 'text-base' : 'text-sm')}
         />
         {lg && (
           <button type="submit" className="h-10 px-4 rounded-xl text-sm font-semibold text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors">

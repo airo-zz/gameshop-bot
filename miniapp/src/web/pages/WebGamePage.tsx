@@ -20,7 +20,7 @@ import { money } from '@/web/format'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
 import { EASE, Stagger, StaggerItem } from '@/web/components/Motion'
-import { usePageMeta } from '@/web/seo'
+import { usePageMeta, trackDetail } from '@/web/seo'
 import WebDecorPage from '@/web/pages/WebDecorPage'
 
 // ── Карточка товара ───────────────────────────────────────────────────────────
@@ -343,6 +343,11 @@ function GamePageContent() {
   const fallbackH1 = catSlug && currentRoot
     ? `${currentRoot.name.replace(/^[^\p{L}\p{N}]+/u, '').trim()} ${gameName}`
     : `${game?.type === 'service' ? 'Пополнение' : 'Донат'} ${gameName}`
+
+  // Метрика: просмотр товаров открытого раздела
+  useEffect(() => {
+    trackDetail(products.map((p) => ({ id: p.id, name: p.name, price: p.price, category: gameName })))
+  }, [products])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const requireLogin = () => navigate('/login', { state: { from: location.pathname } })
 

@@ -296,7 +296,7 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
                 maxLength={7}
                 value={amount ?? fallbackAmount}
                 onChange={(e) => setAmount(e.target.value.replace(/\D/g, ''))}
-                className="input-display flex-1 min-w-0 bg-transparent outline-none font-display num text-[1.375rem] text-[var(--text)]"
+                className="ym-record-keys input-display flex-1 min-w-0 bg-transparent outline-none font-display num text-[1.375rem] text-[var(--text)]"
               />
               <span className="text-[15px] text-[var(--text-2)] shrink-0">{unitLabel}</span>
             </div>

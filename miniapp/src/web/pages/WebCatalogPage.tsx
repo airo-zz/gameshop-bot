@@ -87,7 +87,7 @@ export default function WebCatalogPage() {
             onChange={(e) => setQ(e.target.value)}
             placeholder="Найти игру"
             aria-label="Найти игру"
-            className="flex-1 min-w-0 bg-transparent outline-none text-sm text-[var(--text)] placeholder:text-[var(--hint)]"
+            className="ym-record-keys flex-1 min-w-0 bg-transparent outline-none text-sm text-[var(--text)] placeholder:text-[var(--hint)]"
           />
           {q && (
             <button onClick={() => setQ('')} aria-label="Очистить" className="text-[var(--hint)] hover:text-[var(--text)]">

@@ -55,7 +55,7 @@ function MergeDialog({ offer, onDone, onCancel }: { offer: Offer; onDone: () => 
     >
       <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md rounded-3xl bg-[var(--bg2)] border border-[var(--border)] p-6">
         <h2 className="text-lg text-[var(--text)]" style={{ margin: 0 }}>Найден другой ваш аккаунт</h2>
-        <div className="mt-4 rounded-2xl bg-[var(--bg3)] p-4 text-sm space-y-1.5">
+        <div className="ym-hide-content mt-4 rounded-2xl bg-[var(--bg3)] p-4 text-sm space-y-1.5">
           <p className="text-[var(--text)] font-medium">{o.name}</p>
           {o.email && <p className="text-[var(--hint)]">{o.email}</p>}
           <p className="text-[var(--text-2)] num">
@@ -155,7 +155,7 @@ export default function SignInMethods() {
   const muted = 'text-sm text-[var(--hint)] hover:text-[var(--text)] transition-colors'
 
   return (
-    <div className="rounded-2xl bg-[var(--bg2)] overflow-hidden">
+    <div className="ym-hide-content rounded-2xl bg-[var(--bg2)] overflow-hidden">
       <p className="px-5 pt-4 text-xs text-[var(--hint)]">Способы входа</p>
 
       {/* Почта */}

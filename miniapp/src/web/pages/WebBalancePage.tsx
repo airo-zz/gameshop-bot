@@ -151,7 +151,7 @@ export default function WebBalancePage() {
                 max={MAX_AMOUNT}
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^\d]/g, ''))}
-                className="w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-lg font-semibold text-[var(--text)] focus:outline-none focus:border-[var(--border)]"
+                className="ym-record-keys w-full bg-[var(--bg3)] border border-[var(--border)] rounded-xl px-4 py-3 text-lg font-semibold text-[var(--text)] focus:outline-none focus:border-[var(--border)]"
               />
               <div className="flex flex-wrap gap-2 mt-3">
                 {PRESETS.map((p) => (

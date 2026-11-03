@@ -113,7 +113,7 @@ function AuthArea({ onNavigate }: { onNavigate?: () => void }) {
         </Link>
         <Link to="/profile" onClick={onNavigate} title="Профиль" className="flex items-center gap-2 h-10 rounded-xl pl-1.5 pr-1.5 xl:pr-3 max-md:pr-3 hover:bg-[var(--bg2)] transition-colors">
           <Avatar src={user.photo_url} name={user.first_name} size={28} />
-          <span className="text-sm text-[var(--text-2)] max-w-[120px] truncate hidden xl:inline md:max-xl:hidden max-md:inline">{user.first_name}</span>
+          <span className="ym-hide-content text-sm text-[var(--text-2)] max-w-[120px] truncate hidden xl:inline md:max-xl:hidden max-md:inline">{user.first_name}</span>
         </Link>
         <button
           onClick={() => { logout(); onNavigate?.() }}
