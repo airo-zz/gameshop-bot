@@ -118,7 +118,9 @@ def game_seo(game, cat_names: list[str], min_price: Decimal | float | None,
         + (f"Цены от {money(min_price)}. " if min_price else "")
         + f"Оплата через СБП, банковской картой или криптовалютой{cashback}."
     )[:320]
-    h1 = f"Донат {name}" if not service else f"Пополнение {name}"
+    # games.meta.h1 — свой заголовок, когда шаблон не по-русски («Пополнение Discord Бусты»)
+    h1 = ((getattr(game, "meta", None) or {}).get("h1")
+          or (f"Донат {name}" if not service else f"Пополнение {name}"))
     intro = ((game.description or "").strip()
              or f"Купить {what} для {name} онлайн: оплата через СБП, банковской картой или криптовалютой.")
 
@@ -178,16 +180,27 @@ def category_seo(game, cat, min_price: Decimal | float | None, has_auto: bool,
     lc = _lower_first(accusative(cname))
     # «Discord Nitro» в игре Discord — не повторяем название игры
     suffix = "" if name.lower() in cname.lower() else f" {name}"
-    title = _fit(f"Купить {lc}{suffix}", f"{cname}{suffix}")
-    description = (
-        f"Здесь вы можете купить {lc}{'' if not suffix else ' для ' + name} по выгодной цене"
-        + (f" — от {money(min_price)}" if min_price else "")
-        + ". Оплата через СБП, банковской картой или криптовалютой, кэшбэк на баланс."
-    )[:320]
+    if re.match(r"\d", cname):
+        # Раздел-срок («1 месяц», «3 месяца» у бустов): «Discord Бусты на 1 месяц»
+        h1 = f"{name} на {cname}"
+        title = _fit(f"Купить {h1}", h1)
+        description = (
+            f"Здесь вы можете купить {h1} по выгодной цене"
+            + (f" — от {money(min_price)}" if min_price else "")
+            + ". Оплата через СБП, банковской картой или криптовалютой, кэшбэк на баланс."
+        )[:320]
+    else:
+        h1 = f"{cname}{suffix}"
+        title = _fit(f"Купить {lc}{suffix}", f"{cname}{suffix}")
+        description = (
+            f"Здесь вы можете купить {lc}{'' if not suffix else ' для ' + name} по выгодной цене"
+            + (f" — от {money(min_price)}" if min_price else "")
+            + ". Оплата через СБП, банковской картой или криптовалютой, кэшбэк на баланс."
+        )[:320]
     intro = ((getattr(cat, "description", None) or "").strip()
              or _category_intro(game, cat, cname, suffix, prices or [], has_auto))
     # текст игры («как купить») — и на страницах разделов: из поиска часто попадают сразу в раздел
-    return PageSeo(title, description, f"{cname}{suffix}", intro, aliases(game), (game.seo_text or "").strip() or None)
+    return PageSeo(title, description, h1, intro, aliases(game), (game.seo_text or "").strip() or None)
 
 
 # ── Данные страницы ──────────────────────────────────────────────────────────

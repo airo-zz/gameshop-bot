@@ -35,6 +35,7 @@ celery_app = Celery(
         "worker.tasks.integrity_tasks",
         "worker.tasks.hub_tasks",
         "worker.tasks.seo_tasks",
+        "worker.tasks.holdboost_tasks",
     ],
 )
 
@@ -102,6 +103,12 @@ celery_app.conf.beat_schedule = {
         "task": "worker.tasks.hub_tasks.poll_hub",
         "schedule": timedelta(seconds=5),
         "options": {"expires": 4},
+    },
+    # Каждые 10 минут — наличие бустов Discord у HoldBoost → «Нет в наличии» у нас
+    "sync-holdboost-stock": {
+        "task": "worker.tasks.holdboost_tasks.sync_holdboost_stock",
+        "schedule": crontab(minute="*/10"),
+        "options": {"expires": 300},
     },
     # Раз в сутки — новые и изменённые страницы сайта в IndexNow (Bing, Яндекс)
     "submit-indexnow": {
