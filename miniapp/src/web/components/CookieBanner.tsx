@@ -9,6 +9,9 @@
  *
  * Пока плашка на экране, её высота — в CSS-переменной --cookie-h на <html>:
  * кнопка чата, приветствие и нижние панели поднимаются над ней.
+ *
+ * Под плашкой — затемнение сайта (zIndex 179): до выбора страница не кликается,
+ * но кнопка чата (190) остаётся над ним — можно задать вопрос.
  */
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, m } from 'framer-motion'
@@ -34,6 +37,15 @@ export default function CookieBanner() {
 
   return (
     <AnimatePresence>
+      {shown && (
+        <m.div
+          key="cookie-dim"
+          aria-hidden="true"
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          style={{ position: 'fixed', inset: 0, zIndex: 179, background: 'rgba(0,0,0,0.55)' }}
+        />
+      )}
       {shown && (
         <m.div
           key="cookie"
