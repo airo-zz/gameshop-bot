@@ -143,7 +143,37 @@ def _decor_seo(game, cat_names: list[str], min_price, top_cashback) -> PageSeo:
     return PageSeo(title, description, game.name, intro, aliases(game), (game.seo_text or "").strip() or None)
 
 
-def category_seo(game, cat, min_price: Decimal | float | None, has_auto: bool) -> PageSeo:
+def _plural(n: int, one: str, few: str, many: str) -> str:
+    if n % 10 == 1 and n % 100 != 11:
+        return one
+    return few if 2 <= n % 10 <= 4 and not 12 <= n % 100 <= 14 else many
+
+
+def _category_intro(game, cat, cname: str, suffix: str, prices: list, has_auto: bool) -> str:
+    """Свой вводный текст раздела из его данных (сколько вариантов, цены, выдача, что
+    нужно от покупателя). Без него страница раздела — урезанная копия страницы игры,
+    и Google склеивает их («Страница является копией…»)."""
+    parts = []
+    if len(prices) > 1:
+        n = len(prices)
+        parts.append(f"{cname}{suffix}: {n} {_plural(n, 'вариант', 'варианта', 'вариантов')} "
+                     f"от {money(min(prices))} до {money(max(prices))}.")
+    elif prices:
+        parts.append(f"{cname}{suffix} — {money(prices[0])}.")
+    else:
+        parts.append(f"{cname}{suffix} — выберите вариант и оплатите онлайн.")
+    parts.append("Выдаётся автоматически сразу после оплаты." if has_auto else
+                 "После оплаты заказ выполнит оператор — статус и вопросы в чате с ним.")
+    fields = (getattr(cat, "input_fields", None) or getattr(game, "input_fields", None) or [])
+    labels = [str(f.get("label")).strip().rstrip(":") for f in fields if isinstance(f, dict) and f.get("label")]
+    if labels:
+        parts.append(f"Для заказа понадобится: {', '.join(_lower_first(lb) for lb in labels[:4])}.")
+    parts.append("Оплата через СБП, банковской картой или криптовалютой, кэшбэк на баланс.")
+    return " ".join(parts)
+
+
+def category_seo(game, cat, min_price: Decimal | float | None, has_auto: bool,
+                 prices: list | None = None) -> PageSeo:
     name, cname = game.name, clean_name(cat.name) or cat.name
     lc = _lower_first(accusative(cname))
     # «Discord Nitro» в игре Discord — не повторяем название игры
@@ -155,7 +185,7 @@ def category_seo(game, cat, min_price: Decimal | float | None, has_auto: bool) -
         + ". Оплата через СБП, банковской картой или криптовалютой, кэшбэк на баланс."
     )[:320]
     intro = ((getattr(cat, "description", None) or "").strip()
-             or f"{cname}{suffix} — выберите вариант и оплатите онлайн.")
+             or _category_intro(game, cat, cname, suffix, prices or [], has_auto))
     # текст игры («как купить») — и на страницах разделов: из поиска часто попадают сразу в раздел
     return PageSeo(title, description, f"{cname}{suffix}", intro, aliases(game), (game.seo_text or "").strip() or None)
 
@@ -197,7 +227,7 @@ async def load_game_page(db, slug: str, cat_slug: str | None = None):
     min_price = min(prices) if prices else None
     has_auto = any(_is_auto(p) for _, p in offers)
     if current:
-        page = category_seo(game, current, min_price, has_auto)
+        page = category_seo(game, current, min_price, has_auto, prices)
     else:
         levels = await LoyaltyService(db).get_levels()
         top = max((float(lv.cashback_percent) for lv in levels), default=None)

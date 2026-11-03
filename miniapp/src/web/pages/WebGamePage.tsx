@@ -322,8 +322,6 @@ function GamePageContent() {
   const game = games.find((g) => g.slug === slug)
   const gameName = game?.name ?? slug?.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) ?? ''
   const cover = game?.image_url ? normalizeImageUrl(game.image_url) ?? game.image_url : null
-  const description = (currentCat?.description || game?.description || '').trim()
-
   // У каждого раздела своя страница: адрес меняется при выборе вкладки
   const selectRoot = (cat: Category) => {
     setActiveCatId(cat.id)
@@ -339,6 +337,9 @@ function GamePageContent() {
     retry: false,
   })
   usePageMeta({ title: seo?.title, description: seo?.description, exact: true })
+  // Вводный текст: свой из админки, иначе тот же, что у серверной версии (у разделов —
+  // сколько вариантов, цены, выдача; без него Google склеивает раздел со страницей игры)
+  const description = (currentCat?.description || game?.description || seo?.intro || '').trim()
   // Тот же H1, что даст сервер, — чтобы заголовок не менялся после загрузки текстов
   const fallbackH1 = catSlug && currentRoot
     ? `${currentRoot.name.replace(/^[^\p{L}\p{N}]+/u, '').trim()} ${gameName}`
