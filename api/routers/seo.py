@@ -227,12 +227,9 @@ def _hero_html(games, banners: list[dict] | None = None) -> str:
 # Плашка cookie в той же вёрстке, что web/components/CookieBanner.tsx: видна
 # с первой отрисовки (а не после загрузки JS). Кнопки работают и до JS;
 # если выбор уже сделан — скрыта скриптом в <head> (класс cc-ok).
-# #cookie-ssr — обёртка без позиционирования: затемнение сайта + сама плашка.
 _CC_SET = "try{{localStorage.setItem('cookie_consent','{v}')}}catch(e){{}};document.getElementById('cookie-ssr').remove()"
 COOKIE_SSR = (
-    '<div id="cookie-ssr">'
-    '<div aria-hidden="true" style="position:fixed;inset:0;z-index:179;background:rgba(0,0,0,0.55)"></div>'
-    '<div role="region" aria-label="Cookie" class="border-t border-[var(--border)] bg-[var(--bg3)]" '
+    '<div id="cookie-ssr" role="region" aria-label="Cookie" class="border-t border-[var(--border)] bg-[var(--bg3)]" '
     'style="position:fixed;left:0;right:0;bottom:0;z-index:180;padding-bottom:env(safe-area-inset-bottom, 0px);'
     'box-shadow:0 -12px 32px rgba(0,0,0,0.45)">'
     '<div class="web-container py-3.5 md:py-4 flex flex-col md:flex-row md:items-center gap-3 md:gap-8">'
@@ -245,7 +242,7 @@ COOKIE_SSR = (
     'text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors">Принять</button>'
     f'<button type="button" onclick="{_CC_SET.format(v="necessary")}" class="text-sm text-[var(--text-2)] '
     'underline-offset-4 hover:underline hover:text-[var(--text)]">Только необходимые</button>'
-    '</div></div></div></div>'
+    '</div></div></div>'
 )
 COOKIE_HEAD = (
     '<style>.cc-ok #cookie-ssr{display:none}</style>'
