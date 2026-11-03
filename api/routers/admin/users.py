@@ -93,6 +93,7 @@ def _user_list_item(user: User) -> dict[str, Any]:
     return {
         "id": user.id,
         "telegram_id": user.telegram_id,
+        "id_label": user.id_label,
         "username": user.username,
         "first_name": user.first_name,
         "last_name": user.last_name,
@@ -155,6 +156,7 @@ async def get_user(
     return {
         "id": user.id,
         "telegram_id": user.telegram_id,
+        "id_label": user.id_label,
         "username": user.username,
         "first_name": user.first_name,
         "last_name": user.last_name,

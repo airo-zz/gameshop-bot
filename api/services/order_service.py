@@ -33,6 +33,18 @@ from shared.config import settings
 from shared.models.order import ALLOWED_STATUS_TRANSITIONS
 from api.services.discount_service import DiscountService, DiscountResult
 from api.services.loyalty_service import LoyaltyService
+from shared.models import is_telegram_id
+
+# Подписи для уведомления персоналу о новом заказе
+STAFF_SOURCE_LABELS = {"web": "Сайт", "miniapp": "Мини-приложение", "bot": "Бот"}
+STAFF_METHOD_LABELS = {
+    "balance": "баланс", "sbp": "СБП", "card": "карта", "crypto": "крипта",
+    "card_yukassa": "карта", "usdt": "USDT", "ton": "TON", "manual": "вручную",
+}
+
+
+def _rub(amount) -> str:
+    return f"{int(round(float(amount or 0))):,} ₽".replace(",", " ")
 
 
 def resolve_field_sources(products: list) -> dict[str, dict]:
@@ -795,55 +807,84 @@ class OrderService:
         Уведомляет персонал о новом оплаченном заказе (группа операторов,
         а если она не привязана — личка админов; см. shared.staff_notify).
 
-        Оформление намеренно отличается от тикетных уведомлений — шапка с
-        эмодзи 🛒 и разделителем, чтобы оператор сразу видел, что это заказ.
+        Как у ботов FunPay/GGSEL: что купил, откуда, кто покупатель и сколько
+        он уже купил. Пароли — под спойлером. Кнопки ведут в admin.redonate.gg;
+        на уведомление можно ответить (Reply) — ответ уйдёт клиенту в чат.
         """
         try:
             import html as _html
             from shared.config import settings
+            from shared.models import Chat
             from shared.staff_notify import send_staff_async
 
             result = await self.db.execute(
                 select(Order)
-                .options(selectinload(Order.user), selectinload(Order.items))
+                .options(
+                    selectinload(Order.user),
+                    selectinload(Order.items).selectinload(OrderItem.product),
+                )
                 .where(Order.id == order.id)
             )
             order_full = result.scalar_one_or_none()
             if not order_full:
                 return
+            e = _html.escape
 
             buyer = order_full.user
-            buyer_name = _html.escape(buyer.display_name)
-            if buyer.username:
-                buyer_name += f" (@{_html.escape(buyer.username)})"
-            amount_str = f"{int(order_full.total_amount):,}".replace(",", " ")
-            order_number = _html.escape(str(order_full.order_number))
-            method = order_full.payment_method.value if order_full.payment_method else "—"
+            source = (order_full.meta or {}).get("source")
+            if not source and not is_telegram_id(buyer.telegram_id):
+                source = "web"
+            source_label = STAFF_SOURCE_LABELS.get(source or "", "")
+            method = STAFF_METHOD_LABELS.get(
+                order_full.payment_method.value if order_full.payment_method else "", "—"
+            )
 
             lines = []
             for item in order_full.items[:10]:
                 name = f"{item.game_name} · {item.product_name}" if item.game_name else item.product_name
-                lines.append(f"• {_html.escape(name)} × {item.quantity}")
+                lines.append(f"<b>{e(name)}</b> × {item.quantity} — {_rub(item.total_price)}")
+                fields = {f.get("key"): f for f in ((item.product.input_fields if item.product else None) or [])}
                 for k, v in (item.input_data or {}).items():
-                    lines.append(f"   {_html.escape(str(k))}: <code>{_html.escape(str(v))[:100]}</code>")
+                    f = fields.get(k) or {}
+                    label = f.get("label") or k
+                    value = e(str(v))[:200]
+                    secret = f.get("type") == "password" or "парол" in str(label).lower() or "pass" in str(k).lower()
+                    value = f"<tg-spoiler>{value}</tg-spoiler>" if secret else f"<code>{value}</code>"
+                    lines.append(f"   {e(str(label))}: {value}")
             if len(order_full.items) > 10:
                 lines.append(f"… и ещё {len(order_full.items) - 10}")
 
+            discount = order_full.discount_amount or 0
+            sum_line = f"Сумма: <b>{_rub(order_full.total_amount)}</b> · {e(method)}"
+            if discount:
+                sum_line += f" (скидка {_rub(discount)})"
+            stats = f"Заказов у клиента: {buyer.orders_count} · потрачено {_rub(buyer.total_spent)}"
+            if buyer.orders_count <= 1:
+                stats = "Первый заказ клиента"
+
+            head = f"<b>НОВЫЙ ЗАКАЗ {e(str(order_full.order_number))}</b>"
+            if source_label:
+                head += f" · {source_label}"
             text = (
-                "🛒 <b>НОВЫЙ ЗАКАЗ</b>\n"
+                f"{head}\n"
                 "━━━━━━━━━━━━━━━\n"
-                f"№ {order_number}\n"
-                f"Сумма: <b>{amount_str} ₽</b> ({_html.escape(method)})\n"
-                f"Покупатель: {buyer_name}\n\n"
                 + "\n".join(lines)
+                + f"\n\n{sum_line}\n"
+                f"Покупатель: {e(buyer.staff_label)}\n"
+                f"{stats}"
             )
-            reply_markup = {
-                "inline_keyboard": [[{
-                    "text": "Открыть заказ",
-                    "url": f"https://t.me/{settings.BOT_USERNAME}?startapp=admin_order_{order_full.id}",
-                }]]
-            }
-            await send_staff_async(self.db, text[:4000], reply_markup)
+
+            chat_id = (
+                await self.db.execute(select(Chat.id).where(Chat.user_id == buyer.telegram_id))
+            ).scalar_one_or_none()
+            buttons = [{"text": "Открыть заказ", "url": f"{settings.ADMIN_ORIGIN}/admin/orders/{order_full.id}"}]
+            if chat_id:
+                buttons.append({"text": "Открыть чат", "url": f"{settings.ADMIN_ORIGIN}/admin/chats/{chat_id}"})
+                text += "\n\n<i>Ответьте на это сообщение (Reply), чтобы написать клиенту.</i>"
+            await send_staff_async(
+                self.db, text[:4000], {"inline_keyboard": [buttons]},
+                reply_chat_id=str(chat_id) if chat_id else None,
+            )
         except Exception as exc:
             import logging
             logging.getLogger(__name__).warning("_notify_admins_new_order error: %s", exc)

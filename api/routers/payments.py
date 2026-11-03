@@ -265,7 +265,7 @@ async def initiate_payment(
 
     if method == "balance":
         try:
-            data = await svc.pay_balance(order, user)
+            data = await svc.pay_balance(order, user, body.source if body else "miniapp")
         except ValueError as e:
             raise HTTPException(400, str(e))
         await _clear_cart_if_from_cart()

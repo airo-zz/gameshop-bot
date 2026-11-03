@@ -16,6 +16,11 @@ shared/staff_notify.py
 может быть открыт только один из них).
 
 Есть async-версия (API, support-бот) и sync-версия (Celery worker).
+
+Ответ клиенту из Telegram: если передан reply_chat_id (UUID чата покупателя),
+id каждого отправленного уведомления запоминается в Redis. Оператор отвечает
+на уведомление (Reply) — support-бот находит чат и пересылает текст клиенту
+(support_bot/handlers/group.py).
 ─────────────────────────────────────────────────────────────────────────────
 """
 
@@ -31,6 +36,19 @@ from shared.config import settings
 logger = logging.getLogger(__name__)
 
 NOTIFY_CHAT_KEY = "notify_chat_id"
+
+REPLY_TTL = 14 * 24 * 3600  # на уведомление старше двух недель ответить уже нельзя
+
+
+def reply_key(tg_chat_id: int, message_id: int) -> str:
+    return f"staff_reply:{tg_chat_id}:{message_id}"
+
+
+def _message_id(resp: httpx.Response) -> int | None:
+    try:
+        return int(resp.json()["result"]["message_id"])
+    except (ValueError, KeyError, TypeError):
+        return None
 
 _SQL_GROUP = sa_text("SELECT value FROM shop_settings WHERE key = :k")
 _SQL_ADMINS = sa_text("SELECT telegram_id FROM admin_users WHERE is_active = true")
@@ -74,7 +92,22 @@ def _log_fail(chat_id: int, token: str, resp: httpx.Response) -> None:
 # ── async (API, support-бот) ────────────────────────────────────────────────
 
 
-async def _send_one_async(client: httpx.AsyncClient, chat_id: int, text: str, markup: dict | None) -> bool:
+async def _remember_async(tg_chat_id: int, message_id: int | None, reply_chat_id: str) -> None:
+    if not message_id:
+        return
+    try:
+        import redis.asyncio as aioredis
+        r = aioredis.from_url(settings.REDIS_URL, decode_responses=True)
+        try:
+            await r.set(reply_key(tg_chat_id, message_id), reply_chat_id, ex=REPLY_TTL)
+        finally:
+            await r.aclose()
+    except Exception as exc:  # уведомление доставлено, просто без ответа через Reply
+        logger.warning("staff_notify: не запомнил уведомление для ответа: %s", exc)
+
+
+async def _send_one_async(client: httpx.AsyncClient, chat_id: int, text: str, markup: dict | None,
+                          reply_chat_id: str | None = None) -> bool:
     for token in _tokens():
         try:
             resp = await client.post(
@@ -85,21 +118,25 @@ async def _send_one_async(client: httpx.AsyncClient, chat_id: int, text: str, ma
             logger.warning("staff_notify: сеть chat=%s: %s", chat_id, exc)
             continue
         if resp.status_code == 200:
+            if reply_chat_id:
+                await _remember_async(chat_id, _message_id(resp), reply_chat_id)
             return True
         _log_fail(chat_id, token, resp)
     return False
 
 
-async def send_staff_async(db, text: str, reply_markup: dict | None = None) -> bool:
-    """Шлёт уведомление персоналу. True — доставлено хотя бы одному адресату."""
+async def send_staff_async(db, text: str, reply_markup: dict | None = None,
+                           reply_chat_id: str | None = None) -> bool:
+    """Шлёт уведомление персоналу. True — доставлено хотя бы одному адресату.
+    reply_chat_id — UUID чата покупателя: на уведомление можно ответить через Reply."""
     group = _group_id((await db.execute(_SQL_GROUP, {"k": NOTIFY_CHAT_KEY})).scalar_one_or_none())
     async with httpx.AsyncClient(timeout=10) as client:
-        if group and await _send_one_async(client, group, text, reply_markup):
+        if group and await _send_one_async(client, group, text, reply_markup, reply_chat_id):
             return True
         admins = list((await db.execute(_SQL_ADMINS)).scalars().all())
         delivered = False
         for chat_id in admins:
-            delivered = await _send_one_async(client, int(chat_id), text, reply_markup) or delivered
+            delivered = await _send_one_async(client, int(chat_id), text, reply_markup, reply_chat_id) or delivered
     if not delivered:
         logger.error("staff_notify: уведомление не доставлено (группа=%s, админов=%s)", group, len(admins))
     return delivered
@@ -118,7 +155,22 @@ def _get_sync_engine():
     return _sync_engine
 
 
-def _send_one_sync(client: httpx.Client, chat_id: int, text: str, markup: dict | None) -> bool:
+def _remember_sync(tg_chat_id: int, message_id: int | None, reply_chat_id: str) -> None:
+    if not message_id:
+        return
+    try:
+        import redis
+        r = redis.from_url(settings.REDIS_URL, decode_responses=True)
+        try:
+            r.set(reply_key(tg_chat_id, message_id), reply_chat_id, ex=REPLY_TTL)
+        finally:
+            r.close()
+    except Exception as exc:
+        logger.warning("staff_notify: не запомнил уведомление для ответа: %s", exc)
+
+
+def _send_one_sync(client: httpx.Client, chat_id: int, text: str, markup: dict | None,
+                   reply_chat_id: str | None = None) -> bool:
     for token in _tokens():
         try:
             resp = client.post(
@@ -129,23 +181,26 @@ def _send_one_sync(client: httpx.Client, chat_id: int, text: str, markup: dict |
             logger.warning("staff_notify: сеть chat=%s: %s", chat_id, exc)
             continue
         if resp.status_code == 200:
+            if reply_chat_id:
+                _remember_sync(chat_id, _message_id(resp), reply_chat_id)
             return True
         _log_fail(chat_id, token, resp)
     return False
 
 
-def send_staff_sync(text: str, reply_markup: dict | None = None) -> bool:
+def send_staff_sync(text: str, reply_markup: dict | None = None, reply_chat_id: str | None = None) -> bool:
     """Sync-версия для Celery. Если не доставлено никому — бросает исключение,
-    чтобы задача ушла в retry (временный сбой сети/Telegram)."""
+    чтобы задача ушла в retry (временный сбой сети/Telegram).
+    reply_chat_id — UUID чата покупателя: на уведомление можно ответить через Reply."""
     with _get_sync_engine().connect() as conn:
         group = _group_id(conn.execute(_SQL_GROUP, {"k": NOTIFY_CHAT_KEY}).scalar_one_or_none())
         admins = list(conn.execute(_SQL_ADMINS).scalars().all())
     with httpx.Client(timeout=10) as client:
-        if group and _send_one_sync(client, group, text, reply_markup):
+        if group and _send_one_sync(client, group, text, reply_markup, reply_chat_id):
             return True
         delivered = False
         for chat_id in admins:
-            delivered = _send_one_sync(client, int(chat_id), text, reply_markup) or delivered
+            delivered = _send_one_sync(client, int(chat_id), text, reply_markup, reply_chat_id) or delivered
     if not delivered:
         raise RuntimeError(f"staff_notify: не доставлено (группа={group}, админов={len(admins)})")
     return delivered

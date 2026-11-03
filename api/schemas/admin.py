@@ -82,6 +82,8 @@ class OrderListItem(BaseModel):
     total_amount: float
     payment_method: str | None
     user_telegram_id: int
+    user_id_label: str = ""
+    """Короткий ID для персонала: «TG 123», «Сайт #12», «Гость #34»."""
     user_first_name: str
     user_username: str | None = None
     created_at: datetime

@@ -65,7 +65,7 @@ def _fmt_user(user: User) -> str:
     name = user.display_name
     return (
         f"👤 <b>Пользователь</b>\n\n"
-        f"ID:        <code>{user.telegram_id}</code>\n"
+        f"ID:        <code>{escape(user.id_label)}</code>\n"
         f"Имя:       {escape(user.first_name or '')}\n"
         f"Username:  {('@' + escape(user.username)) if user.username else '—'}\n"
         f"Баланс:    <b>{float(user.balance):,.2f} ₽</b>\n"

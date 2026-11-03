@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MessageSquare } from '@/components/ui/icons'
-import { adminApi, type AdminChatListItem } from '@/api/admin'
+import { adminApi, userIdLabel, type AdminChatListItem } from '@/api/admin'
 import { ADMIN_COLORS } from './OrdersPage'
 
 type FilterMode = 'all' | 'mine' | 'free'
@@ -41,7 +41,7 @@ function getUserLabel(user: AdminChatListItem['user']): string {
   if (user.first_name) {
     return user.username ? `${user.first_name} @${user.username}` : user.first_name
   }
-  return user.username ? `@${user.username}` : `ID: ${user.telegram_id}`
+  return user.username ? `@${user.username}` : (user.email || userIdLabel(user))
 }
 
 function getInitials(user: AdminChatListItem['user']): string {

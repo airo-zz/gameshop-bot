@@ -11,7 +11,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom'
 import { Send, Bell, ArrowLeft, UserCheck, UserMinus, CheckCircle, HelpCircle, XCircle } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
-import { adminApi, type AdminChatDetail, type AdminChatMessage } from '@/api/admin'
+import { adminApi, userIdLabel, type AdminChatDetail, type AdminChatMessage } from '@/api/admin'
 
 function formatTime(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
@@ -43,7 +43,7 @@ function getUserLabel(chat: AdminChatDetail): string {
     return user.username ? `${user.first_name} (@${user.username})` : user.first_name
   }
   if (user.username) return `@${user.username}`
-  return `ID: ${user.telegram_id}`
+  return user.email || userIdLabel(user)
 }
 
 // ── Message bubble ─────────────────────────────────────────────────────────────
@@ -336,7 +336,7 @@ export default function ChatDetailPage() {
             {getUserLabel(chat)}
           </p>
           <p style={{ margin: 0, fontSize: 11, color: 'rgba(220,235,255,0.35)' }}>
-            ID: {chat.user.telegram_id}
+            {userIdLabel(chat.user)}
             {chat.user.username && ` · @${chat.user.username}`}
           </p>
         </div>

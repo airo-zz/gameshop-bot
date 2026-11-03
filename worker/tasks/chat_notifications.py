@@ -17,6 +17,31 @@ def _get_db_session():
     return Session(engine), engine
 
 
+_ORDER_STATUS_LABELS = {
+    "new": "создан", "pending_payment": "ждёт оплаты", "paid": "оплачен",
+    "processing": "в работе", "clarification": "уточнение", "completed": "выполнен",
+    "cancelled": "отменён", "refunded": "возврат",
+}
+
+
+def _notice_mark(chat_id: str, last_message_at: str | None = None) -> str | None:
+    """Отметка «об этой пачке сообщений персоналу уже писали».
+    Без last_message_at — прочитать, с ним — поставить (после успешной отправки)."""
+    try:
+        import redis
+        r = redis.from_url(settings.REDIS_URL, decode_responses=True)
+        try:
+            key = f"staff_chat_notified:{chat_id}"
+            if last_message_at is None:
+                return r.get(key)
+            r.set(key, last_message_at, ex=7 * 24 * 3600)
+        finally:
+            r.close()
+    except Exception:
+        pass  # без Redis лучше дубль, чем пропуск
+    return None
+
+
 def _email_chat_notice(session, user_id: int) -> None:
     from sqlalchemy import text as sa_text
     from shared.mailer import notice_email, send_email_sync
@@ -53,13 +78,19 @@ def notify_seller_if_unread(self, chat_id: str) -> None:
     try:
         session, engine = _get_db_session()
         try:
+            import html as _html
+
             from sqlalchemy import text as sa_text
+
+            from shared.models.user import staff_user_label
             result = session.execute(
                 sa_text("""
                     SELECT c.id, c.user_id, c.last_message_at, c.last_admin_read_at,
-                           u.username, u.first_name
+                           u.username, u.first_name, u.email, coalesce(u.is_guest, false),
+                           o.order_number, o.status
                     FROM chats c
                     LEFT JOIN users u ON u.telegram_id = c.user_id
+                    LEFT JOIN orders o ON o.id = c.order_id
                     WHERE c.id = :chat_id
                 """),
                 {"chat_id": chat_id},
@@ -68,7 +99,8 @@ def notify_seller_if_unread(self, chat_id: str) -> None:
             if result is None:
                 return
 
-            chat_id_val, user_id, last_message_at, last_admin_read_at, username, first_name = result
+            (chat_id_val, user_id, last_message_at, last_admin_read_at,
+             username, first_name, email, is_guest, order_number, order_status) = result
 
             # Проверяем: непрочитано если last_admin_read_at IS NULL или < last_message_at
             if last_message_at is None:
@@ -76,42 +108,57 @@ def notify_seller_if_unread(self, chat_id: str) -> None:
             if last_admin_read_at is not None and last_admin_read_at >= last_message_at:
                 return
 
-            # Берём preview последнего сообщения
-            msg_result = session.execute(
+            # Покупатель пишет несколькими сообщениями подряд — каждое ставит задачу.
+            # Одно уведомление на пачку: пропускаем, если об этом last_message_at уже писали.
+            if _notice_mark(str(chat_id_val)) == last_message_at.isoformat():
+                return
+
+            # Все непрочитанные сообщения покупателя (последние 5), а не только последнее
+            rows = session.execute(
                 sa_text("""
-                    SELECT text FROM chat_messages
+                    SELECT text, coalesce(array_length(attachments, 1), 0) FROM chat_messages
                     WHERE chat_id = :chat_id AND sender_type = 'user'
+                      AND (CAST(:read_at AS timestamptz) IS NULL OR created_at > :read_at)
                     ORDER BY created_at DESC
-                    LIMIT 1
+                    LIMIT 5
                 """),
-                {"chat_id": chat_id},
-            ).fetchone()
+                {"chat_id": chat_id, "read_at": last_admin_read_at},
+            ).fetchall()
 
-            import html as _html
-            preview = "[вложение]"
-            if msg_result and msg_result[0]:
-                preview = _html.escape(msg_result[0][:120])
+            parts = []
+            for msg_text, n_att in reversed(rows):
+                line = _html.escape((msg_text or "").strip()[:700])
+                if n_att:
+                    line = (line + "\n" if line else "") + f"[фото: {n_att}]"
+                if line:
+                    parts.append(line)
+            body = "\n\n".join(parts)[:2500] or "[вложение]"
 
-            user_label = f"@{_html.escape(username)}" if username else f"ID: {user_id}"
-            if first_name:
-                user_label = f"{_html.escape(first_name)} ({user_label})"
+            buyer = _html.escape(staff_user_label(user_id, username, first_name, email, is_guest))
+            head = "<b>СООБЩЕНИЕ</b>"
+            if order_number:
+                head += f" · Заказ {_html.escape(str(order_number))}"
+                status = _ORDER_STATUS_LABELS.get(str(order_status or ""), "")
+                if status:
+                    head += f" ({status})"
 
             text = (
-                f"<b>Новое сообщение от покупателя</b>\n"
-                f"Пользователь: {user_label}\n"
-                f"<i>{preview}</i>"
+                f"{head}\n"
+                f"От: {buyer}\n\n"
+                f"{body}\n\n"
+                "<i>Ответьте на это сообщение (Reply), чтобы написать клиенту.</i>"
             )
 
-            # Кнопка — сразу в админ-чат Mini App (url-кнопка t.me работает и в группах)
             reply_markup = {
                 "inline_keyboard": [[{
                     "text": "Открыть чат",
-                    "url": f"https://t.me/{settings.BOT_USERNAME}?startapp=admin_chat_{chat_id_val}",
+                    "url": f"{settings.ADMIN_ORIGIN}/admin/chats/{chat_id_val}",
                 }]]
             }
 
             from shared.staff_notify import send_staff_sync
-            send_staff_sync(text, reply_markup)
+            send_staff_sync(text, reply_markup, reply_chat_id=str(chat_id_val))
+            _notice_mark(str(chat_id_val), last_message_at.isoformat())
         finally:
             session.close()
             engine.dispose()

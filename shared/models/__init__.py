@@ -17,6 +17,8 @@ from .user import (
     ShopSettings,
     EMAIL_USER_ID_BASE,
     is_telegram_id,
+    staff_user_label,
+    user_id_label,
 )
 
 from .catalog import (
@@ -76,7 +78,7 @@ from .chat import (
 __all__ = [
     # Base
     "Base", "TimestampMixin", "UUIDMixin",
-    "EMAIL_USER_ID_BASE", "is_telegram_id",
+    "EMAIL_USER_ID_BASE", "is_telegram_id", "staff_user_label", "user_id_label",
     # User
     "LoyaltyLevel", "User", "BalanceTransaction", "BalanceTopup", "ReferralReward", "ShopSettings",
     # Catalog

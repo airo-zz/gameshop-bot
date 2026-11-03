@@ -68,7 +68,7 @@ async def search(admin: CurrentAdmin, db: DbSession, q: str = Query(..., min_len
             select(User).where(or_(*conds), User.is_guest.is_(False)).order_by(User.created_at.desc()).limit(6)
         )).scalars().all()
         out["users"] = [{
-            "id": u.id, "telegram_id": u.telegram_id, "name": u.display_name, "email": u.email,
+            "id": u.id, "telegram_id": u.telegram_id, "id_label": u.id_label, "name": u.display_name, "email": u.email,
             "orders_count": u.orders_count,
         } for u in rows]
 

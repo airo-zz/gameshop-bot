@@ -35,7 +35,7 @@ from api.services.chat_service import ChatService
 from shared.config import settings
 from shared.models.chat import Chat
 from shared.models.order import Order
-from shared.models.user import User
+from shared.models.user import User, user_id_label
 
 router = APIRouter()
 log = structlog.get_logger()
@@ -54,11 +54,13 @@ MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10 MB
 
 def _build_user_info(user: User | None, chat: Chat) -> AdminChatUserInfo:
     if user is None:
-        return AdminChatUserInfo(telegram_id=chat.user_id)
+        return AdminChatUserInfo(telegram_id=chat.user_id, id_label=user_id_label(chat.user_id))
     return AdminChatUserInfo(
         telegram_id=user.telegram_id,
         username=user.username,
         first_name=user.first_name or "",
+        email=user.email,
+        id_label=user.id_label,
     )
 
 

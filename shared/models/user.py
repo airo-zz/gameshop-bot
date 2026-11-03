@@ -73,6 +73,36 @@ def is_telegram_id(telegram_id: int | None) -> bool:
     return bool(telegram_id) and telegram_id > 0
 
 
+def user_id_label(telegram_id: int | None, is_guest: bool = False) -> str:
+    """Короткий ID покупателя для персонала вместо служебного -7000…012:
+    «TG 123456789», «Сайт #12» (вход по почте), «Гость #34» (чат без входа)."""
+    if is_telegram_id(telegram_id):
+        return f"TG {telegram_id}"
+    if not telegram_id:
+        return "—"
+    num = -int(telegram_id) - EMAIL_USER_ID_BASE
+    return f"{'Гость' if is_guest else 'Сайт'} #{num}"
+
+
+def staff_user_label(
+    telegram_id: int | None,
+    username: str | None = None,
+    first_name: str | None = None,
+    email: str | None = None,
+    is_guest: bool = False,
+) -> str:
+    """Подпись покупателя в уведомлениях персоналу (без HTML-экранирования):
+    «Иван (@ivan)», «Иван (TG 123)», «ivan@mail.ru (Сайт #12)», «Гость #34»."""
+    id_label = user_id_label(telegram_id, is_guest)
+    if is_telegram_id(telegram_id):
+        name = (first_name or "").strip()
+        handle = f"@{username}" if username else id_label
+        return f"{name} ({handle})" if name and name != handle else handle
+    if is_guest:
+        return id_label
+    return f"{email} ({id_label})" if email else id_label
+
+
 class User(Base, UUIDMixin, TimestampMixin):
     """
     Основная таблица пользователей.
@@ -174,6 +204,14 @@ class User(Base, UUIDMixin, TimestampMixin):
         if self.username:
             return f"@{self.username}"
         return self.first_name or self.email or f"user_{self.telegram_id}"
+
+    @property
+    def id_label(self) -> str:
+        return user_id_label(self.telegram_id, self.is_guest)
+
+    @property
+    def staff_label(self) -> str:
+        return staff_user_label(self.telegram_id, self.username, self.first_name, self.email, self.is_guest)
 
     def __repr__(self) -> str:
         return f"<User tg={self.telegram_id} {self.display_name}>"

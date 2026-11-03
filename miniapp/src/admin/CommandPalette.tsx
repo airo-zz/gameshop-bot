@@ -9,7 +9,7 @@ import { Command } from 'cmdk'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { Loader2, Search } from '@/components/ui/icons'
-import { adminWorkspaceApi } from '@/api/admin'
+import { adminWorkspaceApi, userIdLabel } from '@/api/admin'
 
 export interface PaletteNavItem {
   to: string
@@ -100,7 +100,7 @@ export default function CommandPalette({ open, onOpenChange, nav }: {
             {data.users.map((u) => (
               <Command.Item key={u.id} value={`u-${u.id}`} onSelect={() => go(`/admin/users/${u.id}`)} className={itemCls}>
                 <span className="font-medium text-[var(--text)] truncate">{u.name}</span>
-                <span className="truncate text-xs">{u.email ?? (u.telegram_id > 0 ? `ID ${u.telegram_id}` : '')}</span>
+                <span className="truncate text-xs">{u.email ?? userIdLabel(u)}</span>
                 <span className="ml-auto text-xs text-[var(--hint)] whitespace-nowrap">заказов: {u.orders_count}</span>
               </Command.Item>
             ))}

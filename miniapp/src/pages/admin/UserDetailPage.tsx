@@ -10,7 +10,7 @@ import {
   ArrowLeft, AlertCircle, ShieldAlert,
   ShieldOff, PlusCircle, MinusCircle, ExternalLink, Save,
 } from '@/components/ui/icons'
-import { adminApi } from '@/api/admin'
+import { adminApi, userIdLabel } from '@/api/admin'
 import type { AdminUserDetail, LoyaltyLevel } from '@/api/admin'
 import toast from 'react-hot-toast'
 
@@ -133,7 +133,7 @@ export default function UserDetailPage() {
   }
 
   const STAT_ITEMS = [
-    { label: 'Telegram ID', value: user.telegram_id },
+    { label: 'ID', value: userIdLabel(user) },
     { label: 'Баланс',      value: formatMoney(user.balance) },
     { label: 'Заказов',     value: user.orders_count },
     { label: 'Потрачено',   value: formatMoney(user.total_spent) },

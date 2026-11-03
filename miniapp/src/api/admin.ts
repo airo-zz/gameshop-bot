@@ -72,6 +72,7 @@ export interface AdminOrderListItem {
   total_amount: number
   payment_method: string | null
   user_telegram_id: number
+  user_id_label?: string
   user_first_name: string
   user_username: string | null
   items_count: number
@@ -85,6 +86,9 @@ export interface AdminOrderListItem {
 export interface AdminOrderDetailUser {
   id: string
   telegram_id: number
+  /** Короткий ID для персонала: «TG 123», «Сайт #12», «Гость #34» */
+  id_label?: string
+  email?: string | null
   username: string | null
   first_name: string
   last_name: string | null
@@ -151,6 +155,8 @@ export interface AdminOrderDetail {
 export interface AdminUserListItem {
   id: string
   telegram_id: number
+  /** Короткий ID для персонала: «TG 123», «Сайт #12», «Гость #34» */
+  id_label?: string
   username: string | null
   first_name: string
   last_name: string | null
@@ -168,6 +174,8 @@ export interface AdminUserListItem {
 export interface AdminUserDetail {
   id: string
   telegram_id: number
+  /** Короткий ID для персонала: «TG 123», «Сайт #12», «Гость #34» */
+  id_label?: string
   username: string | null
   first_name: string
   last_name: string | null
@@ -443,6 +451,9 @@ export interface AdminChatUserInfo {
   telegram_id: number
   username: string | null
   first_name: string
+  email?: string | null
+  /** Короткий ID для персонала: «TG 123», «Сайт #12», «Гость #34» */
+  id_label?: string
 }
 
 export interface AdminChatMessage {
@@ -880,7 +891,7 @@ export interface AuditItem {
 
 export interface AdminSearchResult {
   orders: { id: string; order_number: string; status: string; total: number; created_at: string; user: string | null }[]
-  users: { id: string; telegram_id: number; name: string; email: string | null; orders_count: number }[]
+  users: { id: string; telegram_id: number; id_label?: string; name: string; email: string | null; orders_count: number }[]
   products: { id: string; name: string; game: string; price: number; is_active: boolean }[]
   games: { id: string; name: string; slug: string; is_active: boolean }[]
 }
@@ -1061,4 +1072,9 @@ export const decorAdminApi = {
   save: (data: { price_tiers?: string; base_rub?: number }) =>
     apiClient.put<DecorSettings>('/admin/decor', data).then(r => r.data),
   sync: () => apiClient.post<DecorSettings>('/admin/decor/sync').then(r => r.data),
+}
+
+/** Короткий ID покупателя: «TG 123», «Сайт #12», «Гость #34» (служебный -7000…012 не показываем). */
+export function userIdLabel(u: { id_label?: string; telegram_id: number }): string {
+  return u.id_label || (u.telegram_id > 0 ? `TG ${u.telegram_id}` : 'Сайт')
 }

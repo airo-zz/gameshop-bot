@@ -202,7 +202,7 @@ async def admin_order_detail(
 
     text = (
         f"📋 <b>Заказ {order.order_number}</b>\n\n"
-        f"👤 Клиент: {user.display_name} (tg: {user.telegram_id})\n"
+        f"👤 Клиент: {escape(user.display_name)} · {escape(user.id_label)}\n"
         f"📅 Создан: {order.created_at.strftime('%d.%m.%Y %H:%M')}\n"
         f"Статус: <b>{STATUS_NAMES.get(order.status, order.status)}</b>\n\n"
         f"<b>Состав:</b>\n{items_text}\n\n"

@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, AlertCircle, Save, Trash2, Bell, UserCheck, UserMinus } from '@/components/ui/icons'
-import { adminApi } from '@/api/admin'
+import { adminApi, userIdLabel } from '@/api/admin'
 import type { AdminOrderDetail } from '@/api/admin'
 import toast from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
@@ -286,7 +286,7 @@ export default function OrderDetailPage() {
             <span className="text-[var(--hint)] ml-1">@{order.user.username}</span>
           )}
         </div>
-        <div className="text-xs text-[var(--hint)]">ID: {order.user.telegram_id}</div>
+        <div className="text-xs text-[var(--hint)]">{order.user.email ? `${order.user.email} · ` : ''}{userIdLabel(order.user)}</div>
       </div>
 
       {/* Данные покупателя (на уровне игры) */}

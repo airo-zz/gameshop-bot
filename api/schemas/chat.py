@@ -42,6 +42,9 @@ class AdminChatUserInfo(BaseModel):
     telegram_id: int
     username: str | None = None
     first_name: str = ""
+    email: str | None = None
+    id_label: str = ""
+    """Короткий ID для персонала: «TG 123», «Сайт #12», «Гость #34»."""
 
 
 class LinkedOrderOut(BaseModel):

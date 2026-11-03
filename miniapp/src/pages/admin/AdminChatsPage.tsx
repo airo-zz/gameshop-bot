@@ -315,7 +315,7 @@ function CustomLotModal({ chatId, onClose, onCreated }: {
     </div>
   )
 }
-import { adminApi, type AdminChatListItem, type AdminChatDetail, type AdminChatMessage, type AdminOrderListItem } from '@/api/admin'
+import { adminApi, userIdLabel, type AdminChatListItem, type AdminChatDetail, type AdminChatMessage, type AdminOrderListItem } from '@/api/admin'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -347,7 +347,7 @@ function getUserLabel(user: AdminChatListItem['user']): string {
   if (user.first_name) {
     return user.username ? `${user.first_name} @${user.username}` : user.first_name
   }
-  return user.username ? `@${user.username}` : `ID: ${user.telegram_id}`
+  return user.username ? `@${user.username}` : (user.email || userIdLabel(user))
 }
 
 function getInitials(user: AdminChatListItem['user']): string {
@@ -564,7 +564,7 @@ function PendingOrdersSection({
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
         {visible.map(order => {
-          const userName = order.user_first_name || (order.user_username ? `@${order.user_username}` : `ID: ${order.user_telegram_id}`)
+          const userName = order.user_first_name || (order.user_username ? `@${order.user_username}` : (order.user_id_label || userIdLabel({ telegram_id: order.user_telegram_id })))
           const isClaiming = claiming === order.id
           return (
             <button
@@ -960,7 +960,7 @@ function ChatDetailPanel({
           </p>
           {chat && (
             <p style={{ margin: 0, fontSize: 11, color: 'rgba(220,235,255,0.35)' }}>
-              ID: {chat.user.telegram_id}
+              {userIdLabel(chat.user)}
               {chat.user.username && ` · @${chat.user.username}`}
             </p>
           )}

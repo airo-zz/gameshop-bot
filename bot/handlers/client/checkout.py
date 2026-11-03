@@ -362,7 +362,7 @@ async def cb_pay_balance(
 
     payment_svc = PaymentService(db)
     try:
-        await payment_svc.pay_balance(order, user)
+        await payment_svc.pay_balance(order, user, source="bot")
         # Успех — очищаем корзину только для заказов ИЗ корзины (при ошибке ниже
         # она сохраняется). Индивидуальный лот (custom_lot) корзину не трогает.
         if (order.meta or {}).get("from_cart"):

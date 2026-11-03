@@ -117,8 +117,14 @@ class PaymentService:
 
     # ── 1. Баланс ─────────────────────────────────────────────────────────────
 
-    async def pay_balance(self, order: Order, user: User) -> dict:
+    @staticmethod
+    def _mark_source(order: Order, source: str) -> None:
+        """Откуда оплачен заказ (web | miniapp | bot) — для уведомления персоналу."""
+        order.meta = {**(order.meta or {}), "source": source}
+
+    async def pay_balance(self, order: Order, user: User, source: str = "miniapp") -> dict:
         """Моментальная оплата с внутреннего баланса."""
+        self._mark_source(order, source)
         payment = await self._create_payment_record(order, user, PaymentMethod.balance)
 
         try:
@@ -234,6 +240,7 @@ class PaymentService:
         if code is None:
             raise ValueError("Неподдерживаемый метод Platega")
 
+        self._mark_source(order, source)
         payment = await self._create_payment_record(
             order, user, PaymentMethod(method_value)
         )
