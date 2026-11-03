@@ -69,9 +69,19 @@ export function setCookieConsent(v: CookieConsent) {
   if (v === 'all') initMetrika()
 }
 
+/** Сайт открыт во фрейме самой Метрики (Вебвизор, карты кликов) — смотрит владелец,
+ *  а не посетитель; согласия там нет (хранилище фрейма отдельное), а счётчик нужен. */
+function inMetrikaFrame(): boolean {
+  try {
+    if (window.self === window.top) return false
+    const origins = Array.from(location.ancestorOrigins ?? []).join(' ') + ' ' + document.referrer
+    return /metrika\.yandex|metrica\.yandex|webvisor\.com/.test(origins)
+  } catch { return false }
+}
+
 /** Метрика ставит cookie — запускаем только после согласия «Принять». */
 export function initMetrika() {
-  if (!YM_ID || window.ym || getCookieConsent() !== 'all') return
+  if (!YM_ID || window.ym || (getCookieConsent() !== 'all' && !inMetrikaFrame())) return
   // Официальный сниппет Метрики (тег), без noscript-пикселя
   const w = window as any
   w.dataLayer = w.dataLayer || []
