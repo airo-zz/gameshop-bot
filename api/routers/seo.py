@@ -387,9 +387,8 @@ def _breadcrumbs(items: list[tuple[str, str]]) -> dict:
 
 async def _data_common(db) -> list:
     from api.routers import catalog as cat_api
-    from api.schemas.catalog import GameOut
 
-    games = [GameOut.model_validate(g) for g in await CatalogService(db).get_active_games()]
+    games = await cat_api.list_games(db, type=None)
     return [
         (["web", "games", "all"], games),
         (["web", "trending-categories"], await cat_api.get_trending_categories(db)),
