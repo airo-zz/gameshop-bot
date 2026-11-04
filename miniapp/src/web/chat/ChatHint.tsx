@@ -33,8 +33,9 @@ function put(store: 'local' | 'session', key: string) {
   try { (store === 'local' ? localStorage : sessionStorage).setItem(key, '1') } catch { /* приватный режим */ }
 }
 
-/** Короткий мягкий «дзынь» без файла — синтез WebAudio, громкость низкая */
-function chime() {
+/** Короткий мягкий «дзынь» без файла — синтез WebAudio, громкость низкая.
+ *  Ещё звучит при ответе оператора (ChatWidget), если чат закрыт или вкладка в фоне. */
+export function chime() {
   try {
     const nav = navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }
     if (nav.userActivation && !nav.userActivation.hasBeenActive) return

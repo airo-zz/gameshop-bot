@@ -22,7 +22,7 @@ import { fmtNum } from '@/utils/format'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import logoMark from '@/assets/logo-mark.png'
 import { useChatWidget } from './chatStore'
-import ChatHint, { useChatGreeting } from './ChatHint'
+import ChatHint, { chime, useChatGreeting } from './ChatHint'
 import { guestTransport, userTransport, type ChatTransport } from './chatTransport'
 
 type Msg = ChatMessage & { optimistic?: boolean }
@@ -157,8 +157,18 @@ function ChatThread({ transport, mode }: { transport: ChatTransport; mode: 'user
     queryFn: transport.getMessages,
     enabled: started,
     refetchInterval: 3000,
-    refetchIntervalInBackground: false,
+    // и в фоновой вкладке — иначе ответ оператора придёт только когда человек вернётся
+    refetchIntervalInBackground: true,
   })
+
+  // Звук на новое сообщение от магазина, если чат открыт, но вкладка в фоне
+  const lastShopMsg = [...messages].reverse().find((m) => m.sender_type !== 'user')?.id
+  const prevShopMsg = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    if (isLoading) return
+    if (prevShopMsg.current !== undefined && lastShopMsg && lastShopMsg !== prevShopMsg.current && document.hidden) chime()
+    prevShopMsg.current = lastShopMsg ?? ''
+  }, [lastShopMsg, isLoading])
 
   useEffect(() => {
     const p = takePrefill()
@@ -373,10 +383,17 @@ export default function ChatWidget() {
     queryKey: ['web', 'chat-unread', mode],
     queryFn: () => transport.getChat().then((c) => c.unread_count ?? 0),
     enabled: ready && transport.ready(),
-    refetchInterval: open ? false : 30_000,
+    refetchInterval: open ? false : 20_000,
+    refetchIntervalInBackground: true,
     staleTime: 15_000,
     retry: false,
   })
+  // Звук, когда оператор ответил, а чат закрыт (непрочитанных стало больше)
+  const prevUnread = useRef<number | null>(null)
+  useEffect(() => {
+    if (prevUnread.current !== null && unread > prevUnread.current && !open) chime()
+    prevUnread.current = unread
+  }, [unread, open])
   // Токен гостя устарел/удалён на сервере — начинаем с чистого листа
   useEffect(() => {
     const status = (error as { response?: { status?: number } } | null)?.response?.status
