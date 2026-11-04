@@ -23,7 +23,43 @@ import { EASE, Stagger, StaggerItem } from '@/web/components/Motion'
 import { usePageMeta, trackDetail } from '@/web/seo'
 import WebDecorPage from '@/web/pages/WebDecorPage'
 
-// ── Карточка товара ───────────────────────────────────────────────────────────
+// ── Строка товара ─────────────────────────────────────────────────────────────
+// Товары — списком, как прайс: слева крупно количество («320» + «алмазов»), справа
+// цена и кнопка. Картинок у товаров нет — вместо них число и метка выгоды.
+
+/** «1 600 А-коинов» → { amount: 1600, num: '1 600', unit: 'А-коинов' }; без числа в начале — null. */
+function parseAmount(name: string): { amount: number; num: string; unit: string } | null {
+  const m = /^(\d{1,3}(?:[\s ]\d{3})+|\d+)(?:[.,](\d+))?\s+(\S.*)$/.exec(name.trim())
+  if (!m) return null
+  const amount = Number(m[1].replace(/[\s ]/g, '') + (m[2] ? `.${m[2]}` : ''))
+  if (!amount) return null
+  return { amount, num: m[2] ? `${m[1]},${m[2]}` : m[1], unit: m[3] }
+}
+
+/** Насколько пакет выгоднее самого дорогого за единицу в разделе (%, от 5%).
+ *  Только когда у 3+ товаров одна единица («алмазов», «гемов»). */
+function valueHints(products: Product[]): Map<string, number> {
+  const groups = new Map<string, { id: string; unitPrice: number }[]>()
+  for (const p of products) {
+    const a = parseAmount(p.name)
+    if (!a || p.is_out_of_stock) continue
+    // по началу слова: «буст», «буста», «бустов» — одна единица
+    const key = a.unit.split(/\s/)[0].toLowerCase().slice(0, 4)
+    const list = groups.get(key) ?? []
+    list.push({ id: p.id, unitPrice: Number(p.price) / a.amount })
+    groups.set(key, list)
+  }
+  const out = new Map<string, number>()
+  for (const list of groups.values()) {
+    if (list.length < 3) continue
+    const base = Math.max(...list.map((x) => x.unitPrice))
+    for (const x of list) {
+      const pct = Math.round((1 - x.unitPrice / base) * 100)
+      if (pct >= 5) out.set(x.id, pct)
+    }
+  }
+  return out
+}
 
 interface ProductCardProps {
   product: Product
@@ -33,9 +69,12 @@ interface ProductCardProps {
   onDec: (product: Product) => void
   onRequireLogin: () => void
   singleAdd?: boolean // Telegram Premium — максимум 1 шт
+  saving?: number     // «Выгоднее на N%»
 }
 
-function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLogin, singleAdd }: ProductCardProps) {
+const fieldClass = 'w-full h-10 bg-[var(--bg3)] border border-transparent rounded-xl px-3 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:border-[var(--accent)]'
+
+function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLogin, singleAdd, saving }: ProductCardProps) {
   const hasDiscount = !!product.original_price && Number(product.original_price) > Number(product.price)
   const discountPct = hasDiscount
     ? Math.round((1 - Number(product.price) / Number(product.original_price!)) * 100)
@@ -46,7 +85,9 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
   const qtyField = allFields.find((f) => f.type === 'quantity')
   const inputFields = allFields.filter((f) => f.type !== 'quantity')
   const hasInputs = inputFields.length > 0
+  const needsPanel = hasInputs || !!qtyField
   const minQty = Math.max(1, Number(qtyField?.min ?? 1))
+  const amount = parseAmount(product.name)
 
   const [inputData, setInputData] = useState<Record<string, string>>({})
   const [showInputs, setShowInputs] = useState(false)
@@ -57,124 +98,157 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
 
   function handleBuy() {
     if (!isAuthenticated) { onRequireLogin(); return }
-    if (hasInputs && !showInputs && qty === 0) { setShowInputs(true); return }
+    if (needsPanel && !showInputs && qty === 0) { setShowInputs(true); return }
     if (missingRequired) { toast.error('Заполните обязательные поля'); return }
     if (qtyField && Number(units) < minQty) { toast.error(`Минимум ${minQty} ${qtyField.unit || 'шт'}`); return }
     onAdd(product, hasInputs ? inputData : undefined, qtyField ? unitsNum : 1)
   }
 
+  const dim = outOfStock ? 'text-[var(--hint)]' : 'text-[var(--text)]'
+  const panelOpen = needsPanel && showInputs && !outOfStock && qty === 0
+
   return (
-    <div className={'h-full rounded-2xl bg-[var(--bg2)] p-4 flex flex-col gap-3 transition-colors ' + (qty > 0 ? 'ring-1 ring-[var(--accent)]' : 'hover:bg-[#191B21]')}>
-      <div className="flex items-start gap-2">
-        <h3 className={'text-[15px] font-medium leading-snug flex-1 ' + (outOfStock ? 'text-[var(--hint)]' : 'text-[var(--text)]')} style={{ margin: 0 }}>
-          {product.name}
-        </h3>
-        {product.badge && !outOfStock && (
-          <span className="shrink-0 text-[11px] font-semibold text-white px-1.5 py-0.5 rounded-md" style={{ background: '#EF4444' }}>
-            {product.badge}
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-baseline gap-2">
-        <span className={'text-xl font-semibold tracking-tight num ' + (outOfStock ? 'text-[var(--hint)]' : 'text-[var(--text)]')}>
-          {money(product.price)}
-        </span>
-        {hasDiscount && <span className="text-sm text-[var(--hint)] line-through num">{money(product.original_price!)}</span>}
-        {hasDiscount && (
-          <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(16,185,129,0.14)', color: '#34d399' }}>
-            −{discountPct}%
-          </span>
-        )}
-      </div>
-
-      {/* Поля от покупателя */}
-      {hasInputs && showInputs && !outOfStock && (
-        <div className="flex flex-col gap-2">
-          {inputFields.map((field) => (
-            <div key={field.key}>
-              <label className="block text-xs text-[var(--hint)] mb-1">
-                {field.label}{field.required && <span className="text-amber-400"> *</span>}
-              </label>
-              {field.type === 'select' ? (
-                <select
-                  value={inputData[field.key] ?? ''}
-                  onChange={(e) => setInputData((p) => ({ ...p, [field.key]: e.target.value }))}
-                  className="w-full h-10 bg-[var(--bg3)] border border-transparent rounded-xl px-3 text-sm text-[var(--text)] focus:outline-none focus:border-[var(--accent)]"
-                >
-                  <option value="">Выберите...</option>
-                  {field.options?.map((o) => <option key={o} value={o}>{o}</option>)}
-                </select>
-              ) : (
-                <input
-                  type={field.type === 'number' ? 'number' : 'text'}
-                  value={inputData[field.key] ?? ''}
-                  onChange={(e) => setInputData((p) => ({ ...p, [field.key]: e.target.value }))}
-                  placeholder={field.placeholder ?? field.label}
-                  className="w-full h-10 bg-[var(--bg3)] border border-transparent rounded-xl px-3 text-sm text-[var(--text)] placeholder:text-[var(--hint)] focus:outline-none focus:border-[var(--accent)]"
-                />
+    <div className={'rounded-2xl bg-[var(--bg2)] transition-colors ' + (qty > 0 ? 'ring-1 ring-[var(--accent)]' : 'hover:bg-[#191B21]')}>
+      <div className="flex items-center gap-3 sm:gap-4 px-4 py-3 min-h-[64px]">
+        {/* Что покупаем: крупное число + подпись, иначе название */}
+        <div className="min-w-0 flex-1">
+          <h3 className={'leading-snug ' + dim} style={{ margin: 0 }}>
+            {amount ? (
+              <span className="inline-flex items-baseline gap-1.5 flex-wrap">
+                <span className="text-lg sm:text-xl font-semibold tracking-tight num">{amount.num}</span>
+                <span className={'text-sm ' + (outOfStock ? 'text-[var(--hint)]' : 'text-[var(--text-2)]')}>{amount.unit}</span>
+              </span>
+            ) : (
+              <span className="text-[15px] font-medium">{product.name}</span>
+            )}
+          </h3>
+          {(product.badge || saving || outOfStock) && (
+            <div className="mt-1 flex flex-wrap items-center gap-1.5">
+              {outOfStock && <span className="text-xs text-[var(--hint)]">Нет в наличии</span>}
+              {!outOfStock && product.badge && (
+                <span className="text-[11px] font-semibold text-white px-1.5 py-0.5 rounded-md" style={{ background: '#EF4444' }}>
+                  {product.badge}
+                </span>
+              )}
+              {!outOfStock && !!saving && (
+                <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(16,185,129,0.14)', color: '#34d399' }}>
+                  Выгоднее на {saving}%
+                </span>
               )}
             </div>
-          ))}
+          )}
         </div>
-      )}
 
-      {/* Количество для товара «за единицу» */}
-      {qtyField && !outOfStock && qty === 0 && (
-        <div>
-          <label className="block text-xs text-[var(--hint)] mb-1">
-            {qtyField.label || 'Количество'} · от {minQty} {qtyField.unit || 'шт'}
-          </label>
-          <div className="flex items-center gap-2">
-            <input
-              type="text" inputMode="numeric" value={units}
-              onChange={(e) => setUnits(e.target.value.replace(/\D/g, ''))}
-              onBlur={() => setUnits(String(unitsNum))}
-              className="w-28 h-10 bg-[var(--bg3)] border border-transparent rounded-xl px-3 text-sm text-[var(--text)] num focus:outline-none focus:border-[var(--accent)]"
-            />
-            <span className="text-sm text-[var(--text-2)] num">= {money(Number(product.price) * unitsNum)}</span>
+        {/* Цена */}
+        <div className="shrink-0 text-right">
+          <div className={'text-base sm:text-lg font-semibold tracking-tight num ' + dim}>
+            {money(product.price)}{qtyField && <span className="text-xs font-normal text-[var(--hint)]"> / {qtyField.unit || 'шт'}</span>}
           </div>
+          {hasDiscount && (
+            <div className="flex items-center justify-end gap-1.5">
+              <span className="text-xs text-[var(--hint)] line-through num">{money(product.original_price!)}</span>
+              <span className="text-[11px] font-semibold" style={{ color: '#34d399' }}>−{discountPct}%</span>
+            </div>
+          )}
         </div>
-      )}
 
-      {/* Действие */}
-      <div className="mt-auto pt-1">
-        {outOfStock ? (
-          <div className="text-sm text-center h-10 flex items-center justify-center rounded-xl bg-[var(--bg3)] text-[var(--hint)]">
-            Нет в наличии
+        {/* Действие */}
+        {!outOfStock && (
+          <div className="shrink-0">
+            {qty > 0 && qtyField ? (
+              <button onClick={() => onDec(product)} className="h-10 px-3 rounded-xl bg-[var(--bg3)] text-sm text-[var(--text-2)] hover:text-[var(--text)] num">
+                {qty} {qtyField.unit || 'шт'} · убрать
+              </button>
+            ) : qty > 0 ? (
+              <div className="flex items-center h-10 rounded-xl bg-[var(--bg3)] px-0.5">
+                <button onClick={() => onDec(product)} className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--text-2)] hover:bg-[var(--bg2)]" aria-label="Убрать одну штуку">
+                  <Minus size={16} />
+                </button>
+                <span className="min-w-[1.5rem] text-center text-sm font-semibold text-[var(--text)] num">{qty}</span>
+                <button
+                  onClick={() => onAdd(product, hasInputs ? inputData : undefined)}
+                  disabled={singleAdd}
+                  className="w-9 h-9 flex items-center justify-center rounded-lg text-[var(--text-2)] hover:bg-[var(--bg2)] disabled:opacity-25 disabled:hover:bg-transparent"
+                  aria-label="Добавить ещё одну"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            ) : !panelOpen ? (
+              <button
+                onClick={handleBuy}
+                aria-label={needsPanel ? 'Выбрать' : 'В корзину'}
+                className="flex items-center justify-center gap-2 h-10 w-10 sm:w-auto sm:px-4 rounded-xl text-sm font-semibold text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors"
+              >
+                <ShoppingCart size={17} />
+                <span className="hidden sm:inline">{needsPanel ? 'Выбрать' : 'В корзину'}</span>
+              </button>
+            ) : (
+              <button onClick={() => setShowInputs(false)} className="h-10 px-3 rounded-xl text-sm text-[var(--hint)] hover:text-[var(--text)]">
+                Отмена
+              </button>
+            )}
           </div>
-        ) : qty > 0 && qtyField ? (
-          <div className="flex items-center justify-between h-10 rounded-xl bg-[var(--bg3)] px-3">
-            <span className="text-sm font-semibold text-[var(--text)] num">{qty} {qtyField.unit || 'шт'} в корзине</span>
-            <button onClick={() => onDec(product)} className="text-xs text-[var(--hint)] hover:text-[var(--text)]">
-              Убрать
-            </button>
-          </div>
-        ) : qty > 0 ? (
-          <div className="flex items-center justify-between h-10 rounded-xl bg-[var(--bg3)] px-1">
-            <button onClick={() => onDec(product)} className="w-9 h-8 flex items-center justify-center rounded-lg text-[var(--text-2)] hover:bg-[var(--bg2)]" aria-label="Убрать одну штуку">
-              <Minus size={16} />
-            </button>
-            <span className="text-sm font-semibold text-[var(--text)] num">{qty} в корзине</span>
-            <button
-              onClick={() => onAdd(product, hasInputs ? inputData : undefined)}
-              disabled={singleAdd}
-              className="w-9 h-8 flex items-center justify-center rounded-lg text-[var(--text-2)] hover:bg-[var(--bg2)] disabled:opacity-25 disabled:hover:bg-transparent"
-              aria-label="Добавить ещё одну"
-            >
-              <Plus size={16} />
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={handleBuy}
-            className="flex items-center justify-center gap-2 w-full h-10 rounded-xl text-sm font-semibold text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors"
-          >
-            <ShoppingCart size={17} />
-            {hasInputs && !showInputs ? 'Выбрать' : 'В корзину'}
-          </button>
         )}
       </div>
+
+      {/* Данные от покупателя и количество — раскрываются под строкой */}
+      {panelOpen && (
+        <div className="px-4 pb-4 pt-3 border-t border-[var(--border)] flex flex-col gap-3">
+          {hasInputs && (
+            <div className="grid sm:grid-cols-2 gap-2">
+              {inputFields.map((field) => (
+                <div key={field.key}>
+                  <label className="block text-xs text-[var(--hint)] mb-1">
+                    {field.label}{field.required && <span className="text-amber-400"> *</span>}
+                  </label>
+                  {field.type === 'select' ? (
+                    <select
+                      value={inputData[field.key] ?? ''}
+                      onChange={(e) => setInputData((p) => ({ ...p, [field.key]: e.target.value }))}
+                      className={fieldClass}
+                    >
+                      <option value="">Выберите...</option>
+                      {field.options?.map((o) => <option key={o} value={o}>{o}</option>)}
+                    </select>
+                  ) : (
+                    <input
+                      type={field.type === 'number' ? 'number' : 'text'}
+                      value={inputData[field.key] ?? ''}
+                      onChange={(e) => setInputData((p) => ({ ...p, [field.key]: e.target.value }))}
+                      placeholder={field.placeholder ?? field.label}
+                      className={fieldClass}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+          {qtyField && (
+            <div>
+              <label className="block text-xs text-[var(--hint)] mb-1">
+                {qtyField.label || 'Количество'} · от {minQty} {qtyField.unit || 'шт'}
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text" inputMode="numeric" value={units}
+                  onChange={(e) => setUnits(e.target.value.replace(/\D/g, ''))}
+                  onBlur={() => setUnits(String(unitsNum))}
+                  className={fieldClass + ' w-28 num'}
+                />
+                <span className="text-sm text-[var(--text-2)] num">= {money(Number(product.price) * unitsNum)}</span>
+              </div>
+            </div>
+          )}
+          <button
+            onClick={handleBuy}
+            className="flex items-center justify-center gap-2 h-10 sm:w-fit sm:px-6 rounded-xl text-sm font-semibold text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors"
+          >
+            <ShoppingCart size={17} />
+            В корзину
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -318,6 +392,7 @@ function GamePageContent() {
     enabled: !!currentCatId,
     staleTime: 2 * 60_000,
   })
+  const savings = useMemo(() => valueHints(products), [products])
 
   const game = games.find((g) => g.slug === slug)
   const gameName = game?.name ?? slug?.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) ?? ''
@@ -460,9 +535,9 @@ function GamePageContent() {
         <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start" aria-hidden="true">
           <div>
             <div className="h-12 w-80 max-w-full rounded-2xl bg-[var(--bg2)] animate-pulse mb-4" />
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            <div className="flex flex-col gap-2">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="h-40 rounded-2xl bg-[var(--bg2)] animate-pulse" />
+                <div key={i} className="h-16 rounded-2xl bg-[var(--bg2)] animate-pulse" />
               ))}
             </div>
           </div>
@@ -539,9 +614,9 @@ function GamePageContent() {
             )}
 
             {prodLoading ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              <div className="flex flex-col gap-2">
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="h-40 rounded-2xl bg-[var(--bg2)] animate-pulse" />
+                  <div key={i} className="h-16 rounded-2xl bg-[var(--bg2)] animate-pulse" />
                 ))}
               </div>
             ) : products.length === 0 ? (
@@ -550,9 +625,9 @@ function GamePageContent() {
               <>
               {/* Заголовок раздела для структуры страницы (h1 → h2 → h3 карточек) */}
               <h2 className="sr-only">{currentCat?.name ?? gameName}</h2>
-              <Stagger key={currentCatId ?? ''} className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+              <Stagger key={currentCatId ?? ''} className="flex flex-col gap-2">
                 {products.map((p) => (
-                  <StaggerItem key={p.id} className="h-full">
+                  <StaggerItem key={p.id}>
                     <ProductCard
                       product={p}
                       qty={qtyByProduct.get(p.id) ?? 0}
@@ -561,6 +636,7 @@ function GamePageContent() {
                       onDec={handleDec}
                       onRequireLogin={requireLogin}
                       singleAdd={isPremium}
+                      saving={savings.get(p.id)}
                     />
                   </StaggerItem>
                 ))}
