@@ -452,9 +452,11 @@ function GamePageContent() {
       }
       data = { ...tgFields, ...(inputData ?? {}) }
     }
+    // Корзина на экране меняется сразу (оптимистично), запрос — следом
+    const request = add(product.id, data, quantity, { name: product.name, price: product.price })
+    toast.success('Добавлено в корзину')
     try {
-      await add(product.id, data, quantity)
-      toast.success('Добавлено в корзину')
+      await request
     } catch (e: any) {
       toast.error(e?.response?.data?.detail ?? 'Не удалось добавить')
     }
