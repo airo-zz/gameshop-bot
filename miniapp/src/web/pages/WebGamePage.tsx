@@ -36,7 +36,7 @@ function parseAmount(name: string): { amount: number; num: string; unit: string 
   return { amount, num: m[2] ? `${m[1]},${m[2]}` : m[1], unit: m[3] }
 }
 
-/** Насколько пакет выгоднее самого дорогого за единицу в разделе (%, от 5%).
+/** Самый выгодный пакет раздела: на сколько % он дешевле за единицу самого дорогого (от 5%).
  *  Только когда у 3+ товаров одна единица («алмазов», «гемов»). */
 function valueHints(products: Product[]): Map<string, number> {
   const groups = new Map<string, { id: string; unitPrice: number }[]>()
@@ -52,11 +52,11 @@ function valueHints(products: Product[]): Map<string, number> {
   const out = new Map<string, number>()
   for (const list of groups.values()) {
     if (list.length < 3) continue
+    // Метка только у самого выгодного пакета — на каждой строке она теряет смысл
     const base = Math.max(...list.map((x) => x.unitPrice))
-    for (const x of list) {
-      const pct = Math.round((1 - x.unitPrice / base) * 100)
-      if (pct >= 5) out.set(x.id, pct)
-    }
+    const best = list.reduce((a, x) => (x.unitPrice < a.unitPrice ? x : a))
+    const pct = Math.round((1 - best.unitPrice / base) * 100)
+    if (pct >= 5) out.set(best.id, pct)
   }
   return out
 }
