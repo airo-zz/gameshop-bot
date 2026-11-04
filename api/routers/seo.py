@@ -634,11 +634,17 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
         f'<li><a href="/game/{_e(game.slug)}/{_e(c.slug)}">{_e(clean_name(c.name))}</a></li>'
         for c in roots if (not current or c.id != current.id) and not decor
     )
+    image = f"{SITE}{game.image_url}" if game.image_url and game.image_url.startswith("/") else game.image_url
+    # Обложка этой игры — в самой странице, рядом с H1: картинку для выдачи Google берёт
+    # из видимых на странице, а без неё мог подставить обложку другой игры из старой копии.
+    cover_html = (f'<img src="{_e(image)}" alt="{_e(game.name)}" width="112" height="112" '
+                  f'style="width:112px;height:112px;border-radius:16px;object-fit:cover" />' if image else "")
     body = (
         _nav()
         + "<nav>" + " / ".join(
             f'<a href="{_e(u)}">{_e(n)}</a>' if i < len(crumbs) - 1 else _e(n)
             for i, (n, u) in enumerate(crumbs)) + "</nav>"
+        + cover_html
         + f"<h1>{_e(page.h1)}</h1><p>{_e(page.intro)}</p>"
         + (f"<p>Также ищут: {_e(', '.join(page.aliases))}.</p>" if page.aliases else "")
         + sections_html
@@ -650,8 +656,17 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
         + _reviews_html(await _game_reviews(db, slug), game.name)
     )
 
-    image = f"{SITE}{game.image_url}" if game.image_url and game.image_url.startswith("/") else game.image_url
     ld: list[dict] = [_breadcrumbs(crumbs)]
+    if image:
+        # Явная подсказка поисковику: главная картинка страницы — обложка этой игры
+        ld.append({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            "url": SITE + path,
+            "name": page.title,
+            "primaryImageOfPage": {"@type": "ImageObject", "url": image, "contentUrl": image,
+                                   "caption": game.name},
+        })
     if offers:
         ld.append({
             "@context": "https://schema.org",
