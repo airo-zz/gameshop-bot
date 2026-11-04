@@ -24,6 +24,8 @@ export interface Game {
   custom_order_enabled?: boolean
   /** «Украшения Discord» — открывается страница-каталог вместо вкладок */
   decor_catalog?: boolean
+  /** Цена «от» — только в списке игр */
+  min_price?: string | number | null
 }
 
 /** Каталог украшений Discord (общий с discordcatalog.net), GET /catalog/decor */

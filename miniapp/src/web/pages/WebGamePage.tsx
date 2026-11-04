@@ -31,6 +31,8 @@ import WebDecorPage from '@/web/pages/WebDecorPage'
 function parseAmount(name: string): { amount: number; num: string; unit: string } | null {
   const m = /^(\d{1,3}(?:[\s ]\d{3})+|\d+)(?:[.,](\d+))?\s+(\S.*)$/.exec(name.trim())
   if (!m) return null
+  // «7 дней входа», «30 дней подписки» — это срок, а не количество
+  if (/^(дн|день|дня|недел|месяц|час|минут|сут)/i.test(m[3])) return null
   const amount = Number(m[1].replace(/[\s ]/g, '') + (m[2] ? `.${m[2]}` : ''))
   if (!amount) return null
   return { amount, num: m[2] ? `${m[1]},${m[2]}` : m[1], unit: m[3] }
@@ -498,14 +500,16 @@ function GamePageContent() {
       </nav>
 
       {/* Шапка игры */}
-      <header className="flex items-start sm:items-center gap-4 sm:gap-5 mb-8">
+      {/* На телефоне описание — во всю ширину под обложкой и заголовком, а не узкой
+          колонкой рядом с обложкой; на ПК обложка слева на две строки */}
+      <header className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-4 sm:gap-x-5 mb-8">
         {cover ? (
-          <img src={thumbUrl(cover, 320) ?? cover} onError={onThumbError(cover)} alt={gameName} width={112} height={112} className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl object-cover shrink-0" style={{ boxShadow: 'inset 0 0 0 1px var(--border)' }} />
+          <img src={thumbUrl(cover, 320) ?? cover} onError={onThumbError(cover)} alt={gameName} width={112} height={112} className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl object-cover shrink-0 sm:row-span-2" style={{ boxShadow: 'inset 0 0 0 1px var(--border)' }} />
         ) : !game ? (
-          <div className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl bg-[var(--bg2)] shrink-0" aria-hidden="true" />
+          <div className="w-16 h-16 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl bg-[var(--bg2)] shrink-0 sm:row-span-2" aria-hidden="true" />
         ) : null}
-        <div className="flex-1 min-w-0">
-          <h1 className="text-2xl sm:text-3xl md:text-[2.5rem] leading-tight text-[var(--text)]" style={{ margin: 0 }}>{seo?.h1 ?? fallbackH1}</h1>
+        <h1 className={'text-2xl sm:text-3xl md:text-[2.5rem] leading-tight text-[var(--text)] min-w-0 sm:self-end' + (cover || !game ? '' : ' col-span-2')} style={{ margin: 0 }}>{seo?.h1 ?? fallbackH1}</h1>
+        <div className={'min-w-0 col-span-2 sm:self-start ' + (cover || !game ? 'sm:col-span-1 sm:col-start-2' : '')}>
           <div className="mt-3 flex flex-wrap items-center gap-2 min-h-7">
             {currentCat?.delivery_type === 'auto' && (
               <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium" style={{ background: 'rgba(16,185,129,0.12)', color: '#34d399' }}>
@@ -552,7 +556,8 @@ function GamePageContent() {
             {/* Категории: переносятся на новую строку — лента с прокруткой без полосы
                 на ПК не листалась мышью, дальние разделы были недоступны. Над сеткой во
                 всю ширину: корзина справа начинается вровень с товарами, а не с вкладками */}
-            <div className="flex flex-wrap gap-1 p-1 rounded-2xl bg-[var(--bg2)] w-fit max-w-full mb-3">
+            {/* Один раздел — вкладка ничего не переключает, не показываем */}
+            {rootCats.length > 1 && <div className="flex flex-wrap gap-1 p-1 rounded-2xl bg-[var(--bg2)] w-fit max-w-full mb-3">
               {rootCats.map((cat) => {
                 const active = currentRoot?.id === cat.id
                 return (
@@ -562,7 +567,7 @@ function GamePageContent() {
                   </button>
                 )
               })}
-            </div>
+            </div>}
 
             {currentRoot?.children?.length ? (
               <div className="flex flex-wrap gap-2 mb-4">

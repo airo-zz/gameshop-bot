@@ -248,15 +248,16 @@ function Topup({ topup }: { topup: HomeTopup[] }) {
       <Reveal>
         <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">{topupTitle(topup)}</h2>
       </Reveal>
-      {/* Тонкая обводка в цвет Telegram — по краю самой панели, размер и скругление как у остальных блоков */}
+      {/* Тонкая обводка в цвет Telegram — по краю самой панели, размер и скругление как у остальных блоков;
+          только Steam — без неё, синий Telegram там ни к чему */}
       <Reveal className="mt-6">
         <div className="relative">
           <QuickTopup options={topup} />
-          <div
+          {topup.some((t) => t.kind !== 'steam') && <div
             aria-hidden="true"
             className="absolute inset-0 rounded-2xl pointer-events-none"
             style={{ boxShadow: `inset 0 0 0 1px rgba(${TG_BLUE},0.45)` }}
-          />
+          />}
         </div>
       </Reveal>
     </section>

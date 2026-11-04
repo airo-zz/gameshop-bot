@@ -170,6 +170,32 @@ async def category_summaries(db: AsyncSession, cat_ids: list[uuid.UUID]) -> dict
     return out
 
 
+async def game_min_prices(db: AsyncSession) -> dict[uuid.UUID, Decimal]:
+    """{id игры: цена «от»} по активным товарам в наличии — для карточек каталога."""
+    rows = (await db.execute(
+        select(Category.game_id, Product.price, Product.input_fields)
+        .join(Category, Category.id == Product.category_id)
+        .where(
+            Category.is_active.is_(True),
+            Product.is_active.is_(True),
+            Product.is_out_of_stock.is_(False),
+        )
+    )).all()
+    out: dict[uuid.UUID, Decimal] = {}
+    for gid, price, fields in rows:
+        if price is None:
+            continue
+        qty = next((f for f in fields or [] if isinstance(f, dict) and f.get("type") == "quantity"), None)
+        try:
+            mult = max(1, int((qty or {}).get("min") or 1))
+        except (TypeError, ValueError):
+            mult = 1
+        value = Decimal(price) * mult
+        if gid not in out or value < out[gid]:
+            out[gid] = value
+    return out
+
+
 # ── Быстрое пополнение ───────────────────────────────────────────────────────
 
 def _buyer_fields(cat: Category) -> list[dict]:

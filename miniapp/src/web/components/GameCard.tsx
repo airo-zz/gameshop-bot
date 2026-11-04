@@ -1,6 +1,6 @@
 /**
  * src/web/components/GameCard.tsx
- * Карточка игры для сайта (не miniapp): подложка с обложкой, название, тип и
+ * Карточка игры для сайта (не miniapp): подложка с обложкой, название, цена «от» и
  * отклик на наведение. Ведёт на /game/:slug.
  */
 
@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { prefetchGame } from '@/web/prefetch'
 import { Gamepad2, ChevronRight } from '@/components/ui/icons'
 import type { Game } from '@/api'
+import { money } from '@/web/format'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
 
@@ -48,7 +49,9 @@ export default function GameCard({ game }: { game: Game }) {
       <div className="flex items-end justify-between gap-2 px-1 pt-3 pb-1 flex-1">
         <div className="min-w-0">
           <p className="text-[15px] font-semibold leading-snug text-[var(--text)] line-clamp-2">{game.name}</p>
-          <p className="text-xs text-[var(--hint)] mt-1">{game.type === 'service' ? 'Сервис' : 'Игра'}</p>
+          {game.min_price != null && (
+            <p className="text-xs text-[var(--hint)] mt-1 num">от {money(game.min_price)}</p>
+          )}
         </div>
         <ChevronRight
           size={18}

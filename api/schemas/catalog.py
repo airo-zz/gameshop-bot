@@ -26,6 +26,8 @@ class GameOut(BaseModel):
     type: str
     input_fields: list[dict] = []
     custom_order_enabled: bool = False
+    # цена «от» — только в списке игр (GET /catalog/games)
+    min_price: Decimal | None = None
     # служебные данные игры — наружу не отдаём, только признаки ниже
     meta: dict = Field(default_factory=dict, exclude=True)
 

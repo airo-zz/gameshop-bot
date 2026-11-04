@@ -71,7 +71,8 @@ def _filtered(stmt, kind: str):
     if kind == "negative":
         return stmt.where(Review.rating < 4)
     if kind == "text":
-        return stmt.where(Review.text.is_not(None))
+        # «👍», «+», «...» — не текст: нужно хотя бы одно слово из двух букв
+        return stmt.where(Review.text.is_not(None), Review.text.op("~")("[A-Za-zА-Яа-яЁё]{2}"))
     return stmt
 
 
