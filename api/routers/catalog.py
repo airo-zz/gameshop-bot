@@ -142,8 +142,11 @@ async def get_home_blocks(db: DbSession):
 
 @router.get("/categories/trending", response_model=list[TrendingCategoryOut])
 async def get_trending_categories(db: DbSession):
-    svc = CatalogService(db)
-    categories = await svc.get_trending_categories(limit=6)
+    """«Популярное» мини-приложения, каталога и подсказок поиска — тот же список,
+    что на главной сайта: выбранное в админке, иначе по заказам за 3 дня."""
+    from api.services.home_service import resolve_home
+
+    _, categories = await resolve_home(db)
     return [
         TrendingCategoryOut(
             id=cat.id,
