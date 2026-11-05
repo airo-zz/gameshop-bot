@@ -132,13 +132,17 @@ jobs:
       - name: Run Alembic migrations
         run: alembic upgrade head
 
+      # Упавший тест или ошибка линтера останавливают деплой (job deploy-backend
+      # зависит от test). Срочная правка тоже должна сначала пройти тесты.
       - name: Run tests
-        run: pytest tests/ -v --tb=short || echo "No tests yet — skipping"
+        run: pytest tests/ -v --tb=short
 
       - name: Lint Python (ruff)
+        # F — реальные ошибки (неопределённые имена, лишние импорты, мёртвые переменные).
+        # F403/F405 — звёздочные импорты моделей, F821 — строковые ссылки SQLAlchemy.
         run: |
-          pip install ruff || true
-          ruff check . --select E,W,F --ignore E501 || echo "Lint warnings"
+          pip install ruff
+          ruff check api bot support_bot worker shared tests --select F --ignore F403,F405,F821
 
   # ─── Сборка Mini App ─────────────────────────────────────────────────────────
   build-miniapp:
@@ -197,7 +201,8 @@ jobs:
   deploy-miniapp:
     name: Deploy Mini App to VPS
     runs-on: ubuntu-latest
-    needs: [detect-changes, build-miniapp]
+    # Сборка идёт параллельно с тестами, а выкладка — только после зелёных тестов
+    needs: [detect-changes, build-miniapp, test]
     if: |
       needs.detect-changes.outputs.miniapp == 'true' ||
       github.event.inputs.force_miniapp == 'yes'
@@ -279,7 +284,9 @@ jobs:
             rm -rf /tmp/redonate-miniapp-admin
 
             # Перезагружаем nginx — он подхватывает новые файлы из bind mount
-            docker compose -f "$APP_DIR/docker-compose.yml" exec -T nginx nginx -s reload
+            # Если деплой бэкенда в этот момент пересоздаёт nginx — повторяем через 10 с
+            docker compose -f "$APP_DIR/docker-compose.yml" exec -T nginx nginx -s reload \
+              || { sleep 10; docker compose -f "$APP_DIR/docker-compose.yml" exec -T nginx nginx -s reload; }
 
             echo "miniapp + website deployed at $(date)"
 

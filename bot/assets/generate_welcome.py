@@ -38,8 +38,6 @@ def create_gradient_background(draw):
 
 def draw_grid_lines(draw):
     """Subtle perspective grid lines for cyberpunk / gaming feel."""
-    grid_color = (255, 255, 255, 12)
-
     # Horizontal lines with fade
     step = 40
     for y in range(0, HEIGHT + step, step):

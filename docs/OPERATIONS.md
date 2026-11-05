@@ -22,7 +22,7 @@
 Автоматический: **push в ветку `main`** → GitHub Actions (`.github/workflows/deploy.yml`):
 
 1. **Detect Changed Paths** — что поменялось (бэкенд, фронт).
-2. **Tests & Lint** — pytest + ruff.
+2. **Tests & Lint** — pytest + ruff. Если что-то упало — деплой не запускается (ни бэкенд, ни фронт).
 3. **Build Mini App** — три сборки фронта: `dist` (Mini App, `/app`), `dist-web` (сайт), `dist-admin` (админка).
 4. **Deploy Mini App** — копирует сборки на сервер и перезагружает nginx.
 5. **Deploy Backend** — по SSH на сервере: `git pull`, `docker compose build api`, затем `build bot`, затем `up -d --no-build`. Миграции применяет сервис `migrations`.

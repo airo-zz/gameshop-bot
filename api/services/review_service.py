@@ -41,6 +41,9 @@ def _author(r: Review) -> str:
     if r.source == "site" and r.user and r.user.first_name:
         last = (r.user.last_name or "").strip()
         return f"{r.user.first_name.strip()} {last[0]}." if last else r.user.first_name.strip()
+    # GGSEL не отдаёт имя покупателя — честно подписываем источник отзыва
+    if r.source == "ggsel":
+        return "Покупатель с GGSEL"
     return "Покупатель"
 
 
