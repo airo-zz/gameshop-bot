@@ -131,14 +131,6 @@ class AnalyticsService:
             )
             return Decimal(str(result.scalar_one()))
 
-        async def orders_count_since(since: datetime) -> int:
-            result = await self.db.execute(
-                select(func.count(Order.id)).where(
-                    Order.status == OrderStatus.completed,
-                    Order.completed_at >= since,
-                )
-            )
-            return result.scalar_one()
 
         total_result = await self.db.execute(
             select(

@@ -89,14 +89,6 @@ class ProductListOut(BaseModel):
     input_fields: list[dict] = []
 
 
-class InputFieldSchema(BaseModel):
-    """Схема поля ввода от клиента."""
-    key: str
-    label: str
-    type: str = "text"           # text | select | number
-    placeholder: str = ""
-    required: bool = False
-    options: list[str] = []      # для type=select
 
 
 class ProductDetailOut(BaseModel):
@@ -154,13 +146,4 @@ class TrendingCategoryOut(BaseModel):
     has_auto: bool = False
 
 
-class CatalogSearchParams(BaseModel):
-    """Параметры поиска по каталогу."""
-    q: str = Field("", min_length=0, max_length=100)
-    game_id: uuid.UUID | None = None
-    category_id: uuid.UUID | None = None
-    min_price: Decimal | None = None
-    max_price: Decimal | None = None
-    delivery_type: str | None = None
-    page: int = Field(0, ge=0)
-    page_size: int = Field(20, ge=1, le=100)
+

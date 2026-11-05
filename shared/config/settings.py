@@ -118,9 +118,6 @@ class JWTSettings(BaseSettings):
 
 
 class PaymentSettings(BaseSettings):
-    # ЮKassa — дремлющий провайдер (креды пустые). Активная платёжка — Platega.
-    YUKASSA_SHOP_ID: str = ""
-    YUKASSA_SECRET_KEY: str = ""
     # Platega — единственный внешний платёжный шлюз (карта / СБП / крипта).
     PLATEGA_MERCHANT_ID: str = ""
     PLATEGA_SECRET: str = ""

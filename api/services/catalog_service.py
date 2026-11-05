@@ -292,11 +292,6 @@ class CatalogService:
             self.db.add(UserFavorite(user_id=user_id, product_id=product_id))
             return True
 
-    async def get_favorite_ids(self, user_id: uuid.UUID) -> set[uuid.UUID]:
-        result = await self.db.execute(
-            select(UserFavorite.product_id).where(UserFavorite.user_id == user_id)
-        )
-        return set(result.scalars().all())
 
     # ── Recently Viewed ───────────────────────────────────────────────────────
 

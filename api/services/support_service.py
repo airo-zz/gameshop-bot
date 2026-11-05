@@ -14,9 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from shared.models import SupportTicket, TicketMessage, TicketStatus
-from shared.models.support import AdminUser, SupportTemplate
-from shared.models.order import Order
-from shared.models.user import User
+from shared.models.support import SupportTemplate
 
 logger = logging.getLogger(__name__)
 
@@ -295,25 +293,6 @@ class SupportService:
 
     # ── Helpers for support bot ──────────────────────────────────────────
 
-    async def get_user_by_telegram_id(self, telegram_id: int) -> User | None:
-        result = await self.db.execute(
-            select(User).where(User.telegram_id == telegram_id)
-        )
-        return result.scalar_one_or_none()
-
-    async def get_user_recent_orders(
-        self,
-        user_id: uuid.UUID,
-        limit: int = 5,
-    ) -> list[Order]:
-        result = await self.db.execute(
-            select(Order)
-            .options(selectinload(Order.items))
-            .where(Order.user_id == user_id)
-            .order_by(Order.created_at.desc())
-            .limit(limit)
-        )
-        return list(result.scalars().all())
 
     # ── Private helpers ──────────────────────────────────────────────────
 

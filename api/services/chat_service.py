@@ -44,16 +44,6 @@ class ChatService:
         )
         return result.scalar_one_or_none()
 
-    async def get_all_chats(self) -> list[Chat]:
-        """
-        Возвращает все чаты, отсортированные:
-        сначала с непрочитанными admin'ом (last_message_at > last_admin_read_at),
-        затем по last_message_at DESC.
-        """
-        result = await self.db.execute(
-            select(Chat).order_by(Chat.last_message_at.desc().nullslast())
-        )
-        return list(result.scalars().all())
 
     async def get_all_chats_with_orders(self) -> list[Chat]:
         """

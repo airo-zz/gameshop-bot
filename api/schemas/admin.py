@@ -49,15 +49,6 @@ class AdminMeOut(BaseModel):
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
 
-class DashboardOut(BaseModel):
-    """Ответ GET /admin/dashboard. Расширяется по мере добавления виджетов."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    orders_today: int = 0
-    orders_pending: int = 0
-    revenue_today: float = 0.0
-    open_tickets: int = 0
 
 
 # ── Orders ────────────────────────────────────────────────────────────────────

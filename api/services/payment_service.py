@@ -1,8 +1,12 @@
 """
 api/services/payment_service.py
 ─────────────────────────────────────────────────────────────────────────────
-Расширяемая система оплаты.
-Каждый провайдер — отдельный метод. Добавление нового = новый метод.
+Оплата заказов и пополнение баланса.
+  pay_balance            заказ целиком с баланса
+  pay_platega            СБП / карта / крипта через Platega (с доплатой из баланса)
+  topup_platega          пополнение баланса через Platega
+  handle_platega_webhook подтверждение / отмена платежа от Platega
+Подробно — docs/ORDERS_AND_PAYMENTS.md.
 ─────────────────────────────────────────────────────────────────────────────
 """
 
@@ -145,73 +149,7 @@ class PaymentService:
             payment.status = PaymentStatus.failed
             raise
 
-    # ── 2. ЮKassa ─────────────────────────────────────────────────────────────
-
-    async def pay_yukassa(self, order: Order, user: User) -> dict:
-        """
-        Создаёт платёж в ЮKassa и возвращает URL для оплаты.
-        Подтверждение придёт через webhook.
-        """
-        if not settings.YUKASSA_SHOP_ID or not settings.YUKASSA_SECRET_KEY:
-            raise ValueError("ЮKassa не настроена")
-
-        payment = await self._create_payment_record(
-            order, user, PaymentMethod.card_yukassa
-        )
-
-        payload = {
-            "amount": {
-                "value": f"{order.total_amount:.2f}",
-                "currency": "RUB",
-            },
-            "confirmation": {
-                "type": "redirect",
-                "return_url": f"{settings.MINIAPP_URL.rstrip('/')}/orders/{order.id}?success=1",
-            },
-            "description": f"Заказ {order.order_number} в {settings.SHOP_NAME}",
-            "metadata": {
-                "order_id": str(order.id),
-                "payment_record_id": str(payment.id),
-            },
-            "capture": True,
-        }
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://api.yookassa.ru/v3/payments",
-                json=payload,
-                auth=(settings.YUKASSA_SHOP_ID, settings.YUKASSA_SECRET_KEY),
-                headers={"Idempotence-Key": payment.idempotency_key},
-                timeout=10.0,
-            )
-
-        data = response.json()
-        payment.raw_response = data
-        payment.external_id = data.get("id")
-
-        if response.status_code != 200:
-            payment.status = PaymentStatus.failed
-            raise ValueError(
-                f"Ошибка ЮKassa: {data.get('description', 'Unknown error')}"
-            )
-
-        confirm_url = data.get("confirmation", {}).get("confirmation_url")
-
-        # Переводим заказ в ожидание оплаты
-        await self.order_svc.change_status(
-            order,
-            OrderStatus.pending_payment,
-            changed_by_type="system",
-            reason="ЮKassa платёж создан",
-        )
-
-        return {
-            "success": False,
-            "payment_id": str(payment.id),
-            "redirect_url": confirm_url,
-        }
-
-    # ── 3. Platega (СБП / карта / крипта) ─────────────────────────────────────
+    # ── 2. Platega (СБП / карта / крипта) ─────────────────────────────────────
 
     async def _platega_headers(self) -> dict:
         return {
@@ -312,72 +250,6 @@ class PaymentService:
 
     # ── Webhook обработчик ────────────────────────────────────────────────────
 
-    async def handle_yukassa_webhook(self, payload: dict) -> bool:
-        """
-        Обработка webhook от ЮKassa.
-        Возвращает True если обработано успешно.
-        """
-        event_type = payload.get("event")
-        payment_data = payload.get("object", {})
-
-        external_id = payment_data.get("id")
-        if not external_id:
-            return False
-
-        # Находим платёж (FOR UPDATE — защита от гонки параллельных ретраев)
-        result = await self.db.execute(
-            select(Payment).where(Payment.external_id == external_id).with_for_update()
-        )
-        payment = result.scalar_one_or_none()
-        if not payment:
-            # Проверяем: возможно, это пополнение баланса (не привязано к заказу)
-            meta = payment_data.get("metadata", {})
-            if meta.get("type") == "balance_topup" and event_type == "payment.succeeded":
-                user_id_str = meta.get("user_id")
-                amount_str = meta.get("amount_rub")
-                if user_id_str and amount_str:
-                    try:
-                        await self._credit_balance_topup(
-                            uuid.UUID(user_id_str),
-                            Decimal(amount_str),
-                            "yukassa",
-                            external_id,
-                        )
-                    except (ValueError, InvalidOperation):
-                        logger.warning("ЮKassa topup: некорректный payload %s", meta)
-                        return False
-                return True
-            return False
-
-        # Идемпотентность — уже обработан
-        if payment.status == PaymentStatus.succeeded:
-            return True
-
-        payment.raw_response = payload
-
-        if event_type == "payment.succeeded":
-            payment.status = PaymentStatus.succeeded
-            payment.paid_at = datetime.now(timezone.utc)
-
-            # Переводим заказ в paid
-            order_result = await self.db.execute(
-                select(Order).where(Order.id == payment.order_id).with_for_update()
-            )
-            order = order_result.scalar_one_or_none()
-            if order and order.status == OrderStatus.pending_payment:
-                await self.order_svc.change_status(
-                    order,
-                    OrderStatus.paid,
-                    changed_by_type="system",
-                    reason="ЮKassa: payment.succeeded",
-                )
-                # Уведомляем пользователя через бот
-                await self._notify_user_payment_success(order)
-
-        elif event_type == "payment.canceled":
-            payment.status = PaymentStatus.cancelled
-
-        return True
 
     async def handle_platega_webhook(self, payload: dict) -> bool:
         """
@@ -524,45 +396,6 @@ class PaymentService:
         except Exception as exc:  # noqa: BLE001 — уведомление не должно ронять обработку вебхука
             logger.error("chargeback alert не отправлен: %s", exc)
 
-    async def topup_yukassa(self, user: User, amount: Decimal) -> dict:
-        """Создаёт платёж ЮKassa для пополнения баланса."""
-        if not settings.YUKASSA_SHOP_ID or not settings.YUKASSA_SECRET_KEY:
-            raise ValueError("ЮKassa не настроена")
-        if amount < Decimal("10"):
-            raise ValueError("Минимальная сумма пополнения: 10 ₽")
-
-        idempotency_key = str(uuid.uuid5(uuid.NAMESPACE_URL, f"topup:{user.id}:{amount}:{datetime.now(timezone.utc).date()}"))
-
-        payload = {
-            "amount": {"value": f"{amount:.2f}", "currency": "RUB"},
-            "confirmation": {
-                "type": "redirect",
-                "return_url": f"{settings.MINIAPP_URL}?topup=success",
-            },
-            "description": f"Пополнение баланса — {settings.SHOP_NAME}",
-            "metadata": {
-                "type": "balance_topup",
-                "user_id": str(user.id),
-                "amount_rub": f"{amount:.2f}",
-            },
-            "capture": True,
-        }
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://api.yookassa.ru/v3/payments",
-                json=payload,
-                auth=(settings.YUKASSA_SHOP_ID, settings.YUKASSA_SECRET_KEY),
-                headers={"Idempotence-Key": idempotency_key},
-                timeout=10.0,
-            )
-
-        data = response.json()
-        if response.status_code != 200:
-            raise ValueError(f"Ошибка ЮKassa: {data.get('description', 'Unknown error')}")
-
-        confirm_url = data.get("confirmation", {}).get("confirmation_url")
-        return {"redirect_url": confirm_url, "payment_id": data.get("id")}
 
     async def topup_platega(
         self, user: User, amount_rub: Decimal, method_value: str = "card",
@@ -641,8 +474,7 @@ class PaymentService:
         Зачисляет пополнение баланса пользователю.
 
         Идемпотентен по паре (provider, external_payment_id): повторный вызов
-        с тем же external_id ничего не делает. Защита от ретраев webhook'а
-        ЮKassa/CryptoBot.
+        с тем же external_id ничего не делает. Защита от ретраев вебхука Platega.
         """
         from shared.models import BalanceTransaction
         from sqlalchemy.exc import IntegrityError

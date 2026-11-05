@@ -6,15 +6,13 @@ shared/models/base.py
 """
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import DateTime, func, text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
-def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
 
 
 class Base(DeclarativeBase):
@@ -47,14 +45,4 @@ class TimestampMixin:
     )
 
 
-class SoftDeleteMixin:
-    """Мягкое удаление (записи не удаляются из БД)."""
-    deleted_at: Mapped[datetime | None] = mapped_column(
-        DateTime(timezone=True),
-        nullable=True,
-        default=None,
-    )
 
-    @property
-    def is_deleted(self) -> bool:
-        return self.deleted_at is not None

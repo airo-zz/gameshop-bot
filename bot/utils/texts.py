@@ -32,15 +32,6 @@ class BotTexts:
     def greeting(self, first_name: str) -> str:
         return render_default("greeting", first_name=escape(first_name))
 
-    def greeting_new_user(self, first_name: str, referral_bonus: float = 0) -> str:
-        bonus_text = (
-            f"\n\n🎁 Тебе начислен бонус <b>{referral_bonus:.0f} ₽</b> за использование реферальной ссылки!"
-            if referral_bonus > 0
-            else ""
-        )
-        return render_default(
-            "greeting_new_user", first_name=escape(first_name), bonus=bonus_text
-        )
 
     def referral_bonus_received(self, amount: float, percent: float) -> str:
         value = f"{amount:.0f}" if amount == int(amount) else f"{amount:.2f}".replace(".", ",")
@@ -117,22 +108,6 @@ class BotTexts:
     def cart_empty(self) -> str:
         return render_default("cart_empty")
 
-    def cart_summary(self, items_count: int, total: float, discount: float = 0) -> str:
-        discount_text = f"\n💸 Скидка: <b>-{discount:.0f} ₽</b>" if discount > 0 else ""
-        final = total - discount
-        return (
-            f"🛒 <b>Корзина</b> ({items_count} поз.)\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"Сумма: {total:.0f} ₽\n"
-            f"{discount_text}\n"
-            f"<b>Итого: {final:.0f} ₽</b>"
-        )
-
-    def cart_item_added(self, product_name: str, price: float) -> str:
-        return (
-            f"✅ В корзину добавлено:\n<b>{escape(product_name)}</b>\n\n"
-            f"💰 Цена: <b>{price:.0f} ₽</b>"
-        )
 
     @property
     def cart_promo_prompt(self) -> str:
@@ -144,13 +119,6 @@ class BotTexts:
     def cart_promo_invalid(self, reason: str = "") -> str:
         return f"❌ Промокод не действителен.{(' ' + reason) if reason else ''}"
 
-    # ── Заказы ────────────────────────────────────────────────────────────────
-    def order_created(self, order_number: str, total: float) -> str:
-        return (
-            f"✅ Заказ <b>{order_number}</b> создан!\n\n"
-            f"💰 К оплате: <b>{total:.0f} ₽</b>\n\n"
-            f"Выбери способ оплаты:"
-        )
 
     def balance_topup_success(self, amount: float, new_balance: float) -> str:
         return (
@@ -250,19 +218,6 @@ class BotTexts:
             f"Статус изменён: <b>{status_names.get(new_status, new_status)}</b>"
         )
 
-    # ── Чекаут ────────────────────────────────────────────────────────────────
-    def checkout_summary(
-        self, order_number: str, total: float, discount: float = 0
-    ) -> str:
-        discount_text = (
-            f"💸 Скидка: <b>-{discount:.0f} ₽</b>\n" if discount > 0 else ""
-        )
-        return (
-            f"🧾 <b>Заказ {order_number}</b>\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"{discount_text}"
-            f"💰 К оплате: <b>{total:.0f} ₽</b>"
-        )
 
     def checkout_select_method(
         self, order_number: str, total: float, balance: float
@@ -394,27 +349,6 @@ class BotTexts:
             progress=progress_text,
         )
 
-    def balance_info(self, balance: float, orders_count: int, total_spent: float) -> str:
-        return render_default(
-            "balance_info",
-            balance=f"{balance:.2f}",
-            orders_count=orders_count,
-            total_spent=f"{total_spent:.0f}",
-        )
-
-    def balance_topup_miniapp(self, balance: float) -> str:
-        return (
-            f"💰 <b>Пополнение баланса</b>\n\n"
-            f"Текущий баланс: <b>{balance:.2f} ₽</b>\n\n"
-            f"Пополни баланс через Mini App:"
-        )
-
-    def balance_topup_support(self, balance: float) -> str:
-        return (
-            f"💰 <b>Пополнение баланса</b>\n\n"
-            f"Текущий баланс: <b>{balance:.2f} ₽</b>\n\n"
-            f"Для пополнения обратись в поддержку: @{S.SHOP_SUPPORT_USERNAME}"
-        )
 
     # ── Реферальная программа ─────────────────────────────────────────────────
 
@@ -435,8 +369,6 @@ class BotTexts:
             f"ты получишь бонус на баланс!"
         )
 
-    def balance_topup_methods(self, balance: float) -> str:
-        return render_default("balance_topup_methods", balance=f"{balance:.2f}")
 
     # ── Поддержка ─────────────────────────────────────────────────────────────
     @property
@@ -473,13 +405,6 @@ class BotTexts:
 
     # ── Admin — уведомления ───────────────────────────────────────────────────
 
-    def admin_new_order_notify(self, order_number: str, amount: float) -> str:
-        """Уведомление всем adminам о новом оплаченном заказе."""
-        amount_str = f"{int(amount):,}".replace(",", "\u00a0")
-        return (
-            f"🛒 Новый заказ <b>{order_number}</b> — {amount_str} ₽.\n"
-            f"Нажми чтобы открыть."
-        )
 
     # ── Admin ─────────────────────────────────────────────────────────────────
     def admin_panel_header(
@@ -574,15 +499,6 @@ class BotTexts:
         return (
             f"<b>Сообщение от продавца</b>\n\n"
             f"{preview}"
-        )
-
-    def chat_notify_seller_new_message(
-        self, user_label: str, preview: str
-    ) -> str:
-        return (
-            f"<b>Новое сообщение от покупателя</b>\n"
-            f"Пользователь: {escape(user_label)}\n"
-            f"<i>{escape(preview)}</i>"
         )
 
 

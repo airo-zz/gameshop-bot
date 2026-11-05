@@ -27,7 +27,7 @@ async def _fetch_photo_file_path(bot: Bot, tg_user_id: int) -> str | None:
     """
     Получает file_path первой фотографии профиля через Bot API.
     Возвращает только относительный путь (без токена и домена), чтобы BOT_TOKEN
-    не попадал в БД. Полный URL собирается в рантайме через build_telegram_photo_url.
+    не попадал в БД. Наружу аватар отдаёт api/routers/avatar.py (/api/v1/avatar/{tg}).
     """
     try:
         photos = await bot.get_user_profile_photos(tg_user_id, limit=1)
