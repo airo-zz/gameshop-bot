@@ -22,22 +22,12 @@ from shared.database.session import engine
 from bot.utils.texts import texts
 
 from bot.middlewares.auth import AuthMiddleware
-from bot.middlewares.admin_auth import AdminAuthMiddleware
 from bot.middlewares.throttle import ThrottleMiddleware
 from bot.middlewares.logging import LoggingMiddleware
 
 from bot.handlers.client import (
     start, catalog, cart, orders, profile, support,
     checkout, inline_search,
-)
-from bot.handlers.admin import (
-    admin_main,
-    admin_catalog,
-    admin_orders,
-    admin_stats,
-    admin_users,
-    admin_discounts,
-    chat_reply,
 )
 
 # ── Логирование ───────────────────────────────────────────────────────────────
@@ -144,20 +134,8 @@ def create_dispatcher() -> Dispatcher:
     )
     dp.include_router(inline_search.router)
 
-    # ── Admin routers ─────────────────────────────────────────────────────────
-    _admin_routers = [
-        admin_main.router,
-        admin_catalog.router,
-        admin_orders.router,
-        admin_stats.router,
-        admin_users.router,
-        admin_discounts.router,
-        chat_reply.router,
-    ]
-    for _r in _admin_routers:
-        _r.message.middleware(AdminAuthMiddleware())
-        _r.callback_query.middleware(AdminAuthMiddleware())
-        dp.include_router(_r)
+    # Админки в боте нет: персонал работает в admin.redonate.gg, уведомления и
+    # ответы клиентам — через бот поддержки (support_bot).
 
     return dp
 

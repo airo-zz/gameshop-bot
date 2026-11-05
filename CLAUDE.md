@@ -18,7 +18,7 @@ Telegram-магазин игрового доната. Стек: **aiogram 3** +
 
 ```
 bot/           — Telegram Bot (aiogram 3)
-  handlers/    — client/ и admin/ хендлеры
+  handlers/    — client/ хендлеры (админки в боте нет — она на admin.redonate.gg)
   utils/texts.py — все тексты бота (используют SHOP_NAME из .env)
 api/           — FastAPI backend
   routers/, services/, schemas/

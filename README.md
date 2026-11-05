@@ -35,7 +35,8 @@
 
 ```
 api/          FastAPI: routers/ (HTTP-обработчики), services/ (вся бизнес-логика), schemas/ (Pydantic)
-bot/          бот магазина: handlers/client (каталог, корзина, заказы, профиль), utils/texts.py (все тексты)
+bot/          бот магазина: handlers/client (каталог, корзина, заказы, профиль), utils/texts.py (все тексты).
+              Админки в боте нет — персонал работает в admin.redonate.gg
 support_bot/  бот поддержки: уведомления персоналу, ответы клиентам, вход в админку
 worker/       Celery: tasks/ (фоновые задачи), main.py (расписание beat)
 shared/       общее для всех сервисов: config/settings.py (настройки из .env), models/ (таблицы БД),

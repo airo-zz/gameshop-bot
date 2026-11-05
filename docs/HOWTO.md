@@ -49,7 +49,7 @@
 
 ```bash
 python -m ruff check api bot support_bot worker shared   # линтер
-pytest tests/                                            # тесты
+DATABASE_URL=postgresql+asyncpg://test:test@localhost:55432/test pytest  # тесты (нужна одноразовая БД, см. tests/conftest.py)
 cd miniapp && npx tsc --noEmit -p .                      # типы фронта
 ```
 

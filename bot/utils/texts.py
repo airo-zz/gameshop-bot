@@ -24,14 +24,8 @@ TOPUP_MAX = 100_000
 class BotTexts:
     """Фабрика текстов. Все методы — property или функции с параметрами."""
 
-    # ── Общие ─────────────────────────────────────────────────────────────────
-    @property
-    def shop_header(self) -> str:
-        return f"{S.shop_name_emoji}"
-
     def greeting(self, first_name: str) -> str:
         return render_default("greeting", first_name=escape(first_name))
-
 
     def referral_bonus_received(self, amount: float, percent: float) -> str:
         value = f"{amount:.0f}" if amount == int(amount) else f"{amount:.2f}".replace(".", ",")
@@ -108,7 +102,6 @@ class BotTexts:
     def cart_empty(self) -> str:
         return render_default("cart_empty")
 
-
     @property
     def cart_promo_prompt(self) -> str:
         return "🏷 Введи промокод:"
@@ -118,7 +111,6 @@ class BotTexts:
 
     def cart_promo_invalid(self, reason: str = "") -> str:
         return f"❌ Промокод не действителен.{(' ' + reason) if reason else ''}"
-
 
     def balance_topup_success(self, amount: float, new_balance: float) -> str:
         return (
@@ -217,7 +209,6 @@ class BotTexts:
             f"{status_emoji} Заказ <b>{order_number}</b>\n"
             f"Статус изменён: <b>{status_names.get(new_status, new_status)}</b>"
         )
-
 
     def checkout_select_method(
         self, order_number: str, total: float, balance: float
@@ -349,7 +340,6 @@ class BotTexts:
             progress=progress_text,
         )
 
-
     # ── Реферальная программа ─────────────────────────────────────────────────
 
     def referral_info(
@@ -368,7 +358,6 @@ class BotTexts:
             f"Поделись ссылкой с друзьями — когда они совершат первую покупку, "
             f"ты получишь бонус на баланс!"
         )
-
 
     # ── Поддержка ─────────────────────────────────────────────────────────────
     @property
@@ -403,30 +392,6 @@ class BotTexts:
     def orders_list_header(self, count: int) -> str:
         return f"📋 <b>Мои заказы</b> — последние {count}:"
 
-    # ── Admin — уведомления ───────────────────────────────────────────────────
-
-
-    # ── Admin ─────────────────────────────────────────────────────────────────
-    def admin_panel_header(
-        self, first_name: str, role_emoji: str, role_name: str
-    ) -> str:
-        return (
-            f"🎮 <b>Admin Panel — {S.SHOP_NAME}</b>\n\n"
-            f"Привет, {escape(first_name)}!\n"
-            f"Роль: {role_emoji} <b>{role_name}</b>\n\n"
-            f"Выбери раздел:"
-        )
-
-    def admin_panel_short(self, role_emoji: str, role_name: str) -> str:
-        return (
-            f"🎮 <b>Admin Panel — {S.SHOP_NAME}</b>\n\n"
-            f"Роль: {role_emoji} <b>{role_name}</b>"
-        )
-
-    @property
-    def admin_catalog_header(self) -> str:
-        return "🎮 <b>Управление каталогом</b>\n\nВыбери раздел:"
-
     # ── Главное меню клиента ──────────────────────────────────────────────────
     @property
     def choose_action(self) -> str:
@@ -454,52 +419,8 @@ class BotTexts:
         )
 
     @property
-    def error_payment_failed(self) -> str:
-        return (
-            "❌ Оплата не прошла.\n\n"
-            "Попробуй другой способ оплаты или обратись в поддержку."
-        )
-
-    @property
-    def error_out_of_stock(self) -> str:
-        return "❌ К сожалению, товар закончился. Попробуй позже или выбери другой."
-
-    @property
     def error_blocked(self) -> str:
         return f"🚫 Твой аккаунт заблокирован. Обратись в поддержку: @{S.SHOP_SUPPORT_USERNAME}"
-
-    # ── Чат admin ↔ покупатель ────────────────────────────────────────────────
-
-    @property
-    def chat_reply_usage(self) -> str:
-        return (
-            "Использование: <code>/reply &lt;telegram_id&gt; &lt;текст&gt;</code>\n\n"
-            "Пример: <code>/reply 123456789 Ваш заказ выполнен!</code>"
-        )
-
-    @property
-    def chat_reply_invalid_id(self) -> str:
-        return "Неверный формат telegram_id. Должно быть число."
-
-    @property
-    def chat_reply_empty_text(self) -> str:
-        return "Текст сообщения не может быть пустым."
-
-    def chat_reply_sent(self, telegram_id: int) -> str:
-        return f"Сообщение отправлено пользователю <code>{telegram_id}</code>."
-
-    def chat_reply_sent_db_only(self, telegram_id: int) -> str:
-        return (
-            f"Сообщение сохранено в чате пользователя <code>{telegram_id}</code>, "
-            f"но Telegram-уведомление не доставлено (пользователь не запускал бот)."
-        )
-
-    def chat_new_admin_message(self, text: str) -> str:
-        preview = escape(text[:200])
-        return (
-            f"<b>Сообщение от продавца</b>\n\n"
-            f"{preview}"
-        )
 
 
 # Синглтон — импортируй и используй

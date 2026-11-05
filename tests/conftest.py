@@ -2,6 +2,11 @@
 tests/conftest.py
 ─────────────────────────────────────────────────────────────────────────────
 Базовая конфигурация тестов.
+
+Нужен PostgreSQL (DATABASE_URL). В CI — сервис postgres в workflow. Локально —
+любая ОДНОРАЗОВАЯ база, например:
+  docker run --rm -d -p 55432:5432 -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test postgres:16-alpine
+  DATABASE_URL=postgresql+asyncpg://test:test@localhost:55432/test pytest
 ─────────────────────────────────────────────────────────────────────────────
 """
 
@@ -30,11 +35,12 @@ from shared.models import Base
 async def engine():
     from shared.config import settings
     _engine = create_async_engine(settings.DATABASE_URL, echo=False)
+    # Таблицы — create_all (в CI схему до этого создают миграции, тогда это no-op).
+    # Каждый тест откатывается (фикстура db), поэтому таблицы в конце НЕ удаляем:
+    # база для тестов одноразовая, а drop_all на настоящей базе стёр бы данные.
     async with _engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield _engine
-    async with _engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
     await _engine.dispose()
 
 

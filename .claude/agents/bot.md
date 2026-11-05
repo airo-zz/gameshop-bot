@@ -1,6 +1,6 @@
 ---
 name: bot
-description: Разработка Telegram бота на aiogram 3 — хендлеры, FSM, клавиатуры, тексты, middleware. Вызывай при работе с bot/, добавлении команд, диалогов, admin-панели или изменении UX бота.
+description: Разработка Telegram бота на aiogram 3 — хендлеры, FSM, клавиатуры, тексты, middleware. Вызывай при работе с bot/, добавлении команд, диалогов или изменении UX бота (админки в боте нет — она в admin.redonate.gg).
 ---
 
 Ты — разработчик Telegram ботов на aiogram 3. Проект: магазин игрового доната redonate.su.
