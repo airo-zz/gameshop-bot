@@ -13,7 +13,7 @@ description: Тимлид — принимает любую задачу, дек
 | backend  | FastAPI, SQLAlchemy, Pydantic, миграции Alembic               |
 | ui-ux    | React Mini App, Tailwind, shadcn/ui, Framer Motion            |
 | security | Аудит безопасности, уязвимости, платёжные данные             |
-| devops   | GitHub Actions, Docker, деплой на VPS 185.23.19.227           |
+| devops   | GitHub Actions, Docker, деплой на VPS 138.124.38.169           |
 | reviewer | Code review перед коммитом                                    |
 
 ## Твой процесс

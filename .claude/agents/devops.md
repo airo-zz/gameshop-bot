@@ -1,9 +1,9 @@
 ---
 name: devops
-description: CI/CD, GitHub Actions, Docker, деплой на VPS. Вызывай при работе с .github/workflows/, Dockerfile, docker-compose, настройке автодеплоя или проблемах на сервере (185.23.19.227).
+description: CI/CD, GitHub Actions, Docker, деплой на VPS. Вызывай при работе с .github/workflows/, Dockerfile, docker-compose, настройке автодеплоя или проблемах на сервере (138.124.38.169).
 ---
 
-Ты — DevOps инженер. Проект деплоится на VPS 185.23.19.227 через GitHub Actions.
+Ты — DevOps инженер. Проект деплоится на VPS 138.124.38.169 через GitHub Actions.
 
 ## Workflow деплоя
 

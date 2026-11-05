@@ -1,105 +1,58 @@
-# 🎮 reDonate Bot
+# reDonate
 
-Коммерческий Telegram-магазин игрового доната и виртуальных товаров.
-Архитектура: **Telegram Bot + Mini App** на едином backend.
+Магазин игрового доната и цифровых сервисов. Один бэкенд обслуживает четыре «витрины»:
 
-## ⚡ Быстрый старт
+| Витрина | Адрес | Где код |
+|---|---|---|
+| Сайт | https://redonate.gg | `miniapp/src/web/` (сборка `VITE_APP_TARGET=web`) |
+| Telegram Mini App | https://redonate.gg/app | `miniapp/src/pages/` (обычная сборка) |
+| Telegram-бот магазина | @reDonate_robot | `bot/` |
+| Админка | https://admin.redonate.gg | `miniapp/src/admin/` + `miniapp/src/pages/admin/` (сборка `VITE_APP_TARGET=admin`) |
 
-```bash
-git clone <repo>
-cd gameshop-bot
-chmod +x scripts/setup.sh
-./scripts/setup.sh
-```
+Плюс бот поддержки (`support_bot/`) — через него персонал получает уведомления, отвечает клиентам и входит в админку.
 
-## 🏪 Изменить название магазина
+## С чего начать
 
-Только один файл — `.env`:
+1. [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) — из чего состоит система и как части связаны.
+2. [docs/ORDERS_AND_PAYMENTS.md](docs/ORDERS_AND_PAYMENTS.md) — путь заказа: корзина → оплата → выдача. Самое важное для бизнеса.
+3. [docs/OPERATIONS.md](docs/OPERATIONS.md) — серверы, деплой, бэкапы, что делать, если всё упало.
+4. [docs/HOWTO.md](docs/HOWTO.md) — типовые задачи: добавить игру, поле, миграцию, фоновую задачу.
 
-```env
-SHOP_NAME="МойМагазин"
-SHOP_TAGLINE="Лучший донат в Telegram"
-SHOP_SUPPORT_USERNAME="my_support"
-```
+Остальное:
+- [docs/AUTODELIVERY.md](docs/AUTODELIVERY.md) — автоматическая выдача (FazerCards, Fragment, ключи, HoldBoost).
+- [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) — внешние сервисы: Platega, RAPIRA, хаб UchetFP, GGSEL, почта, Метрика.
+- [docs/FRONTEND.md](docs/FRONTEND.md) — как устроен фронтенд и почему три сборки из одной папки.
+- [docs/SEO.md](docs/SEO.md) — серверный рендер страниц для поисковиков, sitemap, тексты игр.
 
-После изменения — перезапустить:
-```bash
-docker compose restart bot api
-```
+## Стек
 
-**Где используется `SHOP_NAME`:**
-- Приветствие при /start
-- Все тексты бота (bot/utils/texts.py)
-- Заголовок Mini App
-- Чеки и уведомления
-- FAQ и поддержка
+- **Python 3.12**: FastAPI (API), aiogram 3 (боты), SQLAlchemy 2 async + Alembic (база), Celery + Redis (фоновые задачи), Pydantic v2 (схемы и настройки).
+- **PostgreSQL 16**, **Redis 7**.
+- **Фронтенд**: React 18 + TypeScript + Vite + Tailwind, React Query (данные), Zustand (состояние), Framer Motion (анимации).
+- **Инфраструктура**: Docker Compose на одном VPS, nginx, Let's Encrypt, GitHub Actions (автодеплой при push в `main`).
 
-## 📁 Структура проекта
+## Папки
 
 ```
-gameshop-bot/
-├── bot/                    # Telegram Bot (aiogram 3)
-│   ├── handlers/
-│   │   ├── client/         # start, catalog, cart, orders, profile, support
-│   │   └── admin/          # admin_main, admin_catalog, admin_orders
-│   ├── middlewares/        # auth, throttle, logging, admin_auth
-│   ├── fsm/                # FSM-состояния
-│   └── utils/              # texts.py, admin_log.py
-├── api/                    # FastAPI backend (следующий этап)
-│   ├── routers/
-│   ├── services/
-│   └── main.py
-├── miniapp/                # React Mini App (следующий этап)
-├── worker/                 # Celery задачи (следующий этап)
-├── shared/                 # Общий код для всех сервисов
-│   ├── config/settings.py  # ← SHOP_NAME и все настройки здесь
-│   ├── models/             # SQLAlchemy модели (все 20+ таблиц)
-│   └── database/session.py
-├── migrations/             # Alembic миграции
-│   └── versions/001_initial.py
-├── docker-compose.yml
-├── docker-compose.dev.yml
-├── .env.example            # ← Скопируй в .env и заполни
-└── alembic.ini
+api/          FastAPI: routers/ (HTTP-обработчики), services/ (вся бизнес-логика), schemas/ (Pydantic)
+bot/          бот магазина: handlers/client (каталог, корзина, заказы, профиль), utils/texts.py (все тексты)
+support_bot/  бот поддержки: уведомления персоналу, ответы клиентам, вход в админку
+worker/       Celery: tasks/ (фоновые задачи), main.py (расписание beat)
+shared/       общее для всех сервисов: config/settings.py (настройки из .env), models/ (таблицы БД),
+              database/ (сессии), staff_notify.py (уведомления персоналу), content/ (тексты бота из админки)
+migrations/   Alembic-миграции БД (versions/NNN_*.py, по порядку)
+miniapp/      фронтенд: сайт, Mini App и админка — три сборки из одного кода
+nginx/        конфиги nginx (домены, заголовки безопасности, проксирование)
+scripts/      бэкап/восстановление БД, первичная настройка сервера
+tests/        pytest
+docs/         документация
 ```
 
-## 🗄️ База данных
+## Правила, которые нельзя нарушать
 
-Применить миграции вручную:
-```bash
-docker compose run --rm migrations
-# или
-alembic upgrade head
-```
-
-Создать новую миграцию после изменения моделей:
-```bash
-alembic revision --autogenerate -m "описание изменений"
-```
-
-## 🔑 Обязательные переменные .env
-
-| Переменная | Описание |
-|-----------|---------|
-| `SHOP_NAME` | Название магазина |
-| `BOT_TOKEN` | Токен бота от @BotFather |
-| `POSTGRES_PASSWORD` | Пароль PostgreSQL |
-| `JWT_SECRET_KEY` | Случайная строка 32+ символа |
-| `ENCRYPTION_KEY` | Fernet ключ для ключей выдачи |
-
-## 📊 Мониторинг
-
-- **Flower** (Celery): http://localhost:5555
-- **API Docs**: http://localhost:8000/docs
-- **Логи**: `docker compose logs -f [bot|api|worker]`
-
-## 🔄 Этапы реализации
-
-- [x] **Этап 1** — Фундамент: Docker, конфиги, структура проекта
-- [x] **Этап 2** — БД: все SQLAlchemy модели + миграция
-- [x] **Этап 3** — Bot MVP: /start, каталог, admin-панель
-- [ ] **Этап 4** — Оплата: ЮKassa, баланс, webhook
-- [ ] **Этап 5** — FastAPI: REST API для Mini App
-- [ ] **Этап 6** — Mini App: React фронтенд
-- [ ] **Этап 7** — Скидки, лояльность, Celery задачи
-- [ ] **Этап 8** — Крипта (TON/USDT), аналитика, деплой
+- Бизнес-логика — только в `api/services/`. Роутеры и хендлеры ботов только принимают запрос и вызывают сервис.
+- Схема БД меняется только Alembic-миграцией.
+- Секреты — только в `.env` на сервере и через `shared/config/settings.py`. В код не вписывать.
+- Статус заказа меняется только через `OrderService.change_status` — он же шлёт уведомление клиенту.
+- В ботах `parse_mode=HTML`: любой текст из БД или от пользователя — через `html.escape`.
+- Локально Docker не запускается: код пишется локально, проверяется в CI и на сервере после деплоя.
