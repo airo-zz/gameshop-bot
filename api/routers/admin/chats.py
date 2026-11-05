@@ -90,7 +90,6 @@ async def list_chats(
     Сортировка: сначала с непрочитанными (у admin), затем по last_message_at DESC.
     filter_mode: all (default) | mine | free
     """
-    from sqlalchemy.orm import selectinload as _sil
 
     svc = ChatService(db)
     chats = await svc.get_all_chats_with_orders()

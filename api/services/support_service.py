@@ -249,7 +249,6 @@ class SupportService:
         if not ticket:
             return None
 
-        old_status = ticket.status
         ticket.status = new_status
 
         if new_status in (TicketStatus.closed, TicketStatus.resolved):

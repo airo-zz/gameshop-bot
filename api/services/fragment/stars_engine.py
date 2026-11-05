@@ -16,7 +16,6 @@
 """
 from __future__ import annotations
 import re
-import base64
 
 USERNAME_RE = re.compile(r"(?:@|t\.me/|telegram\.me/)?([A-Za-z0-9_]{4,32})\s*$", re.I)
 

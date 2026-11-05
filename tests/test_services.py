@@ -8,7 +8,6 @@ tests/test_order_service.py    — тесты заказов
 # ════════════════════════════════════════════════════════════════════════════
 
 import pytest
-import pytest_asyncio
 from decimal import Decimal
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -145,13 +144,20 @@ async def test_balance_payment_deducts_correctly(db: AsyncSession, test_user, te
     )
     db.add(order)
     await db.flush()
+    # Позиция с ручной выдачей: без неё заказ сразу завершила бы автовыдача
+    from shared.models import OrderItem
+    db.add(OrderItem(
+        order_id=order.id, product_id=test_product.id, product_name=test_product.name,
+        quantity=1, unit_price=Decimal("99"), total_price=Decimal("99"),
+    ))
+    await db.flush()
 
     svc = OrderService(db)
     await svc.change_status(order, OrderStatus.pending_payment)
     await svc.pay_with_balance(order, test_user)
 
     assert test_user.balance == initial_balance - Decimal("99")
-    assert order.status == OrderStatus.paid
+    assert order.status == OrderStatus.paid  # ждёт оператора
 
 
 @pytest.mark.asyncio

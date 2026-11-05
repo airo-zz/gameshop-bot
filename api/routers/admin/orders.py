@@ -429,7 +429,7 @@ async def claim_order(
             new_status=OrderStatus.processing,
             changed_by_id=admin.id,
             changed_by_type="admin",
-            reason=f"Взят в работу администратором",
+            reason="Взят в работу администратором",
         )
 
     await log_admin_action(
@@ -438,7 +438,7 @@ async def claim_order(
         action="order.claim",
         entity_type="order",
         entity_id=order.id,
-        description=f"Заказ взят в работу",
+        description="Заказ взят в работу",
     )
 
     return {

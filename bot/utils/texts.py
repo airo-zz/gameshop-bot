@@ -223,7 +223,7 @@ class BotTexts:
         self, order_number: str, total: float, balance: float
     ) -> str:
         balance_text = (
-            f"✅ Хватает" if balance >= total else f"❌ Не хватает {total - balance:.0f} ₽"
+            "✅ Хватает" if balance >= total else f"❌ Не хватает {total - balance:.0f} ₽"
         )
         return (
             f"🧾 <b>Заказ {order_number}</b> — <b>{total:.0f} ₽</b>\n\n"

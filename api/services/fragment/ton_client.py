@@ -14,7 +14,6 @@ import asyncio
 import base64
 import logging
 import threading
-import time
 from typing import TYPE_CHECKING
 
 logger = logging.getLogger("FPV.ton")

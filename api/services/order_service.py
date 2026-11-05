@@ -30,8 +30,7 @@ from shared.models import (
 )
 # ProductLot removed — flat catalog model since migration 017
 from shared.config import settings
-from shared.models.order import ALLOWED_STATUS_TRANSITIONS
-from api.services.discount_service import DiscountService, DiscountResult
+from api.services.discount_service import DiscountService
 from api.services.loyalty_service import LoyaltyService
 from shared.models import is_telegram_id
 
@@ -555,7 +554,7 @@ class OrderService:
         сетевая/on-chain операция, её нельзя запускать внутри платёжного вебхука.
         Такие заказы остаются в статусе paid; воркер завершит их после выдачи.
         """
-        from shared.models.catalog import Category, Product as _Product
+        from shared.models.catalog import Product as _Product
         result = await self.db.execute(
             select(OrderItem)
             .options(

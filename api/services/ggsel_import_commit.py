@@ -99,7 +99,8 @@ async def commit_ggsel_import(db: AsyncSession, game: Game, body: ImportCommitIn
                 price_usd=Decimal(str(price_usd)),
                 quantity=1,
                 delivery_type=DeliveryType.manual,
-                is_active=price_rub > 0,
+                # по себестоимости: округление «в 9» превращает 0 ₽ в 9 ₽
+                is_active=rub_cost > 0,
                 sort_order=idx,
             ))
             products_created += 1

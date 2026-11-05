@@ -5,8 +5,8 @@ tests/conftest.py
 ─────────────────────────────────────────────────────────────────────────────
 """
 
-import asyncio
 import os
+
 import pytest
 import pytest_asyncio
 from decimal import Decimal
@@ -20,18 +20,11 @@ os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
 os.environ.setdefault("JWT_SECRET_KEY", "test_secret_key_minimum_32_characters_x")
 os.environ.setdefault("SHOP_NAME", "TestShop")
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from shared.models import Base
 
 
 # ── Тестовый движок БД ────────────────────────────────────────────────────────
-
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
 
 @pytest_asyncio.fixture(scope="session")
 async def engine():
@@ -102,3 +95,19 @@ async def test_product(db: AsyncSession, test_game):
     db.add(product)
     await db.flush()
     return product
+
+
+# ── Без внешних отправок ──────────────────────────────────────────────────────
+
+@pytest.fixture(autouse=True)
+def _no_outgoing_messages(monkeypatch):
+    """Тесты не шлют сообщения в Telegram и персоналу и не ставят задачи в хаб."""
+    async def _noop(*args, **kwargs):
+        return None
+
+    import api.telegram_utils
+    import shared.staff_notify
+    monkeypatch.setattr(api.telegram_utils, "send_tg_message", _noop)
+    monkeypatch.setattr(shared.staff_notify, "send_staff_async", _noop)
+    from api.services.order_service import OrderService
+    monkeypatch.setattr(OrderService, "_schedule_hub_order_push", lambda *a, **k: None)

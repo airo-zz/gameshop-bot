@@ -17,7 +17,7 @@ from decimal import Decimal
 
 from sqlalchemy import (
     Boolean, DateTime, ForeignKey, Integer,
-    Numeric, String, Text, func,
+    Numeric, func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship

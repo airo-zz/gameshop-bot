@@ -5,7 +5,6 @@ bot/handlers/client/cart.py
 ─────────────────────────────────────────────────────────────────────────────
 """
 
-import uuid
 from html import escape
 
 from aiogram import Router, F

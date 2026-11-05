@@ -20,7 +20,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import User, UserFavorite, Product, Category, Game
+from shared.models import User, UserFavorite, Product, Category
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, nav_edit
 from bot.handlers.client.catalog import _show_product

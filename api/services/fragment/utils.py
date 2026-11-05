@@ -1,6 +1,5 @@
 from typing import Literal
 import base64
-from pytoniq_core.boc.builder import Builder
 
 def from_nano(value: int | str) -> float:
     return round(int(value) / 10 ** 9, 9)

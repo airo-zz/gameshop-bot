@@ -85,7 +85,6 @@ async def _build_profile_text(user: User, db: AsyncSession) -> str:
     loyalty_name = "Bronze"
     loyalty_emoji = "🥉"
     current_priority = 0
-    current_min_spent = 0.0
 
     if user.loyalty_level_id:
         result = await db.execute(
@@ -96,7 +95,6 @@ async def _build_profile_text(user: User, db: AsyncSession) -> str:
             loyalty_name = level.name
             loyalty_emoji = level.icon_emoji
             current_priority = level.priority
-            current_min_spent = float(level.min_spent)
 
     # Ищем следующий уровень по priority
     next_level_name: str | None = None
