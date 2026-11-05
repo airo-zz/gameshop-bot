@@ -204,7 +204,8 @@ class CatalogService:
             .where(
                 Game.is_active == True,
                 Game.name.ilike(f"%{q_escaped}%", escape="\\")
-                | Game.description.ilike(f"%{q_escaped}%", escape="\\"),
+                | Game.description.ilike(f"%{q_escaped}%", escape="\\")
+                | Game.seo_aliases.ilike(f"%{q_escaped}%", escape="\\"),
             )
             .order_by(Game.is_featured.desc(), Game.sort_order)
             .limit(limit)

@@ -9,6 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, m } from 'framer-motion'
 import { Search } from '@/components/ui/icons'
 import { catalogApi } from '@/api'
+import { filterGames } from '@/web/gameMatch'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
 import { prefetchGame } from '@/web/prefetch'
@@ -52,10 +53,7 @@ export default function GameSearch({ size = 'md', placeholder = 'Найти иг
   const matches = useMemo(() => {
     const s = q.trim().toLowerCase()
     if (!s) return popular
-    return games
-      .filter((g) => g.name.toLowerCase().includes(s))
-      .sort((a, b) => Number(!a.name.toLowerCase().startsWith(s)) - Number(!b.name.toLowerCase().startsWith(s)))
-      .slice(0, 6)
+    return filterGames(games, s).slice(0, 6)
   }, [games, q, popular])
 
   const go = (slug?: string) => {

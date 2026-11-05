@@ -5,6 +5,7 @@ Pydantic схемы для каталога — игры, категории, т
 ─────────────────────────────────────────────────────────────────────────────
 """
 
+import re
 import uuid
 from decimal import Decimal
 
@@ -30,6 +31,14 @@ class GameOut(BaseModel):
     min_price: Decimal | None = None
     # служебные данные игры — наружу не отдаём, только признаки ниже
     meta: dict = Field(default_factory=dict, exclude=True)
+    seo_aliases: str | None = Field(default=None, exclude=True)
+
+    @computed_field
+    @property
+    def search_names(self) -> list[str]:
+        """Другие названия игры из админки («стим», «Рейд») — для поиска на сайте."""
+        parts = re.split(r"[\n,;]+", self.seo_aliases or "")
+        return list(dict.fromkeys(a.strip() for a in parts if a.strip()))
 
     @computed_field
     @property

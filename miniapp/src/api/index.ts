@@ -26,6 +26,8 @@ export interface Game {
   decor_catalog?: boolean
   /** Цена «от» — только в списке игр */
   min_price?: string | number | null
+  /** Другие названия игры из админки — для поиска на сайте */
+  search_names?: string[]
 }
 
 /** Каталог украшений Discord (общий с discordcatalog.net), GET /catalog/decor */

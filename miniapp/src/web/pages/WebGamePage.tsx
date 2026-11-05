@@ -318,9 +318,9 @@ function GameReviews({ slug, gameName }: { slug: string; gameName: string }) {
 }
 
 // Свой текст игры из админки («как купить») — под товарами, на всех вкладках;
-// другие названия игры (для поиска) — мелко под ним. Без блока вопросов.
+// Без блока вопросов; другие названия игры работают в поиске на сайте (gameMatch.ts).
 function GameSeoBlock({ seo, title }: { seo: GameSeo; title: string }) {
-  if (!seo.text && !seo.aliases.length) return null
+  if (!seo.text) return null
   const paragraphs = (seo.text ?? '').split(/\n\s*\n/).map((t) => t.trim()).filter(Boolean)
   return (
     <section className="mt-16 max-w-3xl" aria-labelledby={seo.text ? 'game-about' : undefined}>
@@ -333,9 +333,6 @@ function GameSeoBlock({ seo, title }: { seo: GameSeo; title: string }) {
             {paragraphs.map((t, i) => <p key={i} className="whitespace-pre-line">{t}</p>)}
           </div>
         </>
-      )}
-      {seo.aliases.length > 0 && (
-        <p className={(seo.text ? 'mt-5 ' : '') + 'text-xs text-[var(--hint)] leading-relaxed'}>Также ищут: {seo.aliases.join(', ')}</p>
       )}
     </section>
   )

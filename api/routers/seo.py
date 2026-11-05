@@ -645,7 +645,6 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
             for i, (n, u) in enumerate(crumbs)) + "</nav>"
         + cover_html
         + f"<h1>{_e(page.h1)}</h1><p>{_e(page.intro)}</p>"
-        + (f"<p>Также ищут: {_e(', '.join(page.aliases))}.</p>" if page.aliases else "")
         + sections_html
         + (f"<h2>{'Другие разделы' if current else 'Разделы'} {_e(game.name)}</h2><ul>{other_cats}</ul>" if other_cats else "")
         # свой текст игры («как купить») — под товарами, как на сайте (WebGamePage, GameSeoBlock)

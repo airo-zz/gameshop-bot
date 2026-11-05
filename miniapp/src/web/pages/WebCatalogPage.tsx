@@ -10,6 +10,7 @@ import { Search, X } from '@/components/ui/icons'
 import { catalogApi } from '@/api'
 import type { Game } from '@/api'
 import GameCard from '@/web/components/GameCard'
+import { filterGames } from '@/web/gameMatch'
 import { Reveal, Stagger, StaggerItem } from '@/web/components/Motion'
 import { usePageMeta } from '@/web/seo'
 import RequestCta from '@/web/components/RequestCta'
@@ -57,9 +58,9 @@ export default function WebCatalogPage() {
      ...(all ?? []).filter((g) => g.is_featured).map((g) => [g.slug, g.name] as const)],
   ).entries()].slice(0, 8)
 
-  const match = (g: Game) => !q || g.name.toLowerCase().includes(q.trim().toLowerCase())
-  const games = (all ?? []).filter((g) => g.type !== 'service' && match(g))
-  const services = (all ?? []).filter((g) => g.type === 'service' && match(g))
+  const found = filterGames(all ?? [], q)
+  const games = found.filter((g) => g.type !== 'service')
+  const services = found.filter((g) => g.type === 'service')
 
   const setQ = (v: string) => setParams((prev) => {
     const n = new URLSearchParams(prev)
