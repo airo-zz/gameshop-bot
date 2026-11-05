@@ -8,14 +8,12 @@ Admin API: управление каталогом (игры, категории
 import uuid
 from decimal import Decimal
 from math import ceil
-from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
-from sqlalchemy.orm import selectinload
 
 from api.deps import DbSession
-from shared.slug import slugify_latin, unique_slug
+from shared.slug import slugify_latin
 from api.deps_admin import CurrentAdmin, require_permission
 from api.schemas.admin import (
     BulkPriceUpdateIn,
@@ -36,7 +34,8 @@ from api.schemas.admin import (
     ReorderIn,
 )
 from api.services.ggsel_import import parse_ggsel_csv
-from api.services.pricing import rub_to_usd, usd_to_rub
+from api.services.ggsel_import_commit import commit_ggsel_import, unique_category_slug
+from api.services.pricing import usd_to_rub
 from api.services.rapira_service import get_markup_percent, get_usd_rub_rate
 from api.utils.admin_log import log_admin_action
 from api.utils.search import escape_like
@@ -51,14 +50,6 @@ router = APIRouter()
 def _slugify(name: str) -> str:
     """Латинский адрес из названия (ЧПУ), если slug не передан явно."""
     return slugify_latin(name)
-
-
-async def _category_slug(db, game_id, name: str) -> str:
-    """Латинский адрес раздела, уникальный внутри игры (страница /game/<игра>/<раздел>)."""
-    taken = set((await db.execute(
-        select(Category.slug).where(Category.game_id == game_id)
-    )).scalars().all())
-    return unique_slug(slugify_latin(name), taken)
 
 
 # ── Games ─────────────────────────────────────────────────────────────────────
@@ -282,7 +273,7 @@ async def create_category(
                 detail="Родительская категория не найдена",
             )
 
-    slug = body.slug or await _category_slug(db, body.game_id, body.name)
+    slug = body.slug or await unique_category_slug(db, body.game_id, body.name)
 
     category = Category(
         game_id=body.game_id,
@@ -532,7 +523,6 @@ async def create_product(
     if not cat.scalar_one_or_none():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Категория не найдена")
 
-    from shared.models.catalog import DeliveryType
 
     try:
         delivery_type = DeliveryType(body.delivery_type)
@@ -808,84 +798,13 @@ async def import_ggsel_commit(
     созданные товары. Товары с предупреждением создаются неактивными.
     Вся операция атомарна: при ошибке — полный откат (сессия делает rollback).
     """
-    game_res = await db.execute(select(Game).where(Game.id == body.game_id))
-    game = game_res.scalar_one_or_none()
+    game = (await db.execute(select(Game).where(Game.id == body.game_id))).scalar_one_or_none()
     if not game:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Игра не найдена")
-
     if not body.categories:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Нет категорий для импорта")
 
-    # Поля покупателя (текст-параметры оффера) — на уровень ИГРЫ, объединяя по ключу
-    new_fields = [f.model_dump() for f in body.input_fields]
-    if new_fields:
-        existing_fields = list(game.input_fields or [])
-        existing_keys = {f.get("key") for f in existing_fields if isinstance(f, dict)}
-        for f in new_fields:
-            if f.get("key") not in existing_keys:
-                existing_fields.append(f)
-                existing_keys.add(f.get("key"))
-        game.input_fields = existing_fields
-
-    # Курс и наценка — один раз на весь импорт. ₽-суммы оффера конвертируем в USD
-    # (источник истины), а розничную ₽-цену считаем через наценку + округление.
-    rate = float(await get_usd_rub_rate(db))
-    markup = float(await get_markup_percent(db))
-
-    # Существующие категории игры — переиспользуем по имени (без дублей)
-    existing_result = await db.execute(
-        select(Category).where(Category.game_id == body.game_id)
-    )
-    existing_by_name: dict[str, Category] = {c.name: c for c in existing_result.scalars()}
-
-    # Текущий максимум sort_order у категорий игры
-    max_sort_result = await db.execute(
-        select(func.coalesce(func.max(Category.sort_order), 0)).where(
-            Category.game_id == body.game_id
-        )
-    )
-    next_cat_sort = (max_sort_result.scalar_one() or 0) + 1
-
-    categories_created = 0
-    products_created = 0
-
-    for cat_item in body.categories:
-        category = existing_by_name.get(cat_item.name)
-        if category is None:
-            slug = await _category_slug(db, body.game_id, cat_item.name)
-            category = Category(
-                game_id=body.game_id,
-                name=cat_item.name,
-                slug=slug,
-                is_active=True,
-                sort_order=next_cat_sort,
-            )
-            next_cat_sort += 1
-            db.add(category)
-            await db.flush()
-            existing_by_name[cat_item.name] = category
-            categories_created += 1
-
-        for idx, prod in enumerate(cat_item.products):
-            # ₽-себестоимость оффера = базовая цена + модификатор → в USD (истина)
-            rub_cost = max(0.0, body.base_price + prod.price_modifier)
-            price_usd_val = rub_to_usd(rub_cost, rate)
-            price_rub = usd_to_rub(price_usd_val, rate, markup)
-            db.add(
-                Product(
-                    category_id=category.id,
-                    name=prod.name,
-                    price=Decimal(str(price_rub)),
-                    price_usd=Decimal(str(price_usd_val)),
-                    quantity=1,
-                    delivery_type=DeliveryType.manual,
-                    is_active=price_rub > 0,
-                    sort_order=idx,
-                )
-            )
-            products_created += 1
-
-    await db.flush()
+    categories_created, products_created = await commit_ggsel_import(db, game, body)
 
     await log_admin_action(
         db=db,
