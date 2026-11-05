@@ -24,6 +24,8 @@ celery_app = Celery(
     backend=settings.CELERY_RESULT_BACKEND,
     include=[
         "worker.tasks.cart_tasks",
+        "worker.tasks.loyalty_tasks",
+        "worker.tasks.order_tasks",
         "worker.tasks.notification_tasks",
         "worker.tasks.cleanup_tasks",
         "worker.tasks.chat_notifications",

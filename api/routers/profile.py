@@ -9,7 +9,7 @@ from api.deps import (
     decode_merge_ticket,
 )
 from api.rate_limit import limiter
-from api.routers.payments import TelegramWidgetAuthIn, verify_widget_body
+from api.routers.auth import TelegramWidgetAuthIn, verify_widget_body
 from api.schemas.cart import ProfileOut, TokenResponse
 from api.services.loyalty_service import (
     REFERRAL_DISCOUNT_KEY, REFERRAL_MONTHS_KEY, REFERRAL_PERCENT_KEY, LoyaltyService,

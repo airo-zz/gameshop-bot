@@ -19,7 +19,7 @@ from shared.config import settings
 from shared.database.session import engine
 
 from api.rate_limit import limiter
-from api.routers import avatar, catalog, seo, cart, chat, orders, payments, profile, reviews, support, webhooks, uploads
+from api.routers import auth, avatar, catalog, seo, cart, chat, orders, payments, profile, reviews, support, webhooks, uploads
 from api.routers.admin import router as admin_router
 
 log = structlog.get_logger()
@@ -89,6 +89,8 @@ def create_app() -> FastAPI:
     app.include_router(catalog.router, prefix=f"{prefix}/catalog", tags=["Catalog"])
     app.include_router(cart.router, prefix=f"{prefix}/cart", tags=["Cart"])
     app.include_router(orders.router, prefix=f"{prefix}/orders", tags=["Orders"])
+    # вход живёт под /payments/auth/* исторически (см. api/routers/auth.py)
+    app.include_router(auth.router, prefix=f"{prefix}/payments", tags=["Auth"])
     app.include_router(payments.router, prefix=f"{prefix}/payments", tags=["Payments"])
     app.include_router(profile.router, prefix=f"{prefix}/profile", tags=["Profile"])
     app.include_router(support.router, prefix=f"{prefix}/support", tags=["Support"])

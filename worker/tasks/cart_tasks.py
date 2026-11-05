@@ -1,4 +1,4 @@
-"""worker/tasks/cart_tasks.py — брошенные корзины"""
+"""worker/tasks/cart_tasks.py — напоминания о брошенных корзинах (beat, каждые 30 мин)."""
 
 import asyncio
 import logging
@@ -173,75 +173,3 @@ def send_abandoned_cart_reminder(
             exc,
         )
         raise self.retry(exc=exc)
-
-
-"""worker/tasks/loyalty_tasks.py — пересчёт лояльности"""
-
-
-@celery_app.task(name="worker.tasks.loyalty_tasks.recalculate_all_loyalty")
-def recalculate_all_loyalty():
-    """Пересчитывает уровни лояльности для всех активных пользователей."""
-    asyncio.run(_recalculate_all_async())
-
-
-async def _recalculate_all_async():
-    from sqlalchemy import select
-    from api.services.loyalty_service import LoyaltyService
-    from shared.database.session import get_worker_db_session
-    from shared.models import User
-
-    # Уровень считается по тратам за месяц (модель Bybit) — экраны считают его
-    # на лету, здесь только освежаем кэш users.loyalty_level_id (админка, аналитика),
-    # в т.ч. понижение после смены месяца.
-    async with get_worker_db_session() as db:
-        svc = LoyaltyService(db)
-        offset = 0
-        while True:
-            users_result = await db.execute(
-                select(User).where(User.is_blocked == False)  # noqa: E712
-                .order_by(User.id).offset(offset).limit(100)
-            )
-            users = users_result.scalars().all()
-            if not users:
-                break
-            for user in users:
-                await svc.get_status(user)
-            offset += 100
-
-
-"""worker/tasks/order_tasks.py — истечение заказов"""
-
-
-@celery_app.task(name="worker.tasks.order_tasks.expire_pending_orders")
-def expire_pending_orders():
-    asyncio.run(_expire_orders_async())
-
-
-async def _expire_orders_async():
-    from sqlalchemy import select
-    from datetime import timedelta
-    from shared.database.session import get_worker_db_session
-    from shared.models import Order, OrderStatus
-
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
-
-    async with get_worker_db_session() as db:
-        result = await db.execute(
-            select(Order).where(
-                Order.status == OrderStatus.pending_payment,
-                Order.created_at < cutoff,
-            )
-        )
-        orders = result.scalars().all()
-
-        from api.services.order_service import OrderService
-
-        svc = OrderService(db)
-
-        for order in orders:
-            await svc.change_status(
-                order,
-                OrderStatus.cancelled,
-                changed_by_type="system",
-                reason="Автоотмена: время оплаты истекло (24ч)",
-            )
