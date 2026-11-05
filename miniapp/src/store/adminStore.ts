@@ -91,25 +91,3 @@ export const useAdminUsersStore = create<AdminUsersState>((set) => ({
   setIsBlocked: (v) => set({ isBlocked: v, page: 1 }),
   reset: () => set({ page: 1, search: '', isBlocked: null }),
 }))
-
-// ── Admin Catalog Store ───────────────────────────────────────────────────────
-
-interface AdminCatalogState {
-  page: number
-  gameId: string | null
-  search: string
-  setPage: (page: number) => void
-  setGameId: (id: string | null) => void
-  setSearch: (search: string) => void
-  reset: () => void
-}
-
-export const useAdminCatalogStore = create<AdminCatalogState>((set) => ({
-  page: 1,
-  gameId: null,
-  search: '',
-  setPage: (page) => set({ page }),
-  setGameId: (id) => set({ gameId: id, page: 1 }),
-  setSearch: (search) => set({ search, page: 1 }),
-  reset: () => set({ page: 1, gameId: null, search: '' }),
-}))

@@ -10,15 +10,15 @@
 import type { CSSProperties } from 'react'
 import type { Icon as PhIcon, IconWeight } from '@phosphor-icons/react'
 import {
-  ArrowCounterClockwiseIcon, ArrowLeftIcon, ArrowsClockwiseIcon, CalendarBlankIcon,
+  ArrowCounterClockwiseIcon, ArrowLeftIcon, ArrowsClockwiseIcon,
   CaretDownIcon, CaretLeftIcon, CaretRightIcon, ChatCenteredTextIcon, ChatCircleIcon,
   CheckCircleIcon, CheckIcon, CircleIcon, CircleNotchIcon, ClockIcon, CopyIcon,
-  CreditCardIcon, CrownIcon, CurrencyBtcIcon, DeviceMobileIcon, DiamondIcon, FileTextIcon,
+  CreditCardIcon, CrownIcon, CurrencyBtcIcon, DeviceMobileIcon, FileTextIcon,
   GameControllerIcon, GearSixIcon, GiftIcon, HeadsetIcon, HeartIcon, ImageSquareIcon, InfoIcon,
-  LightningIcon, ListIcon, MagnifyingGlassIcon, MagnifyingGlassPlusIcon, MedalIcon, MinusIcon,
+  LightningIcon, ListIcon, MagnifyingGlassIcon, MagnifyingGlassPlusIcon, MinusIcon,
   PackageIcon, PaperPlaneRightIcon, PaperclipIcon, PercentIcon, PlusIcon, QuestionIcon,
   SealCheckIcon, ShareNetworkIcon, ShieldCheckIcon, ShieldIcon, ShoppingBagIcon,
-  ShoppingCartIcon, SignOutIcon, StarIcon, SteamLogoIcon, TelegramLogoIcon, TagIcon, ThumbsDownIcon, ThumbsUpIcon, TrashIcon, TrendDownIcon, TrendUpIcon,
+  ShoppingCartIcon, SignOutIcon, StarIcon, SteamLogoIcon, TagIcon, ThumbsDownIcon, ThumbsUpIcon, TrashIcon, TrendDownIcon, TrendUpIcon,
   UsersIcon, WalletIcon, WarningCircleIcon, WifiSlashIcon, XCircleIcon, XIcon,
 } from '@phosphor-icons/react'
 import {
@@ -49,11 +49,8 @@ function wrap(Ph: PhIcon) {
 
 export const ArrowLeft = wrap(ArrowLeftIcon)
 export const AlertCircle = wrap(WarningCircleIcon)
-export const Award = wrap(MedalIcon)
 export const BadgeCheck = wrap(SealCheckIcon)
-export const BadgePercent = wrap(PercentIcon)
 export const Bitcoin = wrap(CurrencyBtcIcon)
-export const Calendar = wrap(CalendarBlankIcon)
 export const Check = wrap(CheckIcon)
 export const CheckCircle = wrap(CheckCircleIcon)
 export const CheckCircle2 = wrap(CheckCircleIcon)
@@ -67,7 +64,6 @@ export const CreditCard = wrap(CreditCardIcon)
 export const Crown = wrap(CrownIcon)
 export const FileText = wrap(FileTextIcon)
 export const Gamepad2 = wrap(GameControllerIcon)
-export const Gem = wrap(DiamondIcon)
 export const Gift = wrap(GiftIcon)
 export const Headphones = wrap(HeadsetIcon)
 export const Heart = wrap(HeartIcon)
@@ -96,7 +92,6 @@ export const ShoppingCart = wrap(ShoppingCartIcon)
 export const Smartphone = wrap(DeviceMobileIcon)
 export const Star = wrap(StarIcon)
 export const SteamLogo = wrap(SteamLogoIcon)
-export const TelegramLogo = wrap(TelegramLogoIcon)
 export const Tag = wrap(TagIcon)
 export const ThumbsDown = wrap(ThumbsDownIcon)
 export const ThumbsUp = wrap(ThumbsUpIcon)
