@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
-import { SECTIONS, catalogHref, sectionById, sectionOf, type SectionId } from '@/web/catalogSections'
+import { CATALOG_SECTIONS, catalogHref, sectionById, sectionOf, type SectionId } from '@/web/catalogSections'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
@@ -283,7 +283,8 @@ function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean;
   const [open, setOpen] = useState(false)
   const top = useRef<HTMLElement>(null)
   const cols = useCatalogCols()
-  const tabs = SECTIONS.filter((s) => all.some((g) => sectionOf(g) === s.id))
+  // на главной — донат и сервисы; ключи игр — отдельный раздел (пункт в шапке)
+  const tabs = CATALOG_SECTIONS.filter((s) => all.some((g) => sectionOf(g) === s.id))
   const games = all.filter((g) => sectionOf(g) === tab)
   // Свёрнуто: открыты первые 4 ряда
   const limit = cols * 4

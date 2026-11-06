@@ -1,8 +1,9 @@
 /**
  * src/web/components/CatalogMenu.tsx
- * Меню «Каталог» в шапке сайта.
- *  • ПК: панель на всю ширину под шапкой — три колонки разделов (донат, ключи игр,
- *    сервисы): иконка, число, подпись и самые продаваемые позиции с обложкой и ценой «от».
+ * Меню «Каталог» в шапке сайта — упор на донат.
+ *  • ПК: панель на всю ширину под шапкой: донат — широкая колонка (12 игр в два столбца),
+ *    сервисы — узкая; у каждой иконка, число, подпись и самые продаваемые позиции с ценой «от».
+ *    Ключи игр сюда не входят — у них свой пункт в шапке (KeysNavLink).
  *    Открывается наведением (с задержкой, чтобы не мигало при проходе мышью) и кликом.
  *  • Телефон: CatalogMenuMobile — разделы списком внутри мобильного меню.
  * Данные — тот же запрос, что у страницы каталога (кэш общий).
@@ -17,20 +18,21 @@ import { catalogApi, type Game } from '@/api'
 import { money } from '@/web/format'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { onThumbError, thumbUrl } from '@/utils/thumb'
-import { SECTIONS, catalogHref, sectionOf, type Section } from '@/web/catalogSections'
+import { CATALOG_SECTIONS, KEYS_SECTION, catalogHref, sectionOf, type Section } from '@/web/catalogSections'
 
-const TOP_N = 6
+// сколько позиций показывать: донату — больше места
+const TOP_N: Record<string, number> = { game: 12, service: 7 }
 
 function useCatalog() {
   return useQuery({ queryKey: ['web', 'games', 'all'], queryFn: () => catalogApi.getGames(), staleTime: 5 * 60_000 })
 }
 
 /** раздел → позиции: сначала самые продаваемые, при равенстве — рекомендованные */
-function groups(all: Game[] | undefined) {
-  return SECTIONS.map((s) => {
+function groups(all: Game[] | undefined, sections: Section[] = CATALOG_SECTIONS) {
+  return sections.map((s) => {
     const items = (all ?? []).filter((g) => sectionOf(g) === s.id)
     const top = [...items].sort((a, b) =>
-      (b.sold_count ?? 0) - (a.sold_count ?? 0) || Number(b.is_featured) - Number(a.is_featured)).slice(0, TOP_N)
+      (b.sold_count ?? 0) - (a.sold_count ?? 0) || Number(b.is_featured) - Number(a.is_featured)).slice(0, TOP_N[s.id] ?? 6)
     return { section: s, count: items.length, top }
   }).filter((g) => g.count > 0)
 }
@@ -50,7 +52,7 @@ function Cover({ game, size }: { game: Game; size: number }) {
   )
 }
 
-function SectionColumn({ section, count, top, onPick }: { section: Section; count: number; top: Game[]; onPick: () => void }) {
+function SectionColumn({ section, count, top, onPick, wide }: { section: Section; count: number; top: Game[]; onPick: () => void; wide?: boolean }) {
   const { Icon } = section
   return (
     <div className="min-w-0 flex flex-col">
@@ -67,7 +69,7 @@ function SectionColumn({ section, count, top, onPick }: { section: Section; coun
           <span className="block text-xs text-[var(--hint)] mt-0.5 leading-snug">{section.hint}</span>
         </span>
       </Link>
-      <ul className="flex flex-col">
+      <ul className={wide ? 'grid grid-cols-2 gap-x-8' : 'flex flex-col'}>
         {top.map((g) => (
           <li key={g.id}>
             <Link to={`/game/${g.slug}`} onClick={onPick}
@@ -153,16 +155,16 @@ export default function CatalogMenu() {
             >
               <div className="web-container py-7">
                 {cols.length === 0 ? (
-                  <div className="grid grid-cols-3 gap-8" aria-hidden="true">
-                    {[0, 1, 2].map((i) => <div key={i} className="h-64 rounded-xl animate-pulse bg-[var(--bg3)]" />)}
+                  <div className="grid gap-8" style={{ gridTemplateColumns: '2fr 1fr' }} aria-hidden="true">
+                    {[0, 1].map((i) => <div key={i} className="h-64 rounded-xl animate-pulse bg-[var(--bg3)]" />)}
                   </div>
                 ) : (
-                  <div className="grid gap-8 lg:gap-12" style={{ gridTemplateColumns: `repeat(${cols.length}, minmax(0, 1fr))` }}>
-                    {cols.map((c) => <SectionColumn key={c.section.id} {...c} onPick={() => setOpen(false)} />)}
+                  <div className="grid gap-8 lg:gap-12" style={{ gridTemplateColumns: cols.length > 1 ? 'minmax(0, 2fr) minmax(0, 1fr)' : 'minmax(0, 1fr)' }}>
+                    {cols.map((c) => <SectionColumn key={c.section.id} {...c} wide={c.section.id === 'game'} onPick={() => setOpen(false)} />)}
                   </div>
                 )}
                 <div className="mt-7 pt-5 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-3">
-                  <span className="text-xs text-[var(--hint)]">Автовыдача — коды и ключи приходят сразу после оплаты</span>
+                  <span className="text-xs text-[var(--hint)]">Донат по ID игрока — без входа в аккаунт, автовыдача сразу после оплаты</span>
                   <Link to="/catalog" onClick={() => setOpen(false)}
                         className="inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors">
                     <LayoutGrid size={16} /> Весь каталог
@@ -184,7 +186,7 @@ export function CatalogMenuMobile({ onPick }: { onPick: () => void }) {
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs uppercase tracking-wide text-[var(--hint)] mb-1">Каталог</span>
-      {(cols.length ? cols : SECTIONS.map((s) => ({ section: s, count: 0, top: [] as Game[] }))).map(({ section, count }) => {
+      {(cols.length ? cols : CATALOG_SECTIONS.map((s) => ({ section: s, count: 0, top: [] as Game[] }))).map(({ section, count }) => {
         const { Icon } = section
         return (
           <Link key={section.id} to={catalogHref(section.id)} onClick={onPick}
@@ -203,5 +205,42 @@ export function CatalogMenuMobile({ onPick }: { onPick: () => void }) {
         )
       })}
     </div>
+  )
+}
+
+/** Отдельный пункт «Ключи игр» в шапке (ПК) — рядом с «Каталогом», но не внутри него */
+export function KeysNavLink() {
+  const { data: all } = useCatalog()
+  const { pathname, search } = useLocation()
+  if (!(all ?? []).some((g) => sectionOf(g) === 'key')) return null
+  const active = pathname === '/catalog' && new URLSearchParams(search).get('type') === 'key'
+  return (
+    <Link to={catalogHref('key')}
+          className={'inline-flex items-center gap-1.5 text-sm whitespace-nowrap transition-colors '
+            + (active ? 'text-[var(--text)]' : 'text-[var(--text-2)] hover:text-[var(--text)]')}>
+      <KEYS_SECTION.Icon size={15} /> {KEYS_SECTION.title}
+    </Link>
+  )
+}
+
+/** «Ключи игр» в мобильном меню — отдельным блоком под каталогом */
+export function KeysMenuMobile({ onPick }: { onPick: () => void }) {
+  const { data: all } = useCatalog()
+  const [g] = groups(all, [KEYS_SECTION])
+  if (!g) return null
+  const { Icon } = KEYS_SECTION
+  return (
+    <Link to={catalogHref('key')} onClick={onPick}
+          className="flex items-center gap-3 rounded-xl px-2 py-2 -mx-2 hover:bg-[var(--bg2)] transition-colors">
+      <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-[var(--bg2)] text-[var(--text-2)]">
+        <Icon size={18} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-sm font-medium text-[var(--text)]">{KEYS_SECTION.title}</span>
+        <span className="block text-xs text-[var(--hint)] truncate">{KEYS_SECTION.hint}</span>
+      </span>
+      <span className="text-xs text-[var(--hint)] num">{g.count}</span>
+      <ChevronRight size={16} className="text-[var(--hint)]" />
+    </Link>
   )
 }

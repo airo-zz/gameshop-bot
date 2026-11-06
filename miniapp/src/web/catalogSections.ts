@@ -1,7 +1,8 @@
 /**
  * src/web/catalogSections.ts
- * Разделы каталога сайта: донат в играх, ключи игр, пополнение сервисов.
- * Один источник для страницы каталога, блока на главной и меню «Каталог» в шапке.
+ * Разделы сайта: донат в играх и пополнение сервисов — это «Каталог» (упор на донат);
+ * ключи игр — отдельный раздел со своим пунктом в шапке и своей страницей (?type=key).
+ * Один источник для страницы каталога, блока на главной и меню в шапке.
  */
 
 import { Gamepad2, KeyRound, Wallet } from '@/components/ui/icons'
@@ -32,6 +33,10 @@ export const sectionOf = (g: Pick<Game, 'type'>): SectionId =>
   g.type === 'service' ? 'service' : g.type === 'key' ? 'key' : 'game'
 
 export const sectionById = (id: SectionId) => SECTIONS.find((s) => s.id === id) ?? SECTIONS[0]
+
+/** «Каталог»: донат и сервисы. Ключи — отдельно (KEYS_SECTION) */
+export const CATALOG_SECTIONS = SECTIONS.filter((s) => s.id !== 'key')
+export const KEYS_SECTION = sectionById('key')
 
 /** ?type= в адресе каталога */
 export const sectionFromParam = (v: string | null): SectionId => (v === 'service' || v === 'key' ? v : 'game')

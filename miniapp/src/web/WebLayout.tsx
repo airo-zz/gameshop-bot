@@ -17,7 +17,7 @@ import { useWebCart } from '@/web/cart/useWebCart'
 import { money } from '@/web/format'
 import Avatar from '@/web/components/Avatar'
 import GameSearch from '@/web/components/GameSearch'
-import CatalogMenu, { CatalogMenuMobile } from '@/web/components/CatalogMenu'
+import CatalogMenu, { CatalogMenuMobile, KeysMenuMobile, KeysNavLink } from '@/web/components/CatalogMenu'
 import { PenLogo } from '@/components/brand/BrandMotion'
 import { initMetrika, useMetrikaPageViews } from '@/web/seo'
 import { preloadRoutesWhenIdle } from '@/web/prefetch'
@@ -171,6 +171,7 @@ export default function WebLayout() {
           <nav className="hidden md:flex items-center gap-5 lg:gap-6">
             {/* «Каталог» — выпадающее меню разделов, остальное — ссылки */}
             <CatalogMenu />
+            <KeysNavLink />
             {NAV.filter((item) => item.href !== '/catalog').map((item) => <NavItemLink key={item.href} item={item} />)}
           </nav>
 
@@ -206,6 +207,7 @@ export default function WebLayout() {
             >
               <div className="web-container py-4 flex flex-col gap-4">
                 <CatalogMenuMobile onPick={() => setMenuOpen(false)} />
+                <KeysMenuMobile onPick={() => setMenuOpen(false)} />
                 {NAV.filter((item) => item.href !== '/catalog').map((item) => <NavItemLink key={item.href} item={item} onClick={() => setMenuOpen(false)} />)}
                 {isAuthenticated && (
                   <>
