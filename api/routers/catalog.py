@@ -27,8 +27,15 @@ async def list_games(
     prices = await game_min_prices(db)
     auto = await game_auto_ids(db)
     by_id = await game_id_topup_ids(db)
-    return [GameOut.model_validate(g).model_copy(update={
-                "min_price": prices.get(g.id), "has_auto": g.id in auto, "id_topup": g.id in by_id})
+
+    def badge(g) -> dict:
+        # games.meta.cover_badge — плашка вручную: auto | id | none (Discord: выдача своя, не «Авто»)
+        forced = (g.meta or {}).get("cover_badge")
+        if forced in ("auto", "id", "none"):
+            return {"has_auto": forced == "auto", "id_topup": forced == "id"}
+        return {"has_auto": g.id in auto, "id_topup": g.id in by_id}
+
+    return [GameOut.model_validate(g).model_copy(update={"min_price": prices.get(g.id), **badge(g)})
             for g in games]
 
 
