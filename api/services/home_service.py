@@ -202,7 +202,7 @@ async def game_min_prices(db: AsyncSession) -> dict[uuid.UUID, Decimal]:
 
 
 async def game_auto_ids(db: AsyncSession) -> set[uuid.UUID]:
-    """id игр, где есть товар с мгновенной (авто) выдачей — пометка на карточке каталога."""
+    """id игр, где есть товар с автовыдачей — пометка на карточке каталога."""
     rows = (await db.execute(
         select(Category.game_id)
         .join(Product, Product.category_id == Category.id)

@@ -88,7 +88,8 @@ class OrderItemOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    product_id: uuid.UUID
+    # None — индивидуальный (спец) лот: товара в каталоге нет
+    product_id: uuid.UUID | None = None
     product_name: str
     game_name: str | None = None
     quantity: int

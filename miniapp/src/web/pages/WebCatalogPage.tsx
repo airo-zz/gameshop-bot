@@ -85,7 +85,7 @@ export default function WebCatalogPage() {
           <p className="text-sm text-[var(--hint)] mt-2">
             {keysPage
               ? 'Лицензионные ключи для Steam, Xbox, Rockstar и EA — с активацией в России, ключ приходит сразу после оплаты.'
-              : 'Донат в играх и пополнение сервисов: внутриигровая валюта, наборы, боевые пропуски и подарочные карты. Многие товары выдаются мгновенно — сразу после оплаты.'}
+              : 'Донат в играх и пополнение сервисов: внутриигровая валюта, наборы, боевые пропуски и подарочные карты. Многие товары — с автовыдачей сразу после оплаты.'}
           </p>
         </div>
         <label className="flex items-center gap-2 w-full sm:w-80 h-12 px-4 rounded-xl bg-[var(--bg2)] border border-transparent focus-within:border-[var(--accent)] transition-colors">

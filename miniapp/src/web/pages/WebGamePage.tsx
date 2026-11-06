@@ -539,7 +539,7 @@ function GamePageContent() {
             )}
             {currentCat?.delivery_type === 'auto' && (
               <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium" style={{ background: 'rgba(16,185,129,0.12)', color: '#34d399' }}>
-                <Zap size={14} fill="#34d399" /> Мгновенная выдача
+                <Zap size={14} fill="#34d399" /> Автовыдача
               </span>
             )}
             {currentCat?.delivery_type === 'manual' && (

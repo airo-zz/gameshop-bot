@@ -27,7 +27,7 @@ export interface Game {
   decor_catalog?: boolean
   /** Цена «от» — только в списке игр */
   min_price?: string | number | null
-  /** есть товары с мгновенной выдачей (только в списке игр) */
+  /** есть товары с автовыдачей (только в списке игр) */
   has_auto?: boolean
   /** Другие названия игры из админки — для поиска на сайте */
   search_names?: string[]

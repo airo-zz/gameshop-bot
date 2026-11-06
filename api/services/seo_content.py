@@ -118,7 +118,6 @@ def game_seo(game, cat_names: list[str], min_price: Decimal | float | None,
          if service else
          f"Здесь вы можете купить донат для {name}{also} по выгодной цене: {what} и другое. ")
         + (f"Цены от {money(min_price)}. " if min_price else "")
-        + ("Мгновенная выдача после оплаты. " if has_auto else "")
         + f"Оплата через СБП, банковской картой или криптовалютой{cashback}."
     )[:320]
     # games.meta.h1 — свой заголовок, когда шаблон не по-русски («Пополнение Discord Бусты»)
@@ -184,7 +183,7 @@ def _category_intro(game, cat, cname: str, suffix: str, prices: list, has_auto: 
         parts.append(f"{cname}{suffix} — {money(prices[0])}.")
     else:
         parts.append(f"{cname}{suffix} — выберите вариант и оплатите онлайн.")
-    parts.append("Мгновенная выдача: товар приходит автоматически сразу после оплаты." if has_auto else
+    parts.append("Выдаётся автоматически сразу после оплаты." if has_auto else
                  "После оплаты заказ выполнит оператор — статус и вопросы в чате с ним.")
     fields = (getattr(cat, "input_fields", None) or getattr(game, "input_fields", None) or [])
     labels = [str(f.get("label")).strip().rstrip(":") for f in fields if isinstance(f, dict) and f.get("label")]

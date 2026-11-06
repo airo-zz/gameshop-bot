@@ -47,7 +47,7 @@ export default function GameCard({ game }: { game: Game }) {
         )}
         {game.has_auto && (
           <span className="absolute top-2 left-2 inline-flex items-center gap-1 h-6 px-2 rounded-lg text-xs font-medium text-white" style={{ background: 'rgba(8,9,12,0.72)' }}>
-            <Zap size={12} fill="#34d399" color="#34d399" /> Мгновенно
+            <Zap size={12} fill="#34d399" color="#34d399" /> Автовыдача
           </span>
         )}
       </div>
