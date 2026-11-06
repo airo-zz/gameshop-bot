@@ -558,7 +558,7 @@ function GamePageContent() {
           </div>
           {manualHint && currentCat?.delivery_type === 'manual' && (
             <p className="mt-2 text-xs text-[var(--text-2)] max-w-2xl">
-              Заказ выполняет оператор в чате: обычно 5–30 минут, в редких случаях до 6 часов.
+              Заказ выполняет оператор в чате: обычно 5–30 минут, в редких случаях до 3 часов.
             </p>
           )}
           {description && <p className="mt-3 text-sm text-[var(--text-2)] leading-relaxed max-w-2xl whitespace-pre-line">{description}</p>}
