@@ -2,8 +2,8 @@
  * src/web/components/CatalogMenu.tsx
  * Меню «Каталог» в шапке сайта — как на GGSel.
  *  • ПК: открывается только кликом. Слева разделы: донат (открыт по умолчанию), сервисы,
- *    ниже под чертой — ключи игр. Наведение/клик по разделу показывает справа его игры
- *    сеткой (самые продаваемые, с ценой «от»).
+ *    ниже под чертой — ключи игр. Наведение на раздел показывает справа его игры сеткой
+ *    (самые продаваемые, с ценой «от»), клик ведёт на страницу раздела.
  *  • Телефон: CatalogMenuMobile + KeysMenuMobile — разделы списком внутри мобильного меню.
  * Данные — тот же запрос, что у страницы каталога (кэш общий).
  */
@@ -51,14 +51,14 @@ function Cover({ game, size }: { game: Game; size: number }) {
   )
 }
 
-/** Пункт левой колонки: наведение (мышь) или клик — показать раздел справа */
-function SideItem({ section, count, active, onShow }: { section: Section; count: number; active: boolean; onShow: () => void }) {
+/** Пункт левой колонки: наведение — показать раздел справа, клик — на страницу раздела */
+function SideItem({ section, count, active, onShow, onPick }: { section: Section; count: number; active: boolean; onShow: () => void; onPick: () => void }) {
   const { Icon } = section
   return (
-    <button
-      type="button"
+    <Link
+      to={catalogHref(section.id)}
       onPointerEnter={(e) => { if (e.pointerType === 'mouse') onShow() }}
-      onClick={onShow}
+      onClick={onPick}
       onFocus={onShow}
       aria-current={active ? 'true' : undefined}
       className={'w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors '
@@ -70,7 +70,7 @@ function SideItem({ section, count, active, onShow }: { section: Section; count:
       </span>
       <span className="min-w-0 flex-1 text-sm font-medium truncate">{section.title}</span>
       {count > 0 && <span className="text-xs text-[var(--hint)] num">{count}</span>}
-    </button>
+    </Link>
   )
 }
 
@@ -175,12 +175,12 @@ export default function CatalogMenu() {
                     <div className="flex flex-col gap-1 border-r border-[var(--border)] pr-6">
                       {main.map((g) => (
                         <SideItem key={g.section.id} section={g.section} count={g.count}
-                                  active={cur.section.id === g.section.id} onShow={() => setShown(g.section.id)} />
+                                  active={cur.section.id === g.section.id} onShow={() => setShown(g.section.id)} onPick={close} />
                       ))}
                       {keys && (
                         <>
                           <div className="my-2 border-t border-[var(--border)]" />
-                          <SideItem section={keys.section} count={keys.count} active={cur.section.id === 'key'} onShow={() => setShown('key')} />
+                          <SideItem section={keys.section} count={keys.count} active={cur.section.id === 'key'} onShow={() => setShown('key')} onPick={close} />
                         </>
                       )}
                       <Link to="/catalog" onClick={close}

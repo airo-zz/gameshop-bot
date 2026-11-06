@@ -29,6 +29,8 @@ class GameOut(BaseModel):
     custom_order_enabled: bool = False
     # цена «от» — только в списке игр (GET /catalog/games)
     min_price: Decimal | None = None
+    # есть товары с мгновенной выдачей — тоже только в списке игр
+    has_auto: bool = False
     # служебные данные игры — наружу не отдаём, только признаки ниже
     meta: dict = Field(default_factory=dict, exclude=True)
     seo_aliases: str | None = Field(default=None, exclude=True)

@@ -61,7 +61,7 @@ function Hero({ games, banners, loaded }: { games: Game[]; banners: HomeBanner[]
           </m.div>
 
           <m.ul {...item(3)} className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm text-[var(--hint)]">
-            <li className="flex items-center gap-1.5"><Zap size={16} className="text-[var(--link)]" />Автовыдача</li>
+            <li className="flex items-center gap-1.5"><Zap size={16} className="text-[var(--link)]" />Мгновенная выдача</li>
             <li className="flex items-center gap-1.5"><ShieldCheck size={16} className="text-[var(--link)]" />Безопасная оплата</li>
             <li className="flex items-center gap-1.5"><Headphones size={16} className="text-[var(--link)]" />Поддержка операторов</li>
           </m.ul>
@@ -173,7 +173,7 @@ function PopularCard({ c }: { c: TrendingCategory }) {
           )}
           {c.has_auto && (
             <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 h-6 px-2 rounded-lg text-xs font-medium text-white" style={{ background: 'rgba(8,9,12,0.72)' }}>
-              <Zap size={12} fill="#34d399" color="#34d399" /> Автовыдача
+              <Zap size={12} fill="#34d399" color="#34d399" /> Мгновенно
             </span>
           )}
         </div>
@@ -467,7 +467,7 @@ function Cashback() {
 const STEPS = [
   { title: 'Выберите игру и пакет', text: 'Найдите игру в каталоге и добавьте нужный набор в корзину.' },
   { title: 'Оплатите удобным способом', text: 'СБП, банковская карта, криптовалюта или баланс аккаунта.' },
-  { title: 'Получите товар', text: 'Автовыдача приходит сразу, остальное оператор выдаёт в чате.' },
+  { title: 'Получите товар', text: 'Мгновенная выдача — сразу после оплаты, остальное оператор выполнит в чате.' },
 ]
 
 function HowItWorks() {
@@ -513,7 +513,7 @@ function HowItWorks() {
 // ── Вопросы ───────────────────────────────────────────────────────────────────
 
 const FAQ = [
-  { q: 'Как быстро приходит товар?', a: 'Товары с автовыдачей приходят сразу после оплаты. Остальные заказы оператор выполняет в чате — обычно за 5–30 минут, максимум до 3 часов.' },
+  { q: 'Как быстро приходит товар?', a: 'Товары с мгновенной выдачей приходят сразу после оплаты. Остальные заказы оператор выполняет в чате — обычно за 5–30 минут, максимум до 3 часов.' },
   { q: 'Какие способы оплаты доступны?', a: 'СБП, банковские карты (Visa, Mastercard, МИР), криптовалюта (USDT, TON, BTC и др.) и баланс аккаунта.' },
   { q: 'Нужна ли регистрация?', a: 'Аккаунт создаётся при первом входе: по почте с кодом подтверждения или через Telegram. Если войти через Telegram, заказы, баланс и кэшбэк будут общими с Telegram-ботом.' },
   { q: 'Как работает кэшбэк?', a: 'Уровень зависит от трат за календарный месяц. С каждого выполненного заказа на баланс возвращается процент вашего уровня, в пределах месячного лимита.' },

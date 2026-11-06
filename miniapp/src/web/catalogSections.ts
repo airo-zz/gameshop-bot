@@ -24,7 +24,7 @@ export interface Section {
 }
 
 export const SECTIONS: Section[] = [
-  { id: 'game', label: 'Донат', title: 'Донат в играх', hint: 'Валюта, наборы и пропуски по ID', Icon: Gamepad2, plural: ['игру', 'игры', 'игр'] },
+  { id: 'game', label: 'Донат', title: 'Донат в играх', hint: 'Валюта, наборы и боевые пропуски', Icon: Gamepad2, plural: ['игру', 'игры', 'игр'] },
   { id: 'key', label: 'Ключи игр', title: 'Ключи игр', hint: 'Steam, Xbox, Rockstar — ключ сразу после оплаты', Icon: KeyRound, plural: ['ключ', 'ключа', 'ключей'] },
   { id: 'service', label: 'Сервисы', title: 'Пополнение сервисов', hint: 'PlayStation, App Store, Xbox и другие', Icon: Wallet, plural: ['сервис', 'сервиса', 'сервисов'] },
 ]

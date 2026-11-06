@@ -6,7 +6,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Search, X } from '@/components/ui/icons'
+import { ArrowLeft, ArrowRight, Search, X } from '@/components/ui/icons'
 import { catalogApi } from '@/api'
 import type { Game } from '@/api'
 import GameCard from '@/web/components/GameCard'
@@ -74,7 +74,7 @@ export default function WebCatalogPage() {
     if (t === 'game') n.delete('type'); else n.set('type', t)
     return n
   }, { replace: true })
-  const tabCount = Object.fromEntries(CATALOG_SECTIONS.map((s) => [s.id, (all ?? []).filter((g) => sectionOf(g) === s.id).length])) as Record<SectionId, number>
+  const tabCount = Object.fromEntries([...CATALOG_SECTIONS, KEYS_SECTION].map((s) => [s.id, (all ?? []).filter((g) => sectionOf(g) === s.id).length])) as Record<SectionId, number>
   const tabs = CATALOG_SECTIONS.filter((s) => tabCount[s.id] > 0)
 
   return (
@@ -85,7 +85,7 @@ export default function WebCatalogPage() {
           <p className="text-sm text-[var(--hint)] mt-2">
             {keysPage
               ? 'Лицензионные ключи для Steam, Xbox, Rockstar и EA — с активацией в России, ключ приходит сразу после оплаты.'
-              : 'Донат в играх по ID игрока и пополнение сервисов — с автовыдачей.'}
+              : 'Донат в играх и пополнение сервисов: внутриигровая валюта, наборы, боевые пропуски и подарочные карты. Многие товары выдаются мгновенно — сразу после оплаты.'}
           </p>
         </div>
         <label className="flex items-center gap-2 w-full sm:w-80 h-12 px-4 rounded-xl bg-[var(--bg2)] border border-transparent focus-within:border-[var(--accent)] transition-colors">
@@ -106,8 +106,9 @@ export default function WebCatalogPage() {
       </div>
 
       {/* Донат / Ключи игр / Сервисы — сразу под заголовком; ссылки (для поисковиков), а не только кнопки */}
-      {!q && !keysPage && tabs.length > 1 && (
-        <div className="-mt-4 mb-8 flex max-w-full overflow-x-auto no-scrollbar">
+      {!q && !keysPage && (tabs.length > 1 || tabCount.key > 0) && (
+        <div className="-mt-4 mb-8 flex flex-wrap items-center justify-between gap-3">
+        {tabs.length > 1 && <div className="flex max-w-full overflow-x-auto no-scrollbar">
           <div className="inline-flex rounded-xl bg-[var(--bg2)] p-1 shrink-0" role="tablist" aria-label="Раздел каталога">
             {tabs.map(({ id, label, Icon }) => (
               <Link
@@ -125,7 +126,22 @@ export default function WebCatalogPage() {
               </Link>
             ))}
           </div>
+        </div>}
+        {tabCount.key > 0 && (
+          <Link to={catalogHref('key')}
+                className="h-12 px-4 inline-flex items-center gap-2 rounded-xl text-[15px] font-semibold text-[var(--text)] bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors">
+            <KEYS_SECTION.Icon size={17} className="text-[var(--link)]" />
+            {KEYS_SECTION.title}
+            <span className="text-sm font-normal num text-[var(--hint)]">{tabCount.key}</span>
+            <ArrowRight size={16} className="text-[var(--hint)]" />
+          </Link>
+        )}
         </div>
+      )}
+      {keysPage && !q && (
+        <Link to="/catalog" className="-mt-6 mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--link)] hover:text-[var(--text)] transition-colors">
+          <ArrowLeft size={15} /> Донат и сервисы
+        </Link>
       )}
 
       {!q && !keysPage && (popular.length > 0 || isLoading) && (

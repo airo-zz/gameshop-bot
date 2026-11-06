@@ -7,7 +7,7 @@
 import { Link } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { prefetchGame } from '@/web/prefetch'
-import { Gamepad2, ChevronRight } from '@/components/ui/icons'
+import { Gamepad2, ChevronRight, Zap } from '@/components/ui/icons'
 import type { Game } from '@/api'
 import { money } from '@/web/format'
 import { normalizeImageUrl } from '@/utils/imageUrl'
@@ -26,7 +26,7 @@ export default function GameCard({ game }: { game: Game }) {
       className="group flex flex-col h-full p-2.5 rounded-2xl bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors duration-200"
     >
       <div
-        className="aspect-square rounded-xl bg-[var(--bg3)] flex items-center justify-center overflow-hidden"
+        className="relative aspect-square rounded-xl bg-[var(--bg3)] flex items-center justify-center overflow-hidden"
         style={{ boxShadow: 'inset 0 0 0 1px var(--border)' }}
       >
         {img ? (
@@ -44,6 +44,11 @@ export default function GameCard({ game }: { game: Game }) {
           />
         ) : (
           <Gamepad2 size={32} className="text-[var(--hint)]" />
+        )}
+        {game.has_auto && (
+          <span className="absolute top-2 left-2 inline-flex items-center gap-1 h-6 px-2 rounded-lg text-xs font-medium text-white" style={{ background: 'rgba(8,9,12,0.72)' }}>
+            <Zap size={12} fill="#34d399" color="#34d399" /> Мгновенно
+          </span>
         )}
       </div>
       <div className="flex items-end justify-between gap-2 px-1 pt-3 pb-1 flex-1">

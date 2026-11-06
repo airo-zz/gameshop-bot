@@ -20,12 +20,14 @@ async def list_games(
     db: DbSession,
     type: str | None = Query(None, pattern="^(game|service|key)$"),
 ):
-    from api.services.home_service import game_min_prices
+    from api.services.home_service import game_auto_ids, game_min_prices
 
     svc = CatalogService(db)
     games = await svc.get_active_games(type=type)
     prices = await game_min_prices(db)
-    return [GameOut.model_validate(g).model_copy(update={"min_price": prices.get(g.id)}) for g in games]
+    auto = await game_auto_ids(db)
+    return [GameOut.model_validate(g).model_copy(update={"min_price": prices.get(g.id), "has_auto": g.id in auto})
+            for g in games]
 
 
 @router.get("/games/search", response_model=list[GameOut])
