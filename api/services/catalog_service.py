@@ -16,7 +16,7 @@ from sqlalchemy.orm import selectinload
 from shared.models import (
     Category, Game, Product, Review,
     UserFavorite, UserViewedProduct,
-    Order, OrderItem,
+    Order, OrderItem, OrderStatus,
 )
 
 from api.schemas.catalog import ProductListOut
@@ -343,8 +343,10 @@ class CatalogService:
     # ── Trending ──────────────────────────────────────────────────────────────
 
     async def get_trending_categories(self, limit: int = 6) -> list[Category]:
-        """Топ-N категорий по количеству заказов за последние 3 дня."""
+        """Топ-N категорий по количеству оплаченных заказов за последние 3 дня
+        (неоплаченные и отменённые не считаем — иначе «популярным» становился брошенный заказ)."""
         since = datetime.now(timezone.utc) - timedelta(days=3)
+        real = (OrderStatus.paid, OrderStatus.processing, OrderStatus.clarification, OrderStatus.completed)
 
         trending_subq = (
             select(
@@ -353,7 +355,7 @@ class CatalogService:
             )
             .join(OrderItem, OrderItem.product_id == Product.id)
             .join(Order, Order.id == OrderItem.order_id)
-            .where(Order.created_at >= since)
+            .where(Order.created_at >= since, Order.status.in_(real))
             .group_by(Product.category_id)
             .subquery()
         )

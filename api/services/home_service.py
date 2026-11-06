@@ -3,7 +3,7 @@ api/services/home_service.py
 ─────────────────────────────────────────────────────────────────────────────
 Блоки главной страницы сайта, которые настраиваются в админке:
   • hero    — обложки игр на первом экране (до 6, по порядку);
-  • popular — разделы в блоке «Популярное» (до 8, по порядку);
+  • popular — разделы в блоке «Популярное» (до 8): закреплённые по порядку, остальные места — по заказам;
   • banners — карусель баннеров (акции) на первом экране, до 8;
   • topup   — блок быстрого пополнения: Telegram Stars / Premium, Steam и коды PlayStation
               (находится сам: по Category.auto_engine и товару FazerCards steam_topup).
@@ -122,8 +122,12 @@ async def resolve_home(db: AsyncSession) -> tuple[list[Game], list[Category]]:
         )).scalars().all()
         by_id = {c.id: c for c in rows}
         popular = [by_id[i] for i in cfg["popular"] if i in by_id]
-    if not popular:
-        popular = list(await svc.get_trending_categories(limit=POPULAR_MAX))
+    # Закреплённые в админке — первыми, свободные места — по заказам за 3 дня:
+    # иначе при любом закреплённом блок застывал и не менялся вовсе
+    if len(popular) < POPULAR_MAX:
+        pinned = {c.id for c in popular}
+        trending = await svc.get_trending_categories(limit=POPULAR_MAX + len(pinned))
+        popular += [c for c in trending if c.id not in pinned][: POPULAR_MAX - len(popular)]
     return hero, popular
 
 

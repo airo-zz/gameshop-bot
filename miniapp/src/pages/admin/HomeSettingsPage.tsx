@@ -3,14 +3,15 @@
  * Главная сайта: баннеры карусели первого экрана (до 8; если есть — вместо обложек),
  * какие игры в обложках первого экрана (до 6) и какие разделы
  * в блоке «Популярное» (до 8), в каком порядке. Пусто — блок заполняется
- * автоматически (первые игры каталога / разделы по заказам за 3 дня).
+ * автоматически (первые игры каталога / разделы по заказам за 3 дня); у «Популярного»
+ * закреплённые идут первыми, свободные места досыпаются по заказам.
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { ChevronRight, Eye, EyeOff, Gamepad2, ImagePlus, X } from '@/components/ui/icons'
 import { adminApi, type AdminCategory, type AdminGame } from '@/api/admin'
-import type { HomeBanner } from '@/api'
+import { catalogApi, type HomeBanner, type TrendingCategory } from '@/api'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 
 const HERO_MAX = 6
@@ -93,6 +94,8 @@ export default function HomeSettingsPage() {
   const [catsByGame, setCatsByGame] = useState<Record<string, AdminCategory[]>>({})
   const [catGame, setCatGame] = useState('')
   const [loading, setLoading] = useState(true)
+  // что сейчас реально стоит в «Популярном» на сайте (закреплённые + по заказам)
+  const [live, setLive] = useState<TrendingCategory[] | null>(null)
   const [saving, setSaving] = useState(false)
 
   const gameById = useMemo(() => new Map(games.map((g) => [g.id, g])), [games])
@@ -105,7 +108,8 @@ export default function HomeSettingsPage() {
   const loadCats = async (gameIds: string[]) => {
     const missing = gameIds.filter((id) => !catsByGame[id])
     if (!missing.length) return
-    const loaded = await Promise.all(missing.map((id) => adminApi.getCategories(id).then((c) => [id, c] as const)))
+    // по одной игре: сбой одной не должен оставлять весь список без названий
+    const loaded = await Promise.all(missing.map((id) => adminApi.getCategories(id).then((c) => [id, c] as const).catch(() => [id, []] as const)))
     setCatsByGame((prev) => ({ ...prev, ...Object.fromEntries(loaded) }))
   }
 
@@ -121,6 +125,7 @@ export default function HomeSettingsPage() {
       })
       .catch(() => toast.error('Не удалось загрузить настройки главной'))
       .finally(() => setLoading(false))
+    catalogApi.getHome().then((h) => setLive(h.popular ?? [])).catch(() => setLive([]))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -252,7 +257,8 @@ export default function HomeSettingsPage() {
         <div>
           <p className="text-sm font-semibold text-[var(--text)]">Блок «Популярное»</p>
           <p className="text-xs text-[var(--hint)] mt-0.5">
-            До {POPULAR_MAX} разделов, по порядку. Пусто — разделы с заказами за 3 дня или закреплённые.
+            До {POPULAR_MAX} разделов. Закреплённые здесь идут первыми, по порядку; свободные места сайт
+            заполняет сам — разделами с оплаченными заказами за 3 дня.
           </p>
         </div>
         <div className="space-y-1.5">
@@ -294,6 +300,21 @@ export default function HomeSettingsPage() {
               <option value="">{catGame ? '+ Раздел' : 'Сначала игра'}</option>
               {catOptions.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
+          </div>
+        )}
+        {live && live.length > 0 && (
+          <div className="pt-2 border-t border-[var(--border)]">
+            <p className="text-xs text-[var(--hint)] mb-1.5">Сейчас на сайте (обновляется до 5 минут):</p>
+            <ol className="space-y-1 text-sm">
+              {live.map((c, i) => (
+                <li key={c.id} className="flex items-center gap-2">
+                  <span className="w-4 text-xs text-[var(--hint)] num">{i + 1}</span>
+                  <span className="text-[var(--text)] truncate">{c.name}</span>
+                  <span className="text-xs text-[var(--hint)] truncate">{c.game_name}</span>
+                  <span className="ml-auto text-[11px] text-[var(--hint)] shrink-0">{popular.includes(c.id) ? 'закреплён' : 'по заказам'}</span>
+                </li>
+              ))}
+            </ol>
           </div>
         )}
       </div>
