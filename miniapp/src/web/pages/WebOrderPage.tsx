@@ -6,7 +6,7 @@
 
 import { useSearchParams, useParams, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { CheckCircle2, Clock, Loader2, XCircle, RotateCcw } from '@/components/ui/icons'
+import { CheckCircle2, Clock, Loader2, XCircle, RotateCcw, Wallet, Smartphone, CreditCard, Bitcoin } from '@/components/ui/icons'
 import { PenLoader } from '@/components/brand/BrandMotion'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
@@ -17,6 +17,14 @@ import { OrderReviewForm } from '@/components/reviews/Reviews'
 import { money, orderStatus, isAwaitingPayment, apiError } from '@/web/format'
 import { trackPurchase } from '@/web/seo'
 
+// заказ без способа оплаты (спец-лот из чата) — покупатель выбирает его здесь
+const PAY_METHODS = [
+  { id: 'sbp', label: 'СБП', icon: Smartphone },
+  { id: 'card', label: 'Карта', icon: CreditCard },
+  { id: 'crypto', label: 'Крипта', icon: Bitcoin },
+  { id: 'balance', label: 'Баланс', icon: Wallet },
+] as const
+
 export default function WebOrderPage() {
   const { id } = useParams<{ id: string }>()
   const [searchParams] = useSearchParams()
@@ -24,6 +32,7 @@ export default function WebOrderPage() {
   // ?review=1 — пришли по кнопке «Оставить отзыв» из уведомления
   const wantReview = searchParams.get('review') === '1'
   const [repaying, setRepaying] = useState(false)
+  const [method, setMethod] = useState<string>('sbp')
 
   const { data: order, isLoading, isError } = useQuery({
     queryKey: ['web', 'order', id],
@@ -44,12 +53,12 @@ export default function WebOrderPage() {
     })))
   }, [justPaid, order])
 
-  async function repay() {
+  async function repay(payment_method?: string) {
     if (!id || repaying) return
     setRepaying(true)
     try {
       // use_balance: сохраняем доплату с баланса (холд заказа), если она была
-      const p = await ordersApi.pay(id, { source: PAY_SOURCE, use_balance: true })
+      const p = await ordersApi.pay(id, payment_method ? { source: PAY_SOURCE, payment_method } : { source: PAY_SOURCE, use_balance: true })
       if (p.success) {
         window.location.reload()
         return
@@ -159,13 +168,32 @@ export default function WebOrderPage() {
         </div>
       </div>
 
-      {awaitingPayment && (
+      {order.status === 'new' && !order.payment_method && (
+        <div className="mt-5 rounded-2xl border border-[var(--border)] bg-[var(--bg2)] p-4">
+          <p className="text-sm font-semibold text-[var(--text)] mb-3">Способ оплаты</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {PAY_METHODS.map(({ id: m, label, icon: Icon }) => (
+              <button key={m} type="button" onClick={() => setMethod(m)}
+                      className={'h-11 rounded-xl inline-flex items-center justify-center gap-2 text-sm font-medium transition-colors '
+                        + (method === m ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg3)] text-[var(--text-2)] hover:text-[var(--text)]')}>
+                <Icon size={16} /> {label}
+              </button>
+            ))}
+          </div>
+          <button type="button" onClick={() => repay(method)} disabled={repaying}
+                  className="mt-3 w-full h-12 rounded-xl text-sm font-semibold text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] disabled:opacity-50 transition-colors">
+            {repaying ? 'Открываем оплату...' : `Оплатить ${money(order.total_amount)}`}
+          </button>
+        </div>
+      )}
+
+      {awaitingPayment && !!order.payment_method && (
         <div className="mt-5 rounded-2xl border border-amber-500/20 bg-amber-500/[0.06] p-4 flex items-start gap-3">
           <Clock size={18} className="text-amber-400 shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-sm text-amber-200">Ожидаем подтверждение оплаты. Статус обновится автоматически.</p>
             <button
-              onClick={repay}
+              onClick={() => repay()}
               disabled={repaying}
               className="inline-flex items-center gap-1.5 text-xs font-semibold mt-2.5 text-amber-300 hover:text-amber-200 disabled:opacity-50"
             >
