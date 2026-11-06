@@ -1,6 +1,7 @@
 /**
  * src/web/components/QuickTopup.tsx
- * Быстрое пополнение на главной сайта: Telegram Stars, Telegram Premium, Steam, коды PlayStation.
+ * Быстрое пополнение на главной сайта: Telegram Stars, Telegram Premium, Steam и коды сервисов
+ * (PlayStation, App Store, Xbox… — вкладка на сервис, внутри выбор региона и номинала).
  * Покупатель вводит получателя и сумму прямо здесь — позиция кладётся в корзину
  * (заменяя прежние позиции этого раздела) и сразу открывается оформление.
  * Варианты приходят с сервера (GET /catalog/home → topup); вкладка без товара не показывается.
@@ -17,22 +18,24 @@ import { useWebAuth } from '@/web/auth/useWebAuth'
 import { useWebCart } from '@/web/cart/useWebCart'
 import { apiError, money } from '@/web/format'
 import { EASE } from '@/web/components/Motion'
+import { thumbUrl } from '@/utils/thumb'
 
 const DRAFT_KEY = 'web_topup_draft'
 
 interface Draft {
-  kind: HomeTopup['kind']
+  kind: string   // ключ вкладки (tabKey)
   productId: string
   amount: string
   fields: Record<string, string>
 }
 
-const TABS: Record<HomeTopup['kind'], { label: string; Icon: typeof Star }> = {
+const TABS: Partial<Record<HomeTopup['kind'], { label: string; Icon: typeof Star }>> = {
   stars: { label: 'Звёзды', Icon: Star },
   premium: { label: 'Premium', Icon: Crown },
   steam: { label: 'Steam', Icon: SteamLogo },
-  playstation: { label: 'PlayStation', Icon: Gamepad2 },
 }
+// у кодов вкладка на каждый сервис — ключ с его slug
+const tabKey = (o: HomeTopup) => (o.kind === 'codes' ? `codes:${o.game_slug}` : o.kind)
 
 // Быстрый выбор суммы: звёзды и валюты Steam
 const PRESETS: Record<string, number[]> = {
@@ -51,6 +54,27 @@ function plural(n: number, one: string, few: string, many: string) {
   return many
 }
 const starsWord = (n: number) => plural(n, 'звезда', 'звезды', 'звёзд')
+
+/** «Карты PlayStation Турция» → «Турция», «App Store — США» → «США» */
+function regionLabel(cat: string, game: string) {
+  const dash = cat.split(/\s[-–—]\s/)
+  if (dash.length > 1) return dash[dash.length - 1].trim()
+  const i = cat.toLowerCase().lastIndexOf(game.toLowerCase())
+  return (i >= 0 ? cat.slice(i + game.length) : cat).trim() || cat
+}
+
+/** Подписи кнопок разделов сервиса. Если регион повторяется (карты и подписка в одной
+ *  стране: «Карты Xbox — США», «Xbox Game Pass — США») — «Карты · США», «Game Pass · США». */
+function regionLabels(names: string[], game: string): string[] {
+  const short = names.map((n) => regionLabel(n, game))
+  if (new Set(short).size === short.length) return short
+  return names.map((n, k) => {
+    const head = n.split(/\s[-–—]\s/)[0]
+    const at = head.toLowerCase().indexOf(game.toLowerCase())
+    const kind = (at >= 0 ? head.slice(0, at) + head.slice(at + game.length) : head).replace(/\s+/g, ' ').trim()
+    return kind ? `${kind} · ${short[k]}` : short[k]
+  })
+}
 
 const qtyField = (p?: Product) => (p?.input_fields ?? []).find((f) => f.type === 'quantity')
 const isTelegram = (kind: HomeTopup['kind']) => kind === 'stars' || kind === 'premium'
@@ -84,15 +108,17 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
   const { cart, add, setQty } = useWebCart()
 
   const [draft] = useState(readDraft)
-  const [kind, setKind] = useState<HomeTopup['kind']>(
-    () => (draft && options.some((o) => o.kind === draft.kind) ? draft.kind : options[0].kind),
+  const [tab, setTab] = useState<string>(
+    () => (draft && options.some((o) => tabKey(o) === draft.kind) ? draft.kind : tabKey(options[0])),
   )
-  const opt = options.find((o) => o.kind === kind) ?? options[0]
+  const opt = options.find((o) => tabKey(o) === tab) ?? options[0]
+  const kind = opt.kind
 
   const [productId, setProductId] = useState(draft?.productId ?? '')
-  // PlayStation: регион аккаунта (свой раздел и свои номиналы); по умолчанию — регион выбранного товара
+  // Коды сервисов: регион аккаунта (свой раздел и свои номиналы); по умолчанию — регион выбранного товара
   const [regionId, setRegionId] = useState('')
   const regions = opt.regions ?? []
+  const regionNames = regionLabels(regions.map((r) => r.category_name), opt.game_name)
   const region = regions.find((r) => r.category_id === regionId)
     ?? regions.find((r) => r.category_id === opt.products.find((p) => p.id === productId)?.category_id)
     ?? regions[0]
@@ -122,9 +148,9 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
   const units = qf ? Math.floor(Number(amount ?? fallbackAmount) || 0) : 1
   const total = Number(product.price) * units
 
-  const switchKind = (k: HomeTopup['kind']) => {
-    if (k === kind) return
-    setKind(k)
+  const switchTab = (k: string) => {
+    if (k === tab) return
+    setTab(k)
     setProductId('')
     setRegionId('')
     setAmount(null)
@@ -147,7 +173,7 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
     }
     if (!user) {
       try {
-        sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ kind, productId: product.id, amount: String(units), fields } satisfies Draft))
+        sessionStorage.setItem(DRAFT_KEY, JSON.stringify({ kind: tab, productId: product.id, amount: String(units), fields } satisfies Draft))
       } catch { /* приватный режим — просто без восстановления */ }
       navigate('/login', { state: { from: '/' } })
       return
@@ -189,22 +215,26 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
       {/* Вкладки + ссылка на раздел */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         {options.length > 1 ? (
-          <div className="flex gap-1 p-1 rounded-xl bg-[var(--bg)] w-full sm:w-auto" role="tablist" aria-label="Что пополнить">
+          // сервисов много — вкладки листаются по горизонтали, а не сжимаются
+          <div className="flex gap-1 p-1 rounded-xl bg-[var(--bg)] max-w-full overflow-x-auto no-scrollbar" role="tablist" aria-label="Что пополнить">
             {options.map((o) => {
-              const { label: tab, Icon } = TABS[o.kind]
-              const active = o.kind === kind
+              const key = tabKey(o)
+              const t = TABS[o.kind]
+              const active = key === tab
               return (
                 <button
-                  key={o.kind}
+                  key={key}
                   role="tab"
                   aria-selected={active}
-                  onClick={() => switchKind(o.kind)}
-                  className={'relative flex-1 sm:flex-none h-10 px-2 sm:px-5 rounded-lg text-sm font-medium transition-colors ' + (active ? 'text-[var(--text)]' : 'text-[var(--hint)] hover:text-[var(--text-2)]')}
+                  onClick={() => switchTab(key)}
+                  className={'relative shrink-0 h-10 px-3 sm:px-4 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ' + (active ? 'text-[var(--text)]' : 'text-[var(--hint)] hover:text-[var(--text-2)]')}
                 >
                   {active && <m.span layoutId="web-topup-tab" className="absolute inset-0 rounded-lg bg-[var(--bg3)]" transition={{ duration: 0.25, ease: EASE }} />}
                   <span className="relative inline-flex items-center justify-center gap-1.5">
-                    <Icon size={16} fill={active && o.kind !== 'steam' ? 'currentColor' : undefined} />
-                    {tab}
+                    {t ? <t.Icon size={16} fill={active && o.kind !== 'steam' ? 'currentColor' : undefined} />
+                      : o.game_image_url ? <img src={thumbUrl(o.game_image_url, 320) ?? o.game_image_url} alt="" width={18} height={18} className="w-[18px] h-[18px] rounded object-cover" />
+                      : <Gamepad2 size={16} />}
+                    {t?.label ?? o.game_name}
                   </span>
                 </button>
               )
@@ -217,11 +247,11 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
       {/* Одна полоса: получатель | сумма или срок | итог и оплата */}
       <div className="grid gap-4 lg:gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)_minmax(0,0.85fr)] items-start">
         {/* PlayStation — регион аккаунта */}
-        {kind === 'playstation' && regions.length > 0 && (
+        {kind === 'codes' && regions.length > 0 && (
           <fieldset className="min-w-0">
-            <legend className={label}>Регион аккаунта PSN</legend>
+            <legend className={label}>Регион аккаунта</legend>
             <div className="grid grid-cols-3 lg:grid-cols-1 gap-2">
-              {regions.map((r) => {
+              {regions.map((r, ri) => {
                 const active = r.category_id === region?.category_id
                 return (
                   <button
@@ -231,7 +261,7 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
                     aria-pressed={active}
                     className={'h-11 px-3 rounded-xl text-[15px] text-left border transition-colors ' + (active ? 'border-[var(--accent)] bg-[var(--bg3)] text-[var(--text)]' : 'border-transparent bg-[var(--bg3)] text-[var(--text-2)] hover:border-[var(--border)]')}
                   >
-                    {r.category_name.replace(/^.*?(?:[-–—]|PlayStation|PSN)\s*/i, '')}
+                    {regionNames[ri]}
                   </button>
                 )
               })}
@@ -269,7 +299,7 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
         )}
 
         {/* PlayStation — номинал кода */}
-        {kind === 'playstation' && (
+        {kind === 'codes' && (
           <fieldset className="min-w-0">
             <legend className={label}>Номинал карты</legend>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
@@ -290,7 +320,7 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
                 )
               })}
             </div>
-            <p className="mt-2 text-xs text-[var(--hint)]">Код придёт в заказ сразу после оплаты — активируйте его в PlayStation Store на аккаунте этого региона.</p>
+            <p className="mt-2 text-xs text-[var(--hint)]">Код придёт в заказ сразу после оплаты — активируйте его на аккаунте {opt.game_name} этого региона.</p>
           </fieldset>
         )}
 

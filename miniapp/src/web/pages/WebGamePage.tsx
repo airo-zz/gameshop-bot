@@ -531,9 +531,10 @@ function GamePageContent() {
         <h1 className={'text-2xl sm:text-3xl md:text-[2.5rem] leading-tight text-[var(--text)] min-w-0 sm:self-end' + (cover || !game ? '' : ' col-span-2')} style={{ margin: 0 }}>{seo?.h1 ?? fallbackH1}</h1>
         <div className={'min-w-0 col-span-2 sm:self-start ' + (cover || !game ? 'sm:col-span-1 sm:col-start-2' : '')}>
           <div className="mt-3 flex flex-wrap items-center gap-2 min-h-7">
-            {!!game?.sold_count && (
+            {game && (
               <span className="inline-flex items-center h-7 px-2.5 rounded-lg text-xs font-medium text-[var(--text-2)] bg-[var(--bg2)] num">
-                Продано: {game.sold_count.toLocaleString('ru')}
+                {/* мало продаж (или ещё ни одной) — без точной цифры */}
+                Продано: {(game.sold_count ?? 0) >= 10 ? game.sold_count!.toLocaleString('ru') : 'менее 10'}
               </span>
             )}
             {currentCat?.delivery_type === 'auto' && (

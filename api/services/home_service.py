@@ -210,8 +210,10 @@ def _buyer_fields(cat: Category) -> list[dict]:
 
 async def resolve_topup(db: AsyncSession) -> list[dict]:
     """
-    Варианты блока быстрого пополнения в порядке вкладок: stars, premium, steam.
-    Вариант без активных товаров не попадает — вкладка появится сама,
+    Варианты блока быстрого пополнения в порядке вкладок: stars, premium, steam, затем
+    коды сервисов (kind="codes"): каждый сервис каталога (games.type=service) с
+    гифт-картами FazerCards — своя вкладка (PlayStation, App Store, Xbox…), его разделы —
+    регионы. Вариант без активных товаров не попадает — вкладка появится сама,
     когда товар заведут (Steam — импортом FazerCards «Steam по логину»).
     """
     base = (
@@ -226,11 +228,6 @@ async def resolve_topup(db: AsyncSession) -> list[dict]:
         "stars": base.where(Category.auto_engine == "telegram_stars"),
         "premium": base.where(Category.auto_engine == "telegram_premium"),
         "steam": base.where(Product.meta["fazer"]["kind"].astext == "steam_topup"),
-        # коды PlayStation (гифт-карты FazerCards) — раздел на каждый регион
-        "playstation": base.where(
-            Product.meta["fazer"]["kind"].astext == "giftcard",
-            Product.meta["fazer"]["category_id"].astext.like("playstation\\_%"),
-        ),
     }
     out: list[dict] = []
     for kind, q in groups.items():
@@ -241,24 +238,39 @@ async def resolve_topup(db: AsyncSession) -> list[dict]:
         if not products:
             continue
         cat = products[0].category
-        item = {
+        out.append({
             "kind": kind,
             "game_slug": cat.game.slug,
+            "game_name": cat.game.name,
+            "game_image_url": cat.game.image_url,
             "category_slug": cat.slug,
             "category_name": cat.name,
             "fields": _buyer_fields(cat),
             "products": [_product_to_list_out(p) for p in products if p.category_id == cat.id],
-        }
-        if kind == "playstation":
-            # все регионы во вкладке: покупатель переключает регион, номиналы — свои у каждого
-            cats: dict[uuid.UUID, Category] = {}
-            for p in products:
-                cats.setdefault(p.category_id, p.category)
-            regions = sorted(cats.values(), key=lambda c: (c.sort_order, c.name))
-            item["regions"] = [
-                {"category_id": str(c.id), "category_slug": c.slug, "category_name": c.name} for c in regions
-            ]
-            item["products"] = [_product_to_list_out(p) for p in products]
-            item["category_slug"], item["category_name"] = regions[0].slug, regions[0].name
-        out.append(item)
+        })
+
+    # коды сервисов: вкладка на сервис, регионы — его разделы, номиналы — свои у каждого
+    codes = list((await db.execute(base.where(
+        Game.type == "service", Product.meta["fazer"]["kind"].astext == "giftcard",
+    ))).scalars().all())
+    by_game: dict[uuid.UUID, list[Product]] = {}
+    for p in codes:
+        by_game.setdefault(p.category.game_id, []).append(p)
+    for products in sorted(by_game.values(), key=lambda ps: (ps[0].category.game.sort_order, ps[0].category.game.name)):
+        game = products[0].category.game
+        cats: dict[uuid.UUID, Category] = {}
+        for p in products:
+            cats.setdefault(p.category_id, p.category)
+        regions = sorted(cats.values(), key=lambda c: (c.sort_order, c.name))
+        out.append({
+            "kind": "codes",
+            "game_slug": game.slug,
+            "game_name": game.name,
+            "game_image_url": game.image_url,
+            "category_slug": regions[0].slug,
+            "category_name": regions[0].name,
+            "fields": [],
+            "products": [_product_to_list_out(p) for p in products],
+            "regions": [{"category_id": str(c.id), "category_slug": c.slug, "category_name": c.name} for c in regions],
+        })
     return out
