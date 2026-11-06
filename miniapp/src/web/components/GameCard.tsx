@@ -45,9 +45,18 @@ export default function GameCard({ game }: { game: Game }) {
         ) : (
           <Gamepad2 size={32} className="text-[var(--hint)]" />
         )}
-        {game.has_auto && (
-          <span className="absolute top-2 left-2 inline-flex items-center gap-1 h-6 px-2 rounded-lg text-xs font-medium text-white" style={{ background: 'rgba(8,9,12,0.72)' }}>
-            <Zap size={12} fill="#34d399" color="#34d399" /> Автовыдача
+        {(game.has_auto || game.id_topup) && (
+          <span className="absolute top-2 left-2 right-2 flex flex-col items-start gap-1">
+            {game.has_auto && (
+              <span className="inline-flex items-center gap-1 h-6 px-2 rounded-lg text-xs font-medium text-white" style={{ background: 'rgba(8,9,12,0.72)' }}>
+                <Zap size={12} fill="#34d399" color="#34d399" /> Автовыдача
+              </span>
+            )}
+            {game.id_topup && (
+              <span className="inline-flex items-center h-6 px-2 rounded-lg text-xs font-medium text-white whitespace-nowrap" style={{ background: 'rgba(8,9,12,0.72)' }}>
+                Пополнение по ID
+              </span>
+            )}
           </span>
         )}
       </div>

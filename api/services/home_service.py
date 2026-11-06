@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import uuid
 from decimal import Decimal
 
@@ -215,6 +216,40 @@ async def game_auto_ids(db: AsyncSession) -> set[uuid.UUID]:
         .distinct()
     )).scalars().all()
     return set(rows)
+
+
+# поле «ID игрока» (ID, UID, User ID, Sky ID…) и поля входа в аккаунт
+_ID_FIELD = re.compile(r"(?<![A-Za-zА-Яа-я])(UID|ID)(?![A-Za-zА-Яа-я])", re.I)
+_LOGIN_FIELD = re.compile(r"парол|почт|логин|e-?mail|номер|способ входа", re.I)
+
+
+def _is_id_topup(fields) -> bool:
+    """Пополнение по ID: просит ID игрока и не просит вход в аккаунт (почту, пароль)."""
+    labels = [str(f.get("label") or f.get("key") or "") for f in fields or []
+              if isinstance(f, dict) and f.get("type") != "quantity"]
+    return any(_ID_FIELD.search(x) for x in labels) and not any(_LOGIN_FIELD.search(x) for x in labels)
+
+
+async def game_id_topup_ids(db: AsyncSession) -> set[uuid.UUID]:
+    """id игр, где есть товар с пополнением по ID — плашка на обложке в каталоге."""
+    rows = (await db.execute(
+        select(Category.game_id, Product.input_fields, Category.input_fields, Game.input_fields)
+        .join(Product, Product.category_id == Category.id)
+        .join(Game, Game.id == Category.game_id)
+        .where(
+            Category.is_active.is_(True),
+            Product.is_active.is_(True),
+            Product.is_out_of_stock.is_(False),
+        )
+    )).all()
+    out: set[uuid.UUID] = set()
+    for gid, pf, cf, gf in rows:
+        if gid in out:
+            continue
+        fields = next((f for f in (pf, cf, gf) if isinstance(f, list) and f), [])
+        if _is_id_topup(fields):
+            out.add(gid)
+    return out
 
 
 # ── Быстрое пополнение ───────────────────────────────────────────────────────

@@ -14,7 +14,7 @@ import { normalizeImageUrl } from '@/utils/imageUrl'
 import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
 import { prefetchGame } from '@/web/prefetch'
 
-export default function GameSearch({ size = 'md', placeholder = 'Найти игру', className = '' }: {
+export default function GameSearch({ size = 'md', placeholder = 'Поиск', className = '' }: {
   size?: 'md' | 'lg'
   placeholder?: string
   className?: string

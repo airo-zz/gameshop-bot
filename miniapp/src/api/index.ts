@@ -29,6 +29,8 @@ export interface Game {
   min_price?: string | number | null
   /** есть товары с автовыдачей (только в списке игр) */
   has_auto?: boolean
+  /** пополнение по ID игрока, без входа в аккаунт (только в списке игр) */
+  id_topup?: boolean
   /** Другие названия игры из админки — для поиска на сайте */
   search_names?: string[]
 }

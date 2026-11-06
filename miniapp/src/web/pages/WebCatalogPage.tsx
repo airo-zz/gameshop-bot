@@ -93,8 +93,8 @@ export default function WebCatalogPage() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={keysPage ? 'Найти ключ игры' : 'Найти игру'}
-            aria-label={keysPage ? 'Найти ключ игры' : 'Найти игру'}
+            placeholder={keysPage ? 'Поиск по ключам' : 'Поиск в каталоге'}
+            aria-label={keysPage ? 'Поиск по ключам' : 'Поиск в каталоге'}
             className="ym-record-keys flex-1 min-w-0 bg-transparent outline-none text-sm text-[var(--text)] placeholder:text-[var(--hint)]"
           />
           {q && (

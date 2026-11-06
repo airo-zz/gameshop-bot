@@ -31,6 +31,8 @@ class GameOut(BaseModel):
     min_price: Decimal | None = None
     # есть товары с автовыдачей — тоже только в списке игр
     has_auto: bool = False
+    # пополнение по ID игрока (без входа в аккаунт) — тоже только в списке игр
+    id_topup: bool = False
     # служебные данные игры — наружу не отдаём, только признаки ниже
     meta: dict = Field(default_factory=dict, exclude=True)
     seo_aliases: str | None = Field(default=None, exclude=True)
