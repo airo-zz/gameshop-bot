@@ -17,7 +17,7 @@ import { catalogApi, type Game } from '@/api'
 import { money } from '@/web/format'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { onThumbError, thumbUrl } from '@/utils/thumb'
-import { CATALOG_SECTIONS, KEYS_SECTION, catalogHref, sectionOf, type Section, type SectionId } from '@/web/catalogSections'
+import { CATALOG_SECTIONS, KEYS_SECTION, catalogHref, sectionOf, type Section, type SectionId, byPopularity } from '@/web/catalogSections'
 
 // сколько позиций показывать: донату — больше места
 const TOP_N: Record<string, number> = { game: 24, service: 18, key: 18 }
@@ -30,8 +30,7 @@ function useCatalog() {
 function groups(all: Game[] | undefined, sections: Section[] = CATALOG_SECTIONS) {
   return sections.map((s) => {
     const items = (all ?? []).filter((g) => sectionOf(g) === s.id)
-    const top = [...items].sort((a, b) =>
-      (b.sold_count ?? 0) - (a.sold_count ?? 0) || Number(b.is_featured) - Number(a.is_featured)).slice(0, TOP_N[s.id] ?? 6)
+    const top = [...items].sort(byPopularity).slice(0, TOP_N[s.id] ?? 6)
     return { section: s, count: items.length, top }
   }).filter((g) => g.count > 0)
 }

@@ -41,4 +41,12 @@ export const KEYS_SECTION = sectionById('key')
 /** ?type= в адресе каталога */
 export const sectionFromParam = (v: string | null): SectionId => (v === 'service' || v === 'key' ? v : 'game')
 
+/** Самые продаваемые первыми (sold_count), при равенстве — рекомендованные, потом порядок из админки */
+export const byPopularity = (a: Game, b: Game) =>
+  (b.sold_count ?? 0) - (a.sold_count ?? 0) || Number(b.is_featured) - Number(a.is_featured)
+
+/** Плашка на обложке: у ключей не показываем — и так понятно, что ключ приходит сразу */
+export const coverBadge = (g: Game): string | null =>
+  sectionOf(g) === 'key' ? null : g.id_topup ? 'Пополнение по ID' : g.has_auto ? 'АВТО' : null
+
 export const catalogHref = (id: SectionId) => (id === 'game' ? '/catalog' : `/catalog?type=${id}`)

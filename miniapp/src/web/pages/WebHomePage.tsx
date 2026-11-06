@@ -6,7 +6,7 @@
  */
 
 import { useRef, useState } from 'react'
-import { catalogHref, sectionById, sectionOf, type SectionId } from '@/web/catalogSections'
+import { byPopularity, coverBadge, catalogHref, sectionById, sectionOf, type SectionId } from '@/web/catalogSections'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
@@ -272,7 +272,7 @@ function CatalogTile({ game }: { game: Game }) {
   const img = cover(game)
   const qc = useQueryClient()
   const warm = () => prefetchGame(qc, game.slug)
-  const badge = game.id_topup ? 'Пополнение по ID' : game.has_auto ? 'АВТО' : null
+  const badge = coverBadge(game)
   return (
     <Link
       to={`/game/${game.slug}`}
@@ -305,7 +305,7 @@ function CatalogTile({ game }: { game: Game }) {
 function CatalogBlock({ section, games }: { section: (typeof HOME_SECTIONS)[number]; games: Game[] }) {
   const { Icon } = sectionById(section.id)
   const top = [...games]
-    .sort((a, b) => (b.sold_count ?? 0) - (a.sold_count ?? 0) || Number(b.is_featured) - Number(a.is_featured))
+    .sort(byPopularity)
     .slice(0, section.n)
   return (
     <div>

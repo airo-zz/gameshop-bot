@@ -14,7 +14,7 @@ import { filterGames } from '@/web/gameMatch'
 import { Reveal, Stagger, StaggerItem } from '@/web/components/Motion'
 import { usePageMeta } from '@/web/seo'
 import RequestCta from '@/web/components/RequestCta'
-import { CATALOG_SECTIONS, KEYS_SECTION, catalogHref, sectionById, sectionFromParam, sectionOf, type SectionId } from '@/web/catalogSections'
+import { byPopularity, CATALOG_SECTIONS, KEYS_SECTION, catalogHref, sectionById, sectionFromParam, sectionOf, type SectionId } from '@/web/catalogSections'
 
 const GRID = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4'
 
@@ -62,7 +62,11 @@ export default function WebCatalogPage() {
 
   // на странице ключей ищем только ключи, в каталоге — донат и сервисы
   const found = filterGames((all ?? []).filter((g) => (sectionOf(g) === 'key') === keysPage), q)
-  const bySection = (id: SectionId) => found.filter((g) => sectionOf(g) === id)
+  // без поиска — по популярности; с поиском — по совпадению (порядок filterGames)
+  const bySection = (id: SectionId) => {
+    const list = found.filter((g) => sectionOf(g) === id)
+    return q ? list : [...list].sort(byPopularity)
+  }
 
   const setQ = (v: string) => setParams((prev) => {
     const n = new URLSearchParams(prev)
