@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import time
 import uuid
 from decimal import Decimal
@@ -196,6 +197,46 @@ def fields_from_fazer(fields: list[dict]) -> list[dict]:
 # ── Импорт номиналов в товары ───────────────────────────────────────────────
 
 
+def _sort_key_parts(name: str) -> tuple[str | None, float]:
+    """«300 + 30 кристаллов сотворения» → ("крис", 300); «Благословение полой луны» → (None, 0)."""
+    m = re.match(r"\s*([\d\s.,]+)", name)
+    if not m or not m.group(1).strip():
+        return None, 0.0
+    try:
+        amount = float(re.sub(r"[\s,]", "", m.group(1)).rstrip("."))
+    except ValueError:
+        amount = 0.0
+    word = re.search(r"[A-Za-zА-Яа-яЁё]+", name[m.end():].lstrip(" +0123456789"))
+    return (word.group(0).lower()[:4] if word else ""), amount
+
+
+def ordered_products(products: list) -> list:
+    """Порядок товаров раздела: сначала валюта по количеству (несколько валют — блоками,
+    основная — та, у которой больше номиналов), затем пропуски, подписки и наборы по цене."""
+    groups: dict[str, list] = {}
+    rest = []
+    for p in products:
+        word, amount = _sort_key_parts(p.name or "")
+        if word is None:
+            rest.append(p)
+        else:
+            groups.setdefault(word, []).append((amount, float(p.price or 0), p))
+    blocks = sorted(groups.values(), key=lambda g: (-len(g), min(x[1] for x in g)))
+    out = [p for g in blocks for _, _, p in sorted(g, key=lambda x: (x[0], x[1]))]
+    return out + sorted(rest, key=lambda p: float(p.price or 0))
+
+
+async def resort_category(db: AsyncSession, category_id: uuid.UUID) -> bool:
+    """Переставить товары раздела по ordered_products — только если раздел целиком из
+    пополнений Fazer (ручной порядок владельца в смешанных разделах не трогаем)."""
+    prods = list((await db.execute(select(Product).where(Product.category_id == category_id))).scalars().all())
+    if not prods or any(((p.meta or {}).get("fazer") or {}).get("kind") != "topup" for p in prods):
+        return False
+    for i, p in enumerate(ordered_products(prods)):
+        p.sort_order = i
+    return True
+
+
 async def _price_rub(db: AsyncSession, price_usd: float, round_nine: bool) -> Decimal:
     rate = await get_usd_rub_rate(db)
     markup = await get_markup_percent(db)
@@ -257,6 +298,10 @@ async def import_offers(
         sort += 1
         db.add(p)
         created.append(p)
+
+    await db.flush()
+    if kind == "topup":
+        await resort_category(db, cat.id)
 
     fields_set = False
     if apply_fields and kind == "topup" and details["fields"]:
