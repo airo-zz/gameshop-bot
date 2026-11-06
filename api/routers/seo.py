@@ -487,7 +487,7 @@ async def _home(db) -> tuple[int, str]:
 async def _catalog(db) -> tuple[int, str]:
     games = await CatalogService(db).get_active_games()
     items = "".join(
-        f'<li><a href="/game/{_e(g.slug)}">{_e(g.name)}</a> — {"сервис" if g.type == "service" else "игра"}</li>'
+        f'<li><a href="/game/{_e(g.slug)}">{_e(g.name)}</a> — {"сервис" if g.type == "service" else "ключ игры" if g.type == "key" else "игра"}</li>'
         for g in games
     )
     body = _nav() + "<h1>Каталог игр и сервисов</h1>" + f"<ul>{items}</ul>"
@@ -648,7 +648,7 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
         + sections_html
         + (f"<h2>{'Другие разделы' if current else 'Разделы'} {_e(game.name)}</h2><ul>{other_cats}</ul>" if other_cats else "")
         # свой текст игры («как купить») — под товарами, как на сайте (WebGamePage, GameSeoBlock)
-        + (f"<h2>Как купить {'' if game.type == 'service' else 'донат в '}{_e(game.name)}</h2>"
+        + (f"<h2>Как купить {'' if game.type == 'service' else 'ключ ' if game.type == 'key' else 'донат в '}{_e(game.name)}</h2>"
            + "<div>" + "".join(f"<p>{_e(t.strip())}</p>" for t in page.text.splitlines() if t.strip()) + "</div>"
            if page.text else "")
         + _reviews_html(await _game_reviews(db, slug), game.name)

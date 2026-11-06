@@ -63,7 +63,7 @@ class Game(Base, UUIDMixin, TimestampMixin):
     seo_aliases: Mapped[str | None] = mapped_column(Text, nullable=True)
     seo_text: Mapped[str | None] = mapped_column(Text, nullable=True)
     type: Mapped[str] = mapped_column(String(16), nullable=False, default="game", index=True)
-    # "game" | "service"
+    # "game" (донат) | "service" (пополнение сервисов) | "key" (ключи игр)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_featured: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # Показывать на странице игры кнопку «Индивидуальный заказ» (заявка на спец-лот

@@ -105,6 +105,8 @@ def game_seo(game, cat_names: list[str], min_price: Decimal | float | None,
     what = ", ".join(_lower_first(n) for n in names[:3]) or "внутриигровая валюта и наборы"
     al = aliases(game)
     service = getattr(game, "type", "game") == "service"
+    if getattr(game, "type", "game") == "key":
+        return _key_seo(game, min_price, top_cashback)
 
     # Короткий заголовок как у маркетплейсов («Донат Raid: Shadow Legends»):
     # название сайта Google показывает отдельно, над результатом
@@ -125,6 +127,23 @@ def game_seo(game, cat_names: list[str], min_price: Decimal | float | None,
              or f"Купить {what} для {name} онлайн: оплата через СБП, банковской картой или криптовалютой.")
 
     return PageSeo(title, description, h1, intro, al, (game.seo_text or "").strip() or None)
+
+
+def _key_seo(game, min_price, top_cashback) -> PageSeo:
+    """Ключ игры: «Купить ключ ELDEN RING» — не «донат»."""
+    name = game.name
+    plat = (getattr(game, "meta", None) or {}).get("platform") or "Steam"
+    title = (game.seo_title or "").strip() or _fit(f"Купить ключ {name} — {plat}", f"Ключ {name}")
+    cashback = f", кэшбэк до {top_cashback:g}%" if top_cashback else ""
+    description = (game.seo_description or "").strip() or (
+        f"Лицензионный ключ {name} для {plat} — активация в России"
+        + (f", от {money(min_price)}" if min_price else "")
+        + f". Ключ приходит сразу после оплаты. Оплата через СБП, картой или криптовалютой{cashback}."
+    )[:320]
+    h1 = (getattr(game, "meta", None) or {}).get("h1") or f"Ключ {name}"
+    intro = ((game.description or "").strip()
+             or f"Купить ключ {name} для {plat}: ключ приходит автоматически сразу после оплаты.")
+    return PageSeo(title, description, h1, intro, aliases(game), (game.seo_text or "").strip() or None)
 
 
 def _decor_seo(game, cat_names: list[str], min_price, top_cashback) -> PageSeo:

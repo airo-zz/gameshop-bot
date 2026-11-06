@@ -142,7 +142,7 @@ export default function GameSearch({ size = 'md', placeholder = 'Найти иг
                     </span>
                     <span className="min-w-0">
                       <span className="block text-sm font-medium text-[var(--text)] truncate">{g.name}</span>
-                      <span className="block text-xs text-[var(--hint)]">{g.type === 'service' ? 'Сервис' : 'Игра'}</span>
+                      <span className="block text-xs text-[var(--hint)]">{g.type === 'service' ? 'Сервис' : g.type === 'key' ? 'Ключ игры' : 'Игра'}</span>
                     </span>
                   </button>
                 </li>

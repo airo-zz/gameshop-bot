@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react'
+import { SECTIONS, catalogHref, sectionById, sectionOf, type SectionId } from '@/web/catalogSections'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
@@ -278,12 +279,12 @@ function plural(n: number, forms: [string, string, string]) {
 }
 
 function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean; isError: boolean }) {
-  const [tab, setTab] = useState<'game' | 'service'>('game')
+  const [tab, setTab] = useState<SectionId>('game')
   const [open, setOpen] = useState(false)
   const top = useRef<HTMLElement>(null)
   const cols = useCatalogCols()
-  const hasServices = all.some((g) => g.type === 'service')
-  const games = all.filter((g) => (tab === 'service' ? g.type === 'service' : g.type !== 'service'))
+  const tabs = SECTIONS.filter((s) => all.some((g) => sectionOf(g) === s.id))
+  const games = all.filter((g) => sectionOf(g) === tab)
   // Свёрнуто: открыты первые 4 ряда
   const limit = cols * 4
   const folded = !open && games.length > limit
@@ -299,18 +300,18 @@ function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean;
     <section ref={top} id="catalog" className="web-container py-10 md:py-12 scroll-mt-20">
       <Reveal className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Каталог</h2>
-        {hasServices && (
-          <div className="inline-flex rounded-xl bg-[var(--bg2)] p-1">
-            {(['game', 'service'] as const).map((t) => (
+        {tabs.length > 1 && (
+          <div className="inline-flex max-w-full overflow-x-auto no-scrollbar rounded-xl bg-[var(--bg2)] p-1">
+            {tabs.map(({ id, label, Icon }) => (
               <button
-                key={t}
-                onClick={() => { setTab(t); setOpen(false) }}
-                className={'relative px-4 h-9 rounded-lg text-sm font-medium transition-colors ' + (tab === t ? 'text-[var(--text)]' : 'text-[var(--hint)] hover:text-[var(--text-2)]')}
+                key={id}
+                onClick={() => { setTab(id); setOpen(false) }}
+                className={'relative shrink-0 px-3.5 sm:px-4 h-9 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ' + (tab === id ? 'text-[var(--text)]' : 'text-[var(--hint)] hover:text-[var(--text-2)]')}
               >
-                {tab === t && (
+                {tab === id && (
                   <m.span layoutId="web-cat-tab" className="absolute inset-0 rounded-lg bg-[var(--bg3)]" transition={{ duration: 0.25, ease: EASE }} />
                 )}
-                <span className="relative">{t === 'game' ? 'Игры' : 'Сервисы'}</span>
+                <span className="relative inline-flex items-center gap-1.5"><Icon size={15} />{label}</span>
               </button>
             ))}
           </div>
@@ -358,7 +359,7 @@ function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean;
                   onClick={() => setOpen(true)}
                   className="h-11 px-6 inline-flex items-center gap-2 rounded-xl bg-[var(--bg3)] hover:bg-[var(--bg2)] ring-1 ring-inset ring-[var(--border)] text-sm font-semibold text-[var(--text)] transition-colors"
                 >
-                  Показать ещё {rest} {tab === 'service' ? plural(rest, ['сервис', 'сервиса', 'сервисов']) : plural(rest, ['игру', 'игры', 'игр'])}
+                  Показать ещё {rest} {plural(rest, sectionById(tab).plural)}
                   <ChevronDown size={16} />
                 </button>
               ) : (
@@ -370,7 +371,7 @@ function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean;
                 </button>
               )}
               <Link
-                to="/catalog"
+                to={catalogHref(tab)}
                 className="h-11 px-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--link)] hover:text-[var(--text)] transition-colors"
               >
                 Открыть каталог <ChevronRight size={16} />

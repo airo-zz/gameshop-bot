@@ -32,7 +32,7 @@ from shared.models.catalog import Category, DeliveryType, Product
 
 logger = logging.getLogger(__name__)
 
-KINDS = ("topup", "giftcard", "steam_topup")
+KINDS = ("topup", "giftcard", "steam_topup", "gamekey")
 STEAM_LOGIN_FIELD = {"key": "steam_login", "label": "Логин Steam", "type": "text",
                      "required": True, "placeholder": "Логин для входа в Steam (не ник)"}
 
@@ -142,6 +142,14 @@ async def game_details(db: AsyncSession, kind: str, category_id: str, fresh: boo
     key = await _api_key(db)
     if fresh:
         _CACHE.pop((key[-8:], kind, category_id), None)
+    if kind == "gamekey":
+        data = await _cached(key, (kind, category_id), 600, lambda api: api.gamekey_keys(category_id))
+        offers = [{"id": str(o.get("key_id")), "name": o.get("name") or "", "price_usd": float(o.get("price_usd") or 0),
+                   "stock": o.get("stock")} for o in data.get("keys") or [] if o.get("key_id")]
+        return {"category_id": category_id, "name": data.get("GameName") or category_id,
+                "note": "", "offers": offers, "fields": [], "validate": False,
+                "platform": data.get("platform") or "", "region": data.get("region") or "",
+                "appid": data.get("appid"), "imageurl": data.get("imageurl")}
     if kind == "giftcard":
         data = await _cached(key, (kind, category_id), 600, lambda api: api.giftcard_cards(category_id))
         offers = [{"id": str(o.get("card_id")), "name": o.get("name") or "", "price_usd": float(o.get("price_usd") or 0),
@@ -307,7 +315,7 @@ async def create_steam_product(
 async def sync_stock(db: AsyncSession) -> dict:
     rows = (await db.execute(select(Product).where(Product.is_active.is_(True)))).scalars().all()
     products = [p for p in rows if is_fazer_product(p)
-                and (p.meta["fazer"].get("kind") or "topup") in ("topup", "giftcard")]
+                and (p.meta["fazer"].get("kind") or "topup") in ("topup", "giftcard", "gamekey")]
     available: dict[tuple, set | None] = {}
     for p in products:
         m = p.meta["fazer"]
@@ -327,7 +335,7 @@ async def sync_stock(db: AsyncSession) -> dict:
         have = available.get((kind, str(m.get("category_id") or "")))
         if have is None:
             continue
-        need = _str_list(m.get("card_ids") if kind == "giftcard" else m.get("offer_ids"))
+        need = _str_list(m.get({"giftcard": "card_ids", "gamekey": "key_ids"}.get(kind, "offer_ids")))
         in_stock = bool(need) and all(i in have for i in need)
         meta = dict(p.meta)
         if not in_stock and not p.is_out_of_stock:
@@ -365,9 +373,12 @@ def _clean_mapping(m: dict) -> dict:
         out["category_id"] = str(m["category_id"]).strip()[:120]
     if m.get("category_name"):
         out["category_name"] = str(m["category_name"])[:200]
-    for key in ("offer_ids", "card_ids", "offer_names"):
+    for key in ("offer_ids", "card_ids", "key_ids", "offer_names"):
         if m.get(key) is not None:
             out[key] = _str_list(m[key])
+    for key in ("platform", "region", "activation"):   # ключи игр: где активировать
+        if m.get(key):
+            out[key] = str(m[key])[:600]
     out["validate"] = bool(m.get("validate"))
     if m.get("currency"):
         out["currency"] = str(m["currency"]).upper()[:3]
@@ -400,6 +411,8 @@ async def link_product(db: AsyncSession, product_id: uuid.UUID, mapping: dict | 
             raise FazerServiceError("Выберите номинал")
         if kind == "giftcard" and not _str_list(mapping.get("card_ids")):
             raise FazerServiceError("Выберите номинал гифт-карты")
+        if kind == "gamekey" and not _str_list(mapping.get("key_ids")):
+            raise FazerServiceError("Выберите издание ключа")
         if kind != "steam_topup" and not mapping.get("category_id"):
             raise FazerServiceError("Выберите игру FazerCards")
         meta["fazer"] = _clean_mapping(mapping)

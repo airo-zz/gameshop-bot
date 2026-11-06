@@ -17,6 +17,7 @@ import { useWebCart } from '@/web/cart/useWebCart'
 import { money } from '@/web/format'
 import Avatar from '@/web/components/Avatar'
 import GameSearch from '@/web/components/GameSearch'
+import CatalogMenu, { CatalogMenuMobile } from '@/web/components/CatalogMenu'
 import { PenLogo } from '@/components/brand/BrandMotion'
 import { initMetrika, useMetrikaPageViews } from '@/web/seo'
 import { preloadRoutesWhenIdle } from '@/web/prefetch'
@@ -168,7 +169,9 @@ export default function WebLayout() {
           <Logo />
 
           <nav className="hidden md:flex items-center gap-5 lg:gap-6">
-            {NAV.map((item) => <NavItemLink key={item.href} item={item} />)}
+            {/* «Каталог» — выпадающее меню разделов, остальное — ссылки */}
+            <CatalogMenu />
+            {NAV.filter((item) => item.href !== '/catalog').map((item) => <NavItemLink key={item.href} item={item} />)}
           </nav>
 
           <div className="hidden md:flex items-center gap-2 ml-auto">
@@ -202,7 +205,8 @@ export default function WebLayout() {
               transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
             >
               <div className="web-container py-4 flex flex-col gap-4">
-                {NAV.map((item) => <NavItemLink key={item.href} item={item} onClick={() => setMenuOpen(false)} />)}
+                <CatalogMenuMobile onPick={() => setMenuOpen(false)} />
+                {NAV.filter((item) => item.href !== '/catalog').map((item) => <NavItemLink key={item.href} item={item} onClick={() => setMenuOpen(false)} />)}
                 {isAuthenticated && (
                   <>
                     <Link to="/profile" className="text-sm text-[var(--text-2)]">Профиль</Link>

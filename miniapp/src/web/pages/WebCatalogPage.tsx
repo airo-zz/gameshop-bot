@@ -1,7 +1,7 @@
 /**
  * src/web/pages/WebCatalogPage.tsx
- * Полный каталог сайта: переключатель «Игры / Сервисы» вверху (?type=service),
- * поиск (?q=) — по обоим разделам сразу, чтобы найденное не пряталось за вкладкой.
+ * Полный каталог сайта: вкладки «Донат / Ключи игр / Сервисы» вверху (?type=key|service),
+ * поиск (?q=) — по всем разделам сразу, чтобы найденное не пряталось за вкладкой.
  */
 
 import { useQuery } from '@tanstack/react-query'
@@ -14,6 +14,7 @@ import { filterGames } from '@/web/gameMatch'
 import { Reveal, Stagger, StaggerItem } from '@/web/components/Motion'
 import { usePageMeta } from '@/web/seo'
 import RequestCta from '@/web/components/RequestCta'
+import { SECTIONS, catalogHref, sectionById, sectionFromParam, sectionOf, type SectionId } from '@/web/catalogSections'
 
 const GRID = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4'
 
@@ -36,10 +37,10 @@ function Grid({ title, items }: { title: string; items: Game[] }) {
 export default function WebCatalogPage() {
   const [params, setParams] = useSearchParams()
   const q = params.get('q') ?? ''
-  const tab: 'game' | 'service' = params.get('type') === 'service' ? 'service' : 'game'
+  const tab: SectionId = sectionFromParam(params.get('type'))
   usePageMeta({
-    title: 'Каталог игр и сервисов',
-    description: 'Все игры и цифровые сервисы, которые можно пополнить в reDonate: внутриигровая валюта, наборы и подписки. Оплата через СБП, банковской картой или криптовалютой.',
+    title: tab === 'key' ? 'Ключи игр — Steam, Xbox, Rockstar' : tab === 'service' ? 'Пополнение сервисов' : 'Каталог игр и сервисов',
+    description: 'Донат в играх, ключи игр и пополнение цифровых сервисов в reDonate: внутриигровая валюта, наборы, подписки и лицензионные ключи. Оплата через СБП, банковской картой или криптовалютой.',
   })
   const { data: all, isLoading, isError } = useQuery({
     queryKey: ['web', 'games', 'all'],
@@ -59,27 +60,27 @@ export default function WebCatalogPage() {
   ).entries()].slice(0, 8)
 
   const found = filterGames(all ?? [], q)
-  const games = found.filter((g) => g.type !== 'service')
-  const services = found.filter((g) => g.type === 'service')
+  const bySection = (id: SectionId) => found.filter((g) => sectionOf(g) === id)
 
   const setQ = (v: string) => setParams((prev) => {
     const n = new URLSearchParams(prev)
     if (v) n.set('q', v); else n.delete('q')
     return n
   }, { replace: true })
-  const setTab = (t: 'game' | 'service') => setParams((prev) => {
+  const setTab = (t: SectionId) => setParams((prev) => {
     const n = new URLSearchParams(prev)
-    if (t === 'service') n.set('type', 'service'); else n.delete('type')
+    if (t === 'game') n.delete('type'); else n.set('type', t)
     return n
   }, { replace: true })
-  const tabCount = { game: (all ?? []).filter((g) => g.type !== 'service').length, service: (all ?? []).filter((g) => g.type === 'service').length }
+  const tabCount = Object.fromEntries(SECTIONS.map((s) => [s.id, (all ?? []).filter((g) => sectionOf(g) === s.id).length])) as Record<SectionId, number>
+  const tabs = SECTIONS.filter((s) => tabCount[s.id] > 0)
 
   return (
     <div className="web-container py-10 md:py-14">
       <div className="mb-10 flex flex-wrap items-end justify-between gap-5">
         <div>
           <h1 className="text-3xl md:text-4xl text-[var(--text)]" style={{ margin: 0 }}>Каталог</h1>
-          <p className="text-sm text-[var(--hint)] mt-2">Игры и сервисы, которые можно пополнить прямо сейчас.</p>
+          <p className="text-sm text-[var(--hint)] mt-2">Донат в играх, ключи игр и пополнение сервисов — с автовыдачей.</p>
         </div>
         <label className="flex items-center gap-2 w-full sm:w-80 h-12 px-4 rounded-xl bg-[var(--bg2)] border border-transparent focus-within:border-[var(--accent)] transition-colors">
           <Search size={18} className="text-[var(--hint)] shrink-0" />
@@ -98,22 +99,26 @@ export default function WebCatalogPage() {
         </label>
       </div>
 
-      {/* Игры / Сервисы — сразу под заголовком */}
-      {!q && tabCount.service > 0 && (
-        <div className="-mt-4 mb-8 inline-flex rounded-xl bg-[var(--bg2)] p-1" role="tablist" aria-label="Раздел каталога">
-          {(['game', 'service'] as const).map((t) => (
-            <button
-              key={t}
-              type="button"
-              role="tab"
-              aria-selected={tab === t}
-              onClick={() => setTab(t)}
-              className={'h-10 px-5 rounded-lg text-[15px] font-semibold transition-colors ' + (tab === t ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-2)] hover:text-[var(--text)]')}
-            >
-              {t === 'game' ? 'Игры' : 'Сервисы'}
-              <span className={'ml-1.5 text-sm font-normal num ' + (tab === t ? 'text-white/70' : 'text-[var(--hint)]')}>{tabCount[t]}</span>
-            </button>
-          ))}
+      {/* Донат / Ключи игр / Сервисы — сразу под заголовком; ссылки (для поисковиков), а не только кнопки */}
+      {!q && tabs.length > 1 && (
+        <div className="-mt-4 mb-8 flex max-w-full overflow-x-auto no-scrollbar">
+          <div className="inline-flex rounded-xl bg-[var(--bg2)] p-1 shrink-0" role="tablist" aria-label="Раздел каталога">
+            {tabs.map(({ id, label, Icon }) => (
+              <Link
+                key={id}
+                to={catalogHref(id)}
+                replace
+                role="tab"
+                aria-selected={tab === id}
+                onClick={(e) => { e.preventDefault(); setTab(id) }}
+                className={'h-10 px-4 sm:px-5 inline-flex items-center gap-2 rounded-lg text-[15px] font-semibold whitespace-nowrap transition-colors ' + (tab === id ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-2)] hover:text-[var(--text)]')}
+              >
+                <Icon size={17} />
+                {label}
+                <span className={'text-sm font-normal num ' + (tab === id ? 'text-white/70' : 'text-[var(--hint)]')}>{tabCount[id]}</span>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
 
@@ -139,7 +144,7 @@ export default function WebCatalogPage() {
         </div>
       ) : isError ? (
         <p className="text-sm text-[var(--hint)] py-16 text-center">Не удалось загрузить каталог — обновите страницу</p>
-      ) : (games.length + services.length) === 0 ? (
+      ) : found.length === 0 ? (
         <div className="py-12">
           <p className="text-base text-[var(--text-2)] text-center mb-8">
             {q ? `По запросу «${q}» ничего не нашлось. Проверьте написание или оставьте заявку — добавим игру.` : 'Каталог пока пуст'}
@@ -149,12 +154,9 @@ export default function WebCatalogPage() {
       ) : (
         <>
           {q ? (
-            <>
-              <Grid title="Игры" items={games} />
-              <Grid title="Сервисы" items={services} />
-            </>
+            SECTIONS.map((s) => <Grid key={s.id} title={s.title} items={bySection(s.id)} />)
           ) : (
-            <Grid key={tab} title={tab === 'game' ? 'Игры' : 'Сервисы'} items={tab === 'game' ? games : services} />
+            <Grid key={tab} title={sectionById(tab).title} items={bySection(tab)} />
           )}
           <RequestCta query={q} />
         </>

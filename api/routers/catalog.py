@@ -18,7 +18,7 @@ router = APIRouter()
 @router.get("/games", response_model=list[GameOut])
 async def list_games(
     db: DbSession,
-    type: str | None = Query(None, pattern="^(game|service)$"),
+    type: str | None = Query(None, pattern="^(game|service|key)$"),
 ):
     from api.services.home_service import game_min_prices
 

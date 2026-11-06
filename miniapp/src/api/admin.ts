@@ -231,7 +231,7 @@ export interface AdminGame {
   is_featured: boolean
   custom_order_enabled?: boolean
   sort_order: number
-  type: 'game' | 'service'
+  type: 'game' | 'service' | 'key'
   input_fields?: Record<string, unknown>[]
   seo_title?: string | null
   seo_description?: string | null
@@ -577,13 +577,13 @@ export const adminApi = {
     }>(`/admin/users/${userId}/balance`, { amount, type, description }).then(r => r.data),
 
   // Catalog — Games
-  getGames: (params?: { is_active?: boolean; type?: 'game' | 'service' }) =>
+  getGames: (params?: { is_active?: boolean; type?: 'game' | 'service' | 'key' }) =>
     apiClient.get<AdminGame[]>('/admin/catalog/games', { params }).then(r => r.data),
 
-  createGame: (data: { name: string; slug?: string; image_url?: string; description?: string; is_active?: boolean; is_featured?: boolean; custom_order_enabled?: boolean; sort_order?: number; type?: 'game' | 'service'; input_fields?: Record<string, unknown>[]; seo_title?: string; seo_description?: string; seo_aliases?: string; seo_text?: string }) =>
+  createGame: (data: { name: string; slug?: string; image_url?: string; description?: string; is_active?: boolean; is_featured?: boolean; custom_order_enabled?: boolean; sort_order?: number; type?: 'game' | 'service' | 'key'; input_fields?: Record<string, unknown>[]; seo_title?: string; seo_description?: string; seo_aliases?: string; seo_text?: string }) =>
     apiClient.post<AdminGame>('/admin/catalog/games', data).then(r => r.data),
 
-  updateGame: (id: string, data: Partial<{ name: string; slug: string; image_url: string; description: string; is_active: boolean; is_featured: boolean; custom_order_enabled: boolean; sort_order: number; type: 'game' | 'service'; input_fields: Record<string, unknown>[]; seo_title: string; seo_description: string; seo_aliases: string; seo_text: string }>) =>
+  updateGame: (id: string, data: Partial<{ name: string; slug: string; image_url: string; description: string; is_active: boolean; is_featured: boolean; custom_order_enabled: boolean; sort_order: number; type: 'game' | 'service' | 'key'; input_fields: Record<string, unknown>[]; seo_title: string; seo_description: string; seo_aliases: string; seo_text: string }>) =>
     apiClient.patch<AdminGame>(`/admin/catalog/games/${id}`, data).then(r => r.data),
 
   deleteGame: (id: string) =>

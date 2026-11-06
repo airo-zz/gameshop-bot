@@ -28,10 +28,11 @@ import { normalizeImageUrl } from '@/utils/imageUrl'
 import SortableRow from '@/components/admin/SortableRow'
 import toast from 'react-hot-toast'
 
-type TabType = 'game' | 'service'
+type TabType = 'game' | 'key' | 'service'
 
 const TAB_LABELS: Record<TabType, string> = {
   game: 'Игры',
+  key: 'Ключи игр',
   service: 'Сервисы',
 }
 

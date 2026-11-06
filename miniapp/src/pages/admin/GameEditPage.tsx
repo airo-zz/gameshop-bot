@@ -84,7 +84,7 @@ const inputCls =
 
 // ── page ──────────────────────────────────────────────────────────────────────
 
-type GameType = 'game' | 'service'
+type GameType = 'game' | 'service' | 'key'
 
 interface FormState {
   name: string
@@ -125,7 +125,7 @@ export default function GameEditPage() {
   const isCreate = id === 'new'
 
   // In create mode, pre-fill type from ?type=service query param
-  const initialType = (searchParams.get('type') === 'service' ? 'service' : 'game') as GameType
+  const initialType = (['service', 'key'].includes(searchParams.get('type') ?? '') ? searchParams.get('type') : 'game') as GameType
 
   // ── game form state ──
   const [form, setForm]             = useState<FormState>({ ...EMPTY_FORM, type: initialType })
@@ -351,7 +351,7 @@ export default function GameEditPage() {
           {/* Type */}
           <Field label="Тип">
             <div className="flex gap-1 bg-[var(--bg3)] p-1 rounded-xl">
-              {(['game', 'service'] as GameType[]).map((t) => (
+              {(['game', 'key', 'service'] as GameType[]).map((t) => (
                 <button
                   key={t}
                   type="button"
@@ -363,7 +363,7 @@ export default function GameEditPage() {
                       : 'text-[var(--hint)] hover:text-[var(--text-2)]',
                   ].join(' ')}
                 >
-                  {t === 'game' ? 'Игра' : 'Сервис'}
+                  {t === 'game' ? 'Игра' : t === 'key' ? 'Ключ игры' : 'Сервис'}
                 </button>
               ))}
             </div>

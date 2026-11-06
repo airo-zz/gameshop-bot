@@ -24,6 +24,7 @@ import {
 import {
   ArrowSquareOutIcon, ArrowsInSimpleIcon, EyeIcon, EyeSlashIcon, ArrowsOutSimpleIcon, BellIcon, ChatCenteredIcon, CloudArrowUpIcon, EnvelopeSimpleIcon, CurrencyDollarIcon, FloppyDiskIcon, FolderOpenIcon, ImageBrokenIcon, ImageIcon, MinusCircleIcon, PencilSimpleIcon, PlusCircleIcon, PushPinIcon, ShieldSlashIcon, ShieldWarningIcon, ToggleLeftIcon, ToggleRightIcon, UploadSimpleIcon, UserCheckIcon, UserIcon, UserMinusIcon, WarningIcon,
 } from '@phosphor-icons/react'
+import { ArrowRightIcon, KeyIcon, SquaresFourIcon } from '@phosphor-icons/react'
 
 export interface IconProps {
   size?: number | string
@@ -92,6 +93,9 @@ export const ShoppingCart = wrap(ShoppingCartIcon)
 export const Smartphone = wrap(DeviceMobileIcon)
 export const Star = wrap(StarIcon)
 export const SteamLogo = wrap(SteamLogoIcon)
+export const KeyRound = wrap(KeyIcon)
+export const LayoutGrid = wrap(SquaresFourIcon)
+export const ArrowRight = wrap(ArrowRightIcon)
 export const Tag = wrap(TagIcon)
 export const ThumbsDown = wrap(ThumbsDownIcon)
 export const ThumbsUp = wrap(ThumbsUpIcon)

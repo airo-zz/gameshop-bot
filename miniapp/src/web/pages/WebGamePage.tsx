@@ -439,7 +439,7 @@ function GamePageContent() {
   // Тот же H1, что даст сервер, — чтобы заголовок не менялся после загрузки текстов
   const fallbackH1 = catSlug && currentRoot
     ? `${currentRoot.name.replace(/^[^\p{L}\p{N}]+/u, '').trim()} ${gameName}`
-    : `${game?.type === 'service' ? 'Пополнение' : 'Донат'} ${gameName}`
+    : `${game?.type === 'service' ? 'Пополнение' : game?.type === 'key' ? 'Ключ' : 'Донат'} ${gameName}`
 
   // Метрика: просмотр товаров открытого раздела
   useEffect(() => {
@@ -704,7 +704,7 @@ function GamePageContent() {
       {seo && (
         <GameSeoBlock
           seo={seo}
-          title={game?.type === 'service' ? `Как купить ${gameName}` : `Как купить донат в ${gameName}`}
+          title={game?.type === 'service' ? `Как купить ${gameName}` : game?.type === 'key' ? `Как купить ключ ${gameName}` : `Как купить донат в ${gameName}`}
         />
       )}
       {slug && <GameReviews slug={slug} gameName={gameName} />}

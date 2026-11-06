@@ -60,7 +60,7 @@ async def list_games(
     db: DbSession,
     admin: CurrentAdmin,
     is_active: bool | None = Query(None),
-    type: str | None = Query(None, pattern="^(game|service)$"),
+    type: str | None = Query(None, pattern="^(game|service|key)$"),
 ) -> list[GameOut]:
     q = select(Game).order_by(Game.sort_order, Game.name)
     if is_active is not None:

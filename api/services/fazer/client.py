@@ -193,6 +193,26 @@ class FazerAPI:
     def steam_rates(self) -> dict:
         return self._req("GET", "/steam-topup/rates")
 
+    # ключи игр (/gamekeys): игра → позиции (key_id — издание), регион активации
+    def gamekey_games(self) -> list[dict]:
+        items, cursor = [], None
+        for _ in range(20):
+            params = {"limit": "500", "include_ui": "1"}
+            if cursor:
+                params["cursor"] = cursor
+            page = self._req("GET", "/gamekeys", params=params)
+            items += page.get("items") or []
+            cursor = (page.get("meta") or {}).get("next_cursor")
+            if not cursor:
+                break
+        return items
+
+    def gamekey_keys(self, game_id: str) -> dict:
+        return self._req("GET", "/gamekeys/keys", params={"game_id": game_id, "include_ui": "1"})
+
+    def gamekey_region(self, game_id: str) -> dict:
+        return self._req("GET", "/gamekeys/region-restriction", params={"game_id": game_id})
+
     # ── проверки до покупки ──────────────────────────────────────────────────
     def validate_id(self, category_id: str, fields: dict) -> dict:
         return self._req("POST", "/topups/validate-id", body={"category_id": category_id, "fields": fields})
@@ -215,6 +235,14 @@ class FazerAPI:
                 "category_id": category_id, "card_id": card_id, "quantity": quantity,
             }).get("order") or {},
             f"giftcard {idem}",
+        )
+
+    def gamekey_order(self, game_id: str, key_id: str, quantity: int, idem: str) -> dict:
+        return self._with_retry(
+            lambda: self._req("POST", "/gamekeys/order", idem=idem, body={
+                "game_id": game_id, "key_id": key_id, "quantity": quantity,
+            }).get("order") or {},
+            f"gamekey {idem}",
         )
 
     def steam_order(self, login: str, currency: str, amount, idem: str) -> dict:

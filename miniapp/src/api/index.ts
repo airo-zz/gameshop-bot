@@ -19,7 +19,7 @@ export interface Game {
   is_featured: boolean
   sort_order: number
   tags: string[]
-  type: 'game' | 'service'
+  type: 'game' | 'service' | 'key'
   input_fields?: InputField[]
   custom_order_enabled?: boolean
   sold_count?: number   // «Продано»: GGSEL + сайт (обновляется раз в 6 часов)
@@ -302,7 +302,7 @@ export const catalogApi = {
   getLoyaltyProgram: () =>
     apiClient.get<LoyaltyProgram>('/catalog/loyalty').then(r => r.data),
 
-  getGames: (type?: 'game' | 'service') =>
+  getGames: (type?: 'game' | 'service' | 'key') =>
     apiClient.get<Game[]>('/catalog/games', { params: type ? { type } : undefined }).then(r => r.data),
 
   getCategories: (slug: string) =>

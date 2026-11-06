@@ -117,6 +117,19 @@ def _select_value(val: str, options: list) -> str:
     return val
 
 
+def _order_codes(order: dict) -> list[str]:
+    """Коды из заказа Fazer: cards / keys / codes — строки или объекты {key|code|value}."""
+    out: list[str] = []
+    for name in ("cards", "keys", "codes", "game_keys"):
+        for c in order.get(name) or []:
+            v = c if isinstance(c, str) else (c.get("key") or c.get("code") or c.get("value") or "") if isinstance(c, dict) else ""
+            if str(v).strip():
+                out.append(str(v).strip())
+        if out:
+            break
+    return out
+
+
 class FazerEngine:
     def __init__(self, api_key: str):
         self.api = FazerAPI(api_key)
@@ -150,6 +163,8 @@ class FazerEngine:
         try:
             if kind == "giftcard":
                 return self._giftcard(mapping, quantity, idem_prefix)
+            if kind == "gamekey":
+                return self._gamekey(mapping, quantity, idem_prefix)
             if kind == "steam_topup":
                 return self._steam(mapping, values, quantity, idem_prefix)
             return self._topup(mapping, values, quantity, idem_prefix)
@@ -292,6 +307,37 @@ class FazerEngine:
             True, "✅ Ваш код:\n\n" + "\n".join(codes) + "\n\nСпасибо за покупку!",
             f"ok giftcard cat={cat} legs={len(counts)} qty={qty} codes={len(codes)}",
             cost_usd=round(sum(costs), 4) if costs else None, orders=orders, codes=codes,
+        )
+
+    # ── ключ игры ────────────────────────────────────────────────────────────
+    def _gamekey(self, m: dict, qty: int, idem: str) -> DeliveryResult:
+        """Как гифт-карта, только /gamekeys/order. Формат заказа в спецификации Fazer не
+        описан — коды ищем в cards / keys / codes (строки или объекты с key/code)."""
+        game_id = str(m.get("category_id") or "")
+        keys = _ids(m.get("key_ids"))
+        if not game_id or not keys:
+            return DeliveryResult(False, MSG_FAIL, "товар не привязан к ключу FazerCards")
+        qty = max(1, qty)
+        if qty > 100:
+            return DeliveryResult(False, MSG_FAIL, f"qty={qty} — выдать вручную")
+        try:
+            order = self.api.gamekey_order(game_id, keys[0], qty, f"{idem}-gk")
+        except Exception as e:  # noqa: BLE001
+            return self._stopped_codes([], [], [], 1, f"заказ ключа отклонён: {e}", e)
+        order = self._wait(order)
+        got = _order_codes(order)
+        info = {"id": order_id_of(order), "state": order_state(order), "status": order_status_text(order)}
+        price = order_price_of(order)
+        if order_state(order) == "fail" or not got:
+            return self._stopped_codes(
+                [], [info], [price] if price is not None else [], 1,
+                f"заказ {order_id_of(order) or '?'} без ключа: {json.dumps(order, ensure_ascii=False)[:300]}", None)
+        how = m.get("activation") or ""
+        return DeliveryResult(
+            True, ("✅ Ваш ключ:\n\n" if len(got) == 1 else "✅ Ваши ключи:\n\n") + "\n".join(got)
+            + (f"\n\n{how}" if how else "") + "\n\nСпасибо за покупку!",
+            f"ok gamekey game={game_id} key={keys[0]} qty={qty} keys={len(got)}",
+            cost_usd=round(price, 4) if price is not None else None, orders=[info], codes=got,
         )
 
     def _stopped_codes(self, codes, orders, costs, total, why, err) -> DeliveryResult:

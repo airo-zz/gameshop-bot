@@ -140,7 +140,7 @@ class GameCreateIn(BaseModel):
     is_active: bool = True
     is_featured: bool = False
     sort_order: int = 0
-    type: str = Field("game", pattern="^(game|service)$")
+    type: str = Field("game", pattern="^(game|service|key)$")
     input_fields: list[Any] = []
     custom_order_enabled: bool = False
     seo_title: str | None = Field(None, max_length=160)
@@ -157,7 +157,7 @@ class GameUpdateIn(BaseModel):
     is_active: bool | None = None
     is_featured: bool | None = None
     sort_order: int | None = None
-    type: str | None = Field(None, pattern="^(game|service)$")
+    type: str | None = Field(None, pattern="^(game|service|key)$")
     input_fields: list[Any] | None = None
     custom_order_enabled: bool | None = None
     seo_title: str | None = Field(None, max_length=160)
