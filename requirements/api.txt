@@ -8,6 +8,9 @@ python-multipart==0.0.32
 PyJWT==2.15.1
 httpx==0.28.1
 celery==5.4.0
+# kombu явно: 5.7 (подтягивался сам при пересборке 05.11.2026) требует redis-py ≥6.1,
+# а у нас redis==5.2.1 — worker и beat падали при старте, встали все фоновые задачи
+kombu==5.4.2
 flower==2.0.1
 yookassa==3.10.0
 aiofiles==24.1.0

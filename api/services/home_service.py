@@ -36,6 +36,7 @@ BANNERS_KEY = "home_banners"
 HERO_MAX = 6
 POPULAR_MAX = 8
 BANNERS_MAX = 8
+TOPUP_CODE_SLUGS = ("playstation", "app-store")   # вкладки кодов в «Пополнении сервисов»
 BANNER_FIELDS = ("image_url", "title", "subtitle", "button", "link")
 
 
@@ -249,9 +250,11 @@ async def resolve_topup(db: AsyncSession) -> list[dict]:
             "products": [_product_to_list_out(p) for p in products if p.category_id == cat.id],
         })
 
-    # коды сервисов: вкладка на сервис, регионы — его разделы, номиналы — свои у каждого
+    # коды сервисов: вкладка на сервис, регионы — его разделы, номиналы — свои у каждого.
+    # В блоке — только выбранные владельцем сервисы (остальные коды — в каталоге)
     codes = list((await db.execute(base.where(
-        Game.type == "service", Product.meta["fazer"]["kind"].astext == "giftcard",
+        Game.type == "service", Game.slug.in_(TOPUP_CODE_SLUGS),
+        Product.meta["fazer"]["kind"].astext == "giftcard",
     ))).scalars().all())
     by_game: dict[uuid.UUID, list[Product]] = {}
     for p in codes:
