@@ -22,6 +22,7 @@ export interface Game {
   type: 'game' | 'service'
   input_fields?: InputField[]
   custom_order_enabled?: boolean
+  sold_count?: number   // «Продано»: GGSEL + сайт (обновляется раз в 6 часов)
   /** «Украшения Discord» — открывается страница-каталог вместо вкладок */
   decor_catalog?: boolean
   /** Цена «от» — только в списке игр */

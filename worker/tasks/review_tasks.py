@@ -25,3 +25,16 @@ async def _sync_async(full: bool):
             await _sync(db, full=full)
         except (GgselError, OSError) as exc:  # сеть/GGSEL лежит — попробуем в следующий раз
             logger.warning("GGSEL reviews sync failed: %s", exc)
+
+
+@celery_app.task(name="worker.tasks.review_tasks.refresh_sold_counts")
+def refresh_sold_counts():
+    asyncio.run(_sold_async())
+
+
+async def _sold_async():
+    from api.services.sold_counter import refresh_sold_counts as _refresh
+    from shared.database.session import get_worker_db_session
+
+    async with get_worker_db_session() as db:
+        await _refresh(db)

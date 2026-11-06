@@ -531,6 +531,11 @@ function GamePageContent() {
         <h1 className={'text-2xl sm:text-3xl md:text-[2.5rem] leading-tight text-[var(--text)] min-w-0 sm:self-end' + (cover || !game ? '' : ' col-span-2')} style={{ margin: 0 }}>{seo?.h1 ?? fallbackH1}</h1>
         <div className={'min-w-0 col-span-2 sm:self-start ' + (cover || !game ? 'sm:col-span-1 sm:col-start-2' : '')}>
           <div className="mt-3 flex flex-wrap items-center gap-2 min-h-7">
+            {!!game?.sold_count && (
+              <span className="inline-flex items-center h-7 px-2.5 rounded-lg text-xs font-medium text-[var(--text-2)] bg-[var(--bg2)] num">
+                Продано: {game.sold_count.toLocaleString('ru')}
+              </span>
+            )}
             {currentCat?.delivery_type === 'auto' && (
               <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium" style={{ background: 'rgba(16,185,129,0.12)', color: '#34d399' }}>
                 <Zap size={14} fill="#34d399" /> Автовыдача

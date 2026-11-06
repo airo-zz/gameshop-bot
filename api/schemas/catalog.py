@@ -46,6 +46,12 @@ class GameOut(BaseModel):
         """Игра «Украшения Discord» — фронт открывает страницу-каталог вместо вкладок."""
         return bool((self.meta or {}).get("decor_catalog"))
 
+    @computed_field
+    @property
+    def sold_count(self) -> int:
+        """«Продано»: GGSEL + выполненные заказы сайта (api/services/sold_counter.py)."""
+        return int((self.meta or {}).get("sold_count") or 0)
+
 
 class CategoryOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)

@@ -84,6 +84,11 @@ celery_app.conf.beat_schedule = {
         "task": "worker.tasks.integrity_tasks.check_integrity",
         "schedule": crontab(minute=40, hour="*/3"),
     },
+    # Каждые 6 часов — «Продано» на страницах игр (GGSEL из хаба + заказы сайта)
+    "refresh-sold-counts": {
+        "task": "worker.tasks.review_tasks.refresh_sold_counts",
+        "schedule": crontab(minute=40, hour="*/6"),
+    },
     # Каждые 3 часа — новые отзывы с GGSEL
     "sync-ggsel-reviews": {
         "task": "worker.tasks.review_tasks.sync_ggsel_reviews",
