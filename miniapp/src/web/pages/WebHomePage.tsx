@@ -233,17 +233,6 @@ function Popular({ trending }: { trending: TrendingCategory[] }) {
 
 // ── Быстрое пополнение ────────────────────────────────────────────────────────
 
-function topupTitle(topup: HomeTopup[]) {
-  const tg = topup.some((t) => t.kind === 'stars' || t.kind === 'premium')
-  const names = [
-    tg && 'Telegram',
-    topup.some((t) => t.kind === 'steam') && 'Steam',
-    topup.some((t) => t.kind === 'playstation') && 'PlayStation',
-  ].filter(Boolean) as string[]
-  if (names.length === 1 && tg) return 'Звёзды и Premium в Telegram'
-  return 'Пополнение ' + (names.length > 1 ? names.slice(0, -1).join(', ') + ' и ' + names[names.length - 1] : names[0])
-}
-
 const TG_BLUE = '42,171,238'
 
 function Topup({ topup }: { topup: HomeTopup[] }) {
@@ -251,7 +240,7 @@ function Topup({ topup }: { topup: HomeTopup[] }) {
   return (
     <section className="web-container py-10 md:py-12">
       <Reveal>
-        <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">{topupTitle(topup)}</h2>
+        <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Пополнение сервисов</h2>
       </Reveal>
       {/* Тонкая обводка в цвет Telegram — по краю самой панели, размер и скругление как у остальных блоков */}
       <Reveal className="mt-6">

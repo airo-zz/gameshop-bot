@@ -231,7 +231,7 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
                     aria-pressed={active}
                     className={'h-11 px-3 rounded-xl text-[15px] text-left border transition-colors ' + (active ? 'border-[var(--accent)] bg-[var(--bg3)] text-[var(--text)]' : 'border-transparent bg-[var(--bg3)] text-[var(--text-2)] hover:border-[var(--border)]')}
                   >
-                    {r.category_name.replace(/^.*?[-–—]\s*/, '')}
+                    {r.category_name.replace(/^.*?(?:[-–—]|PlayStation|PSN)\s*/i, '')}
                   </button>
                 )
               })}
