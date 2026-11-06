@@ -5,8 +5,8 @@
  * кэшбэк, как это работает, способы оплаты, вопросы.
  */
 
-import { useEffect, useRef, useState } from 'react'
-import { CATALOG_SECTIONS, catalogHref, sectionById, sectionOf, type SectionId } from '@/web/catalogSections'
+import { useRef, useState } from 'react'
+import { catalogHref, sectionById, sectionOf, type SectionId } from '@/web/catalogSections'
 import { Link } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
@@ -18,7 +18,6 @@ import BannerCarousel from '@/web/components/BannerCarousel'
 import { ReviewCard, ReviewSummary } from '@/components/reviews/Reviews'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
-import GameCard from '@/web/components/GameCard'
 import GameSearch from '@/web/components/GameSearch'
 import RequestCta from '@/web/components/RequestCta'
 import QuickTopup from '@/web/components/QuickTopup'
@@ -259,129 +258,112 @@ function Topup({ topup }: { topup: HomeTopup[] }) {
 }
 
 // ── Каталог ───────────────────────────────────────────────────────────────────
+// Секции подряд, без переключателя: донат, сервисы, ключи. В каждой — самые продаваемые
+// плитками и кнопка «Все …» на страницу раздела (полный список — в каталоге).
 
-// Сколько колонок у сетки каталога сейчас (как в классах grid-cols-2 sm:3 lg:5)
-function useCatalogCols() {
-  const get = () =>
-    typeof window === 'undefined' ? 5 : window.matchMedia('(min-width: 1024px)').matches ? 5 : window.matchMedia('(min-width: 640px)').matches ? 3 : 2
-  const [cols, setCols] = useState(get)
-  useEffect(() => {
-    const on = () => setCols(get())
-    window.addEventListener('resize', on)
-    return () => window.removeEventListener('resize', on)
-  }, [])
-  return cols
+const HOME_SECTIONS: { id: SectionId; title: string; hint: string; all: string; n: number; nMobile: number }[] = [
+  { id: 'game', title: 'Донат в играх', hint: 'Внутриигровая валюта, наборы и боевые пропуски', all: 'Все игры', n: 12, nMobile: 6 },
+  { id: 'service', title: 'Сервисы и подарочные карты', hint: 'Discord, App Store, PlayStation, Xbox, Steam и подписки', all: 'Все сервисы', n: 8, nMobile: 4 },
+  { id: 'key', title: 'Ключи игр', hint: 'Лицензионные ключи Steam, Xbox и Rockstar — ключ сразу после оплаты', all: 'Все ключи', n: 8, nMobile: 4 },
+]
+
+/** Плитка игры: обложка слева, название, плашка, цена «от» */
+function CatalogTile({ game }: { game: Game }) {
+  const img = cover(game)
+  const qc = useQueryClient()
+  const warm = () => prefetchGame(qc, game.slug)
+  const badge = game.id_topup ? 'Пополнение по ID' : game.has_auto ? 'АВТО' : null
+  return (
+    <Link
+      to={`/game/${game.slug}`}
+      onMouseEnter={warm}
+      onFocus={warm}
+      onTouchStart={warm}
+      className="group h-full flex items-center gap-3.5 p-3 rounded-2xl bg-[var(--bg2)] hover:bg-[var(--bg3)] ring-1 ring-inset ring-[var(--border)] transition-colors duration-200"
+    >
+      <span className="shrink-0 w-[72px] h-[72px] rounded-xl overflow-hidden bg-[var(--bg3)]" style={{ boxShadow: 'inset 0 0 0 1px var(--border)' }}>
+        {img && (
+          <img src={thumbUrl(img, 320) ?? img} onError={onThumbError(img)} alt={game.name} width={72} height={72}
+               loading="lazy" decoding="async" className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]" />
+        )}
+      </span>
+      <span className="min-w-0 flex-1 flex flex-col self-stretch py-0.5">
+        <span className="text-[15px] font-semibold leading-snug text-[var(--text)] line-clamp-2">{game.name}</span>
+        {badge && (
+          <span className="mt-1 inline-flex items-center gap-1 text-xs text-[var(--hint)]">
+            <Zap size={12} fill="#34d399" color="#34d399" /> {badge}
+          </span>
+        )}
+        {game.min_price != null && (
+          <span className="mt-auto pt-1.5 text-sm text-[var(--text-2)] num">от <b className="font-semibold text-[var(--text)]">{money(game.min_price)}</b></span>
+        )}
+      </span>
+    </Link>
+  )
 }
 
-function plural(n: number, forms: [string, string, string]) {
-  const a = n % 100, b = n % 10
-  return forms[a > 10 && a < 20 ? 2 : b === 1 ? 0 : b >= 2 && b <= 4 ? 1 : 2]
+function CatalogBlock({ section, games }: { section: (typeof HOME_SECTIONS)[number]; games: Game[] }) {
+  const { Icon } = sectionById(section.id)
+  const top = [...games]
+    .sort((a, b) => (b.sold_count ?? 0) - (a.sold_count ?? 0) || Number(b.is_featured) - Number(a.is_featured))
+    .slice(0, section.n)
+  return (
+    <div>
+      <Reveal className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 mb-5">
+        <div className="flex items-center gap-3.5 min-w-0">
+          <span className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 text-[var(--link)]"
+                style={{ background: 'color-mix(in srgb, var(--accent) 16%, transparent)' }}>
+            <Icon size={20} />
+          </span>
+          <div className="min-w-0">
+            <h3 className="text-lg md:text-xl font-semibold tracking-tight text-[var(--text)]" style={{ margin: 0 }}>{section.title}</h3>
+            <p className="text-sm text-[var(--hint)] mt-0.5">{section.hint}</p>
+          </div>
+        </div>
+        <Link to={catalogHref(section.id)}
+              className="h-10 px-4 inline-flex items-center gap-1.5 rounded-xl text-sm font-medium text-[var(--link)] ring-1 ring-inset ring-[var(--border)] hover:bg-[var(--bg2)] hover:text-[var(--text)] transition-colors">
+          {section.all} <span className="num">({games.length})</span> <ChevronRight size={16} />
+        </Link>
+      </Reveal>
+      <Stagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {top.map((g, i) => (
+          <StaggerItem key={g.id} className={i >= section.nMobile ? 'max-sm:hidden' : undefined}>
+            <CatalogTile game={g} />
+          </StaggerItem>
+        ))}
+      </Stagger>
+    </div>
+  )
 }
 
 function Catalog({ all, isLoading, isError }: { all: Game[]; isLoading: boolean; isError: boolean }) {
-  const [tab, setTab] = useState<SectionId>('game')
-  const [open, setOpen] = useState(false)
-  const top = useRef<HTMLElement>(null)
-  const cols = useCatalogCols()
-  // на главной — донат и сервисы; ключи игр — отдельный раздел (пункт в шапке)
-  const tabs = CATALOG_SECTIONS.filter((s) => all.some((g) => sectionOf(g) === s.id))
-  const games = all.filter((g) => sectionOf(g) === tab)
-  // Свёрнуто: открыты первые 4 ряда
-  const limit = cols * 4
-  const folded = !open && games.length > limit
-  const rest = games.length - limit
-
-  const collapse = () => {
-    setOpen(false)
-    const el = top.current
-    if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
+  const blocks = HOME_SECTIONS
+    .map((s) => ({ section: s, games: all.filter((g) => sectionOf(g) === s.id) }))
+    .filter((b) => b.games.length > 0)
 
   return (
-    <section ref={top} id="catalog" className="web-container py-10 md:py-12 scroll-mt-20">
-      <Reveal className="flex flex-wrap items-end justify-between gap-4 mb-6">
+    <section id="catalog" className="web-container py-10 md:py-12 scroll-mt-20">
+      <Reveal className="flex flex-wrap items-end justify-between gap-4 mb-8">
         <h2 className="text-2xl md:text-[1.75rem] font-semibold tracking-tight text-[var(--text)]">Каталог</h2>
-        {tabs.length > 1 && (
-          <div className="inline-flex max-w-full overflow-x-auto no-scrollbar rounded-xl bg-[var(--bg2)] p-1">
-            {tabs.map(({ id, label, Icon }) => (
-              <button
-                key={id}
-                onClick={() => { setTab(id); setOpen(false) }}
-                className={'relative shrink-0 px-3.5 sm:px-4 h-9 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ' + (tab === id ? 'text-[var(--text)]' : 'text-[var(--hint)] hover:text-[var(--text-2)]')}
-              >
-                {tab === id && (
-                  <m.span layoutId="web-cat-tab" className="absolute inset-0 rounded-lg bg-[var(--bg3)]" transition={{ duration: 0.25, ease: EASE }} />
-                )}
-                <span className="relative inline-flex items-center gap-1.5"><Icon size={15} />{label}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        <Link to="/catalog" className="text-sm font-medium text-[var(--link)] hover:text-[var(--text)] transition-colors inline-flex items-center gap-1">
+          Весь каталог <ChevronRight size={16} />
+        </Link>
       </Reveal>
 
       {isLoading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div key={i}>
-              <div className="aspect-square rounded-2xl animate-pulse bg-[var(--bg2)]" />
-              <div className="h-3.5 w-2/3 rounded mt-3 animate-pulse bg-[var(--bg2)]" />
-            </div>
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {Array.from({ length: 8 }).map((_, i) => <div key={i} className="h-[96px] rounded-2xl animate-pulse bg-[var(--bg2)]" />)}
         </div>
       ) : isError ? (
         <p className="text-sm text-[var(--hint)] py-10 text-center">Не удалось загрузить каталог — обновите страницу</p>
-      ) : games.length === 0 ? (
+      ) : blocks.length === 0 ? (
         <p className="text-sm text-[var(--hint)] py-10 text-center">Скоро здесь появятся игры</p>
       ) : (
-        <>
-          {/* Все игры в разметке (ссылки для поисковиков); свёрнутые — скрыты */}
-          <div className="relative">
-            <Stagger key={tab} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
-              {games.map((g, i) => (
-                <StaggerItem key={g.id} className={folded && i >= limit ? 'hidden' : undefined}>
-                  <GameCard game={g} />
-                </StaggerItem>
-              ))}
-            </Stagger>
-            {/* Последний видимый ряд растворяется в фон — видно, что дальше есть ещё */}
-            {folded && (
-              <div
-                aria-hidden="true"
-                className="absolute inset-x-0 bottom-0 h-40 md:h-44 pointer-events-none"
-                style={{ background: 'linear-gradient(to bottom, color-mix(in srgb, var(--bg) 0%, transparent), var(--bg) 88%)' }}
-              />
-            )}
-          </div>
-
-          {games.length > limit && (
-            <div className={'relative flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 ' + (folded ? '-mt-10' : 'mt-6')}>
-              {folded ? (
-                <button
-                  onClick={() => setOpen(true)}
-                  className="h-11 px-6 inline-flex items-center gap-2 rounded-xl bg-[var(--bg3)] hover:bg-[var(--bg2)] ring-1 ring-inset ring-[var(--border)] text-sm font-semibold text-[var(--text)] transition-colors"
-                >
-                  Показать ещё {rest} {plural(rest, sectionById(tab).plural)}
-                  <ChevronDown size={16} />
-                </button>
-              ) : (
-                <button
-                  onClick={collapse}
-                  className="h-11 px-6 inline-flex items-center gap-2 rounded-xl bg-[var(--bg2)] hover:bg-[var(--bg3)] text-sm font-medium text-[var(--text-2)] hover:text-[var(--text)] transition-colors"
-                >
-                  Свернуть <ChevronDown size={16} style={{ transform: 'rotate(180deg)' }} />
-                </button>
-              )}
-              <Link
-                to={catalogHref(tab)}
-                className="h-11 px-4 inline-flex items-center gap-1 text-sm font-medium text-[var(--link)] hover:text-[var(--text)] transition-colors"
-              >
-                Открыть каталог <ChevronRight size={16} />
-              </Link>
-            </div>
-          )}
-        </>
+        <div className="flex flex-col gap-12 md:gap-14">
+          {blocks.map((b) => <CatalogBlock key={b.section.id} {...b} />)}
+        </div>
       )}
-      <Reveal className="mt-8"><RequestCta /></Reveal>
+      <Reveal className="mt-10"><RequestCta /></Reveal>
     </section>
   )
 }
