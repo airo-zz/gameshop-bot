@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { m } from 'framer-motion'
-import { ChevronRight, Zap, Clock, Plus, Minus, ShoppingCart, MessageSquarePlus, ShieldCheck, Headphones } from '@/components/ui/icons'
+import { ChevronRight, Zap, Clock, Info, Plus, Minus, ShoppingCart, MessageSquarePlus, ShieldCheck, Headphones } from '@/components/ui/icons'
 import toast from 'react-hot-toast'
 import { catalogApi, reviewsApi } from '@/api'
 import { ReviewCard, ReviewSummary, reviewsWord } from '@/components/reviews/Reviews'
@@ -340,6 +340,28 @@ function GameSeoBlock({ seo, title }: { seo: GameSeo; title: string }) {
 
 // ── Страница ──────────────────────────────────────────────────────────────────
 
+const customOrderUrl = (gameName: string) => `/request?type=custom_order&game=${encodeURIComponent(gameName)}`
+
+/** «Индивидуальный заказ»: нет нужного количества или набора — оператор соберёт под запрос */
+function CustomOrderCard({ gameName }: { gameName: string }) {
+  return (
+    <div className="rounded-2xl p-5 bg-[var(--bg2)]" style={{ boxShadow: 'inset 0 0 0 1px var(--accent)' }}>
+      <p className="flex items-center gap-2 text-base font-semibold text-[var(--text)]">
+        <MessageSquarePlus size={18} className="text-[var(--link)] shrink-0" /> Нет нужного набора?
+      </p>
+      <p className="mt-1.5 text-sm text-[var(--text-2)] leading-relaxed">
+        Другое количество, набор из игры или услуга — опишите запрос, оператор посчитает цену и выполнит заказ.
+      </p>
+      <Link
+        to={customOrderUrl(gameName)}
+        className="mt-3 h-10 w-full rounded-xl text-sm font-semibold text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors inline-flex items-center justify-center gap-1.5"
+      >
+        Индивидуальный заказ <ChevronRight size={16} />
+      </Link>
+    </div>
+  )
+}
+
 export default function WebGamePage() {
   const { slug } = useParams<{ slug: string }>()
   const { data: games = [] } = useQuery({
@@ -434,6 +456,7 @@ function GamePageContent() {
     ? ((currentCat?.input_fields?.length ? currentCat.input_fields : game?.input_fields) ?? [])
     : []
   const [tgFields, setTgFields] = useState<Record<string, string>>({})
+  const [manualHint, setManualHint] = useState(false)
   useEffect(() => { setTgFields({}) }, [currentCatId])
 
   const handleAdd = async (product: Product, inputData?: Record<string, string>, quantity = 1) => {
@@ -514,20 +537,30 @@ function GamePageContent() {
               </span>
             )}
             {currentCat?.delivery_type === 'manual' && (
-              <span className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium text-[var(--text-2)] bg-[var(--bg2)]">
-                <Clock size={14} /> Выдача оператором
-              </span>
+              <button
+                type="button"
+                onClick={() => setManualHint((v) => !v)}
+                aria-expanded={manualHint}
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium text-[var(--text-2)] bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors"
+              >
+                <Clock size={14} /> Выдача оператором <Info size={13} className="text-[var(--hint)]" />
+              </button>
             )}
             {game?.custom_order_enabled && (
               <Link
-                to={`/request?type=custom_order&game=${encodeURIComponent(gameName)}`}
+                to={customOrderUrl(gameName)}
                 title="Оператор соберёт набор под ваш запрос"
-                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-medium text-[var(--text-2)] bg-[var(--bg2)] hover:bg-[var(--bg3)] transition-colors"
+                className="inline-flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-xs font-semibold text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors"
               >
                 <MessageSquarePlus size={14} /> Индивидуальный заказ
               </Link>
             )}
           </div>
+          {manualHint && currentCat?.delivery_type === 'manual' && (
+            <p className="mt-2 text-xs text-[var(--text-2)] max-w-2xl">
+              Заказ выполняет оператор в чате: обычно 5–30 минут, в редких случаях до 6 часов.
+            </p>
+          )}
           {description && <p className="mt-3 text-sm text-[var(--text-2)] leading-relaxed max-w-2xl whitespace-pre-line">{description}</p>}
         </div>
       </header>
@@ -647,11 +680,16 @@ function GamePageContent() {
               </Stagger>
               </>
             )}
+            {/* Индивидуальный заказ на телефоне — под товарами (на ПК — в колонке справа) */}
+            {game?.custom_order_enabled && !prodLoading && (
+              <div className="lg:hidden mt-4"><CustomOrderCard gameName={gameName} /></div>
+            )}
           </div>
 
           {/* Корзина: справа на десктопе */}
-          <aside className="hidden lg:block sticky top-24">
+          <aside className="hidden lg:flex flex-col gap-3 sticky top-24">
             <CartSummary count={count} total={Number(cart?.total ?? 0)} />
+            {game?.custom_order_enabled && <CustomOrderCard gameName={gameName} />}
           </aside>
         </div>
         </>
