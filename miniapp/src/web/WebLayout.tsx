@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
-import { Menu, X, LogOut, ShoppingCart, Wallet, User } from '@/components/ui/icons'
+import { Menu, X, ShoppingCart, Wallet, User } from '@/components/ui/icons'
 import { SHOP_NAME, MINIAPP_URL, SITE_URL } from '@/config/appTarget'
 import ChatWidget from '@/web/chat/ChatWidget'
 import CookieBanner from '@/web/components/CookieBanner'
@@ -17,7 +17,7 @@ import { useWebCart } from '@/web/cart/useWebCart'
 import { money } from '@/web/format'
 import Avatar from '@/web/components/Avatar'
 import GameSearch from '@/web/components/GameSearch'
-import CatalogMenu, { CatalogMenuMobile, KeysMenuMobile, KeysNavLink } from '@/web/components/CatalogMenu'
+import CatalogMenu, { CatalogMenuMobile, KeysMenuMobile } from '@/web/components/CatalogMenu'
 import { PenLogo } from '@/components/brand/BrandMotion'
 import { initMetrika, useMetrikaPageViews } from '@/web/seo'
 import { preloadRoutesWhenIdle } from '@/web/prefetch'
@@ -97,7 +97,7 @@ function CartButton({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 function AuthArea({ onNavigate }: { onNavigate?: () => void }) {
-  const { user, isAuthenticated, logout, ready } = useWebAuth()
+  const { user, isAuthenticated, ready } = useWebAuth()
   if (!ready) return null
 
   if (isAuthenticated && user) {
@@ -116,14 +116,6 @@ function AuthArea({ onNavigate }: { onNavigate?: () => void }) {
           <Avatar src={user.photo_url} name={user.first_name} size={28} />
           <span className="ym-hide-content text-sm text-[var(--text-2)] max-w-[120px] truncate hidden xl:inline md:max-xl:hidden max-md:inline">{user.first_name}</span>
         </Link>
-        <button
-          onClick={() => { logout(); onNavigate?.() }}
-          title="Выйти"
-          aria-label="Выйти"
-          className="w-10 h-10 md:max-xl:hidden flex items-center justify-center rounded-xl text-[var(--hint)] hover:text-[var(--text)] hover:bg-[var(--bg2)] transition-colors"
-        >
-          <LogOut size={18} />
-        </button>
       </div>
     )
   }
@@ -171,7 +163,6 @@ export default function WebLayout() {
           <nav className="hidden md:flex items-center gap-5 lg:gap-6">
             {/* «Каталог» — выпадающее меню разделов, остальное — ссылки */}
             <CatalogMenu />
-            <KeysNavLink />
             {NAV.filter((item) => item.href !== '/catalog').map((item) => <NavItemLink key={item.href} item={item} />)}
           </nav>
 
@@ -206,8 +197,10 @@ export default function WebLayout() {
               transition={{ duration: 0.28, ease: [0.32, 0.72, 0, 1] }}
             >
               <div className="web-container py-4 flex flex-col gap-4">
-                <CatalogMenuMobile onPick={() => setMenuOpen(false)} />
-                <KeysMenuMobile onPick={() => setMenuOpen(false)} />
+                <div className="flex flex-col gap-1">
+                  <CatalogMenuMobile onPick={() => setMenuOpen(false)} />
+                  <KeysMenuMobile onPick={() => setMenuOpen(false)} />
+                </div>
                 {NAV.filter((item) => item.href !== '/catalog').map((item) => <NavItemLink key={item.href} item={item} onClick={() => setMenuOpen(false)} />)}
                 {isAuthenticated && (
                   <>

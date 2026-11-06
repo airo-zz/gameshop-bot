@@ -1,15 +1,14 @@
 /**
  * src/web/components/CatalogMenu.tsx
- * Меню «Каталог» в шапке сайта — упор на донат.
- *  • ПК: панель на всю ширину под шапкой: донат — широкая колонка (12 игр в два столбца),
- *    сервисы — узкая; у каждой иконка, число, подпись и самые продаваемые позиции с ценой «от».
- *    Ключи игр сюда не входят — у них свой пункт в шапке (KeysNavLink).
- *    Открывается наведением (с задержкой, чтобы не мигало при проходе мышью) и кликом.
- *  • Телефон: CatalogMenuMobile — разделы списком внутри мобильного меню.
+ * Меню «Каталог» в шапке сайта — как на GGSel.
+ *  • ПК: открывается только кликом. Слева разделы: донат (открыт по умолчанию), сервисы,
+ *    ниже под чертой — ключи игр. Наведение/клик по разделу показывает справа его игры
+ *    сеткой (самые продаваемые, с ценой «от»).
+ *  • Телефон: CatalogMenuMobile + KeysMenuMobile — разделы списком внутри мобильного меню.
  * Данные — тот же запрос, что у страницы каталога (кэш общий).
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
@@ -18,10 +17,10 @@ import { catalogApi, type Game } from '@/api'
 import { money } from '@/web/format'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { onThumbError, thumbUrl } from '@/utils/thumb'
-import { CATALOG_SECTIONS, KEYS_SECTION, catalogHref, sectionOf, type Section } from '@/web/catalogSections'
+import { CATALOG_SECTIONS, KEYS_SECTION, catalogHref, sectionOf, type Section, type SectionId } from '@/web/catalogSections'
 
 // сколько позиций показывать: донату — больше места
-const TOP_N: Record<string, number> = { game: 12, service: 7 }
+const TOP_N: Record<string, number> = { game: 24, service: 18, key: 18 }
 
 function useCatalog() {
   return useQuery({ queryKey: ['web', 'games', 'all'], queryFn: () => catalogApi.getGames(), staleTime: 5 * 60_000 })
@@ -52,26 +51,45 @@ function Cover({ game, size }: { game: Game; size: number }) {
   )
 }
 
-function SectionColumn({ section, count, top, onPick, wide }: { section: Section; count: number; top: Game[]; onPick: () => void; wide?: boolean }) {
+/** Пункт левой колонки: наведение (мышь) или клик — показать раздел справа */
+function SideItem({ section, count, active, onShow }: { section: Section; count: number; active: boolean; onShow: () => void }) {
   const { Icon } = section
   return (
-    <div className="min-w-0 flex flex-col">
-      <Link to={catalogHref(section.id)} onClick={onPick} className="group flex items-start gap-3 rounded-xl p-2 -m-2 mb-2 hover:bg-[var(--bg3)] transition-colors">
-        <span className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-[var(--link)]"
-              style={{ background: 'color-mix(in srgb, var(--accent) 16%, transparent)' }}>
-          <Icon size={20} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex items-baseline gap-2">
-            <span className="text-[15px] font-semibold text-[var(--text)]">{section.title}</span>
-            <span className="text-xs text-[var(--hint)] num">{count}</span>
-          </span>
-          <span className="block text-xs text-[var(--hint)] mt-0.5 leading-snug">{section.hint}</span>
-        </span>
-      </Link>
-      <ul className={wide ? 'grid grid-cols-2 gap-x-8' : 'flex flex-col'}>
+    <button
+      type="button"
+      onPointerEnter={(e) => { if (e.pointerType === 'mouse') onShow() }}
+      onClick={onShow}
+      onFocus={onShow}
+      aria-current={active ? 'true' : undefined}
+      className={'w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors '
+        + (active ? 'bg-[var(--bg3)] text-[var(--text)]' : 'text-[var(--text-2)] hover:bg-[var(--bg3)] hover:text-[var(--text)]')}
+    >
+      <span className={'w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ' + (active ? 'text-[var(--link)]' : 'text-[var(--hint)]')}
+            style={active ? { background: 'color-mix(in srgb, var(--accent) 16%, transparent)' } : undefined}>
+        <Icon size={18} />
+      </span>
+      <span className="min-w-0 flex-1 text-sm font-medium truncate">{section.title}</span>
+      {count > 0 && <span className="text-xs text-[var(--hint)] num">{count}</span>}
+    </button>
+  )
+}
+
+/** Правая часть: игры выбранного раздела сеткой */
+function SectionPanel({ section, count, top, onPick }: { section: Section; count: number; top: Game[]; onPick: () => void }) {
+  return (
+    <div className="min-w-0">
+      <div className="flex items-baseline justify-between gap-4 mb-4">
+        <Link to={catalogHref(section.id)} onClick={onPick} className="text-lg font-semibold text-[var(--text)] hover:text-[var(--link)] transition-colors">
+          {section.title}
+        </Link>
+        <Link to={catalogHref(section.id)} onClick={onPick}
+              className="inline-flex items-center gap-1 text-sm font-medium text-[var(--link)] hover:text-[var(--text)] transition-colors shrink-0">
+          Все {count} <ArrowRight size={14} />
+        </Link>
+      </div>
+      <ul className="grid grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-0.5">
         {top.map((g) => (
-          <li key={g.id}>
+          <li key={g.id} className="min-w-0">
             <Link to={`/game/${g.slug}`} onClick={onPick}
                   className="flex items-center gap-3 rounded-lg px-2 py-1.5 -mx-2 hover:bg-[var(--bg3)] transition-colors">
               <Cover game={g} size={32} />
@@ -81,25 +99,23 @@ function SectionColumn({ section, count, top, onPick, wide }: { section: Section
           </li>
         ))}
       </ul>
-      {count > top.length && (
-        <Link to={catalogHref(section.id)} onClick={onPick}
-              className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-[var(--link)] hover:text-[var(--text)] transition-colors self-start">
-          Все {count} <ArrowRight size={14} />
-        </Link>
-      )}
     </div>
   )
 }
 
-/** Кнопка «Каталог» + выпадающая панель (только ПК) */
+/** Кнопка «Каталог» + выпадающая панель (только ПК). Открывается только кликом */
 export default function CatalogMenu() {
   const [open, setOpen] = useState(false)
-  const timer = useRef<number>()
+  const [shown, setShown] = useState<SectionId>('game')
   const { pathname, search } = useLocation()
   const reduce = useReducedMotion()
   const { data: all } = useCatalog()
-  const cols = groups(all)
+  const main = groups(all)
+  const [keys] = groups(all, [KEYS_SECTION])
+  const cur = [...main, ...(keys ? [keys] : [])].find((g) => g.section.id === shown) ?? main[0]
 
+  // каждое открытие — с доната
+  useEffect(() => { if (open) setShown('game') }, [open])
   // новая страница / Esc — закрыть
   useEffect(() => { setOpen(false) }, [pathname, search])
   useEffect(() => {
@@ -108,17 +124,12 @@ export default function CatalogMenu() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
-  useEffect(() => () => window.clearTimeout(timer.current), [])
 
-  const hover = (v: boolean, ms: number) => (e: React.PointerEvent) => {
-    if (e.pointerType !== 'mouse') return   // на тачскрине — только клик
-    window.clearTimeout(timer.current)
-    timer.current = window.setTimeout(() => setOpen(v), ms)
-  }
   const active = pathname.startsWith('/catalog') || pathname.startsWith('/game/')
+  const close = () => setOpen(false)
 
   return (
-    <div onPointerEnter={hover(true, 90)} onPointerLeave={hover(false, 160)}>
+    <div>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -142,7 +153,7 @@ export default function CatalogMenu() {
               style={{ background: 'rgba(0,0,0,0.35)' }}
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               transition={{ duration: 0.18 }}
-              onClick={() => setOpen(false)}
+              onClick={close}
             />
             <m.div
               key="catalog-panel"
@@ -153,23 +164,33 @@ export default function CatalogMenu() {
               exit={reduce ? { opacity: 0 } : { opacity: 0, y: -6 }}
               transition={{ duration: 0.2, ease: [0.32, 0.72, 0, 1] }}
             >
-              <div className="web-container py-7">
-                {cols.length === 0 ? (
-                  <div className="grid gap-8" style={{ gridTemplateColumns: '2fr 1fr' }} aria-hidden="true">
+              <div className="web-container py-6">
+                {!cur ? (
+                  <div className="grid gap-8" style={{ gridTemplateColumns: '290px 1fr' }} aria-hidden="true">
                     {[0, 1].map((i) => <div key={i} className="h-64 rounded-xl animate-pulse bg-[var(--bg3)]" />)}
                   </div>
                 ) : (
-                  <div className="grid gap-8 lg:gap-12" style={{ gridTemplateColumns: cols.length > 1 ? 'minmax(0, 2fr) minmax(0, 1fr)' : 'minmax(0, 1fr)' }}>
-                    {cols.map((c) => <SectionColumn key={c.section.id} {...c} wide={c.section.id === 'game'} onPick={() => setOpen(false)} />)}
+                  <div className="grid gap-8" style={{ gridTemplateColumns: '290px minmax(0, 1fr)', minHeight: 420 }}>
+                    {/* слева разделы, как на GGSel: донат и сервисы, ниже отдельно — ключи */}
+                    <div className="flex flex-col gap-1 border-r border-[var(--border)] pr-6">
+                      {main.map((g) => (
+                        <SideItem key={g.section.id} section={g.section} count={g.count}
+                                  active={cur.section.id === g.section.id} onShow={() => setShown(g.section.id)} />
+                      ))}
+                      {keys && (
+                        <>
+                          <div className="my-2 border-t border-[var(--border)]" />
+                          <SideItem section={keys.section} count={keys.count} active={cur.section.id === 'key'} onShow={() => setShown('key')} />
+                        </>
+                      )}
+                      <Link to="/catalog" onClick={close}
+                            className="mt-auto pt-4 inline-flex items-center gap-2 px-3 text-sm font-medium text-[var(--link)] hover:text-[var(--text)] transition-colors">
+                        <LayoutGrid size={16} /> Весь каталог
+                      </Link>
+                    </div>
+                    <SectionPanel key={cur.section.id} {...cur} onPick={close} />
                   </div>
                 )}
-                <div className="mt-7 pt-5 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-3">
-                  <span className="text-xs text-[var(--hint)]">Донат по ID игрока — без входа в аккаунт, автовыдача сразу после оплаты</span>
-                  <Link to="/catalog" onClick={() => setOpen(false)}
-                        className="inline-flex items-center gap-2 h-10 px-4 rounded-xl text-sm font-semibold text-white bg-[var(--accent)] hover:bg-[var(--btn-hover)] transition-colors">
-                    <LayoutGrid size={16} /> Весь каталог
-                  </Link>
-                </div>
               </div>
             </m.div>
           </>
@@ -208,39 +229,27 @@ export function CatalogMenuMobile({ onPick }: { onPick: () => void }) {
   )
 }
 
-/** Отдельный пункт «Ключи игр» в шапке (ПК) — рядом с «Каталогом», но не внутри него */
-export function KeysNavLink() {
-  const { data: all } = useCatalog()
-  const { pathname, search } = useLocation()
-  if (!(all ?? []).some((g) => sectionOf(g) === 'key')) return null
-  const active = pathname === '/catalog' && new URLSearchParams(search).get('type') === 'key'
-  return (
-    <Link to={catalogHref('key')}
-          className={'inline-flex items-center gap-1.5 text-sm whitespace-nowrap transition-colors '
-            + (active ? 'text-[var(--text)]' : 'text-[var(--text-2)] hover:text-[var(--text)]')}>
-      <KEYS_SECTION.Icon size={15} /> {KEYS_SECTION.title}
-    </Link>
-  )
-}
-
-/** «Ключи игр» в мобильном меню — отдельным блоком под каталогом */
+/** «Ключи игр» в мобильном меню — в «Каталоге», под чертой, отдельно от доната и сервисов */
 export function KeysMenuMobile({ onPick }: { onPick: () => void }) {
   const { data: all } = useCatalog()
   const [g] = groups(all, [KEYS_SECTION])
   if (!g) return null
   const { Icon } = KEYS_SECTION
   return (
-    <Link to={catalogHref('key')} onClick={onPick}
-          className="flex items-center gap-3 rounded-xl px-2 py-2 -mx-2 hover:bg-[var(--bg2)] transition-colors">
-      <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-[var(--bg2)] text-[var(--text-2)]">
-        <Icon size={18} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block text-sm font-medium text-[var(--text)]">{KEYS_SECTION.title}</span>
-        <span className="block text-xs text-[var(--hint)] truncate">{KEYS_SECTION.hint}</span>
-      </span>
-      <span className="text-xs text-[var(--hint)] num">{g.count}</span>
-      <ChevronRight size={16} className="text-[var(--hint)]" />
-    </Link>
+    <>
+      <div className="my-1 border-t border-[var(--border)]" />
+      <Link to={catalogHref('key')} onClick={onPick}
+            className="flex items-center gap-3 rounded-xl px-2 py-2 -mx-2 hover:bg-[var(--bg2)] transition-colors">
+        <span className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-[var(--bg2)] text-[var(--text-2)]">
+          <Icon size={18} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-sm font-medium text-[var(--text)]">{KEYS_SECTION.title}</span>
+          <span className="block text-xs text-[var(--hint)] truncate">{KEYS_SECTION.hint}</span>
+        </span>
+        <span className="text-xs text-[var(--hint)] num">{g.count}</span>
+        <ChevronRight size={16} className="text-[var(--hint)]" />
+      </Link>
+    </>
   )
 }
