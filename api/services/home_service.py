@@ -5,7 +5,7 @@ api/services/home_service.py
   • hero    — обложки игр на первом экране (до 6, по порядку);
   • popular — разделы в блоке «Популярное» (до 8, по порядку);
   • banners — карусель баннеров (акции) на первом экране, до 8;
-  • topup   — блок быстрого пополнения: Telegram Stars / Premium и Steam
+  • topup   — блок быстрого пополнения: Telegram Stars / Premium, Steam и коды PlayStation
               (находится сам: по Category.auto_engine и товару FazerCards steam_topup).
 Если ничего не выбрано — автоматически, как раньше: первые игры каталога
 с обложкой и разделы по заказам за 3 дня (или закреплённые).
@@ -222,6 +222,11 @@ async def resolve_topup(db: AsyncSession) -> list[dict]:
         "stars": base.where(Category.auto_engine == "telegram_stars"),
         "premium": base.where(Category.auto_engine == "telegram_premium"),
         "steam": base.where(Product.meta["fazer"]["kind"].astext == "steam_topup"),
+        # коды PlayStation (гифт-карты FazerCards) — раздел на каждый регион
+        "playstation": base.where(
+            Product.meta["fazer"]["kind"].astext == "giftcard",
+            Product.meta["fazer"]["category_id"].astext.like("playstation\\_%"),
+        ),
     }
     out: list[dict] = []
     for kind, q in groups.items():
@@ -232,12 +237,24 @@ async def resolve_topup(db: AsyncSession) -> list[dict]:
         if not products:
             continue
         cat = products[0].category
-        out.append({
+        item = {
             "kind": kind,
             "game_slug": cat.game.slug,
             "category_slug": cat.slug,
             "category_name": cat.name,
             "fields": _buyer_fields(cat),
             "products": [_product_to_list_out(p) for p in products if p.category_id == cat.id],
-        })
+        }
+        if kind == "playstation":
+            # все регионы во вкладке: покупатель переключает регион, номиналы — свои у каждого
+            cats: dict[uuid.UUID, Category] = {}
+            for p in products:
+                cats.setdefault(p.category_id, p.category)
+            regions = sorted(cats.values(), key=lambda c: (c.sort_order, c.name))
+            item["regions"] = [
+                {"category_id": str(c.id), "category_slug": c.slug, "category_name": c.name} for c in regions
+            ]
+            item["products"] = [_product_to_list_out(p) for p in products]
+            item["category_slug"], item["category_name"] = regions[0].slug, regions[0].name
+        out.append(item)
     return out

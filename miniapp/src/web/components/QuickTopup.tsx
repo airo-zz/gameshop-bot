@@ -1,6 +1,6 @@
 /**
  * src/web/components/QuickTopup.tsx
- * Быстрое пополнение на главной сайта: Telegram Stars, Telegram Premium, Steam.
+ * Быстрое пополнение на главной сайта: Telegram Stars, Telegram Premium, Steam, коды PlayStation.
  * Покупатель вводит получателя и сумму прямо здесь — позиция кладётся в корзину
  * (заменяя прежние позиции этого раздела) и сразу открывается оформление.
  * Варианты приходят с сервера (GET /catalog/home → topup); вкладка без товара не показывается.
@@ -11,7 +11,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { m } from 'framer-motion'
 import toast from 'react-hot-toast'
-import { ChevronRight, Crown, Loader2, Star, SteamLogo } from '@/components/ui/icons'
+import { ChevronRight, Crown, Gamepad2, Loader2, Star, SteamLogo } from '@/components/ui/icons'
 import type { HomeTopup, InputField, Product } from '@/api'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { useWebCart } from '@/web/cart/useWebCart'
@@ -31,6 +31,7 @@ const TABS: Record<HomeTopup['kind'], { label: string; Icon: typeof Star }> = {
   stars: { label: 'Звёзды', Icon: Star },
   premium: { label: 'Premium', Icon: Crown },
   steam: { label: 'Steam', Icon: SteamLogo },
+  playstation: { label: 'PlayStation', Icon: Gamepad2 },
 }
 
 // Быстрый выбор суммы: звёзды и валюты Steam
@@ -52,7 +53,7 @@ function plural(n: number, one: string, few: string, many: string) {
 const starsWord = (n: number) => plural(n, 'звезда', 'звезды', 'звёзд')
 
 const qtyField = (p?: Product) => (p?.input_fields ?? []).find((f) => f.type === 'quantity')
-const isTelegram = (kind: HomeTopup['kind']) => kind !== 'steam'
+const isTelegram = (kind: HomeTopup['kind']) => kind === 'stars' || kind === 'premium'
 
 /** «Telegram Premium - 3 месяца» → «3 месяца»; число месяцев — для цены за месяц */
 function premiumTerm(name: string) {
@@ -89,7 +90,14 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
   const opt = options.find((o) => o.kind === kind) ?? options[0]
 
   const [productId, setProductId] = useState(draft?.productId ?? '')
-  const product = opt.products.find((p) => p.id === productId) ?? opt.products[0]
+  // PlayStation: регион аккаунта (свой раздел и свои номиналы); по умолчанию — регион выбранного товара
+  const [regionId, setRegionId] = useState('')
+  const regions = opt.regions ?? []
+  const region = regions.find((r) => r.category_id === regionId)
+    ?? regions.find((r) => r.category_id === opt.products.find((p) => p.id === productId)?.category_id)
+    ?? regions[0]
+  const shown = region ? opt.products.filter((p) => p.category_id === region.category_id) : opt.products
+  const product = shown.find((p) => p.id === productId) ?? shown.find((p) => !p.is_out_of_stock) ?? shown[0]
   const qf = qtyField(product)
   const min = Math.max(1, Number(qf?.min ?? 1))
   const currency = kind === 'steam' ? (qf?.unit || 'RUB').toUpperCase() : ''
@@ -118,6 +126,7 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
     if (k === kind) return
     setKind(k)
     setProductId('')
+    setRegionId('')
     setAmount(null)
     setTouched(false)
   }
@@ -168,10 +177,10 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
     (active ? 'border-[var(--accent)] text-[var(--text)] bg-[var(--bg3)]' : 'border-transparent text-[var(--text-2)] bg-[var(--bg3)] hover:text-[var(--text)]')
   const sectionLink = (
     <Link
-      to={`/game/${opt.game_slug}/${opt.category_slug}`}
+      to={`/game/${opt.game_slug}/${region?.category_slug ?? opt.category_slug}`}
       className="inline-flex items-center gap-1 text-sm text-[var(--hint)] hover:text-[var(--text)] transition-colors"
     >
-      Раздел «{opt.category_name}» <ChevronRight size={14} />
+      Раздел «{region?.category_name ?? opt.category_name}» <ChevronRight size={14} />
     </Link>
   )
 
@@ -207,7 +216,31 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
 
       {/* Одна полоса: получатель | сумма или срок | итог и оплата */}
       <div className="grid gap-4 lg:gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.45fr)_minmax(0,0.85fr)] items-start">
+        {/* PlayStation — регион аккаунта */}
+        {kind === 'playstation' && regions.length > 0 && (
+          <fieldset className="min-w-0">
+            <legend className={label}>Регион аккаунта PSN</legend>
+            <div className="grid grid-cols-3 lg:grid-cols-1 gap-2">
+              {regions.map((r) => {
+                const active = r.category_id === region?.category_id
+                return (
+                  <button
+                    key={r.category_id}
+                    type="button"
+                    onClick={() => { setRegionId(r.category_id); setProductId('') }}
+                    aria-pressed={active}
+                    className={'h-11 px-3 rounded-xl text-[15px] text-left border transition-colors ' + (active ? 'border-[var(--accent)] bg-[var(--bg3)] text-[var(--text)]' : 'border-transparent bg-[var(--bg3)] text-[var(--text-2)] hover:border-[var(--border)]')}
+                  >
+                    {r.category_name.replace(/^.*?[-–—]\s*/, '')}
+                  </button>
+                )
+              })}
+            </div>
+          </fieldset>
+        )}
+
         {/* Получатель */}
+        {recipientFields.length > 0 && (
         <div className="flex flex-col gap-4">
           {recipientFields.map((f) => {
             const err = touched && f.required && !(fields[f.key] ?? '').replace('@', '').trim()
@@ -233,6 +266,33 @@ export default function QuickTopup({ options }: { options: HomeTopup[] }) {
             )
           })}
         </div>
+        )}
+
+        {/* PlayStation — номинал кода */}
+        {kind === 'playstation' && (
+          <fieldset className="min-w-0">
+            <legend className={label}>Номинал карты</legend>
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+              {shown.map((p) => {
+                const active = p.id === product.id
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setProductId(p.id)}
+                    disabled={p.is_out_of_stock}
+                    aria-pressed={active}
+                    className={'rounded-xl px-3 py-2.5 text-left border transition-colors disabled:opacity-40 ' + (active ? 'border-[var(--accent)] bg-[var(--bg3)]' : 'border-transparent bg-[var(--bg3)] hover:border-[var(--border)]')}
+                  >
+                    <span className="block text-[15px] font-medium text-[var(--text)] num">{p.name}</span>
+                    <span className="block mt-0.5 text-sm text-[var(--text-2)] num">{p.is_out_of_stock ? 'нет в наличии' : money(p.price)}</span>
+                  </button>
+                )
+              })}
+            </div>
+            <p className="mt-2 text-xs text-[var(--hint)]">Код придёт в заказ сразу после оплаты — активируйте его в PlayStation Store на аккаунте этого региона.</p>
+          </fieldset>
+        )}
 
         {/* Premium — срок подписки */}
         {kind === 'premium' && (

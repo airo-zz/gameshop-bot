@@ -1,7 +1,7 @@
 /**
  * src/web/pages/WebHomePage.tsx
  * Главная redonate.gg: первый экран с обложками игр, популярное и быстрое
- * пополнение (Stars / Premium / Steam), каталог,
+ * пополнение (Stars / Premium / Steam / PlayStation), каталог,
  * кэшбэк, как это работает, способы оплаты, вопросы.
  */
 
@@ -234,9 +234,14 @@ function Popular({ trending }: { trending: TrendingCategory[] }) {
 // ── Быстрое пополнение ────────────────────────────────────────────────────────
 
 function topupTitle(topup: HomeTopup[]) {
-  const tg = topup.some((t) => t.kind !== 'steam')
-  const steam = topup.some((t) => t.kind === 'steam')
-  return tg && steam ? 'Пополнение Telegram и Steam' : steam ? 'Пополнение Steam' : 'Звёзды и Premium в Telegram'
+  const tg = topup.some((t) => t.kind === 'stars' || t.kind === 'premium')
+  const names = [
+    tg && 'Telegram',
+    topup.some((t) => t.kind === 'steam') && 'Steam',
+    topup.some((t) => t.kind === 'playstation') && 'PlayStation',
+  ].filter(Boolean) as string[]
+  if (names.length === 1 && tg) return 'Звёзды и Premium в Telegram'
+  return 'Пополнение ' + (names.length > 1 ? names.slice(0, -1).join(', ') + ' и ' + names[names.length - 1] : names[0])
 }
 
 const TG_BLUE = '42,171,238'

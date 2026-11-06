@@ -94,12 +94,14 @@ export interface HomeBanner {
 
 /** Вариант блока быстрого пополнения на главной сайта (api/services/home_service.resolve_topup) */
 export interface HomeTopup {
-  kind: 'stars' | 'premium' | 'steam'
+  kind: 'stars' | 'premium' | 'steam' | 'playstation'
   game_slug: string
   category_slug: string
   category_name: string
   fields: InputField[]  // поля получателя (@username, логин Steam)
   products: Product[]
+  // PlayStation: раздел на каждый регион (товары — номиналы кодов, по category_id)
+  regions?: { category_id: string; category_slug: string; category_name: string }[]
 }
 
 export interface Product {
