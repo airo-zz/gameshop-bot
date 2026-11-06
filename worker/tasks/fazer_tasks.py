@@ -7,6 +7,10 @@
       уведомление персоналу; если всё выдано — заказ completed.
       only_item — ручная перевыдача одной позиции из админки.
 
+  sync_fazer_stock (beat, каждые 10 мин)
+      наличие товаров у поставщика: номинала нет → товар «нет в наличии», появился — снова
+      продаётся (fazer_service.sync_stock).
+
   watch_fazer (beat, каждые 5 мин)
       баланс Fazer (+ уведомление при падении ниже порога) и досмотр выданных
       заказов: поставщик может вернуть деньги ПОСЛЕ «успеха» (мы ждём финальный
@@ -29,6 +33,22 @@ WATCH_HOURS = 48
 @celery_app.task(name="worker.tasks.fazer_tasks.deliver_fazer_order", bind=True, max_retries=0, acks_late=True)
 def deliver_fazer_order(self, order_id: str, only_item: str | None = None):
     asyncio.run(_deliver_async(order_id, only_item))
+
+
+@celery_app.task(name="worker.tasks.fazer_tasks.sync_fazer_stock")
+def sync_fazer_stock():
+    asyncio.run(_stock_async())
+
+
+async def _stock_async() -> None:
+    from api.services import fazer_config
+    from api.services.fazer_service import sync_stock
+    from shared.database.session import get_worker_db_session
+
+    async with get_worker_db_session() as db:
+        if not await fazer_config.get_api_key(db):
+            return
+        await sync_stock(db)
 
 
 @celery_app.task(name="worker.tasks.fazer_tasks.watch_fazer")

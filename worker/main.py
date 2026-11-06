@@ -95,6 +95,11 @@ celery_app.conf.beat_schedule = {
         "schedule": crontab(minute=20, hour="*/3"),
     },
     # Каждые 5 минут — FazerCards: баланс и досмотр выданных заказов (возвраты)
+    # Каждые 10 минут — наличие товаров FazerCards (кончился номинал → «нет в наличии»)
+    "sync-fazer-stock": {
+        "task": "worker.tasks.fazer_tasks.sync_fazer_stock",
+        "schedule": crontab(minute="*/10"),
+    },
     "watch-fazer": {
         "task": "worker.tasks.fazer_tasks.watch_fazer",
         "schedule": crontab(minute="*/5"),

@@ -16,6 +16,7 @@ HTTP к Fazer — синхронный клиент в asyncio.to_thread (кат
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 import uuid
 from decimal import Decimal
@@ -28,6 +29,8 @@ from api.services.fazer.client import FazerAPI, human_error
 from api.services.pricing import usd_to_rub
 from api.services.rapira_service import get_markup_percent, get_usd_rub_rate
 from shared.models.catalog import Category, DeliveryType, Product
+
+logger = logging.getLogger(__name__)
 
 KINDS = ("topup", "giftcard", "steam_topup")
 STEAM_LOGIN_FIELD = {"key": "steam_login", "label": "Логин Steam", "type": "text",
@@ -293,6 +296,55 @@ async def create_steam_product(
         cat.input_fields = [*fields, STEAM_LOGIN_FIELD]
     await db.flush()
     return {"created": 1, "fields_set": True, "product_ids": [str(p.id)]}
+
+
+# ── Наличие у поставщика ────────────────────────────────────────────────────
+# Товар, который выдаёт Fazer, «в наличии» только пока у Fazer есть его номинал:
+# гифт-карта — stock > 0, пополнение по ID — номинал есть в каталоге игры.
+# Метку ставим сами и сами снимаем (meta.fazer_oos) — «нет в наличии», выставленное
+# вручную в админке, не трогаем. Steam по логину — без склада, не проверяем.
+
+async def sync_stock(db: AsyncSession) -> dict:
+    rows = (await db.execute(select(Product).where(Product.is_active.is_(True)))).scalars().all()
+    products = [p for p in rows if is_fazer_product(p)
+                and (p.meta["fazer"].get("kind") or "topup") in ("topup", "giftcard")]
+    available: dict[tuple, set | None] = {}
+    for p in products:
+        m = p.meta["fazer"]
+        k = (m.get("kind") or "topup", str(m.get("category_id") or ""))
+        if k in available:
+            continue
+        try:
+            det = await game_details(db, k[0], k[1], fresh=True)
+            available[k] = {o["id"] for o in det["offers"] if o["stock"] is None or int(o["stock"] or 0) > 0}
+        except Exception as exc:  # noqa: BLE001 — Fazer недоступен: ничего не меняем
+            logger.warning("fazer stock %s/%s: %s", k[0], k[1], exc)
+            available[k] = None
+    out_n = back_n = 0
+    for p in products:
+        m = p.meta["fazer"]
+        kind = m.get("kind") or "topup"
+        have = available.get((kind, str(m.get("category_id") or "")))
+        if have is None:
+            continue
+        need = _str_list(m.get("card_ids") if kind == "giftcard" else m.get("offer_ids"))
+        in_stock = bool(need) and all(i in have for i in need)
+        meta = dict(p.meta)
+        if not in_stock and not p.is_out_of_stock:
+            p.is_out_of_stock, meta["fazer_oos"] = True, True
+            out_n += 1
+        elif in_stock and p.is_out_of_stock and meta.get("fazer_oos"):
+            p.is_out_of_stock = False
+            meta.pop("fazer_oos", None)
+            back_n += 1
+        else:
+            continue
+        p.meta = meta
+    await db.commit()
+    if out_n or back_n:
+        logger.info("Fazer наличие: закончилось %d, появилось %d (из %d товаров)", out_n, back_n, len(products))
+    return {"products": len(products), "out": out_n, "back": back_n,
+            "failed": sum(1 for v in available.values() if v is None)}
 
 
 # ── Привязка существующего товара ──────────────────────────────────────────
