@@ -339,6 +339,8 @@ def _organization() -> dict:
         "@context": "https://schema.org",
         "@type": "OnlineStore",
         "name": BRAND,
+        # как бренд пишут и ищут по-разному — по «Редонат» тоже должны находить
+        "alternateName": ["Редонат", "redonate.gg", "Redonate GG"],
         "url": SITE,
         "logo": f"{SITE}/apple-touch-icon.png",
         "description": DEFAULT_DESC,
@@ -360,7 +362,7 @@ def _org_ld() -> list[dict]:
             "@context": "https://schema.org",
             "@type": "WebSite",
             "name": BRAND,
-            "alternateName": "redonate.gg",
+            "alternateName": ["redonate.gg", "Редонат"],
             "url": SITE + "/",
             "inLanguage": "ru",
             "potentialAction": {
