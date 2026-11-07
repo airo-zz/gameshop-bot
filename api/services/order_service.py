@@ -384,6 +384,17 @@ class OrderService:
                         # ключи вводятся оператором и могут содержать < > &
                         delivery_text = "\n".join(_escape_html(str(k)) for k in keys)
                         break
+            # Карточка «Заказ выполнен» в чате: на сайте/в Mini App сразу с оценкой
+            # (маркер |done=<id> рисуют чат сайта, Mini App, админка и хаб)
+            try:
+                buyer = await self.db.get(User, order.user_id)
+                if buyer is not None:
+                    from api.services.chat_service import ChatService
+                    await ChatService(self.db).add_system_message(
+                        buyer.telegram_id, f"Заказ {order.order_number} выполнен.|done={order.id}")
+            except Exception as exc:
+                import logging
+                logging.getLogger(__name__).warning("completed chat card error: %s", exc)
             from bot.utils.texts import texts as _texts
             # Кнопка «Оставить отзыв» — страница заказа с формой отзыва
             review_url = f"{settings.MINIAPP_URL.rstrip('/')}/orders/{order.id}?review=1"

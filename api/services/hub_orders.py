@@ -171,10 +171,36 @@ async def push_order(db: AsyncSession, order_id: str, expect_status: str | None)
     return True
 
 
+async def _apply_custom_lot(db: AsyncSession, params: dict) -> dict:
+    """Спец-лот из хаба: чат reDonate (rd-<uuid>) → заказ + карточка «Оплатить» в чате."""
+    from api.services.chat_service import ChatService
+    from api.services.custom_lot import CustomLotError, create_custom_lot
+
+    raw = str(params.get("chat") or "")
+    try:
+        chat_id = uuid.UUID(raw[len(CHAT_PREFIX):] if raw.startswith(CHAT_PREFIX) else raw)
+    except ValueError as e:
+        raise HubError(f"Неверный чат: {raw}") from e
+    chat = await ChatService(db).get_chat_by_id(chat_id)
+    if chat is None:
+        raise HubError("Чат не найден")
+    try:
+        price = float(params.get("price") or 0)
+        order = await create_custom_lot(db, chat, str(params.get("title") or ""), price,
+                                        (str(params.get("description") or "").strip() or None))
+    except (CustomLotError, ValueError) as e:
+        raise HubError(str(e)) from e
+    await db.commit()
+    logger.info("hub: спец-лот %s в чате %s (%s)", order.order_number, chat_id, params.get("by") or "")
+    return {"order_number": _num(order.order_number), "order_id": str(order.id)}
+
+
 async def apply_task(db: AsyncSession, task: dict) -> dict:
     """Задача хаба → действие с заказом. Возвращает result для ack; HubError — отказ."""
     kind = task.get("kind")
     params = task.get("params") or {}
+    if kind == "redonate_custom_lot":
+        return await _apply_custom_lot(db, params)
     if kind != "redonate_set_status":
         raise HubError(f"Неизвестная задача: {kind}")
     if params.get("status") != "completed":

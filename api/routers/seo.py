@@ -434,6 +434,44 @@ def _reviews_html(data: dict, game_name: str) -> str:
             f"<p>{sm['total']} отзывов, {pct}% положительных.</p><ul>{items}</ul>")
 
 
+def _rating_ld(data: dict, name: str, brand: str, image: str | None, offers: list) -> dict | None:
+    """Рейтинг игры для сниппета со звёздами: отзывы «понравилось/нет» → 5/1 из 5,
+    средняя = 1 + 4 × доля положительных. Те же отзывы видны на странице (блок отзывов)."""
+    sm = data.get("summary") or {}
+    total = int(sm.get("total") or 0)
+    if not total or not offers:
+        return None
+    prices = [float(p.price) for _, p in offers if p.price is not None]
+    out = {
+        "@context": "https://schema.org",
+        "@type": "Product",
+        "name": name,
+        "brand": {"@type": "Brand", "name": brand},
+        **({"image": image} if image else {}),
+        "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": round(1 + 4 * float(sm.get("percent") or 0) / 100, 1),
+            "bestRating": 5, "worstRating": 1,
+            "ratingCount": total, "reviewCount": total,
+        },
+        "review": [
+            {
+                "@type": "Review",
+                "author": {"@type": "Person", "name": r["author"]},
+                "datePublished": f"{r['created_at']:%Y-%m-%d}",
+                "reviewBody": r["text"],
+                "reviewRating": {"@type": "Rating", "ratingValue": 5 if r["positive"] else 1,
+                                 "bestRating": 5, "worstRating": 1},
+            }
+            for r in data.get("items") or [] if r.get("text")
+        ],
+    }
+    if prices:
+        out["offers"] = {"@type": "AggregateOffer", "priceCurrency": "RUB", "offerCount": len(prices),
+                         "lowPrice": f"{min(prices):.2f}", "highPrice": f"{max(prices):.2f}"}
+    return out
+
+
 # ── Страницы ──────────────────────────────────────────────────────────────────
 
 async def _home(db) -> tuple[int, str]:
@@ -655,7 +693,7 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
         + (f"<h2>Как купить {'' if game.type == 'service' else 'ключ ' if game.type == 'key' else 'донат в '}{_e(game.name)}</h2>"
            + "<div>" + "".join(f"<p>{_e(t.strip())}</p>" for t in page.text.splitlines() if t.strip()) + "</div>"
            if page.text else "")
-        + _reviews_html(await _game_reviews(db, slug), game.name)
+        + _reviews_html(reviews := await _game_reviews(db, slug), game.name)
     )
 
     ld: list[dict] = [_breadcrumbs(crumbs)]
@@ -698,6 +736,9 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
                 for i, (cat, p) in enumerate(offers[:100])
             ],
         })
+    rating = _rating_ld(reviews, page.h1, game.name, image, offers)
+    if rating:
+        ld.append(rating)
     initial = await _data_game(db, slug, cat_slug)
     return 200, _render(path, page.title, page.description, body, ld, image=image, page="game", initial=initial)
 

@@ -16,6 +16,7 @@ import { useTelegram } from '@/hooks/useTelegram'
 import logo from '@/assets/logo-mark.png'
 import { NAV_HEIGHT } from '@/components/layout/Layout'
 import { fmtNum } from '@/utils/format'
+import { OrderReviewForm } from '@/components/reviews/Reviews'
 
 // ── Image compression ─────────────────────────────────────────────────────────
 
@@ -117,8 +118,26 @@ const PAYMENT_RE = /^(Заказ\s+#\S+\s+на\s+сумму\s+[\d\s\u00a0]+₽\s
 
 // Индивидуальный лот: "__lot__|{orderId}|{price}|{title}" → карточка с «Оплатить»
 const LOT_RE = /^__lot__\|([0-9a-f-]+)\|(\d+)\|([\s\S]+)$/
+const DONE_RE = /^(Заказ\s+#\S+\s+выполнен\.)\|done=([a-f0-9-]+)$/
 
 function SystemMessage({ text }: { text: string }) {
+  const done = DONE_RE.exec(text)
+  if (done) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', marginBottom: 8 }}>
+        <div style={{ width: '92%', padding: 14, borderRadius: 12, background: 'rgba(16,185,129,0.1)' }} className="space-y-3">
+          <div style={{ textAlign: 'center' }}>
+            <span style={{ fontSize: 12, color: '#34d399', fontWeight: 700 }}>Заказ выполнен</span>
+            <p style={{ margin: '4px 0 0', fontSize: 13, color: 'rgba(220,235,255,0.75)' }}>{done[1]}</p>
+          </div>
+          <OrderReviewForm orderId={done[2]} gameHref={(slug) => `/catalog/${slug}`} />
+          <div style={{ textAlign: 'center' }}>
+            <Link to={`/orders/${done[2]}`} style={{ fontSize: 11, color: 'rgba(220,235,255,0.45)' }}>Перейти в заказ</Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
   const lot = LOT_RE.exec(text)
   if (lot) {
     const [, oid, price, title] = lot

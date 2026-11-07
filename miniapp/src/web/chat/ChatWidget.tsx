@@ -20,6 +20,7 @@ import { clearGuestToken } from '@/api/client'
 import { compressImage } from '@/utils/image'
 import { fmtNum } from '@/utils/format'
 import { useWebAuth } from '@/web/auth/useWebAuth'
+import { OrderReviewForm } from '@/components/reviews/Reviews'
 import logoMark from '@/assets/logo-mark.png'
 import { useChatWidget } from './chatStore'
 import ChatHint, { chime, useChatGreeting } from './ChatHint'
@@ -66,8 +67,27 @@ const abs = (url: string) => (url.startsWith('http') || url.startsWith('blob:') 
 // ── Системные сообщения (оплата, индивидуальный лот) ─────────────────────────
 const PAYMENT_RE = /^(Заказ\s+#\S+\s+на\s+сумму\s+[\d\s ]+₽\s+успешно\s+оплачен\..*?)(?:\|oid=([a-f0-9-]+))?$/s
 const LOT_RE = /^__lot__\|([0-9a-f-]+)\|(\d+)\|([\s\S]+)$/
+// «Заказ #N выполнен.|done=<id>» — карточка с оценкой прямо в чате
+const DONE_RE = /^(Заказ\s+#\S+\s+выполнен\.)\|done=([a-f0-9-]+)$/
 
 function SystemMessage({ text }: { text: string }) {
+  const done = DONE_RE.exec(text)
+  if (done) {
+    return (
+      <div className="flex justify-center my-3">
+        <div className="w-full max-w-sm rounded-2xl p-4 space-y-3" style={{ background: 'rgba(16,185,129,0.1)' }}>
+          <div className="text-center">
+            <p className="text-xs font-semibold text-[#34d399]">Заказ выполнен</p>
+            <p className="mt-1 text-[13px] text-[var(--text-2)]">{done[1]}</p>
+          </div>
+          <OrderReviewForm orderId={done[2]} gameHref={(slug) => `/game/${slug}`} />
+          <div className="text-center">
+            <Link to={`/orders/${done[2]}`} className="text-xs text-[var(--link)] hover:text-[var(--text)]">Перейти в заказ</Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
   const lot = LOT_RE.exec(text)
   if (lot) {
     const [, oid, price, title] = lot

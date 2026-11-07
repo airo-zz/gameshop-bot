@@ -5,13 +5,56 @@
  */
 
 import { Link } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import toast from 'react-hot-toast'
 import { Paperclip } from '@/components/ui/icons'
 import { adminApi, type AdminChatMessage } from '@/api/admin'
 import BuyerFields from '../BuyerFields'
 import { formatTime, isImageUrl } from './helpers'
 
 export const ADMIN_PAYMENT_RE = /^(Заказ\s+#\S+\s+на\s+сумму\s+[\d\s\u00a0]+₽\s+успешно\s+оплачен\..*?)(?:\|oid=([a-f0-9-]+))?$/s
+
+const OPEN = ['paid', 'processing', 'clarification']
+const STATUS_RU: Record<string, string> = {
+  paid: 'Оплачен', processing: 'В работе', clarification: 'Уточнение', completed: 'Выполнен',
+  cancelled: 'Отменён', refunded: 'Возврат',
+}
+
+/** «Выполнен» в один клик: покупателю придёт уведомление и карточка с оценкой в чат */
+function CompleteButton({ orderId, status }: { orderId: string; status: string }) {
+  const qc = useQueryClient()
+  const [busy, setBusy] = useState(false)
+  if (!OPEN.includes(status)) {
+    return <div className="text-[11px] text-[var(--hint)]">Статус: {STATUS_RU[status] ?? status}</div>
+  }
+  const done = async () => {
+    setBusy(true)
+    try {
+      // из «Уточнения» в «Выполнен» напрямую нельзя — сначала «В работе»
+      if (status === 'clarification') await adminApi.updateOrderStatus(orderId, 'processing')
+      await adminApi.updateOrderStatus(orderId, 'completed')
+      toast.success('Заказ выполнен — покупателю предложено оставить отзыв')
+      qc.invalidateQueries({ queryKey: ['admin', 'order', orderId] })
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? 'Не удалось сменить статус')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className="text-[11px] text-[var(--hint)]">Статус: {STATUS_RU[status] ?? status}</span>
+      <button type="button" onClick={done} disabled={busy}
+              className="h-8 px-3 rounded-lg text-xs font-semibold text-white disabled:opacity-50"
+              style={{ background: '#10b981' }}>
+        {busy ? 'Сохраняем…' : '✓ Выполнен'}
+      </button>
+    </div>
+  )
+}
+
+const ADMIN_DONE_RE = /^(Заказ\s+#\S+\s+выполнен\.)\|done=([a-f0-9-]+)$/
 
 /** Под сообщением об оплате: состав заказа и данные покупателя (с копированием) */
 function PaidOrderDetails({ orderId }: { orderId: string }) {
@@ -23,6 +66,7 @@ function PaidOrderDetails({ orderId }: { orderId: string }) {
   if (!order) return null
   return (
     <div style={{ width: '100%', textAlign: 'left' }} className="space-y-2">
+      <CompleteButton orderId={order.id} status={order.status} />
       <div className="space-y-0.5">
         {order.items.map((i) => (
           <div key={i.id} className="text-xs text-[var(--text)]">
@@ -40,6 +84,17 @@ function PaidOrderDetails({ orderId }: { orderId: string }) {
 
 export function SystemMessageBubble({ text }: { text: string | null }) {
   if (!text) return null
+  const done = ADMIN_DONE_RE.exec(text)
+  if (done) {
+    return (
+      <div style={{ textAlign: 'center', padding: '4px 0', marginBottom: 8 }}>
+        <span style={{ fontSize: 12, color: '#34d399', display: 'inline-block', padding: '4px 12px', borderRadius: 20, background: 'rgba(16,185,129,0.1)' }}>
+          {done[1]} Покупателю предложено оставить отзыв ·{' '}
+          <Link to={`/admin/orders/${done[2]}`} style={{ color: 'inherit' }}>заказ</Link>
+        </span>
+      </div>
+    )
+  }
   const match = ADMIN_PAYMENT_RE.exec(text)
 
   if (match) {

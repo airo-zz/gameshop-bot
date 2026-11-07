@@ -38,11 +38,14 @@ export default function WebOrderPage() {
     queryKey: ['web', 'order', id],
     queryFn: () => ordersApi.get(id!),
     enabled: !!id,
-    // Пока ждём оплаты — опрашиваем статус
+    // Пока заказ не завершён — опрашиваем статус: оплата — часто, выполнение — раз в 8 с.
+    // Выполнили — страница сама покажет «Выполнен», выданные данные и форму отзыва.
     refetchInterval: (q) => {
       const s = (q.state.data as any)?.status
-      return s === 'new' || s === 'pending_payment' ? 4000 : false
+      if (s === 'new' || s === 'pending_payment') return 4000
+      return s === 'paid' || s === 'processing' || s === 'clarification' ? 8000 : false
     },
+    refetchOnWindowFocus: true,
   })
 
   // Метрика: покупка — когда вернулись с оплаты и заказ оплачен (один раз на заказ)

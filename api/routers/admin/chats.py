@@ -217,49 +217,15 @@ async def create_custom_lot(
 ) -> dict:
     """Создаёт индивидуальный (спец) лот для пользователя чата и постит карточку
     с кнопкой «Оплатить» в чат. Покупатель выбирает способ оплаты при оплате."""
-    from api.services.order_service import OrderService
+    from api.services.custom_lot import CustomLotError, create_custom_lot as _create
 
-    svc = ChatService(db)
-    chat = await svc.get_chat_by_id(chat_id)
+    chat = await ChatService(db).get_chat_by_id(chat_id)
     if chat is None:
         raise HTTPException(status_code=404, detail="Чат не найден")
-
-    user = (
-        await db.execute(select(User).where(User.telegram_id == chat.user_id))
-    ).scalar_one_or_none()
-    if user is None:
-        raise HTTPException(status_code=404, detail="Пользователь чата не найден")
-
     try:
-        order = await OrderService(db).create_custom_order(
-            user, body.title, body.price, body.description
-        )
-    except ValueError as e:
+        order = await _create(db, chat, body.title, body.price, body.description)
+    except CustomLotError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    await db.flush()
-
-    # Карточка-лот в чат (маркер парсится в MiniApp → кнопка «Оплатить»).
-    price_int = int(round(body.price))
-    await svc.add_system_message(chat.user_id, f"__lot__|{order.id}|{price_int}|{body.title.strip()}")
-
-    # Пуш покупателю: системное сообщение чата само по себе не уведомляет
-    # (ChatService._schedule_notification реагирует только на user/admin),
-    # поэтому шлём прямое Telegram-уведомление. Кнопка «Оплатить» — callback,
-    # который запускает оплату прямо в боте (handler cb_pay_custom_lot); в
-    # MiniApp тот же лот оплачивается через карточку в чате (/pay/:orderId).
-    from api.telegram_utils import send_tg_message
-    from bot.utils.texts import texts as _texts
-    lot_reply_markup = {
-        "inline_keyboard": [[
-            {"text": "💳 Оплатить", "callback_data": f"paylot:{order.id}"}
-        ]]
-    }
-    await send_tg_message(
-        chat.user_id,
-        _texts.custom_lot_created(body.title.strip(), body.price),
-        lot_reply_markup,
-        email_path="/chat", email_button="Открыть чат",
-    )
 
     log.info("admin.chat.custom_lot", chat_id=str(chat_id), admin_id=str(admin.id),
              order_id=str(order.id))
