@@ -11,7 +11,7 @@
 import { useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
-import { Loader2, ThumbsDown, ThumbsUp } from '@/components/ui/icons'
+import { Loader2, Star, ThumbsDown, ThumbsUp } from '@/components/ui/icons'
 import { reviewsApi, type Review, type ReviewKind, type ReviewSummary as Summary } from '@/api'
 
 export type GameHref = (slug: string) => string
@@ -33,9 +33,21 @@ export const reviewsWord = (n: number) => plural(n, 'отзыв', 'отзыва'
 
 // ── Карточка ─────────────────────────────────────────────────────────────────
 
+/** Оценка звёздами 1–5 (только показ) */
+export function Stars({ value, size = 14 }: { value: number; size?: number }) {
+  return (
+    <span className="inline-flex items-center gap-0.5" aria-label={`Оценка ${value} из 5`}>
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star key={i} size={size} weight={i <= value ? 'fill' : 'regular'}
+              style={{ color: i <= value ? '#fbbf24' : 'var(--hint)' }} />
+      ))}
+    </span>
+  )
+}
+
 export function ReviewCard({ review, gameHref, showGame = true, clamp = false }: { review: Review; gameHref: GameHref; showGame?: boolean; clamp?: boolean }) {
   const r = review
-  const Thumb = r.positive ? ThumbsUp : ThumbsDown
+  const rating = r.rating ?? (r.positive ? 5 : 1)
   const game = showGame && r.game_name ? (
     r.game_slug ? (
       <Link to={gameHref(r.game_slug)} className="text-[var(--link)] hover:text-[var(--text)] transition-colors truncate">
@@ -49,18 +61,11 @@ export function ReviewCard({ review, gameHref, showGame = true, clamp = false }:
   return (
     <article className="h-full rounded-[var(--r-card)] bg-[var(--bg2)] p-4 flex flex-col gap-2.5">
       <header className="flex items-start gap-3">
-        <span
-          className="w-9 h-9 rounded-[var(--r-control)] flex items-center justify-center shrink-0"
-          style={{
-            background: r.positive ? 'rgba(16,185,129,0.14)' : 'rgba(239,68,68,0.14)',
-            color: r.positive ? 'var(--success)' : 'var(--destructive)',
-          }}
-          title={r.positive ? 'Положительный отзыв' : 'Отрицательный отзыв'}
-        >
-          <Thumb size={18} weight="fill" />
-        </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-[var(--text)] truncate">{r.author}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium text-[var(--text)] truncate">{r.author}</p>
+            <Stars value={rating} />
+          </div>
           <p className="text-xs text-[var(--hint)] mt-0.5 flex items-center gap-1.5 min-w-0">
             <time dateTime={r.created_at} className="shrink-0">{fmtReviewDate(r.created_at)}</time>
             {game && <><span aria-hidden="true">·</span>{game}</>}
@@ -71,7 +76,7 @@ export function ReviewCard({ review, gameHref, showGame = true, clamp = false }:
       {r.text ? (
         <p className={'text-sm text-[var(--text-2)] leading-relaxed whitespace-pre-line break-words ' + (clamp ? 'line-clamp-5' : '')}>{r.text}</p>
       ) : (
-        <p className="text-sm text-[var(--hint)]">{r.positive ? 'Оценка без комментария' : 'Отрицательная оценка без комментария'}</p>
+        <p className="text-sm text-[var(--hint)]">Оценка без комментария</p>
       )}
       {r.product_name && <p className="text-xs text-[var(--hint)] truncate">{r.product_name}</p>}
 
@@ -207,10 +212,11 @@ export function OrderReviewForm({ orderId, gameHref, autoFocus = false }: { orde
     queryFn: () => reviewsApi.getForOrder(orderId),
     staleTime: 60_000,
   })
-  const [positive, setPositive] = useState<boolean | null>(null)
+  const [rating, setRating] = useState(0)
+  const [hover, setHover] = useState(0)
   const [text, setText] = useState('')
   const send = useMutation({
-    mutationFn: () => reviewsApi.create(orderId, { positive: positive!, text: text.trim() || undefined }),
+    mutationFn: () => reviewsApi.create(orderId, { rating, text: text.trim() || undefined }),
     onSuccess: (review) => {
       qc.setQueryData(['order-review', orderId], { can_review: false, review })
       qc.invalidateQueries({ queryKey: ['reviews'] })
@@ -228,7 +234,9 @@ export function OrderReviewForm({ orderId, gameHref, autoFocus = false }: { orde
   }
   if (!data.can_review) return null
 
-  const needText = positive === false && !text.trim()
+  const needText = rating > 0 && rating <= 2 && !text.trim()
+  const shown = hover || rating
+  const HINT = ['', 'Очень плохо', 'Плохо', 'Нормально', 'Хорошо', 'Отлично']
   const error = send.error as { response?: { data?: { detail?: string } } } | null
 
   return (
@@ -237,38 +245,27 @@ export function OrderReviewForm({ orderId, gameHref, autoFocus = false }: { orde
         <p className="text-base font-semibold text-[var(--text)]">Как вам заказ?</p>
         <p className="text-sm text-[var(--hint)] mt-0.5">Отзыв появится на сайте и в магазине в Telegram</p>
       </div>
-      <div className="grid grid-cols-2 gap-2">
-        {([true, false] as const).map((v) => {
-          const active = positive === v
-          const Icon = v ? ThumbsUp : ThumbsDown
-          const color = v ? 'var(--success)' : 'var(--destructive)'
-          return (
-            <button
-              key={String(v)}
-              type="button"
-              onClick={() => setPositive(v)}
-              aria-pressed={active}
-              className="h-12 rounded-[var(--r-control)] text-sm font-medium inline-flex items-center justify-center gap-2 transition-colors"
-              style={{
-                background: active ? (v ? 'rgba(16,185,129,0.14)' : 'rgba(239,68,68,0.14)') : 'var(--bg3)',
-                color: active ? color : 'var(--text-2)',
-                boxShadow: active ? `inset 0 0 0 1px ${color}` : undefined,
-              }}
-            >
-              <Icon size={18} weight={active ? 'fill' : 'regular'} />
-              {v ? 'Понравилось' : 'Не понравилось'}
+      <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1" onMouseLeave={() => setHover(0)}>
+          {[1, 2, 3, 4, 5].map((i) => (
+            <button key={i} type="button" aria-label={`${i} из 5`} aria-pressed={rating === i}
+                    onClick={() => setRating(i)} onMouseEnter={() => setHover(i)}
+                    className="p-1 -m-0.5 transition-transform active:scale-90">
+              <Star size={30} weight={i <= shown ? 'fill' : 'regular'}
+                    style={{ color: i <= shown ? '#fbbf24' : 'var(--hint)' }} />
             </button>
-          )
-        })}
+          ))}
+        </div>
+        {shown > 0 && <span className="text-sm text-[var(--text-2)]">{HINT[shown]}</span>}
       </div>
-      {positive !== null && (
+      {rating > 0 && (
         <>
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value.slice(0, 1000))}
             rows={3}
             autoFocus={autoFocus}
-            placeholder={positive ? 'Пара слов о заказе (необязательно)' : 'Что пошло не так? Мы разберёмся'}
+            placeholder={rating >= 3 ? 'Пара слов о заказе (необязательно)' : 'Что пошло не так? Мы разберёмся'}
             className="w-full rounded-[var(--r-control)] bg-[var(--bg3)] px-3 py-2.5 text-sm text-[var(--text)] placeholder:text-[var(--hint)] outline-none focus:shadow-[inset_0_0_0_1px_var(--border-accent)] resize-none"
           />
           {error && <p className="text-sm text-[var(--destructive)]">{error.response?.data?.detail ?? 'Не удалось отправить отзыв'}</p>}

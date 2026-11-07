@@ -54,6 +54,7 @@ function CompleteButton({ orderId, status }: { orderId: string; status: string }
   )
 }
 
+const ADMIN_REVIEW_RE = /^Отзыв к заказу (#\S+): ([★☆]{5})(?: — ([\s\S]*?))?\|review=([a-f0-9-]+)$/
 const ADMIN_DONE_RE = /^(Заказ\s+#\S+\s+выполнен\.)\|done=([a-f0-9-]+)$/
 
 /** Под сообщением об оплате: состав заказа и данные покупателя (с копированием) */
@@ -84,6 +85,24 @@ function PaidOrderDetails({ orderId }: { orderId: string }) {
 
 export function SystemMessageBubble({ text }: { text: string | null }) {
   if (!text) return null
+  const review = ADMIN_REVIEW_RE.exec(text)
+  if (review) {
+    const [, num, stars, body, oid] = review
+    const low = (stars.match(/★/g) ?? []).length <= 3
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '4px 0', marginBottom: 8 }}>
+        <div style={{ maxWidth: '85%', padding: '10px 14px', borderRadius: 14,
+                      background: low ? 'rgba(239,68,68,0.08)' : 'rgba(251,191,36,0.08)',
+                      border: `1px solid ${low ? 'rgba(239,68,68,0.25)' : 'rgba(251,191,36,0.25)'}` }}>
+          <div style={{ fontSize: 11, color: 'rgba(220,235,255,0.5)', fontWeight: 700 }}>
+            Отзыв покупателя · <Link to={`/admin/orders/${oid}`} style={{ color: 'inherit' }}>заказ {num}</Link>
+          </div>
+          <div style={{ fontSize: 18, color: '#fbbf24', marginTop: 2 }}>{stars}</div>
+          {body && <p style={{ margin: '4px 0 0', fontSize: 13, color: 'rgba(220,235,255,0.8)', whiteSpace: 'pre-wrap' }}>{body}</p>}
+        </div>
+      </div>
+    )
+  }
   const done = ADMIN_DONE_RE.exec(text)
   if (done) {
     return (

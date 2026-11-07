@@ -570,6 +570,8 @@ export const supportApi = {
 export interface Review {
   id: string
   positive: boolean
+  /** 1–5 звёзд */
+  rating?: number
   text: string | null
   reply: string | null
   author: string
@@ -603,6 +605,6 @@ export const reviewsApi = {
   getForOrder: (orderId: string) =>
     apiClient.get<{ can_review: boolean; review: Review | null }>(`/reviews/order/${orderId}`).then(r => r.data),
 
-  create: (orderId: string, data: { positive: boolean; text?: string }) =>
+  create: (orderId: string, data: { rating: number; text?: string }) =>
     apiClient.post<Review>(`/reviews/order/${orderId}`, data).then(r => r.data),
 }

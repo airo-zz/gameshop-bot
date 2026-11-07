@@ -52,6 +52,7 @@ def review_out(r: Review, admin: bool = False) -> dict:
     out = {
         "id": r.id,
         "positive": r.rating >= 4,
+        "rating": r.rating,
         "text": r.text,
         "reply": r.reply,
         "author": _author(r),
@@ -140,7 +141,7 @@ class ReviewService:
         return can, (review_out(review) if review else None)
 
     async def create_for_order(
-        self, user: User, order_id: uuid.UUID, positive: bool, text: str | None,
+        self, user: User, order_id: uuid.UUID, rating: int, text: str | None,
     ) -> dict:
         order = (
             await self.db.execute(
@@ -158,8 +159,9 @@ class ReviewService:
         if exists:
             raise ReviewError("Отзыв на этот заказ уже оставлен")
 
+        rating = max(1, min(5, int(rating)))
         text = (text or "").strip()[:TEXT_MAX] or None
-        if not positive and not text:
+        if rating <= 2 and not text:
             raise ReviewError("Расскажите, что пошло не так — мы разберёмся")
 
         item: OrderItem | None = order.items[0] if order.items else None
@@ -180,11 +182,19 @@ class ReviewService:
             game_id=game_id,
             game_name=item.game_name if item else None,
             product_name=", ".join(names)[:255] or None,
-            rating=5 if positive else 1,
+            rating=rating,
             text=text,
             is_visible=True,
         )
         self.db.add(review)
+        # Отзыв — и в чат, рядом с заказом: покупатель видит свой отзыв, оператор
+        # (админка, хаб) — оценку и текст. Маркер |review=<id> рисуют сайт, Mini App и админка.
+        from api.services.chat_service import ChatService
+        stars = "★" * rating + "☆" * (5 - rating)
+        await ChatService(self.db).add_system_message(
+            user.telegram_id,
+            f"Отзыв к заказу {order.order_number}: {stars}" + (f" — {text}" if text else "") + f"|review={order.id}",
+        )
         await self.db.commit()
         await self.db.refresh(review, ["game", "user"])
         return review_out(review)

@@ -68,9 +68,25 @@ const abs = (url: string) => (url.startsWith('http') || url.startsWith('blob:') 
 const PAYMENT_RE = /^(Заказ\s+#\S+\s+на\s+сумму\s+[\d\s ]+₽\s+успешно\s+оплачен\..*?)(?:\|oid=([a-f0-9-]+))?$/s
 const LOT_RE = /^__lot__\|([0-9a-f-]+)\|(\d+)\|([\s\S]+)$/
 // «Заказ #N выполнен.|done=<id>» — карточка с оценкой прямо в чате
+// «Отзыв к заказу #N: ★★★★☆ — текст|review=<id>» — отзыв покупателя рядом с заказом
+const REVIEW_RE = /^Отзыв к заказу (#\S+): ([★☆]{5})(?: — ([\s\S]*?))?\|review=([a-f0-9-]+)$/
 const DONE_RE = /^(Заказ\s+#\S+\s+выполнен\.)\|done=([a-f0-9-]+)$/
 
 function SystemMessage({ text }: { text: string }) {
+  const review = REVIEW_RE.exec(text)
+  if (review) {
+    const [, num, stars, body, oid] = review
+    return (
+      <div className="flex justify-center my-3">
+        <div className="w-full max-w-sm rounded-2xl bg-[var(--bg3)] p-4 space-y-1.5">
+          <p className="text-xs font-semibold text-[var(--hint)]">Ваш отзыв к заказу {num}</p>
+          <p className="text-lg leading-none" style={{ color: '#fbbf24' }}>{stars}</p>
+          {body && <p className="text-[13px] text-[var(--text-2)] whitespace-pre-wrap break-words">{body}</p>}
+          <Link to={`/orders/${oid}`} className="inline-block text-xs text-[var(--link)] hover:text-[var(--text)]">Перейти в заказ</Link>
+        </div>
+      </div>
+    )
+  }
   const done = DONE_RE.exec(text)
   if (done) {
     return (

@@ -449,14 +449,12 @@ async def _site_reviews(db, game_id) -> dict:
         .order_by(Review.created_at.desc())
     )).scalars().all()
     total = len(rows)
-    positive = sum(1 for r in rows if r.rating >= 4)
-    return {"summary": {"total": total, "percent": round(positive * 100 / total, 1) if total else 0},
-            "items": [review_out(r) for r in rows[:5]]}
+    avg = round(sum(r.rating for r in rows) / total, 1) if total else 0
+    return {"summary": {"total": total, "avg": avg}, "items": [review_out(r) for r in rows[:5]]}
 
 
 def _rating_ld(data: dict, name: str, brand: str, image: str | None, offers: list) -> dict | None:
-    """Рейтинг игры для сниппета со звёздами: отзывы сайта «понравилось/нет» → 5/1 из 5,
-    средняя = 1 + 4 × доля положительных."""
+    """Рейтинг игры для сниппета со звёздами: средняя оценка отзывов сайта (1–5 звёзд)."""
     sm = data.get("summary") or {}
     total = int(sm.get("total") or 0)
     if not total or not offers:
@@ -470,7 +468,7 @@ def _rating_ld(data: dict, name: str, brand: str, image: str | None, offers: lis
         **({"image": image} if image else {}),
         "aggregateRating": {
             "@type": "AggregateRating",
-            "ratingValue": round(1 + 4 * float(sm.get("percent") or 0) / 100, 1),
+            "ratingValue": sm.get("avg") or 0,
             "bestRating": 5, "worstRating": 1,
             "ratingCount": total, "reviewCount": total,
         },
@@ -480,7 +478,7 @@ def _rating_ld(data: dict, name: str, brand: str, image: str | None, offers: lis
                 "author": {"@type": "Person", "name": r["author"]},
                 "datePublished": f"{r['created_at']:%Y-%m-%d}",
                 "reviewBody": r["text"],
-                "reviewRating": {"@type": "Rating", "ratingValue": 5 if r["positive"] else 1,
+                "reviewRating": {"@type": "Rating", "ratingValue": r.get("rating") or (5 if r["positive"] else 1),
                                  "bestRating": 5, "worstRating": 1},
             }
             for r in data.get("items") or [] if r.get("text")

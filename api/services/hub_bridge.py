@@ -47,7 +47,7 @@ MAX_IMAGE_SIZE = 10 * 1024 * 1024
 IMAGE_TYPES = {"image/jpeg": "jpg", "image/jpg": "jpg", "image/png": "png",
                "image/webp": "webp", "image/gif": "gif"}
 IMAGE_EXT = {"jpg": "jpg", "jpeg": "jpg", "png": "png", "webp": "webp", "gif": "gif"}
-OID_RE = re.compile(r"\|(?:oid|done)=[0-9a-f-]+$")
+OID_RE = re.compile(r"\|(?:oid|done|review)=[0-9a-f-]+$")
 AUTHOR = {"user": "buyer", "admin": "seller", "system": "system"}
 
 

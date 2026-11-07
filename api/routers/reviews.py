@@ -16,6 +16,7 @@ router = APIRouter()
 class ReviewOut(BaseModel):
     id: UUID
     positive: bool
+    rating: int = 5          # 1–5 звёзд (у импортированных с GGSEL — 5 или 1)
     text: str | None
     reply: str | None
     author: str
@@ -45,7 +46,8 @@ class OrderReviewOut(BaseModel):
 
 
 class ReviewCreateIn(BaseModel):
-    positive: bool
+    rating: int | None = Field(None, ge=1, le=5)   # звёзды 1–5
+    positive: bool | None = None                   # старый формат «понравилось/нет» (старые вкладки)
     text: str | None = Field(None, max_length=TEXT_MAX)
 
 
@@ -86,6 +88,9 @@ async def create_order_review(
     request: Request, order_id: UUID, body: ReviewCreateIn, db: DbSession, user: CurrentUser,
 ):
     try:
-        return await ReviewService(db).create_for_order(user, order_id, body.positive, body.text)
+        rating = body.rating or (5 if body.positive else 1 if body.positive is not None else None)
+        if rating is None:
+            raise HTTPException(400, "Поставьте оценку")
+        return await ReviewService(db).create_for_order(user, order_id, rating, body.text)
     except ReviewError as e:
         raise HTTPException(400, str(e))

@@ -118,9 +118,24 @@ const PAYMENT_RE = /^(Заказ\s+#\S+\s+на\s+сумму\s+[\d\s\u00a0]+₽\s
 
 // Индивидуальный лот: "__lot__|{orderId}|{price}|{title}" → карточка с «Оплатить»
 const LOT_RE = /^__lot__\|([0-9a-f-]+)\|(\d+)\|([\s\S]+)$/
+const REVIEW_RE = /^Отзыв к заказу (#\S+): ([★☆]{5})(?: — ([\s\S]*?))?\|review=([a-f0-9-]+)$/
 const DONE_RE = /^(Заказ\s+#\S+\s+выполнен\.)\|done=([a-f0-9-]+)$/
 
 function SystemMessage({ text }: { text: string }) {
+  const review = REVIEW_RE.exec(text)
+  if (review) {
+    const [, num, stars, body, oid] = review
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 0', marginBottom: 8 }}>
+        <div style={{ width: '92%', padding: 14, borderRadius: 12, background: 'rgba(220,235,255,0.05)' }}>
+          <div style={{ fontSize: 12, color: 'rgba(220,235,255,0.55)', fontWeight: 600 }}>Ваш отзыв к заказу {num}</div>
+          <div style={{ fontSize: 18, color: '#fbbf24', marginTop: 4 }}>{stars}</div>
+          {body && <p style={{ margin: '6px 0 0', fontSize: 13, color: 'rgba(220,235,255,0.75)', whiteSpace: 'pre-wrap' }}>{body}</p>}
+          <Link to={`/orders/${oid}`} style={{ display: 'inline-block', marginTop: 6, fontSize: 11, color: 'rgba(220,235,255,0.45)' }}>Перейти в заказ</Link>
+        </div>
+      </div>
+    )
+  }
   const done = DONE_RE.exec(text)
   if (done) {
     return (
