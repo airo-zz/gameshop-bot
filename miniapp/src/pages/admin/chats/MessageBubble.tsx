@@ -5,11 +5,38 @@
  */
 
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { Paperclip } from '@/components/ui/icons'
-import { type AdminChatMessage } from '@/api/admin'
+import { adminApi, type AdminChatMessage } from '@/api/admin'
+import BuyerFields from '../BuyerFields'
 import { formatTime, isImageUrl } from './helpers'
 
 export const ADMIN_PAYMENT_RE = /^(Заказ\s+#\S+\s+на\s+сумму\s+[\d\s\u00a0]+₽\s+успешно\s+оплачен\..*?)(?:\|oid=([a-f0-9-]+))?$/s
+
+/** Под сообщением об оплате: состав заказа и данные покупателя (с копированием) */
+function PaidOrderDetails({ orderId }: { orderId: string }) {
+  const { data: order } = useQuery({
+    queryKey: ['admin', 'order', orderId],
+    queryFn: () => adminApi.getOrder(orderId),
+    staleTime: 60_000,
+  })
+  if (!order) return null
+  return (
+    <div style={{ width: '100%', textAlign: 'left' }} className="space-y-2">
+      <div className="space-y-0.5">
+        {order.items.map((i) => (
+          <div key={i.id} className="text-xs text-[var(--text)]">
+            • {i.product_name}{i.quantity > 1 ? ` × ${i.quantity}` : ''}
+          </div>
+        ))}
+      </div>
+      <div className="pt-2 border-t border-[rgba(16,185,129,0.25)]">
+        <div className="text-[10px] font-semibold uppercase tracking-wider text-[var(--hint)] mb-1">Данные покупателя</div>
+        <BuyerFields fields={order.buyer_fields ?? []} compact />
+      </div>
+    </div>
+  )
+}
 
 export function SystemMessageBubble({ text }: { text: string | null }) {
   if (!text) return null
@@ -30,6 +57,7 @@ export function SystemMessageBubble({ text }: { text: string | null }) {
           <p style={{ margin: 0, fontSize: 12, color: 'rgba(220,235,255,0.7)', textAlign: 'center', lineHeight: 1.5 }}>
             {displayText}
           </p>
+          {orderId && <PaidOrderDetails orderId={orderId} />}
           {orderId && (
             <Link
               to={`/admin/orders/${orderId}`}

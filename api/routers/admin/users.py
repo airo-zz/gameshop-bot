@@ -21,7 +21,9 @@ from api.routers.avatar import avatar_url
 from api.schemas.admin import BalanceAdjustIn, PaginatedResponse, UserUpdateIn
 from api.utils.admin_log import log_admin_action
 from api.utils.search import escape_like
-from shared.models import BalanceTransaction, LoyaltyLevel, Order, User
+from shared.models import BalanceTransaction, Game, LoyaltyLevel, Order, User
+from shared.models.cart import Cart, CartItem
+from shared.models.catalog import Category, Product
 
 router = APIRouter()
 
@@ -153,6 +155,20 @@ async def get_user(
     )
     transactions = txn_result.scalars().all()
 
+    # Что сейчас лежит в корзине (просмотры сайт не записывает — только корзина)
+    cart_rows = (await db.execute(
+        select(CartItem, Product.name, Category.name, Category.game_id)
+        .join(Cart, Cart.id == CartItem.cart_id)
+        .join(Product, Product.id == CartItem.product_id)
+        .join(Category, Category.id == Product.category_id)
+        .where(Cart.user_id == user_id)
+        .order_by(CartItem.added_at.desc())
+        .limit(30)
+    )).all()
+    game_names = dict((await db.execute(
+        select(Game.id, Game.name).where(Game.id.in_({r[3] for r in cart_rows}))
+    )).all()) if cart_rows else {}
+
     return {
         "id": user.id,
         "telegram_id": user.telegram_id,
@@ -186,6 +202,20 @@ async def get_user(
         ),
         "created_at": user.created_at,
         "last_active_at": user.last_active_at,
+        "is_guest": user.is_guest,
+        "marketing_consent": user.marketing_consent,
+        "cart": [
+            {
+                "product_id": str(ci.product_id),
+                "product_name": pname,
+                "category_name": cname,
+                "game_name": game_names.get(gid),
+                "quantity": ci.quantity,
+                "price": float(ci.price_snapshot),
+                "added_at": ci.added_at,
+            }
+            for ci, pname, cname, gid in cart_rows
+        ],
         "orders": [
             {
                 "id": o.id,

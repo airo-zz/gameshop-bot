@@ -97,6 +97,8 @@ class OrderDetailOut(BaseModel):
     total_amount: float
     payment_method: str | None
     input_data: dict[str, Any] = {}
+    # данные покупателя одним списком: [{label, value, secret}] (api/services/buyer_fields)
+    buyer_fields: list[dict[str, Any]] = []
     notes: str | None
     cancel_reason: str | None
     created_at: datetime

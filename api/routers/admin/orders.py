@@ -23,6 +23,7 @@ from api.schemas.admin import (
     OrderStatusChangeRequest,
     PaginatedResponse,
 )
+from api.services.buyer_fields import LOAD_OPTIONS, buyer_fields
 from api.services.order_service import OrderService
 from api.utils.admin_log import log_admin_action
 from api.utils.search import escape_like
@@ -239,7 +240,7 @@ async def get_order(
         select(Order)
         .options(
             selectinload(Order.user),
-            selectinload(Order.items),
+            *LOAD_OPTIONS,
             selectinload(Order.status_history),
             selectinload(Order.payments),
             selectinload(Order.assigned_admin),
@@ -259,6 +260,7 @@ async def get_order(
         total_amount=float(order.total_amount),
         payment_method=order.payment_method.value if order.payment_method else None,
         input_data=order.input_data or {},
+        buyer_fields=buyer_fields(order),
         notes=order.notes,
         cancel_reason=order.cancel_reason,
         created_at=order.created_at,

@@ -13,6 +13,7 @@ import toast from 'react-hot-toast'
 import { useTelegram } from '@/hooks/useTelegram'
 import { ADMIN_COLORS } from './OrdersPage'
 import FazerItemPanel from './FazerItemPanel'
+import BuyerFields from './BuyerFields'
 
 const STATUS_LABELS: Record<string, string> = {
   new:             'Новый',
@@ -289,29 +290,11 @@ export default function OrderDetailPage() {
         <div className="text-xs text-[var(--hint)]">{order.user.email ? `${order.user.email} · ` : ''}{userIdLabel(order.user)}</div>
       </div>
 
-      {/* Данные покупателя (на уровне игры) */}
-      {order.input_data && Object.keys(order.input_data).length > 0 && (
-        <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-3">
-          <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider">Данные покупателя</h2>
-          {Object.entries(order.input_data).map(([gameId, group]: [string, any]) => (
-            <div key={gameId} className="rounded-xl bg-[var(--bg2)] border border-[var(--border)] p-3 space-y-1.5">
-              <div className="text-[11px] font-semibold text-[var(--text-2)]">{group.game_name}</div>
-              {(group.fields ?? []).map((f: any, i: number) => (
-                <div key={i} className="flex items-baseline justify-between gap-3 text-xs">
-                  <span className="text-[var(--hint)] shrink-0">{f.label}</span>
-                  <span
-                    className="text-[var(--text-2)] font-mono text-right break-all select-all cursor-pointer"
-                    onClick={() => navigator.clipboard?.writeText(String(f.value)).then(() => toast.success('Скопировано'), () => {})}
-                    title="Нажмите, чтобы скопировать"
-                  >
-                    {String(f.value) || '—'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Данные покупателя: поля игры/раздела и товаров одним списком, с копированием */}
+      <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-3">
+        <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider">Данные покупателя</h2>
+        <BuyerFields fields={order.buyer_fields ?? []} />
+      </div>
 
       {/* Items */}
       <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-3">
@@ -320,9 +303,6 @@ export default function OrderDetailPage() {
           const orderFields = Object.values((order.input_data ?? {}) as Record<string, { fields?: { key: string; label: string; value: string }[] }>)
             .flatMap((g) => g?.fields ?? [])
             .map((f) => ({ key: f.key, label: f.label || f.key, value: String(f.value ?? '') }))
-          const fields = item.input_data
-            ? Object.entries(item.input_data).filter(([, v]) => v !== null && v !== '' && v !== undefined)
-            : []
           return (
             <div key={item.id} className="space-y-2">
               <div className="flex justify-between items-start gap-3">
@@ -334,30 +314,6 @@ export default function OrderDetailPage() {
                   {formatMoney(item.total_price)}
                 </div>
               </div>
-              {fields.length > 0 && (
-                <div className="rounded-xl bg-[var(--bg2)] border border-[var(--border)] p-2.5 space-y-1.5">
-                  <div className="text-[10px] font-semibold text-[var(--hint)] uppercase tracking-wider">
-                    Данные покупателя
-                  </div>
-                  {fields.map(([key, value]) => (
-                    <div key={key} className="flex items-baseline justify-between gap-3 text-xs">
-                      <span className="text-[var(--hint)] shrink-0">{key}</span>
-                      <span
-                        className="text-[var(--text-2)] font-mono text-right break-all select-all cursor-pointer"
-                        onClick={() => {
-                          navigator.clipboard?.writeText(String(value)).then(
-                            () => toast.success('Скопировано'),
-                            () => {},
-                          )
-                        }}
-                        title="Нажмите, чтобы скопировать"
-                      >
-                        {String(value)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
               <FazerItemPanel item={item} orderStatus={order.status} orderFields={orderFields} onRequeued={refreshLater} />
             </div>
           )

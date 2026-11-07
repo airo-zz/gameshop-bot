@@ -27,8 +27,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from api.services import hub_config
+from api.services.buyer_fields import LOAD_OPTIONS, buyer_fields
 from api.services.hub_bridge import CHAT_PREFIX, HubError, _check, _client, buyer_name
-from shared.models import Order, OrderItem, OrderStatus
+from shared.models import Order, OrderStatus
 
 logger = logging.getLogger(__name__)
 
@@ -59,28 +60,14 @@ def _rub(v: Decimal | float) -> str:
     return f"{float(v):,.0f}".replace(",", " ") + " ₽"
 
 
-def _field_labels(item: OrderItem) -> dict[str, str]:
-    fields = (getattr(item.product, "input_fields", None) or []) if item.product else []
-    return {f.get("key"): f.get("label") or f.get("key") for f in fields if isinstance(f, dict)}
-
-
 def _buyer_fields(order: Order) -> list[str]:
-    """Данные покупателя: общие для игры (order.input_data) и по позициям (item.input_data)."""
-    lines: list[str] = []
-    for src in (order.input_data or {}).values():
-        if not isinstance(src, dict):
-            continue
-        for f in src.get("fields") or []:
-            if isinstance(f, dict) and f.get("value") not in (None, ""):
-                lines.append(f"{f.get('label') or f.get('key')}: {f['value']}")
-    for item in order.items:
-        labels = _field_labels(item)
-        for k, v in (item.input_data or {}).items():
-            if v in (None, "") or isinstance(v, (dict, list)):
-                continue
-            line = f"{labels.get(k, k)}: {v}"
-            if line not in lines:
-                lines.append(line)
+    """Данные покупателя строками «Поле: значение» (общий сбор — buyer_fields) +
+    почта аккаунта на сайте, если её нет среди полей — чтобы было куда написать."""
+    rows = buyer_fields(order)
+    lines = [f"{f['label']}: {f['value']}" for f in rows]
+    email = getattr(order.user, "email", None) if order.user else None
+    if email and email not in {f["value"] for f in rows}:
+        lines.append(f"Почта аккаунта: {email}")
     return lines
 
 
@@ -106,7 +93,7 @@ def _cost_usd(order: Order) -> float | None:
 async def _load(db: AsyncSession, order_id: uuid.UUID) -> Order | None:
     return (await db.execute(
         select(Order)
-        .options(selectinload(Order.items).selectinload(OrderItem.product), selectinload(Order.user))
+        .options(*LOAD_OPTIONS, selectinload(Order.user))
         .where(Order.id == order_id)
     )).scalar_one_or_none()
 

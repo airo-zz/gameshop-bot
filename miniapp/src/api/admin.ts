@@ -110,6 +110,13 @@ export interface AdminOrderDetailItem {
   delivered_at: string | null
 }
 
+/** Поле данных покупателя: почта, пароль, ID игрока… (secret — пароль) */
+export interface AdminBuyerField {
+  label: string
+  value: string
+  secret: boolean
+}
+
 export interface AdminOrderDetail {
   id: string
   order_number: string
@@ -119,6 +126,7 @@ export interface AdminOrderDetail {
   total_amount: number
   payment_method: string | null
   input_data: Record<string, { game_name: string; fields: { key: string; label: string; value: string }[] }>
+  buyer_fields?: AdminBuyerField[]
   notes: string | null
   cancel_reason: string | null
   created_at: string
@@ -200,6 +208,19 @@ export interface AdminUserDetail {
   } | null
   created_at: string
   last_active_at: string | null
+  email?: string | null
+  is_guest?: boolean
+  marketing_consent?: boolean
+  /** Что сейчас в корзине (просмотры сайт не записывает) */
+  cart?: Array<{
+    product_id: string
+    product_name: string
+    category_name: string
+    game_name: string | null
+    quantity: number
+    price: number
+    added_at: string
+  }>
   orders: Array<{
     id: string
     order_number: string

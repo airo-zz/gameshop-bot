@@ -815,13 +815,11 @@ class OrderService:
             from shared.config import settings
             from shared.models import Chat
             from shared.staff_notify import send_staff_async
+            from api.services.buyer_fields import LOAD_OPTIONS, buyer_fields
 
             result = await self.db.execute(
                 select(Order)
-                .options(
-                    selectinload(Order.user),
-                    selectinload(Order.items).selectinload(OrderItem.product),
-                )
+                .options(selectinload(Order.user), *LOAD_OPTIONS)
                 .where(Order.id == order.id)
             )
             order_full = result.scalar_one_or_none()
@@ -842,16 +840,19 @@ class OrderService:
             for item in order_full.items[:10]:
                 name = f"{item.game_name} · {item.product_name}" if item.game_name else item.product_name
                 lines.append(f"<b>{e(name)}</b> × {item.quantity} — {_rub(item.total_price)}")
-                fields = {f.get("key"): f for f in ((item.product.input_fields if item.product else None) or [])}
-                for k, v in (item.input_data or {}).items():
-                    f = fields.get(k) or {}
-                    label = f.get("label") or k
-                    value = e(str(v))[:200]
-                    secret = f.get("type") == "password" or "парол" in str(label).lower() or "pass" in str(k).lower()
-                    value = f"<tg-spoiler>{value}</tg-spoiler>" if secret else f"<code>{value}</code>"
-                    lines.append(f"   {e(str(label))}: {value}")
             if len(order_full.items) > 10:
                 lines.append(f"… и ещё {len(order_full.items) - 10}")
+            # данные покупателя (поля игры/раздела и товара) — значение копируется нажатием,
+            # пароль под спойлером, но тоже копируется
+            fields = buyer_fields(order_full)
+            if fields:
+                lines.append("")
+                lines.append("<b>Данные покупателя:</b>")
+                for f in fields:
+                    value = f"<code>{e(f['value'][:200])}</code>"
+                    if f["secret"]:
+                        value = f"<tg-spoiler>{value}</tg-spoiler>"
+                    lines.append(f"{e(f['label'])}: {value}")
 
             discount = order_full.discount_amount or 0
             sum_line = f"Сумма: <b>{_rub(order_full.total_amount)}</b> · {e(method)}"
@@ -864,12 +865,13 @@ class OrderService:
             head = f"<b>НОВЫЙ ЗАКАЗ {e(str(order_full.order_number))}</b>"
             if source_label:
                 head += f" · {source_label}"
+            email = f" · <code>{e(buyer.email)}</code>" if buyer.email else ""
             text = (
                 f"{head}\n"
                 "━━━━━━━━━━━━━━━\n"
                 + "\n".join(lines)
                 + f"\n\n{sum_line}\n"
-                f"Покупатель: {e(buyer.staff_label)}\n"
+                f"Покупатель: {e(buyer.staff_label)}{email}\n"
                 f"{stats}"
             )
 

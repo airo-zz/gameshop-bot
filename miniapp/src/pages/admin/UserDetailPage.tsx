@@ -13,6 +13,7 @@ import {
 import { adminApi, userIdLabel } from '@/api/admin'
 import type { AdminUserDetail, LoyaltyLevel } from '@/api/admin'
 import toast from 'react-hot-toast'
+import BuyerFields from './BuyerFields'
 
 function formatMoney(v: number) {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(v)
@@ -169,6 +170,41 @@ export default function UserDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Контакты: почта, телефон, Telegram, когда пришёл и когда был на сайте */}
+      <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-2">
+        <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider">Контакты</h2>
+        <BuyerFields compact fields={[
+          ...(user.email ? [{ label: 'Почта', value: user.email, secret: false }] : []),
+          ...(user.phone ? [{ label: 'Телефон', value: user.phone, secret: false }] : []),
+          ...(user.username ? [{ label: 'Telegram', value: `@${user.username}`, secret: false }] : []),
+          { label: 'ID', value: userIdLabel(user), secret: false },
+        ]} />
+        <div className="text-xs text-[var(--hint)] pt-1 space-y-0.5">
+          <div>Регистрация: {formatDate(user.created_at)}{user.is_guest ? ' · гость' : ''}</div>
+          {user.last_active_at && <div>Был на сайте: {formatDate(user.last_active_at)}</div>}
+          {user.marketing_consent && <div>Согласен на рассылку</div>}
+        </div>
+      </div>
+
+      {/* Корзина: что положил и не оплатил */}
+      {!!user.cart?.length && (
+        <div className="bg-[var(--bg2)] border border-[var(--border)] rounded-2xl p-4 space-y-2">
+          <h2 className="text-xs font-semibold text-[var(--hint)] uppercase tracking-wider">В корзине сейчас ({user.cart.length})</h2>
+          {user.cart.map((c) => (
+            <div key={c.product_id} className="flex items-start justify-between gap-3 text-sm py-1.5 border-b border-[var(--border)] last:border-0">
+              <div className="min-w-0">
+                <div className="text-[var(--text)] truncate">{c.game_name ? `${c.game_name} · ` : ''}{c.product_name}</div>
+                <div className="text-xs text-[var(--hint)]">{c.category_name} · добавил {formatDate(c.added_at)}</div>
+              </div>
+              <div className="shrink-0 text-right text-[var(--text)]">
+                {formatMoney(c.price * c.quantity)}
+                {c.quantity > 1 && <div className="text-xs text-[var(--hint)]">× {c.quantity}</div>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Stats — individual cards */}
       <div>
