@@ -434,9 +434,29 @@ def _reviews_html(data: dict, game_name: str) -> str:
             f"<p>{sm['total']} отзывов, {pct}% положительных.</p><ul>{items}</ul>")
 
 
+async def _site_reviews(db, game_id) -> dict:
+    """Для звёзд в выдаче — ТОЛЬКО отзывы, оставленные на сайте (source=site, видимые);
+    импортированные с GGSEL в рейтинг не идут."""
+    from sqlalchemy import select
+    from sqlalchemy.orm import selectinload
+
+    from shared.models import Review
+    from api.services.review_service import review_out
+
+    rows = (await db.execute(
+        select(Review).options(selectinload(Review.user), selectinload(Review.game))
+        .where(Review.game_id == game_id, Review.source == "site", Review.is_visible.is_(True))
+        .order_by(Review.created_at.desc())
+    )).scalars().all()
+    total = len(rows)
+    positive = sum(1 for r in rows if r.rating >= 4)
+    return {"summary": {"total": total, "percent": round(positive * 100 / total, 1) if total else 0},
+            "items": [review_out(r) for r in rows[:5]]}
+
+
 def _rating_ld(data: dict, name: str, brand: str, image: str | None, offers: list) -> dict | None:
-    """Рейтинг игры для сниппета со звёздами: отзывы «понравилось/нет» → 5/1 из 5,
-    средняя = 1 + 4 × доля положительных. Те же отзывы видны на странице (блок отзывов)."""
+    """Рейтинг игры для сниппета со звёздами: отзывы сайта «понравилось/нет» → 5/1 из 5,
+    средняя = 1 + 4 × доля положительных."""
     sm = data.get("summary") or {}
     total = int(sm.get("total") or 0)
     if not total or not offers:
@@ -693,7 +713,7 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
         + (f"<h2>Как купить {'' if game.type == 'service' else 'ключ ' if game.type == 'key' else 'донат в '}{_e(game.name)}</h2>"
            + "<div>" + "".join(f"<p>{_e(t.strip())}</p>" for t in page.text.splitlines() if t.strip()) + "</div>"
            if page.text else "")
-        + _reviews_html(reviews := await _game_reviews(db, slug), game.name)
+        + _reviews_html(await _game_reviews(db, slug), game.name)
     )
 
     ld: list[dict] = [_breadcrumbs(crumbs)]
@@ -736,7 +756,7 @@ async def _game(db, slug: str, cat_slug: str | None = None) -> tuple[int, str]:
                 for i, (cat, p) in enumerate(offers[:100])
             ],
         })
-    rating = _rating_ld(reviews, page.h1, game.name, image, offers)
+    rating = _rating_ld(await _site_reviews(db, game.id), page.h1, game.name, image, offers)
     if rating:
         ld.append(rating)
     initial = await _data_game(db, slug, cat_slug)
