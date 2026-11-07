@@ -65,8 +65,12 @@ _TEXT_LIST: list[TextItem] = [
         group="Главное меню",
         default=(
             "👋 Привет, {first_name}!\n\n"
-            "Добро пожаловать в <b>{shop_name}</b> — {tagline}.\n\n"
-            "Выбери действие:"
+            "<b>{shop_name}</b> — донат в игры и пополнение сервисов.\n\n"
+            "⭐ Звёзды и Premium Telegram\n"
+            "💳 Steam по логину\n"
+            "🎮 Донат в игры и сервисы\n\n"
+            "Что пополним? 👇\n"
+            "<i>Можно просто написать название игры.</i>"
         ),
         variables=[
             Variable("first_name", "Имя пользователя"),
@@ -79,11 +83,13 @@ _TEXT_LIST: list[TextItem] = [
         label="Приветствие (новый пользователь)",
         group="Главное меню",
         default=(
-            "🎉 Добро пожаловать в <b>{shop_name}</b>!\n\n"
-            "{tagline}.\n\n"
-            "Здесь ты можешь быстро и безопасно купить игровой донат, "
-            "скины и многое другое.{bonus}\n\n"
-            "Используй кнопки ниже для навигации:"
+            "👋 Привет, {first_name}! Это <b>{shop_name}</b> — донат в игры и пополнение сервисов.\n\n"
+            "⭐ Звёзды и Premium Telegram\n"
+            "💳 Steam по логину\n"
+            "🎮 Донат в игры и сервисы\n\n"
+            "С каждой покупки — кэшбэк на баланс.{bonus}\n\n"
+            "Что пополним? 👇\n"
+            "<i>Можно просто написать название игры.</i>"
         ),
         variables=[
             Variable("first_name", "Имя пользователя"),
@@ -102,14 +108,21 @@ _TEXT_LIST: list[TextItem] = [
         key="catalog_header",
         label="Заголовок каталога игр",
         group="Каталог",
-        default="🎮 <b>Каталог {shop_name}</b>\n\nВыбери игру:",
+        default=(
+            "🎮 <b>Донат в игры</b>\n\n"
+            "Самые популярные — первыми, листай стрелками ◀️ ▶️.\n"
+            "Нужна конкретная игра — нажми 🔍 или просто напиши её название."
+        ),
         variables=[SHOP_NAME],
     ),
     TextItem(
         key="services_header",
         label="Заголовок каталога сервисов",
         group="Каталог",
-        default="🔧 <b>Сервисы {shop_name}</b>\n\nВыбери сервис:",
+        default=(
+            "🔧 <b>Сервисы</b>\n\n"
+            "Steam, PlayStation, App Store, Discord и другие. Выбери сервис 👇"
+        ),
         variables=[SHOP_NAME],
     ),
     TextItem(

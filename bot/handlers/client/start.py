@@ -78,19 +78,25 @@ def get_start_inline_keyboard() -> InlineKeyboardMarkup:
 
     buttons = [
         [entry_button],
+        # самое частое — сразу на главной
         [
-            InlineKeyboardButton(text="🎮 Игры", callback_data="catalog:main"),
+            InlineKeyboardButton(text="⭐ Звёзды и Premium", callback_data="menu:stars"),
+            InlineKeyboardButton(text="💳 Steam", callback_data="menu:steam"),
+        ],
+        [
+            InlineKeyboardButton(text="🎮 Донат в игры", callback_data="catalog:main"),
             InlineKeyboardButton(text="🔧 Сервисы", callback_data="catalog:services"),
         ],
-        [InlineKeyboardButton(text="👤 Профиль", callback_data="profile:view")],
-        [InlineKeyboardButton(text="📋 Заказы", callback_data="orders:list")],
-        [
-            InlineKeyboardButton(text="🆘 Поддержка", callback_data="support:main"),
-            InlineKeyboardButton(text="💰 Баланс", callback_data="balance:topup"),
-        ],
+        [InlineKeyboardButton(text="🔍 Найти игру", callback_data="catalog:search")],
         [
             InlineKeyboardButton(text="🛒 Корзина", callback_data="cart:view"),
+            InlineKeyboardButton(text="📋 Заказы", callback_data="orders:list"),
         ],
+        [
+            InlineKeyboardButton(text="👤 Профиль", callback_data="profile:view"),
+            InlineKeyboardButton(text="💰 Баланс", callback_data="balance:topup"),
+        ],
+        [InlineKeyboardButton(text="🆘 Поддержка", callback_data="support:main")],
     ]
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)

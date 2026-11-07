@@ -46,7 +46,7 @@ def _support_keyboard() -> InlineKeyboardMarkup:
             InlineKeyboardButton(text="❓ FAQ", callback_data="faq:main"),
         ],
         [
-            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
         ],
     ])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -80,7 +80,7 @@ async def cb_faq(call: CallbackQuery) -> None:
             inline_keyboard=[
                 [
                     InlineKeyboardButton(text="◀️ Назад", callback_data="support:main"),
-                    InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
+                    InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
                 ]
             ]
         ),

@@ -77,13 +77,13 @@ def _cart_keyboard(items: list, has_promo: bool = False) -> InlineKeyboardMarkup
 
     # Очистить
     buttons.append(
-        [InlineKeyboardButton(text="🗑 Очистить", callback_data="cart:clear", style="danger")]
+        [InlineKeyboardButton(text="🗑 Очистить", callback_data="cart:clear")]
     )
 
     buttons.append(
         [
             InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
-            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
         ]
     )
 
@@ -95,7 +95,7 @@ def _empty_cart_keyboard() -> InlineKeyboardMarkup:
         inline_keyboard=[
             [
                 InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
-                InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
+                InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
             ]
         ]
     )

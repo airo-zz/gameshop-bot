@@ -18,7 +18,7 @@ from aiogram.types import (
     InlineKeyboardMarkup,
     Message,
 )
-from sqlalchemy import select, func as sa_func
+from sqlalchemy import select, func as sa_func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Game, Category, Product, Cart, CartItem, User
@@ -64,30 +64,58 @@ def _select_field_keyboard(options: list[str]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-# ── Показ списка игр ──────────────────────────────────────────────────────────
+# ── Списки: страницы по 2 кнопки в ряд ───────────────────────────────────────
+# Telegram принимает не больше 100 кнопок в сообщении — весь каталог (80+ игр)
+# одной клавиатурой не открывался. Теперь игры листаются страницами, самые
+# продаваемые первыми; найти любую можно поиском (или просто написать название).
+
+GAMES_PAGE = 16       # 8 рядов по 2
+PRODUCTS_PAGE = 20    # товаров раздела на странице (у SWGOH их ~150)
+CATEGORIES_PAGE = 20  # разделов игры на странице (у украшений Discord ~100 коллекций)
+
+
+def _rows(buttons: list[InlineKeyboardButton], per_row: int = 2) -> list[list[InlineKeyboardButton]]:
+    return [buttons[i:i + per_row] for i in range(0, len(buttons), per_row)]
+
+
+def _pager(prefix: str, page: int, pages: int) -> list[InlineKeyboardButton] | None:
+    """◀️ 2/6 ▶️ — листание; на краях стрелка ведёт по кругу."""
+    if pages <= 1:
+        return None
+    return [
+        InlineKeyboardButton(text="◀️", callback_data=f"{prefix}{(page - 1) % pages}"),
+        InlineKeyboardButton(text=f"{page + 1} / {pages}", callback_data="noop"),
+        InlineKeyboardButton(text="▶️", callback_data=f"{prefix}{(page + 1) % pages}"),
+    ]
+
+
+def _short(name: str, limit: int = 28) -> str:
+    return name if len(name) <= limit else name[: limit - 1].rstrip() + "…"
+
+
+async def _catalog_games(db: AsyncSession, services: bool) -> list[Game]:
+    """Игры (донат) или сервисы, у которых есть что купить; самые продаваемые первыми.
+    Ключи игр в боте не показываем — они на сайте."""
+    from api.services.home_service import game_min_prices
+
+    cond = Game.type == "service" if services else or_(Game.type.is_(None), Game.type == "game")
+    games = list((await db.execute(select(Game).where(Game.is_active == True, cond))).scalars().all())
+    in_stock = await game_min_prices(db)
+    games = [g for g in games if g.id in in_stock]
+    games.sort(key=lambda g: (-int((g.meta or {}).get("sold_count") or 0), not g.is_featured,
+                              g.sort_order or 0, g.name.lower()))
+    return games
+
 
 async def show_games_list(
     event: Message | CallbackQuery,
     db: AsyncSession,
     state: FSMContext | None = None,
     services: bool = False,
+    page: int = 0,
 ) -> None:
-    if services:
-        result = await db.execute(
-            select(Game)
-            .where(Game.is_active == True, Game.type == "service")
-            .order_by(Game.sort_order.asc(), Game.name.asc())
-        )
-    else:
-        # Игры: type != 'service' (включая 'game' и возможные NULL у старых записей)
-        result = await db.execute(
-            select(Game)
-            .where(Game.is_active == True, Game.type != "service")
-            .order_by(Game.sort_order.asc(), Game.name.asc())
-        )
-    games = list(result.scalars().all())
-
-    back_btn = InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")
+    games = await _catalog_games(db, services)
+    kind = "services" if services else "main"
     if services:
         header_text = await get_text(db, "services_header")
         photo_url = await get_photo_url(db, "catalog_services")
@@ -95,22 +123,35 @@ async def show_games_list(
         header_text = await get_text(db, "catalog_header")
         photo_url = await get_photo_url(db, "catalog_games")
 
+    menu_row = [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")]
     if not games:
         text = await get_text(db, "catalog_empty")
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[[back_btn]])
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[menu_row])
     else:
-        buttons = [
-            [InlineKeyboardButton(text=game.name, callback_data=f"catalog:game:{game.id}")]
-            for game in games
-        ]
-        buttons.append([back_btn])
+        pages = (len(games) + GAMES_PAGE - 1) // GAMES_PAGE
+        page = max(0, min(page, pages - 1))
+        chunk = games[page * GAMES_PAGE:(page + 1) * GAMES_PAGE]
+        rows = [[InlineKeyboardButton(text="🔍 Найти по названию", callback_data="catalog:search")]]
+        rows += _rows([InlineKeyboardButton(text=_short(g.name), callback_data=f"catalog:game:{g.id}")
+                       for g in chunk])
+        pager = _pager(f"catalog:{kind}:p:", page, pages)
+        if pager:
+            rows.append(pager)
+        other = (InlineKeyboardButton(text="🎮 Донат в игры", callback_data="catalog:main") if services
+                 else InlineKeyboardButton(text="🔧 Сервисы", callback_data="catalog:services"))
+        rows.append([other, *menu_row])
         text = header_text
-        keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
+        keyboard = InlineKeyboardMarkup(inline_keyboard=rows)
 
     await render_screen(event, state, text, photo_url=photo_url, reply_markup=keyboard)
 
 
 # ── Handlers: навигация по каталогу ──────────────────────────────────────────
+
+@router.callback_query(F.data == "noop")
+async def cb_noop(call: CallbackQuery) -> None:
+    await call.answer()
+
 
 @router.callback_query(F.data == "catalog:main")
 @router.callback_query(F.data == "open_catalog")
@@ -123,50 +164,145 @@ async def cb_catalog_services(call: CallbackQuery, db: AsyncSession, state: FSMC
     await show_games_list(call, db, state=state, services=True)
 
 
+@router.callback_query(F.data.regexp(r"^catalog:(main|services):p:\d+$"))
+async def cb_catalog_page(call: CallbackQuery, db: AsyncSession, state: FSMContext) -> None:
+    _, kind, _, page = call.data.split(":")
+    await show_games_list(call, db, state=state, services=kind == "services", page=int(page))
+
+
+# ── Поиск по названию ────────────────────────────────────────────────────────
+
+class SearchFSM(StatesGroup):
+    query = State()
+
+
+def _norm(s: str) -> str:
+    return " ".join("".join(ch if ch.isalnum() else " " for ch in (s or "").lower().replace("ё", "е")).split())
+
+
+async def search_games(db: AsyncSession, query: str, limit: int = 16) -> list[Game]:
+    """Донат и сервисы по названию и другим названиям из админки («Геншин», «стим»)."""
+    q = _norm(query)
+    if len(q) < 2:
+        return []
+    games = await _catalog_games(db, False) + await _catalog_games(db, True)
+    found = []
+    for g in games:
+        names = [_norm(g.name)] + [_norm(a) for a in (g.seo_aliases or "").replace(";", ",").replace("\n", ",").split(",")]
+        if any(n.startswith(q) for n in names if n):
+            found.append((0, g))
+        elif any(q in n for n in names if n):
+            found.append((1, g))
+    found.sort(key=lambda x: x[0])
+    return [g for _, g in found][:limit]
+
+
+async def show_search_results(message: Message, db: AsyncSession, state: FSMContext, query: str) -> None:
+    games = await search_games(db, query)
+    back = [InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")]
+    if games:
+        text = (f"🔍 По запросу «<b>{escape(query[:40])}</b>» нашлось: {len(games)}\n\n"
+                "Выбери игру или напиши другое название.")
+        rows = _rows([InlineKeyboardButton(text=_short(g.name), callback_data=f"catalog:game:{g.id}")
+                      for g in games])
+    else:
+        text = (f"🔍 По запросу «<b>{escape(query[:40])}</b>» ничего не нашлось.\n\n"
+                "Попробуй иначе — например, «genshin» или «стим». Нет нужной игры — "
+                "напиши в поддержку, соберём заказ индивидуально.")
+        rows = [[InlineKeyboardButton(text="🆘 Поддержка", callback_data="support:main")]]
+    rows.append(back)
+    await state.set_state(SearchFSM.query)
+    await message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows), parse_mode="HTML")
+
+
+@router.callback_query(F.data == "catalog:search")
+async def cb_catalog_search(call: CallbackQuery, state: FSMContext) -> None:
+    await state.set_state(SearchFSM.query)
+    await safe_edit(
+        call.message,
+        "🔍 <b>Поиск</b>\n\nНапиши название игры или сервиса — например, <i>Genshin</i>, <i>PUBG</i> или <i>Steam</i>.",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
+            InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+        ]]),
+    )
+    await call.answer()
+
+
+# ── Игра → разделы ───────────────────────────────────────────────────────────
+
+async def render_game(call: CallbackQuery, game: Game, db: AsyncSession, page: int = 0) -> None:
+    categories = list((await db.execute(
+        select(Category)
+        .where(Category.game_id == game.id, Category.is_active == True, Category.parent_id == None)
+        .order_by(Category.sort_order.asc(), Category.name.asc())
+    )).scalars().all())
+    if not categories:
+        await call.answer("Нет доступных разделов", show_alert=True)
+        return
+
+    pages = (len(categories) + CATEGORIES_PAGE - 1) // CATEGORIES_PAGE
+    page = max(0, min(page, pages - 1))
+    chunk = categories[page * CATEGORIES_PAGE:(page + 1) * CATEGORIES_PAGE]
+    # Короткие названия — по 2 в ряд, длинные — по одному
+    btns = [InlineKeyboardButton(text=_short(cat.name, 40), callback_data=f"catalog:cat:{cat.id}") for cat in chunk]
+    rows = _rows(btns, 2 if all(len(c.name) <= 18 for c in chunk) else 1)
+    pager = _pager(f"catalog:gamep:{game.id}:", page, pages)
+    if pager:
+        rows.append(pager)
+    back_cb = "catalog:services" if game.type == "service" else "catalog:main"
+    rows.append([
+        InlineKeyboardButton(text="◀️ Назад", callback_data=back_cb),
+        InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+    ])
+    await safe_edit(call.message, texts.game_header(game.name), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+    await call.answer()
+
+
 @router.callback_query(F.data.startswith("catalog:game:"))
-async def cb_catalog_game(call: CallbackQuery, db: AsyncSession) -> None:
-    game_id_str = call.data.split(":")[2]
+async def cb_catalog_game(call: CallbackQuery, db: AsyncSession, state: FSMContext) -> None:
     try:
-        game_id = uuid.UUID(game_id_str)
+        game_id = uuid.UUID(call.data.split(":")[2])
     except ValueError:
         await call.answer("Некорректный ID игры", show_alert=True)
         return
-
     game = await db.get(Game, game_id)
     if not game:
         await call.answer("Игра не найдена", show_alert=True)
         return
+    if await state.get_state() == SearchFSM.query.state:
+        await state.set_state(None)   # из результатов поиска — дальше обычная навигация
+    await render_game(call, game, db)
 
-    result = await db.execute(
-        select(Category)
-        .where(
-            Category.game_id == game_id,
-            Category.is_active == True,
-            Category.parent_id == None,
-        )
-        .order_by(Category.sort_order.asc(), Category.name.asc())
-    )
-    categories = list(result.scalars().all())
 
-    if not categories:
-        await call.answer("Нет доступных категорий", show_alert=True)
+@router.callback_query(F.data.startswith("catalog:gamep:"))
+async def cb_catalog_game_page(call: CallbackQuery, db: AsyncSession) -> None:
+    try:
+        _, _, gid, page = call.data.split(":")
+        game = await db.get(Game, uuid.UUID(gid))
+        page_n = int(page)
+    except ValueError:
+        await call.answer("Ошибка", show_alert=True)
         return
+    if not game:
+        await call.answer("Игра не найдена", show_alert=True)
+        return
+    await render_game(call, game, db, page=page_n)
 
-    buttons = [
-        [InlineKeyboardButton(text=cat.name, callback_data=f"catalog:cat:{cat.id}")]
-        for cat in categories
-    ]
-    buttons.append(
-        [
-            InlineKeyboardButton(text="◀️ Каталог", callback_data="catalog:main"),
-            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
-        ]
-    )
-    keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
 
-    await safe_edit(call.message, texts.game_header(game.name), reply_markup=keyboard)
-    await call.answer()
+@router.callback_query(F.data.in_({"menu:stars", "menu:steam"}))
+async def cb_menu_shortcut(call: CallbackQuery, db: AsyncSession) -> None:
+    """Быстрые кнопки главного меню: звёзды/Premium (игра Telegram) и Steam."""
+    slug = "telegram" if call.data == "menu:stars" else "steam"
+    game = (await db.execute(select(Game).where(Game.slug == slug, Game.is_active == True))).scalar_one_or_none()
+    if not game:
+        await call.answer("Раздел временно недоступен", show_alert=True)
+        return
+    await render_game(call, game, db)
 
+
+# ── Раздел → товары (страницами) ─────────────────────────────────────────────
 
 async def _render_category(
     call: CallbackQuery,
@@ -174,28 +310,26 @@ async def _render_category(
     db: AsyncSession,
     user: User,
     toast: str | None = None,
+    page: int = 0,
+    focus_product: uuid.UUID | None = None,
 ) -> None:
-    """Рисует список товаров категории. Клик по товару = добавить в корзину."""
+    """Рисует товары раздела страницами. Клик по товару = добавить в корзину."""
     category = await db.get(Category, category_id)
     if not category:
-        await call.answer("Категория не найдена", show_alert=True)
+        await call.answer("Раздел не найден", show_alert=True)
         return
 
-    result = await db.execute(
+    products = list((await db.execute(
         select(Product)
         .where(Product.category_id == category_id, Product.is_active == True)
         .order_by(Product.sort_order.asc(), Product.name.asc())
-    )
-    products = list(result.scalars().all())
-
+    )).scalars().all())
     if not products:
         await call.answer("Нет доступных товаров", show_alert=True)
         return
 
     cart = await CartService(db).get_or_create_cart(user)
     cart_total = float(cart.total) if not cart.is_empty else None
-
-    # Кол-во каждого товара в корзине
     qty_map: dict = {}
     for it in cart.items:
         qty_map[it.product_id] = qty_map.get(it.product_id, 0) + it.quantity
@@ -206,52 +340,84 @@ async def _render_category(
     game = await db.get(Game, category.game_id)
     game_name = game.name if game else "Игра"
 
+    pages = (len(products) + PRODUCTS_PAGE - 1) // PRODUCTS_PAGE
+    if focus_product is not None:   # после «в корзину» — остаёмся на странице этого товара
+        idx = next((i for i, p in enumerate(products) if p.id == focus_product), 0)
+        page = idx // PRODUCTS_PAGE
+    page = max(0, min(page, pages - 1))
+
     buttons = []
-    for p in products:
+    for p in products[page * PRODUCTS_PAGE:(page + 1) * PRODUCTS_PAGE]:
         q = qty_map.get(p.id, 0)
         label = f"{p.name} — {float(p.price):.0f} ₽"
-        if q:
-            label += f" (в корзине: {q})"
+        if p.is_out_of_stock:
+            label += " · нет в наличии"
+        elif q:
+            label += f" · в корзине {q}"
         buttons.append([InlineKeyboardButton(text=label, callback_data=f"catalog:qadd:{p.id}")])
 
+    pager = _pager(f"catalog:catp:{category_id}:", page, pages)
+    if pager:
+        buttons.append(pager)
     cart_row = _cart_button(cart_total)
     if cart_row:
-        buttons.append(cart_row)
-    if cart_total:
-        buttons.append([InlineKeyboardButton(
-            text="🗑 Сброс",
-            callback_data=f"catalog:cat:reset:{category_id}",
-        )])
-    buttons.append(
-        [
-            InlineKeyboardButton(
-                text=f"◀️ {game_name}", callback_data=f"catalog:game:{category.game_id}"
-            ),
-            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
-        ]
-    )
+        buttons.append(cart_row + [InlineKeyboardButton(text="🗑 Убрать раздел", callback_data=f"catalog:cat:reset:{category_id}")])
+    buttons.append([
+        InlineKeyboardButton(text=f"◀️ {_short(game_name, 20)}", callback_data=f"catalog:game:{category.game_id}"),
+        InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+    ])
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
 
-    # Описание категории или общее по игре
     header = texts.category_header(game_name, category.name)
     desc = (category.description or (game.description if game else None) or "").strip()
     if desc:
-        import html as _html
-        header = f"{header}\n\n{_html.escape(desc)}"
+        header = f"{header}\n\n{escape(desc[:600])}"
+    header += "\n\n<i>Нажми на товар — он добавится в корзину.</i>"
 
     await safe_edit(call.message, header, reply_markup=keyboard)
     await call.answer(toast or "")
 
 
+@router.callback_query(F.data.startswith("catalog:cat:reset:"))
+async def cb_catalog_cat_reset(call: CallbackQuery, db: AsyncSession, user: User) -> None:
+    try:
+        category_id = uuid.UUID(call.data.split(":")[3])
+    except (IndexError, ValueError):
+        await call.answer("Ошибка", show_alert=True)
+        return
+
+    cart_svc = CartService(db)
+    cart = await cart_svc.get_or_create_cart(user)
+    removed = 0
+    for item in list(cart.items):
+        if item.product and item.product.category_id == category_id:
+            await cart_svc.update_item(cart, item.id, 0)
+            removed += 1
+    if removed:
+        await db.commit()
+    await _render_category(call, category_id, db, user,
+                           toast=f"🗑 Убрано из корзины: {removed}" if removed else "В корзине нет товаров из этого раздела")
+
+
 @router.callback_query(F.data.startswith("catalog:cat:"))
 async def cb_catalog_category(call: CallbackQuery, db: AsyncSession, user: User) -> None:
-    category_id_str = call.data.split(":")[2]
     try:
-        category_id = uuid.UUID(category_id_str)
+        category_id = uuid.UUID(call.data.split(":")[2])
     except ValueError:
-        await call.answer("Некорректный ID категории", show_alert=True)
+        await call.answer("Некорректный ID раздела", show_alert=True)
         return
     await _render_category(call, category_id, db, user)
+
+
+@router.callback_query(F.data.startswith("catalog:catp:"))
+async def cb_catalog_category_page(call: CallbackQuery, db: AsyncSession, user: User) -> None:
+    try:
+        _, _, cid, page = call.data.split(":")
+        category_id, page_n = uuid.UUID(cid), int(page)
+    except ValueError:
+        await call.answer("Ошибка", show_alert=True)
+        return
+    await _render_category(call, category_id, db, user, page=page_n)
 
 
 @router.callback_query(F.data.startswith("catalog:qadd:"))
@@ -263,10 +429,9 @@ async def cb_catalog_quick_add(call: CallbackQuery, db: AsyncSession, user: User
         await call.answer("Ошибка", show_alert=True)
         return
 
-    result = await db.execute(
+    product = (await db.execute(
         select(Product).where(Product.id == product_id, Product.is_active == True)
-    )
-    product = result.scalar_one_or_none()
+    )).scalar_one_or_none()
     if not product:
         await call.answer("❌ Товар недоступен", show_alert=True)
         return
@@ -282,35 +447,8 @@ async def cb_catalog_quick_add(call: CallbackQuery, db: AsyncSession, user: User
         await call.answer("Ошибка при добавлении в корзину", show_alert=True)
         return
 
-    await _render_category(call, product.category_id, db, user, toast=f"✅ {product.name}")
-
-
-@router.callback_query(F.data.startswith("catalog:cat:reset:"))
-async def cb_catalog_cat_reset(call: CallbackQuery, db: AsyncSession, user: User) -> None:
-    category_id_str = call.data.split(":")[3]
-    try:
-        category_id = uuid.UUID(category_id_str)
-    except ValueError:
-        await call.answer("Ошибка", show_alert=True)
-        return
-
-    cart_svc = CartService(db)
-    cart = await cart_svc.get_or_create_cart(user)
-
-    removed = 0
-    for item in list(cart.items):
-        if item.product and item.product.category_id == category_id:
-            await cart_svc.update_item(cart, item.id, 0)
-            removed += 1
-
-    if removed:
-        await db.commit()
-        await call.answer(f"🗑 Убрано {removed} поз. из раздела")
-    else:
-        await call.answer("В корзине нет товаров из этого раздела")
-
-    call.data = f"catalog:cat:{category_id}"
-    await cb_catalog_category(call, db, user)
+    await _render_category(call, product.category_id, db, user, toast=f"✅ {product.name} — в корзине",
+                           focus_product=product.id)
 
 
 async def _show_product(

@@ -49,7 +49,7 @@ def _topup_amounts_keyboard() -> InlineKeyboardMarkup:
     if row:
         buttons.append(row)
     buttons.append([InlineKeyboardButton(text="✏️ Указать свою сумму", callback_data="balance:amount:custom")])
-    buttons.append([InlineKeyboardButton(text="❌ Отмена", callback_data="balance:topup", style="danger")])
+    buttons.append([InlineKeyboardButton(text="❌ Отмена", callback_data="balance:topup")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
@@ -59,7 +59,7 @@ def _profile_keyboard() -> InlineKeyboardMarkup:
             [InlineKeyboardButton(text="📋 Мои заказы", callback_data="orders:list")],
             [InlineKeyboardButton(text="💰 Баланс", callback_data="balance:topup")],
             [InlineKeyboardButton(text="🎁 Реферальная программа", callback_data="referral:show")],
-            [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary")],
+            [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
         ]
     )
 
@@ -75,7 +75,7 @@ def _referral_keyboard(ref_link: str) -> InlineKeyboardMarkup:
             ],
             [
                 InlineKeyboardButton(text="◀️ Профиль", callback_data="profile:view"),
-                InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
+                InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
             ],
         ]
     )
@@ -164,7 +164,7 @@ async def cmd_balance(message: Message, user: User, db: AsyncSession, state: FSM
     )
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💳 Пополнить баланс", callback_data="balance:fill", style="success")],
-        [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary")],
+        [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")],
     ])
     photo_url = await get_photo_url(db, "balance")
     await render_screen(message, state, text, photo_url=photo_url, reply_markup=keyboard)
@@ -203,7 +203,7 @@ async def cb_balance_topup(
     await state.clear()
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💳 Пополнить баланс", callback_data="balance:fill", style="success")],
-        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu:main", style="primary")],
+        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu:main")],
     ])
     text = await get_text(db, "balance_topup_methods", balance=f"{float(user.balance):.2f}")
     photo_url = await get_photo_url(db, "balance")
@@ -225,7 +225,7 @@ async def cb_balance_amount(call: CallbackQuery, state: FSMContext) -> None:
     if value == "custom":
         await state.set_state(TopupFSM.waiting_amount)
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="❌ Отмена", callback_data="balance:fill", style="danger")]
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="balance:fill")]
         ])
         await safe_edit(call.message, texts.topup_enter_amount, reply_markup=keyboard)
         await call.answer()
@@ -259,7 +259,7 @@ def _topup_methods_keyboard(amount: int) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🪙 Криптовалюта", callback_data=f"balance:pay:crypto:{amount}")],
         [
             InlineKeyboardButton(text="◀️ Сумма", callback_data="balance:fill"),
-            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
         ],
     ])
 
@@ -293,7 +293,7 @@ async def cb_balance_pay(call: CallbackQuery, user: User, db: AsyncSession) -> N
         [InlineKeyboardButton(text="💳 Оплатить", url=redirect_url, style="success")],
         [
             InlineKeyboardButton(text="◀️ Другой способ", callback_data=f"balance:amount:{amount}"),
-            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main", style="primary"),
+            InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
         ],
     ])
     await safe_edit(call.message, texts.topup_waiting(amount, method), reply_markup=keyboard)
