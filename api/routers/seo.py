@@ -288,6 +288,8 @@ def _render(path: str, title: str, desc: str, body: str, ld: list[dict], noindex
         '</script>',
     ]
     if path == "/":
+        # подтверждение домена в CryptoProc (код публичный, не секрет)
+        head.append('<meta name="cryptoproc-verify" content="cp_6a8f9d2c4e5b">')
         if settings.YANDEX_VERIFICATION:
             head.append(f'<meta name="yandex-verification" content="{_e(settings.YANDEX_VERIFICATION)}" />')
         if settings.GOOGLE_SITE_VERIFICATION:
