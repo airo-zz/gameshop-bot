@@ -8,7 +8,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, m, useReducedMotion } from 'framer-motion'
 import { Menu, X, ShoppingCart, Wallet, User } from '@/components/ui/icons'
-import { SHOP_NAME, MINIAPP_URL, SITE_URL } from '@/config/appTarget'
+import { SHOP_NAME, MINIAPP_URL, SITE_URL, BOT_USERNAME, SUPPORT_BOT_URL, SUPPORT_BOT_USERNAME } from '@/config/appTarget'
 import ChatWidget from '@/web/chat/ChatWidget'
 import CookieBanner from '@/web/components/CookieBanner'
 import { openChat } from '@/web/chat/chatStore'
@@ -276,8 +276,15 @@ export default function WebLayout() {
                 </button>
               </li>
               <li>
+                <a href={SUPPORT_BOT_URL} target="_blank" rel="noopener noreferrer" className="text-sm text-[var(--text-2)] hover:text-[var(--text)] transition-colors">
+                  Поддержка в Telegram
+                  <span className="block text-xs text-[var(--hint)] mt-0.5">@{SUPPORT_BOT_USERNAME}</span>
+                </a>
+              </li>
+              <li>
                 <a href={MINIAPP_URL} target="_blank" rel="noopener noreferrer" className="text-sm text-[var(--text-2)] hover:text-[var(--text)] transition-colors">
                   Магазин в Telegram
+                  <span className="block text-xs text-[var(--hint)] mt-0.5">@{BOT_USERNAME}</span>
                 </a>
               </li>
             </ul>

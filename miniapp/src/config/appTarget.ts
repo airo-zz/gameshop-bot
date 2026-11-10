@@ -33,5 +33,6 @@ export const SITE_URL = 'https://redonate.gg'
 export const BOT_USERNAME = (import.meta.env.VITE_BOT_USERNAME as string) || 'reDonate_robot'
 export const BOT_URL = `https://t.me/${BOT_USERNAME}`
 export const MINIAPP_URL = `https://t.me/${BOT_USERNAME}?startapp`
-export const SUPPORT_BOT_URL = 'https://t.me/reDonateSupport_bot'
+export const SUPPORT_BOT_USERNAME = 'reDonateSupport_bot'
+export const SUPPORT_BOT_URL = `https://t.me/${SUPPORT_BOT_USERNAME}`
 export const ADMIN_URL = 'https://admin.redonate.gg'
