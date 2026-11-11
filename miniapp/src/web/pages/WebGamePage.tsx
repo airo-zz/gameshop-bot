@@ -13,7 +13,7 @@ import { ChevronRight, Zap, Clock, Info, Plus, Minus, ShoppingCart, MessageSquar
 import toast from 'react-hot-toast'
 import { catalogApi, reviewsApi } from '@/api'
 import { ReviewCard, ReviewSummary, reviewsWord } from '@/components/reviews/Reviews'
-import type { Category, Product, InputField, GameSeo } from '@/api'
+import type { Category, Product, InputField, GameSeo, HomeTopup } from '@/api'
 import { useWebAuth } from '@/web/auth/useWebAuth'
 import { useWebCart } from '@/web/cart/useWebCart'
 import { money } from '@/web/format'
@@ -22,6 +22,7 @@ import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
 import { EASE, Stagger, StaggerItem } from '@/web/components/Motion'
 import { usePageMeta, trackDetail } from '@/web/seo'
 import WebDecorPage from '@/web/pages/WebDecorPage'
+import QuickTopup from '@/web/components/QuickTopup'
 
 // ── Строка товара ─────────────────────────────────────────────────────────────
 // Товары — списком, как прайс: слева крупно количество («320» + «алмазов»), справа
@@ -92,7 +93,8 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
   const amount = parseAmount(product.name)
 
   const [inputData, setInputData] = useState<Record<string, string>>({})
-  const [showInputs, setShowInputs] = useState(false)
+  // Товар за единицу — количество вводится сразу, без лишнего клика «Выбрать»
+  const [showInputs, setShowInputs] = useState(!!qtyField)
   const [units, setUnits] = useState(String(minQty))
   const unitsNum = Math.max(minQty, Math.floor(Number(units) || 0))
 
@@ -185,7 +187,7 @@ function ProductCard({ product, qty, isAuthenticated, onAdd, onDec, onRequireLog
                 <ShoppingCart size={17} />
                 <span className="hidden sm:inline">{needsPanel ? 'Выбрать' : 'В корзину'}</span>
               </button>
-            ) : (
+            ) : qtyField ? null : (
               <button onClick={() => setShowInputs(false)} className="h-10 px-3 rounded-xl text-sm text-[var(--hint)] hover:text-[var(--text)]">
                 Отмена
               </button>
@@ -457,6 +459,29 @@ function GamePageContent() {
     : []
   const [tgFields, setTgFields] = useState<Record<string, string>>({})
   const [manualHint, setManualHint] = useState(false)
+
+  // Telegram Звёзды / Premium — тот же блок, что на главной: получатель, количество
+  // (или срок) и оплата сразу на странице, без строки товара и кнопки «Выбрать»
+  const topup: HomeTopup | null = useMemo(() => {
+    if (!currentCat || !game || prodLoading) return null
+    const kind = currentCat.auto_engine === 'telegram_stars' ? 'stars'
+      : currentCat.auto_engine === 'telegram_premium' ? 'premium' : null
+    if (!kind) return null
+    const list = kind === 'stars'
+      ? products.filter((p) => (p.input_fields ?? []).some((f) => f.type === 'quantity'))
+      : products
+    if (!list.length) return null
+    return {
+      kind,
+      game_slug: game.slug,
+      game_name: game.name,
+      game_image_url: game.image_url,
+      category_slug: currentCat.slug,
+      category_name: currentCat.name,
+      fields: tgFieldDefs.filter((f) => f.type !== 'quantity'),
+      products: list,
+    }
+  }, [currentCat, game, products, prodLoading, tgFieldDefs])
   useEffect(() => { setTgFields({}) }, [currentCatId])
 
   const handleAdd = async (product: Product, inputData?: Record<string, string>, quantity = 1) => {
@@ -624,6 +649,9 @@ function GamePageContent() {
 
         <div className="grid lg:grid-cols-[1fr_300px] gap-6 items-start">
           <div className="min-w-0">
+            {topup ? (
+              <QuickTopup key={currentCatId} options={[topup]} embedded />
+            ) : <>
             {isTgAuto && tgFieldDefs.length > 0 && (
               <div id="tg-recipient" className="rounded-2xl p-5 mb-4 bg-[var(--bg2)]">
                 <p className="text-base font-semibold text-[var(--text)] mb-3">Данные получателя</p>
@@ -686,6 +714,7 @@ function GamePageContent() {
               </Stagger>
               </>
             )}
+            </>}
             {/* Индивидуальный заказ на телефоне — под товарами (на ПК — в колонке справа) */}
             {game?.custom_order_enabled && !prodLoading && (
               <div className="lg:hidden mt-4"><CustomOrderCard gameName={gameName} /></div>

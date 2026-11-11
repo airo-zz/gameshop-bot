@@ -33,6 +33,8 @@ export interface Game {
   id_topup?: boolean
   /** Другие названия игры из админки — для поиска на сайте */
   search_names?: string[]
+  /** Корневые разделы игры — поиск находит игру по разделу («звёзды» → Telegram Звезды) */
+  sections?: { id: string; slug: string; name: string }[]
 }
 
 /** Каталог украшений Discord (общий с discordcatalog.net), GET /catalog/decor */

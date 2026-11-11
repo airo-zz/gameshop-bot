@@ -1,12 +1,22 @@
 /**
  * src/web/gameMatch.ts
- * Поиск игры на сайте: по названию и по другим названиям из админки (games.seo_aliases →
- * search_names: «стим», «Рейд»). Чем меньше ранг, тем выше в выдаче; null — не подходит.
+ * Поиск игры на сайте: по названию, по другим названиям из админки (games.seo_aliases →
+ * search_names: «стим», «Рейд») и по названиям разделов («звёзды» → Telegram Звезды).
+ * Чем меньше ранг, тем выше в выдаче; null — не подходит.
  */
 
 import type { Game } from '@/api'
 
 const norm = (s: string) => s.toLowerCase().replace(/ё/g, 'е').trim()
+
+type Section = NonNullable<Game['sections']>[number]
+
+/** Раздел игры, на который указывает запрос, — если игра нашлась не по своему названию. */
+export function matchedSection(g: Game, query: string): Section | null {
+  const q = norm(query)
+  if (!q || norm(g.name).includes(q)) return null
+  return (g.sections ?? []).find((s) => norm(s.name).includes(q)) ?? null
+}
 
 export function gameMatchRank(g: Game, query: string): number | null {
   const q = norm(query)
@@ -17,6 +27,7 @@ export function gameMatchRank(g: Game, query: string): number | null {
   const alts = (g.search_names ?? []).map(norm)
   if (alts.some((a) => a.startsWith(q))) return 2
   if (alts.some((a) => a.includes(q))) return 3
+  if (matchedSection(g, query)) return 4
   return null
 }
 

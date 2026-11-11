@@ -71,6 +71,18 @@ class CatalogService:
         result = await self.db.execute(q)
         return result.scalars().all()
 
+    async def game_sections(self) -> dict[uuid.UUID, list[dict]]:
+        """{id игры: [{id, slug, name}]} — активные корневые разделы, для поиска на сайте."""
+        rows = (await self.db.execute(
+            select(Category.game_id, Category.id, Category.slug, Category.name)
+            .where(Category.is_active.is_(True), Category.parent_id.is_(None))
+            .order_by(Category.sort_order, Category.name)
+        )).all()
+        out: dict[uuid.UUID, list[dict]] = {}
+        for gid, cid, slug, name in rows:
+            out.setdefault(gid, []).append({"id": str(cid), "slug": slug, "name": name})
+        return out
+
     async def get_game_by_slug(self, slug: str) -> Game | None:
         result = await self.db.execute(
             select(Game).where(Game.slug == slug, Game.is_active == True)
@@ -197,15 +209,23 @@ class CatalogService:
         return avg, row.cnt
 
     async def search_games(self, query: str, limit: int = 10) -> list[Game]:
-        """Поиск игр по названию."""
-        q_escaped = escape_like(query)
+        """Поиск игр по названию, другим названиям и названиям разделов («звезды» → Telegram).
+        Без разницы е/ё: «Звёзды» находится по «звезды»."""
+        pattern = f"%{escape_like(query.lower().replace('ё', 'е'))}%"
+
+        def like(col):
+            return func.replace(func.lower(col), "ё", "е").like(pattern, escape="\\")
+
+        in_sections = (
+            select(Category.id)
+            .where(Category.game_id == Game.id, Category.is_active.is_(True), like(Category.name))
+            .exists()
+        )
         result = await self.db.execute(
             select(Game)
             .where(
                 Game.is_active == True,
-                Game.name.ilike(f"%{q_escaped}%", escape="\\")
-                | Game.description.ilike(f"%{q_escaped}%", escape="\\")
-                | Game.seo_aliases.ilike(f"%{q_escaped}%", escape="\\"),
+                like(Game.name) | like(Game.description) | like(Game.seo_aliases) | in_sections,
             )
             .order_by(Game.is_featured.desc(), Game.sort_order)
             .limit(limit)

@@ -9,7 +9,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { AnimatePresence, m } from 'framer-motion'
 import { Search } from '@/components/ui/icons'
 import { catalogApi } from '@/api'
-import { filterGames } from '@/web/gameMatch'
+import { filterGames, matchedSection } from '@/web/gameMatch'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { onThumbError, thumbSrcSet, thumbUrl } from '@/utils/thumb'
 import { prefetchGame } from '@/web/prefetch'
@@ -56,9 +56,15 @@ export default function GameSearch({ size = 'md', placeholder = 'Поиск', cl
     return filterGames(games, s).slice(0, 6)
   }, [games, q, popular])
 
-  const go = (slug?: string) => {
+  // Игра нашлась по разделу («звёзды») — ведём сразу в раздел
+  const hrefOf = (g: (typeof games)[number]) => {
+    const sec = matchedSection(g, q)
+    return sec ? `/game/${g.slug}/${sec.slug}` : `/game/${g.slug}`
+  }
+
+  const go = (g?: (typeof games)[number]) => {
     setOpen(false)
-    if (slug) { setQ(''); navigate(`/game/${slug}`); return }
+    if (g) { setQ(''); navigate(hrefOf(g)); return }
     navigate(q.trim() ? `/catalog?q=${encodeURIComponent(q.trim())}` : '/catalog')
   }
 
@@ -69,7 +75,7 @@ export default function GameSearch({ size = 'md', placeholder = 'Поиск', cl
     <div className={'relative ' + className}>
       <form
         role="search"
-        onSubmit={(e) => { e.preventDefault(); go(active >= 0 ? matches[active]?.slug : undefined) }}
+        onSubmit={(e) => { e.preventDefault(); go(active >= 0 ? matches[active] : undefined) }}
         className={
           'flex items-center gap-2 rounded-xl bg-[var(--bg2)] border border-transparent focus-within:border-[var(--accent)] transition-colors ' +
           (lg ? 'h-14 pl-4 pr-2 rounded-2xl' : 'h-10 px-3')
@@ -128,21 +134,22 @@ export default function GameSearch({ size = 'md', placeholder = 'Поиск', cl
               </li>
             ) : matches.map((g, i) => {
               const img = g.image_url ? normalizeImageUrl(g.image_url) ?? g.image_url : null
+              const sec = matchedSection(g, q)
               return (
                 <li key={g.id} role="option" aria-selected={i === active}>
                   <button
                     type="button"
                     onMouseDown={(e) => e.preventDefault()}
                     onMouseEnter={() => { setActive(i); prefetchGame(qc, g.slug) }}
-                    onClick={() => go(g.slug)}
+                    onClick={() => go(g)}
                     className={'w-full flex items-center gap-3 px-2 py-2 rounded-xl text-left transition-colors ' + (i === active ? 'bg-[var(--bg3)]' : '')}
                   >
                     <span className="w-9 h-9 rounded-lg overflow-hidden bg-[var(--bg3)] shrink-0">
                       {img && <img src={thumbUrl(img, 320) ?? img} onError={onThumbError(img)} alt="" className="w-full h-full object-cover" />}
                     </span>
                     <span className="min-w-0">
-                      <span className="block text-sm font-medium text-[var(--text)] truncate">{g.name}</span>
-                      <span className="block text-xs text-[var(--hint)]">{g.type === 'service' ? 'Сервис' : g.type === 'key' ? 'Ключ игры' : 'Игра'}</span>
+                      <span className="block text-sm font-medium text-[var(--text)] truncate">{sec?.name ?? g.name}</span>
+                      <span className="block text-xs text-[var(--hint)]">{sec ? g.name : g.type === 'service' ? 'Сервис' : g.type === 'key' ? 'Ключ игры' : 'Игра'}</span>
                     </span>
                   </button>
                 </li>

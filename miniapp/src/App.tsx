@@ -147,6 +147,11 @@ export default function App() {
             staleTime: 2 * 60_000,
           }),
           queryClient.prefetchQuery({
+            queryKey: ['home'],
+            queryFn: catalogApi.getHome,
+            staleTime: 5 * 60_000,
+          }),
+          queryClient.prefetchQuery({
             queryKey: ['profile'],
             queryFn: profileApi.get,
             staleTime: 5 * 60_000,

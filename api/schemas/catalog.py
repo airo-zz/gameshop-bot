@@ -33,6 +33,9 @@ class GameOut(BaseModel):
     has_auto: bool = False
     # пополнение по ID игрока (без входа в аккаунт) — тоже только в списке игр
     id_topup: bool = False
+    # корневые разделы игры {id, slug, name} — тоже только в списке игр: поиск на сайте
+    # находит игру по названию раздела («звёзды» → Telegram, раздел «Telegram Звезды»)
+    sections: list[dict] = []
     # служебные данные игры — наружу не отдаём, только признаки ниже
     meta: dict = Field(default_factory=dict, exclude=True)
     seo_aliases: str | None = Field(default=None, exclude=True)

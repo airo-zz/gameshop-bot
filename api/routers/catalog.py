@@ -24,6 +24,7 @@ async def list_games(
 
     svc = CatalogService(db)
     games = await svc.get_active_games(type=type)
+    sections = await svc.game_sections()
     prices = await game_min_prices(db)
     auto = await game_auto_ids(db)
     by_id = await game_id_topup_ids(db)
@@ -35,7 +36,9 @@ async def list_games(
             return {"has_auto": forced == "auto", "id_topup": forced == "id"}
         return {"has_auto": g.id in auto, "id_topup": g.id in by_id}
 
-    return [GameOut.model_validate(g).model_copy(update={"min_price": prices.get(g.id), **badge(g)})
+    return [GameOut.model_validate(g).model_copy(update={
+                "min_price": prices.get(g.id), "sections": sections.get(g.id, []), **badge(g),
+            })
             for g in games]
 
 

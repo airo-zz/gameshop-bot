@@ -18,6 +18,7 @@ import ImageWithSkeleton from '@/components/ui/ImageWithSkeleton'
 import { normalizeImageUrl } from '@/utils/imageUrl'
 import { NAV_HEIGHT } from '@/components/layout/Layout'
 import { fmtNum } from '@/utils/format'
+import MiniTopup from '@/components/topup/MiniTopup'
 
 const fmt = fmtNum
 
@@ -233,6 +234,14 @@ export default function HomePage() {
     staleTime: 2 * 60 * 1000,
   })
 
+  // Быстрое пополнение (Stars, Steam, коды) — те же варианты, что на главной сайта
+  const { data: home } = useQuery({
+    queryKey: ['home'],
+    queryFn: catalogApi.getHome,
+    staleTime: 5 * 60_000,
+  })
+  const topup = home?.topup ?? []
+
   const { data: profile } = useQuery({
     queryKey: ['profile'],
     queryFn: profileApi.get,
@@ -345,6 +354,13 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
+        {/* ── Быстрое пополнение ─────────────────────────────────────────── */}
+        {topup.length > 0 && (
+          <div className="mb-7">
+            <MiniTopup options={topup} />
+          </div>
+        )}
 
         {/* ── Популярное ────────────────────────────────────────────────────── */}
         {trendingCategories.length > 0 && (

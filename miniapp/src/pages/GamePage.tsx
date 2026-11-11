@@ -290,7 +290,7 @@ function GamePageContent() {
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null)
   const catFromUrlApplied = useRef(false)
   const switchingCat = useRef(false)
-  const { haptic } = useTelegram()
+  const { haptic, user: tgUser } = useTelegram()
   const { increment, decrement } = useCartStore()
   const qc = useQueryClient()
   const tabsRef = useDragScroll<HTMLDivElement>()
@@ -372,9 +372,15 @@ function GamePageContent() {
   const tgFieldDefs: InputField[] = isTgAuto
     ? ((activeCategory?.input_fields?.length ? activeCategory.input_fields : gameFromApi?.input_fields) ?? [])
     : []
+  // Получатель по умолчанию — свой Telegram (текстовое поле @username), можно поменять
+  const ownTgDefaults = (): Record<string, string> => {
+    const me = (tgUser?.username ?? '').trim()
+    const f = me ? tgFieldDefs.find((d) => d.type === 'text') : undefined
+    return f ? { [f.key]: '@' + me.replace(/^@+/, '') } : {}
+  }
   const [tgFields, setTgFields] = useState<Record<string, string>>({})
-  // Сбрасываем введённые поля при смене подраздела.
-  useEffect(() => { setTgFields({}) }, [activeCatId])
+  // Сбрасываем введённые поля при смене подраздела (и подставляем свой @username).
+  useEffect(() => { setTgFields(ownTgDefaults()) }, [activeCatId, tgFieldDefs.length])  // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleAdd = async (product: Product, inputData?: Record<string, string>, qty: number = 1) => {
     const key = product.id
