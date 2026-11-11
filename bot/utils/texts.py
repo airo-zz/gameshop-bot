@@ -16,6 +16,31 @@ from shared.content import render_default
 
 S = settings  # Короткий псевдоним
 
+
+def rub(v: float) -> str:
+    """1250 → «1 250 ₽» (неразрывные пробелы), копейки — только если есть."""
+    v = float(v)
+    if v == int(v):
+        body = f"{int(v):,}".replace(",", "\u00a0")
+    else:
+        body = f"{v:,.2f}".replace(",", "\u00a0").replace(".", ",")
+    return body + "\u00a0₽"
+
+
+def table(rows: list[tuple], header: tuple | None = None, align_last_right: bool = True) -> str:
+    """Таблица rich-сообщения: строки — кортежи ячеек (уже экранированный HTML).
+    Последний столбец (суммы) — по правому краю. В обычном сообщении станет строками «a · b»."""
+    def row(cells: tuple, tag: str) -> str:
+        out = []
+        for i, c in enumerate(cells):
+            right = align_last_right and i == len(cells) - 1 and len(cells) > 1
+            attr = ' align="right"' if right else ""
+            out.append(f"<{tag}{attr}>{c}</{tag}>")
+        return "<tr>" + "".join(out) + "</tr>"
+
+    head = row(header, "th") if header else ""
+    return "<table striped compact>" + head + "".join(row(r, "td") for r in rows) + "</table>"
+
 # Лимиты пополнения баланса (совпадают с API: BalanceTopupRequest и UI)
 TOPUP_MIN = 100
 TOPUP_MAX = 100_000
@@ -54,11 +79,12 @@ class BotTexts:
     def catalog_empty(self) -> str:
         return render_default("catalog_empty")
 
-    def game_header(self, game_name: str) -> str:
-        return f"🎮 <b>{escape(game_name)}</b>\n\nВыбери раздел:"
+    def game_header(self, game_name: str, description: str = "") -> str:
+        desc = f"{escape(description[:500])}\n" if description else ""
+        return f"<h2>{escape(game_name)}</h2>\n{desc}<footer>Выбери раздел ниже</footer>"
 
     def category_header(self, game_name: str, category_name: str) -> str:
-        return f"🎮 {escape(game_name)} › <b>{escape(category_name)}</b>\n\nВыбери товар:"
+        return f"<h2>{escape(category_name)}</h2>\n{escape(game_name)}"
 
     def product_card(
         self,
@@ -73,29 +99,22 @@ class BotTexts:
     ) -> str:
         delivery_text = {
             "auto": "⚡ Автоматически",
-            "manual": "👤 Вручную",
-            "mixed": "📦 Зависит от лота",
+            "manual": "👤 Оператор в чате",
+            "mixed": "📦 Зависит от товара",
         }.get(delivery_type, delivery_type)
 
-        # Всегда показываем минимальную цену
         _min = min_price if min_price is not None else price
-        price_text = f"<b>{_min:.0f} ₽</b>"
-
-        lines = [
-            f"<b>{escape(name)}</b>\n\n"
-            f"{escape(description)}\n\n"
-            f"💰 Цена: {price_text}\n"
-            f"📦 Доставка: {delivery_text}"
-        ]
+        rows = [("Цена", f"<b>{rub(_min)}</b>"), ("Выдача", delivery_text)]
         # Наличие показываем только если ограничено
         if stock is not None:
-            stock_text = f"✅ В наличии: {stock}" if stock > 0 else "❌ Нет в наличии"
-            lines.append(f"\n🗃 Наличие: {stock_text}")
-        # Сумма корзины в тексте
+            rows.append(("Наличие", f"{stock} шт." if stock > 0 else "нет в наличии"))
+        parts = [f"<h2>{escape(name)}</h2>"]
+        if description:
+            parts.append(escape(description))
+        parts.append(table(rows))
         if cart_total is not None and cart_total > 0:
-            lines.append(f"\n\n🛒 В корзине: <b>{cart_total:.0f} ₽</b>")
-
-        return "".join(lines)
+            parts.append(f"<footer>В корзине на {rub(cart_total)}</footer>")
+        return "\n".join(parts)
 
     # ── Корзина ───────────────────────────────────────────────────────────────
     @property
@@ -213,21 +232,18 @@ class BotTexts:
     def checkout_select_method(
         self, order_number: str, total: float, balance: float
     ) -> str:
-        balance_text = (
-            "✅ Хватает" if balance >= total else f"❌ Не хватает {total - balance:.0f} ₽"
-        )
+        balance_text = "хватает" if balance >= total else f"не хватает {rub(total - balance)}"
         return (
-            f"🧾 <b>Заказ {order_number}</b> — <b>{total:.0f} ₽</b>\n\n"
-            f"💳 Твой баланс: <b>{balance:.0f} ₽</b> ({balance_text})\n\n"
-            f"Выбери способ оплаты:"
+            f"<h2>Заказ {escape(order_number)}</h2>\n"
+            + table([("К оплате", f"<b>{rub(total)}</b>"), ("Баланс", f"{rub(balance)} · {balance_text}")])
+            + "\n<footer>Выбери способ оплаты</footer>"
         )
 
     def payment_insufficient_balance(self, balance: float, needed: float) -> str:
         return (
-            f"❌ <b>Недостаточно средств</b>\n\n"
-            f"На балансе: <b>{balance:.0f} ₽</b>\n"
-            f"Нужно: <b>{needed:.0f} ₽</b>\n"
-            f"Не хватает: <b>{needed - balance:.0f} ₽</b>"
+            "<h2>Недостаточно средств</h2>\n"
+            + table([("На балансе", rub(balance)), ("Нужно", rub(needed)),
+                     ("Не хватает", f"<b>{rub(needed - balance)}</b>")])
         )
 
     def payment_waiting_external(
@@ -240,9 +256,9 @@ class BotTexts:
         }
         method_label = method_names.get(method, method)
         return (
-            f"💳 <b>Оплата через {method_label}</b>\n\n"
-            f"Сумма: <b>{amount:.0f} ₽</b>\n\n"
-            f"Нажми кнопку ниже для оплаты. После оплаты нажми «✅ Я оплатил»."
+            f"<h2>Оплата: {method_label}</h2>\n"
+            + table([("Сумма", f"<b>{rub(amount)}</b>")])
+            + "\nНажми кнопку ниже для оплаты. После оплаты нажми «✅ Я оплатил»."
         )
 
     @staticmethod
@@ -257,11 +273,12 @@ class BotTexts:
     # ── Пополнение баланса ─────────────────────────────────────────────────────
     @property
     def topup_choose_amount(self) -> str:
-        return "💳 <b>Пополнение баланса</b>\n\nВыбери сумму или укажи свою:"
+        return "<h2>Пополнение баланса</h2>\n<footer>Выбери сумму или укажи свою</footer>"
 
     @property
     def topup_enter_amount(self) -> str:
-        return f"✏️ <b>Введи сумму пополнения</b> в рублях (от {TOPUP_MIN} до {TOPUP_MAX:,} ₽):".replace(",", " ")
+        return (f"<h2>Своя сумма</h2>\nНапиши сумму пополнения в рублях — от {TOPUP_MIN} "
+                f"до {TOPUP_MAX:,} ₽.").replace(",", " ")
 
     @property
     def topup_bad_amount(self) -> str:
@@ -269,17 +286,18 @@ class BotTexts:
 
     def topup_choose_method(self, amount: int) -> str:
         return (
-            f"💳 <b>Пополнение на {amount:,} ₽</b>\n\n".replace(",", " ")
-            + "Выбери способ оплаты. Комиссия способа — на кнопке, "
-            "она добавляется к сумме пополнения."
+            f"<h2>Пополнение на {rub(amount)}</h2>\n"
+            "<footer>Выбери способ оплаты. Комиссия способа — на кнопке, "
+            "она добавляется к сумме пополнения</footer>"
         )
 
     def topup_waiting(self, amount: int, method: str) -> str:
         method_names = {"sbp": "🏦 СБП", "card": "💳 карта", "crypto": "🪙 криптовалюта"}
         return (
-            f"💳 <b>Пополнение на {amount:,} ₽</b> · {method_names.get(method, method)}\n\n".replace(",", " ")
-            + "Нажми «Оплатить» и заверши оплату на странице платёжной системы.\n"
-            "Деньги зачислятся автоматически — бот пришлёт сообщение."
+            f"<h2>Пополнение на {rub(amount)}</h2>\n"
+            f"Способ: {method_names.get(method, method)}\n\n"
+            "Нажми «Оплатить» и заверши оплату на странице платёжной системы.\n"
+            "<footer>Деньги зачислятся автоматически — бот пришлёт сообщение</footer>"
         )
 
     @property
@@ -310,7 +328,7 @@ class BotTexts:
         return render_default("favorites_empty")
 
     def favorites_header(self, count: int) -> str:
-        return f"❤️ <b>Избранное</b> ({count} товаров)\n━━━━━━━━━━━━━━━"
+        return f"<h2>Избранное · {count}</h2>"
 
     def favorite_added(self, product_name: str) -> str:
         return f"❤️ <b>{escape(product_name)}</b> добавлен в избранное!"
@@ -358,14 +376,11 @@ class BotTexts:
         referral_code: str = "",
     ) -> str:
         return (
-            f"🎁 <b>Реферальная программа</b>\n"
-            f"━━━━━━━━━━━━━━━\n"
-            f"Приглашай друзей и получай бонусы за каждого!\n\n"
-            f"👥 Приглашено: <b>{referrals_count}</b>\n\n"
-            f"🔗 Твоя ссылка:\n"
-            f"<code>{ref_link}</code>\n\n"
-            f"Поделись ссылкой с друзьями — когда они совершат первую покупку, "
-            f"ты получишь бонус на баланс!"
+            "<h2>Приглашай друзей</h2>\n"
+            "Получай процент с каждого заказа друга — на баланс. Другу — скидка на первый заказ.\n"
+            + table([("Приглашено", f"<b>{referrals_count}</b>")])
+            + f"\n<h4>Твоя ссылка</h4><p><code>{ref_link}</code></p>"
+            "<footer>Нажми на ссылку, чтобы скопировать, или поделись кнопкой ниже</footer>"
         )
 
     # ── Поддержка ─────────────────────────────────────────────────────────────
@@ -399,7 +414,7 @@ class BotTexts:
         return render_default("orders_empty")
 
     def orders_list_header(self, count: int) -> str:
-        return f"📋 <b>Мои заказы</b> — последние {count}:"
+        return "<h2>Мои заказы</h2>"
 
     # ── Главное меню клиента ──────────────────────────────────────────────────
     @property

@@ -24,6 +24,8 @@ from shared.content import get_photo_url
 from api.services.cart_service import CartService
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, render_screen
+from bot.utils.rich import send_screen
+from bot.utils.texts import rub, table
 
 router = Router(name="client:cart")
 
@@ -113,28 +115,26 @@ def _promo_cancel_keyboard() -> InlineKeyboardMarkup:
 
 def _build_cart_text(cart, summary: dict) -> str:
     """Формирует текст корзины с позициями и итогами."""
-    items_count = len(cart.items)
-    lines = [f"🛒 <b>Корзина</b> ({items_count} поз.)\n━━━━━━━━━━━━━━━"]
-
+    rows = []
     for item in cart.items:
         product_name = item.product.name if item.product else "Товар"
         subtotal = float(item.price_snapshot) * item.quantity
-        lines.append(
-            f"• <b>{escape(product_name)}</b> ×{item.quantity} — {subtotal:.0f} ₽"
-        )
-
-    lines.append("━━━━━━━━━━━━━━━")
+        rows.append((escape(product_name), f"×{item.quantity}", rub(subtotal)))
 
     discount = float(summary.get("discount_amount", 0))
     if discount > 0:
         promo_name = summary.get("promo_code", "")
-        promo_label = f" ({promo_name})" if promo_name else ""
-        lines.append(f"💸 Скидка{promo_label}: <b>-{discount:.0f} ₽</b>")
+        promo_label = f" ({escape(promo_name)})" if promo_name else ""
+        rows.append((f"Скидка{promo_label}", "", f"−{rub(discount)}"))
 
     total = float(summary.get("total", 0))
-    lines.append(f"<b>Итого: {total:.0f} ₽</b>")
+    rows.append(("<b>Итого</b>", "", f"<b>{rub(total)}</b>"))
 
-    return "\n".join(lines)
+    return (
+        f"<h2>Корзина · {len(cart.items)}</h2>\n"
+        + table(rows, header=("Товар", "Кол-во", "Сумма"))
+        + "\n<footer>Количество меняется кнопками − и + у позиции</footer>"
+    )
 
 
 # ── Показ корзины ─────────────────────────────────────────────────────────────
@@ -168,12 +168,7 @@ async def _show_cart(
         if state is not None:
             await render_screen(event, state, text, photo_url=photo_url, reply_markup=keyboard)
         else:
-            if photo_url:
-                await event.answer_photo(
-                    photo=photo_url, caption=text, reply_markup=keyboard, parse_mode="HTML"
-                )
-            else:
-                await event.answer(text, reply_markup=keyboard, parse_mode="HTML")
+            await send_screen(event.bot, event.chat.id, text, photo_url, keyboard)
 
 
 # ── Handlers: просмотр корзины ────────────────────────────────────────────────
@@ -318,7 +313,7 @@ async def fsm_promo_code_input(
 
     if cart.is_empty:
         await state.clear()
-        await message.answer(texts.cart_empty, parse_mode="HTML")
+        await send_screen(message.bot, message.chat.id, texts.cart_empty)
         return
 
     result = await cart_svc.apply_promo(cart, user, code)

@@ -19,6 +19,7 @@ from shared.config import settings
 from shared.database.session import async_session_factory
 from shared.models import Product
 from bot.utils.texts import texts
+from bot.utils.rich import to_classic_html
 
 router = Router(name="client:inline_search")
 
@@ -60,13 +61,14 @@ async def inline_search(query: InlineQuery) -> None:
         delivery_label = _delivery_label(product.delivery_type.value)
         price = float(product.price)
 
-        product_card_text = texts.product_card(
+        # в чужой чат уходит обычным сообщением — без rich-разметки
+        product_card_text = to_classic_html(texts.product_card(
             name=product.name,
             description=product.description or "",
             price=price,
             stock=product.stock,
             delivery_type=product.delivery_type.value,
-        )
+        ))
 
         thumbnail_url: str | None = None
         if product.images and isinstance(product.images, list) and len(product.images) > 0:

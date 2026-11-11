@@ -1,4 +1,9 @@
-"""bot/utils/helpers.py — вспомогательные функции для handlers."""
+"""bot/utils/helpers.py — вспомогательные функции для handlers.
+
+Экраны рисуются rich-сообщениями (bot/utils/rich.py): картинка внутри сообщения,
+поэтому переход между экранами — всегда правка на месте. С BOT_RICH_MESSAGES=False
+и если Telegram не принял rich — прежний путь обычными сообщениями (фото + подпись).
+"""
 
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.fsm.context import FSMContext
@@ -9,8 +14,26 @@ from aiogram.types import (
     Message,
 )
 
+from bot.utils.rich import edit_screen, rich_enabled, send_screen, to_classic_html
+
 # Маркеры ошибок Telegram API: сообщение уже не существует
 _TG_NOT_FOUND = ("message to edit not found", "MESSAGE_ID_INVALID")
+
+
+async def _delete_quietly(message: Message) -> None:
+    try:
+        await message.delete()
+    except TelegramBadRequest:
+        pass
+
+
+async def _rich_in_place(message: Message, text: str, photo_url: str | None, reply_markup) -> int:
+    """Rich-экран вместо текущего сообщения: правка на месте, иначе — новое сообщение."""
+    if await edit_screen(message.bot, message.chat.id, message.message_id, text, photo_url, reply_markup):
+        return message.message_id
+    await _delete_quietly(message)
+    sent = await send_screen(message.bot, message.chat.id, text, photo_url, reply_markup)
+    return sent.message_id
 
 
 async def safe_edit(
@@ -26,6 +49,10 @@ async def safe_edit(
     "message is not modified" — не ошибка, тихо игнорируется без fallback.
     "message to edit not found" — сообщение удалено, отправляем новое.
     """
+    if rich_enabled():
+        await _rich_in_place(message, text, None, reply_markup)
+        return
+    text = to_classic_html(text)
 
     try:
         await message.edit_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
@@ -73,6 +100,10 @@ async def nav_edit(
     удаляет сообщение пользователя, редактирует сохранённый nav-msg.
     Если nav-msg не найден или удалён — отправляет новый и сохраняет ID.
     """
+    if rich_enabled():
+        await _rich_message_screen(message, state, text, None, reply_markup)
+        return
+    text = to_classic_html(text)
     try:
         await message.delete()
     except TelegramBadRequest:
@@ -100,6 +131,25 @@ async def nav_edit(
 
 
 # ── Экраны с управляемой картинкой ────────────────────────────────────────────
+
+
+async def _rich_message_screen(
+    message: Message, state: FSMContext | None, text: str, photo_url: str | None, reply_markup,
+) -> None:
+    """Message-хендлеры: убираем сообщение пользователя, обновляем сохранённый экран."""
+    await _delete_quietly(message)
+    nav_msg_id = (await state.get_data()).get("nav_msg_id") if state is not None else None
+    if nav_msg_id and await edit_screen(message.bot, message.chat.id, nav_msg_id, text, photo_url, reply_markup):
+        return
+    if nav_msg_id:
+        # старый экран (фото) так не правится — убираем, чтобы не висели два меню
+        try:
+            await message.bot.delete_message(message.chat.id, nav_msg_id)
+        except TelegramBadRequest:
+            pass
+    sent = await send_screen(message.bot, message.chat.id, text, photo_url, reply_markup)
+    if state is not None:
+        await state.update_data(nav_msg_id=sent.message_id)
 
 
 async def _render_in_place(
@@ -179,6 +229,17 @@ async def render_screen(
     • Message — поведение nav_edit: удаляет сообщение пользователя и
       обновляет сохранённый nav-msg (нужен state).
     """
+    if rich_enabled():
+        if isinstance(event, CallbackQuery):
+            new_id = await _rich_in_place(event.message, text, photo_url, reply_markup)
+            if state is not None:
+                await state.update_data(nav_msg_id=new_id)
+            await event.answer(answer_text)
+        else:
+            await _rich_message_screen(event, state, text, photo_url, reply_markup)
+        return
+    text = to_classic_html(text)
+
     # Подпись к фото в Telegram ограничена 1024 символами. Если текст экрана
     # длиннее — показываем без картинки, чтобы отправка не упала.
     if photo_url and len(text) > 1024:

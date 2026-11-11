@@ -64,13 +64,13 @@ _TEXT_LIST: list[TextItem] = [
         label="Приветствие (возврат пользователя)",
         group="Главное меню",
         default=(
-            "👋 Привет, {first_name}!\n\n"
-            "<b>{shop_name}</b> — донат в игры и пополнение сервисов.\n\n"
-            "⭐ Звёзды и Premium Telegram\n"
-            "💳 Steam по логину\n"
-            "🎮 Донат в игры и сервисы\n\n"
-            "Что пополним? 👇\n"
-            "<i>Можно просто написать название игры.</i>"
+            "<h2>Привет, {first_name}!</h2>\n"
+            "<b>{shop_name}</b> — донат в игры и пополнение сервисов.\n"
+            "<ul><li>⭐ Звёзды и Premium Telegram</li>"
+            "<li>💳 Steam по логину</li>"
+            "<li>🎮 Донат в игры и сервисы</li></ul>\n"
+            "Что пополним?\n"
+            "<footer>Можно просто написать название игры</footer>"
         ),
         variables=[
             Variable("first_name", "Имя пользователя"),
@@ -83,13 +83,14 @@ _TEXT_LIST: list[TextItem] = [
         label="Приветствие (новый пользователь)",
         group="Главное меню",
         default=(
-            "👋 Привет, {first_name}! Это <b>{shop_name}</b> — донат в игры и пополнение сервисов.\n\n"
-            "⭐ Звёзды и Premium Telegram\n"
-            "💳 Steam по логину\n"
-            "🎮 Донат в игры и сервисы\n\n"
+            "<h2>Привет, {first_name}!</h2>\n"
+            "Это <b>{shop_name}</b> — донат в игры и пополнение сервисов.\n"
+            "<ul><li>⭐ Звёзды и Premium Telegram</li>"
+            "<li>💳 Steam по логину</li>"
+            "<li>🎮 Донат в игры и сервисы</li></ul>\n"
             "С каждой покупки — кэшбэк на баланс.{bonus}\n\n"
-            "Что пополним? 👇\n"
-            "<i>Можно просто написать название игры.</i>"
+            "Что пополним?\n"
+            "<footer>Можно просто написать название игры</footer>"
         ),
         variables=[
             Variable("first_name", "Имя пользователя"),
@@ -109,9 +110,9 @@ _TEXT_LIST: list[TextItem] = [
         label="Заголовок каталога игр",
         group="Каталог",
         default=(
-            "🎮 <b>Донат в игры</b>\n\n"
+            "<h2>Донат в игры</h2>\n"
             "Самые популярные — первыми, листай стрелками ◀️ ▶️.\n"
-            "Нужна конкретная игра — нажми 🔍 или просто напиши её название."
+            "<footer>Нужна конкретная игра — нажми 🔍 или просто напиши её название</footer>"
         ),
         variables=[SHOP_NAME],
     ),
@@ -120,8 +121,9 @@ _TEXT_LIST: list[TextItem] = [
         label="Заголовок каталога сервисов",
         group="Каталог",
         default=(
-            "🔧 <b>Сервисы</b>\n\n"
-            "Steam, PlayStation, App Store, Discord и другие. Выбери сервис 👇"
+            "<h2>Сервисы</h2>\n"
+            "Steam, PlayStation, App Store, Discord и другие.\n"
+            "<footer>Выбери сервис ниже или напиши его название</footer>"
         ),
         variables=[SHOP_NAME],
     ),
@@ -136,7 +138,7 @@ _TEXT_LIST: list[TextItem] = [
         label="Пустая корзина",
         group="Корзина и заказы",
         default=(
-            "🛒 Твоя корзина пуста.\n\n"
+            "<h2>Корзина пуста</h2>\n"
             "Перейди в каталог {shop_name}, чтобы добавить товары."
         ),
         variables=[SHOP_NAME],
@@ -145,14 +147,14 @@ _TEXT_LIST: list[TextItem] = [
         key="orders_empty",
         label="Нет заказов",
         group="Корзина и заказы",
-        default="📋 У тебя пока нет заказов.\n\nПерейди в каталог и сделай первую покупку!",
+        default="<h2>Заказов пока нет</h2>\nПерейди в каталог и сделай первую покупку!",
     ),
     TextItem(
         key="favorites_empty",
         label="Пустое избранное",
         group="Корзина и заказы",
         default=(
-            "❤️ <b>Избранное</b>\n\n"
+            "<h2>Избранное</h2>\n"
             "У тебя нет избранных товаров. Добавляй через каталог!"
         ),
     ),
@@ -161,12 +163,13 @@ _TEXT_LIST: list[TextItem] = [
         label="Профиль",
         group="Профиль и баланс",
         default=(
-            "👤 <b>Профиль</b>\n"
-            "━━━━━━━━━━━━━━━\n"
-            "Имя: {first_name}\n"
-            "Баланс: <b>{balance} ₽</b>\n"
-            "Заказов: <b>{orders_count}</b>\n"
-            "Уровень: {loyalty_emoji} <b>{loyalty_name}</b>{progress}"
+            "<h2>{first_name}</h2>\n"
+            "<table striped compact>"
+            "<tr><td>Баланс</td><td align=\"right\"><b>{balance} ₽</b></td></tr>"
+            "<tr><td>Заказов</td><td align=\"right\"><b>{orders_count}</b></td></tr>"
+            "<tr><td>Уровень</td><td align=\"right\">{loyalty_emoji} <b>{loyalty_name}</b></td></tr>"
+            "</table>\n"
+            "{progress}"
         ),
         variables=[
             Variable("first_name", "Имя пользователя"),
@@ -182,10 +185,12 @@ _TEXT_LIST: list[TextItem] = [
         label="Баланс (/balance)",
         group="Профиль и баланс",
         default=(
-            "💰 <b>Баланс</b>\n\n"
-            "Текущий баланс: <b>{balance} ₽</b>\n"
-            "Заказов: <b>{orders_count}</b>\n"
-            "Потрачено всего: <b>{total_spent} ₽</b>"
+            "<h2>Баланс: {balance} ₽</h2>\n"
+            "<table striped compact>"
+            "<tr><td>Заказов</td><td align=\"right\"><b>{orders_count}</b></td></tr>"
+            "<tr><td>Потрачено всего</td><td align=\"right\"><b>{total_spent} ₽</b></td></tr>"
+            "</table>\n"
+            "<footer>Балансом можно оплатить заказ целиком или частично</footer>"
         ),
         variables=[
             Variable("balance", "Текущий баланс"),
@@ -198,8 +203,9 @@ _TEXT_LIST: list[TextItem] = [
         label="Экран управления балансом",
         group="Профиль и баланс",
         default=(
-            "💰 <b>Управление балансом</b>\n\n"
-            "Текущий баланс: <b>{balance} ₽</b>"
+            "<h2>Баланс: {balance} ₽</h2>\n"
+            "Пополни заранее — заказы будут оплачиваться в одно касание.\n"
+            "<footer>Балансом можно оплатить заказ целиком или частично</footer>"
         ),
         variables=[Variable("balance", "Текущий баланс")],
     ),
@@ -208,12 +214,11 @@ _TEXT_LIST: list[TextItem] = [
         label="Экран поддержки",
         group="Поддержка и справка",
         default=(
-            "💬 <b>Поддержка {shop_name}</b>\n\n"
-            "Для помощи обратись в наш бот поддержки.\n"
-            "Время ответа: обычно до 4 часов.\n\n"
-            "<b>Документы:</b>\n"
-            '• <a href="{terms_url}">Пользовательское соглашение</a>\n'
-            '• <a href="{privacy_url}">Политика конфиденциальности</a>'
+            "<h2>Поддержка {shop_name}</h2>\n"
+            "Напиши в бот поддержки или открой чат в приложении — оператор ответит в переписке.\n"
+            "<h4>Документы</h4>"
+            '<ul><li><a href="{terms_url}">Пользовательское соглашение</a></li>'
+            '<li><a href="{privacy_url}">Политика конфиденциальности</a></li></ul>'
         ),
         variables=[SHOP_NAME, TERMS_URL, PRIVACY_URL],
     ),
@@ -222,19 +227,18 @@ _TEXT_LIST: list[TextItem] = [
         label="FAQ",
         group="Поддержка и справка",
         default=(
-            "❓ <b>FAQ — {shop_name}</b>\n\n"
-            "<b>Как быстро выдаётся товар?</b>\n"
-            "Автоматические товары — мгновенно после оплаты.\n"
-            "Ручные — в течение 1–24 часов.\n\n"
-            "<b>Какие способы оплаты?</b>\n"
-            "Баланс бота, USDT, TON и другая крипта.\n\n"
-            "<b>Что делать если товар не пришёл?</b>\n"
-            "Напиши в бот поддержки {support}.\n\n"
-            "<b>Есть ли скидки?</b>\n"
-            "Да! Программа лояльности Bronze → Silver → Gold → VIP.\n"
-            "Чем больше покупаешь — тем больше скидка.\n\n"
-            "<b>Как работает реферальная программа?</b>\n"
-            "Поделись своим кодом из профиля — получай процент с каждого заказа друга."
+            "<h2>Частые вопросы</h2>\n"
+            "<details><summary>Как быстро выдаётся товар?</summary>"
+            "<p>С автовыдачей — сразу после оплаты. Остальное выполняет оператор в чате: "
+            "обычно 5–30 минут, в редких случаях до 3 часов.</p></details>"
+            "<details><summary>Какие способы оплаты?</summary>"
+            "<p>СБП, банковская карта, криптовалюта и баланс бота.</p></details>"
+            "<details><summary>Что делать, если товар не пришёл?</summary>"
+            "<p>Напиши в бот поддержки {support} — разберёмся.</p></details>"
+            "<details><summary>Есть ли скидки?</summary>"
+            "<p>Да: с каждой покупки — кэшбэк на баланс, процент растёт вместе с уровнем.</p></details>"
+            "<details><summary>Как работает реферальная программа?</summary>"
+            "<p>Поделись ссылкой из профиля — получай процент с каждого заказа друга.</p></details>"
         ),
         variables=[SHOP_NAME, SUPPORT],
     ),
@@ -243,15 +247,17 @@ _TEXT_LIST: list[TextItem] = [
         label="Справка (/help)",
         group="Поддержка и справка",
         default=(
-            "🤖 <b>Команды {shop_name}</b>\n\n"
-            "/start — главное меню\n"
-            "/orders — мои заказы\n"
-            "/balance — мой баланс\n"
-            "/favorites — избранное\n"
-            "/referral — реферальная ссылка\n"
-            "/support — поддержка\n"
-            "/info — документы и информация\n"
-            "/help — эта справка"
+            "<h2>Команды {shop_name}</h2>\n"
+            "<table striped compact>"
+            "<tr><td>/start</td><td>главное меню</td></tr>"
+            "<tr><td>/orders</td><td>мои заказы</td></tr>"
+            "<tr><td>/balance</td><td>мой баланс</td></tr>"
+            "<tr><td>/favorites</td><td>избранное</td></tr>"
+            "<tr><td>/referral</td><td>реферальная ссылка</td></tr>"
+            "<tr><td>/support</td><td>поддержка</td></tr>"
+            "<tr><td>/info</td><td>документы и информация</td></tr>"
+            "<tr><td>/help</td><td>эта справка</td></tr>"
+            "</table>"
         ),
         variables=[SHOP_NAME],
     ),
@@ -260,14 +266,14 @@ _TEXT_LIST: list[TextItem] = [
         label="Информация (/info)",
         group="Поддержка и справка",
         default=(
-            "ℹ️ <b>{shop_name} — информация</b>\n\n"
-            "{shop_name} — сервис покупки игрового доната и цифровых товаров.\n\n"
-            "<b>Документы:</b>\n"
-            '• <a href="{terms_url}">Пользовательское соглашение</a>\n'
-            '• <a href="{privacy_url}">Политика конфиденциальности</a>\n\n'
-            "<b>Поддержка и обратная связь:</b>\n"
-            "• бот поддержки {support}\n"
-            "• тикет-система в приложении (раздел «Поддержка»)"
+            "<h2>{shop_name} — информация</h2>\n"
+            "{shop_name} — сервис покупки игрового доната и цифровых товаров.\n"
+            "<h4>Документы</h4>"
+            '<ul><li><a href="{terms_url}">Пользовательское соглашение</a></li>'
+            '<li><a href="{privacy_url}">Политика конфиденциальности</a></li></ul>'
+            "<h4>Поддержка и обратная связь</h4>"
+            "<ul><li>бот поддержки {support}</li>"
+            "<li>чат в приложении (раздел «Поддержка»)</li></ul>"
         ),
         variables=[SHOP_NAME, SUPPORT, TERMS_URL, PRIVACY_URL],
     ),

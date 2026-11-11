@@ -25,6 +25,7 @@ from shared.config import settings
 from shared.models import ShopSettings, User
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, nav_edit, render_screen
+from bot.utils.rich import rich_enabled, send_screen, to_classic_html
 from shared.content import get_photo_url, get_text
 
 router = Router(name="client:start")
@@ -186,6 +187,11 @@ async def cmd_start(message: Message, user: User, db: AsyncSession, state: FSMCo
 
     # Приоритет: настроенная в админке картинка → дефолтный welcome.jpg → без фото
     photo_url = await get_photo_url(db, "main_menu")
+    if photo_url and rich_enabled():
+        sent = await send_screen(message.bot, message.chat.id, welcome_text, photo_url, keyboard)
+        await state.update_data(nav_msg_id=sent.message_id)
+        return
+    welcome_text = to_classic_html(welcome_text)
     if photo_url and len(welcome_text) > 1024:
         photo_url = None  # подпись к фото в Telegram ограничена 1024 символами
     if photo_url:
@@ -266,11 +272,8 @@ async def _show_product_from_start(
         [InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main")]
     )
 
-    await message.answer(
-        card_text,
-        reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons),
-        parse_mode="HTML",
-    )
+    await send_screen(message.bot, message.chat.id, card_text,
+                      reply_markup=InlineKeyboardMarkup(inline_keyboard=buttons))
 
 
 @router.callback_query(F.data == "menu:main")
@@ -287,6 +290,7 @@ async def cb_menu_main(
         return
 
     # Нет настроенной картинки — fallback на локальный welcome.jpg
+    text = to_classic_html(text)
     assets_path = os.path.join(
         os.path.dirname(__file__), "..", "..", "assets", "welcome.jpg"
     )

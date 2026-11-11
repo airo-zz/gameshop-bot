@@ -1,6 +1,7 @@
 # requirements/bot.txt
 -r base.txt
-aiogram==3.26.0
+# 3.31 — Bot API 10.3: Rich Messages (экраны бота, bot/utils/rich.py)
+aiogram==3.31.0
 cachetools==5.5.0
 httpx==0.28.1
 aiofiles==24.1.0

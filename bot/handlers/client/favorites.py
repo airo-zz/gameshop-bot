@@ -23,6 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models import User, UserFavorite, Product, Category
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, nav_edit
+from bot.utils.rich import send_screen
 from bot.handlers.client.catalog import _show_product
 
 router = Router(name="client:favorites")
@@ -100,7 +101,7 @@ async def _show_favorites(
         if state is not None:
             await nav_edit(event, state, text, reply_markup=keyboard)
         else:
-            await event.answer(text, reply_markup=keyboard, parse_mode="HTML")
+            await send_screen(event.bot, event.chat.id, text, reply_markup=keyboard)
 
 
 @router.message(Command("favorites"))

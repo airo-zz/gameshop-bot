@@ -24,9 +24,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models import Game, Category, Product, Cart, CartItem, User
 from shared.config import settings
 from api.services.cart_service import CartService
-from bot.utils.texts import texts
+from bot.utils.texts import texts, rub, table
 from bot.utils.helpers import safe_edit, render_screen
-from shared.content import get_photo_url, get_text
+from bot.utils.rich import send_screen
+from shared.content import get_photo_url, get_text, resolve_photo_url
 
 router = Router(name="client:catalog")
 
@@ -202,18 +203,18 @@ async def show_search_results(message: Message, db: AsyncSession, state: FSMCont
     back = [InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
             InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")]
     if games:
-        text = (f"🔍 По запросу «<b>{escape(query[:40])}</b>» нашлось: {len(games)}\n\n"
-                "Выбери игру или напиши другое название.")
+        text = (f"<h2>Поиск: «{escape(query[:40])}»</h2>\nНашлось: <b>{len(games)}</b>\n"
+                "<footer>Выбери игру или напиши другое название</footer>")
         rows = _rows([InlineKeyboardButton(text=_short(g.name), callback_data=f"catalog:game:{g.id}")
                       for g in games])
     else:
-        text = (f"🔍 По запросу «<b>{escape(query[:40])}</b>» ничего не нашлось.\n\n"
+        text = (f"<h2>Поиск: «{escape(query[:40])}»</h2>\nНичего не нашлось.\n\n"
                 "Попробуй иначе — например, «genshin» или «стим». Нет нужной игры — "
                 "напиши в поддержку, соберём заказ индивидуально.")
         rows = [[InlineKeyboardButton(text="🆘 Поддержка", callback_data="support:main")]]
     rows.append(back)
     await state.set_state(SearchFSM.query)
-    await message.answer(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows), parse_mode="HTML")
+    await send_screen(message.bot, message.chat.id, text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
 
 
 @router.callback_query(F.data == "catalog:search")
@@ -221,7 +222,7 @@ async def cb_catalog_search(call: CallbackQuery, state: FSMContext) -> None:
     await state.set_state(SearchFSM.query)
     await safe_edit(
         call.message,
-        "🔍 <b>Поиск</b>\n\nНапиши название игры или сервиса — например, <i>Genshin</i>, <i>PUBG</i> или <i>Steam</i>.",
+        "<h2>Поиск</h2>\nНапиши название игры или сервиса — например, <i>Genshin</i>, <i>PUBG</i> или <i>Steam</i>.",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[[
             InlineKeyboardButton(text="🎮 Каталог", callback_data="catalog:main"),
             InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
@@ -256,8 +257,10 @@ async def render_game(call: CallbackQuery, game: Game, db: AsyncSession, page: i
         InlineKeyboardButton(text="◀️ Назад", callback_data=back_cb),
         InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
     ])
-    await safe_edit(call.message, texts.game_header(game.name), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
-    await call.answer()
+    await render_screen(
+        call, None, texts.game_header(game.name, (game.description or "").strip()),
+        photo_url=resolve_photo_url(game.banner_url), reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+    )
 
 
 @router.callback_query(F.data.startswith("catalog:game:"))
@@ -347,7 +350,11 @@ async def _render_category(
     page = max(0, min(page, pages - 1))
 
     buttons = []
+    price_rows = []
     for p in products[page * PRODUCTS_PAGE:(page + 1) * PRODUCTS_PAGE]:
+        q = qty_map.get(p.id, 0)
+        mark = " · нет" if p.is_out_of_stock else (f" · ×{q}" if q else "")
+        price_rows.append((escape(p.name) + mark, f"<b>{rub(p.price)}</b>"))
         q = qty_map.get(p.id, 0)
         label = f"{p.name} — {float(p.price):.0f} ₽"
         if p.is_out_of_stock:
@@ -372,10 +379,13 @@ async def _render_category(
     desc = (category.description or (game.description if game else None) or "").strip()
     if desc:
         header = f"{header}\n\n{escape(desc[:600])}"
-    header += "\n\n<i>Нажми на товар — он добавится в корзину.</i>"
+    header += "\n" + table(price_rows, header=("Товар", "Цена"))
+    if cart_total:
+        header += f"\n<footer>Нажми на товар — он добавится в корзину. В корзине на {rub(cart_total)}</footer>"
+    else:
+        header += "\n<footer>Нажми на товар — он добавится в корзину</footer>"
 
-    await safe_edit(call.message, header, reply_markup=keyboard)
-    await call.answer(toast or "")
+    await render_screen(call, None, header, reply_markup=keyboard, answer_text=toast or "")
 
 
 @router.callback_query(F.data.startswith("catalog:cat:reset:"))
@@ -499,8 +509,9 @@ async def _show_product(
         buttons.append(
             [
                 InlineKeyboardButton(
-                    text=f"В корзину — {float(product.price):.0f} ₽{qty_text}",
+                    text=f"🛒 В корзину — {float(product.price):.0f} ₽{qty_text}",
                     callback_data=f"cart:add:{product.id}",
+                    style="success",
                 )
             ]
         )

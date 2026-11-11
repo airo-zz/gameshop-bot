@@ -28,6 +28,7 @@ from api.services.payment_service import PaymentService
 from api.services.rapira_service import get_method_fees
 from bot.utils.texts import texts, TOPUP_MIN, TOPUP_MAX
 from bot.utils.helpers import safe_edit, render_screen
+from bot.utils.rich import send_screen
 
 router = Router(name="client:profile")
 
@@ -253,10 +254,8 @@ async def fsm_topup_custom_amount(message: Message, state: FSMContext, db: Async
         return
     await state.clear()
     amount = int(raw)
-    await message.answer(
-        texts.topup_choose_method(amount),
-        reply_markup=_topup_methods_keyboard(amount, await get_method_fees(db)),
-    )
+    await send_screen(message.bot, message.chat.id, texts.topup_choose_method(amount),
+                      reply_markup=_topup_methods_keyboard(amount, await get_method_fees(db)))
 
 
 def _topup_methods_keyboard(amount: int, fees: dict[str, float]) -> InlineKeyboardMarkup:

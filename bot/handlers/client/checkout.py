@@ -31,6 +31,7 @@ from api.services.payment_service import PaymentService
 from api.services.rapira_service import get_method_fees
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit
+from bot.utils.rich import send_screen
 
 router = Router(name="client:checkout")
 log = structlog.get_logger()
@@ -182,11 +183,8 @@ async def cb_pay_custom_lot(
         total=float(order.total_amount),
         balance=float(user.balance),
     )
-    await call.message.answer(
-        text,
-        reply_markup=_payment_methods_keyboard(float(user.balance), await get_method_fees(db)),
-        parse_mode="HTML",
-    )
+    await send_screen(call.bot, call.message.chat.id, text,
+                      reply_markup=_payment_methods_keyboard(float(user.balance), await get_method_fees(db)))
     await call.answer()
 
 
@@ -341,11 +339,8 @@ async def _finalize_order(message: Message, user: User, db: AsyncSession, state:
         total=float(order.total_amount),
         balance=float(user.balance),
     )
-    await message.answer(
-        text,
-        reply_markup=_payment_methods_keyboard(float(user.balance), await get_method_fees(db)),
-        parse_mode="HTML",
-    )
+    await send_screen(message.bot, message.chat.id, text,
+                      reply_markup=_payment_methods_keyboard(float(user.balance), await get_method_fees(db)))
 
 
 # ── Оплата балансом ───────────────────────────────────────────────────────────

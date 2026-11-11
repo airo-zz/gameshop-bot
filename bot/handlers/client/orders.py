@@ -23,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Order, OrderStatus, User
 from shared.content import get_photo_url
-from bot.utils.texts import texts
+from bot.utils.texts import texts, rub, table
 from bot.utils.helpers import safe_edit, render_screen
 
 router = Router(name="client:orders")
@@ -80,14 +80,12 @@ async def _render_orders(
             ]
         )
 
-    lines = [texts.orders_list_header(len(orders))]
+    rows = []
     buttons = []
     for order in orders:
         emoji = STATUS_EMOJI.get(order.status, "📋")
         label = STATUS_LABEL.get(order.status, order.status.value)
-        lines.append(
-            f"{emoji} <b>{order.order_number}</b> — {order.total_amount:.0f} ₽ · {label}"
-        )
+        rows.append((f"<b>{escape(order.order_number)}</b>", f"{emoji} {label}", rub(order.total_amount)))
         buttons.append(
             [
                 InlineKeyboardButton(
@@ -109,7 +107,12 @@ async def _render_orders(
     buttons.append(
         [InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main")]
     )
-    return "\n".join(lines), InlineKeyboardMarkup(inline_keyboard=buttons)
+    text = (
+        texts.orders_list_header(len(orders)) + "\n"
+        + table(rows, header=("Заказ", "Статус", "Сумма"))
+        + "\n<footer>Нажми на заказ, чтобы открыть подробности</footer>"
+    )
+    return text, InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 @router.message(Command("orders"))
@@ -170,18 +173,20 @@ async def cb_order_detail(
 
     emoji = STATUS_EMOJI.get(order.status, "📋")
     label = STATUS_LABEL.get(order.status, order.status.value)
-    items_text = "\n".join(
-        f"  • {escape(item.product_name)}"
-        + f" × {item.quantity} — {float(item.total_price):.0f} ₽"
+    item_rows = [
+        (escape(item.product_name), f"×{item.quantity}", rub(item.total_price))
         for item in order.items
-    )
+    ]
+    item_rows.append(("<b>Итого</b>", "", f"<b>{rub(order.total_amount)}</b>"))
 
     text = (
-        f"{emoji} <b>Заказ {order.order_number}</b>\n\n"
-        f"Статус: <b>{emoji} {label}</b>\n"
-        f"Дата: {order.created_at.strftime('%d.%m.%Y %H:%M')}\n\n"
-        f"<b>Состав:</b>\n{items_text}\n\n"
-        f"<b>Итого: {float(order.total_amount):.0f} ₽</b>"
+        f"<h2>Заказ {escape(order.order_number)}</h2>\n"
+        + table([
+            ("Статус", f"{emoji} <b>{label}</b>"),
+            ("Дата", order.created_at.strftime("%d.%m.%Y %H:%M")),
+        ])
+        + "\n<h4>Состав</h4>"
+        + table(item_rows)
     )
 
     keyboard = InlineKeyboardMarkup(

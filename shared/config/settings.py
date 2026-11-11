@@ -44,6 +44,8 @@ class ShopSettings(BaseSettings):
 class TelegramSettings(BaseSettings):
     BOT_TOKEN: str
     BOT_USERNAME: str = "reDonate_robot"  # username бота без @
+    # Экраны бота — Rich Messages (Bot API 10.1+); False — обычные сообщения (откат)
+    BOT_RICH_MESSAGES: bool = True
     ADMIN_BOT_TOKEN: str = ""           # если нет отдельного — используем BOT_TOKEN
     SUPPORT_BOT_TOKEN: str = ""         # токен бота поддержки
     SUPPORT_NOTIFY_CHAT_ID: int = 0     # chat_id группы операторов для уведомлений
