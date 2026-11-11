@@ -26,6 +26,8 @@ from shared.models import ShopSettings, User
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, nav_edit, render_screen
 from bot.utils.rich import rich_enabled, send_screen, to_classic_html
+from bot.utils.dashboard import send_dashboard
+from bot.utils.widgets import widgets_enabled
 from shared.content import get_photo_url, get_text
 
 router = Router(name="client:start")
@@ -188,6 +190,9 @@ async def cmd_start(message: Message, user: User, db: AsyncSession, state: FSMCo
     # Приоритет: настроенная в админке картинка → дефолтный welcome.jpg → без фото
     photo_url = await get_photo_url(db, "main_menu")
     if photo_url and rich_enabled():
+        if widgets_enabled():
+            # живая панель (баланс, уровень, корзина) над меню
+            await send_dashboard(message.bot, message.chat.id, db, user, state)
         sent = await send_screen(message.bot, message.chat.id, welcome_text, photo_url, keyboard)
         await state.update_data(nav_msg_id=sent.message_id)
         return
@@ -280,10 +285,27 @@ async def _show_product_from_start(
 async def cb_menu_main(
     call: CallbackQuery, user: User, db: AsyncSession, state: FSMContext
 ) -> None:
+    dash_msg_id = (await state.get_data()).get("dash_msg_id")
     await state.clear()
     text = await get_text(db, "greeting", first_name=escape(user.first_name))
     keyboard = get_start_inline_keyboard()
     photo_url = await get_photo_url(db, "main_menu")
+
+    if photo_url and rich_enabled() and widgets_enabled():
+        # Меню заново внизу чата: свежая панель-виджет и под ней баннер с кнопками
+        if dash_msg_id:
+            await state.update_data(dash_msg_id=dash_msg_id)
+        from aiogram.exceptions import TelegramBadRequest
+
+        try:
+            await call.message.delete()
+        except TelegramBadRequest:
+            pass
+        await send_dashboard(call.bot, call.message.chat.id, db, user, state)
+        sent = await send_screen(call.bot, call.message.chat.id, text, photo_url, keyboard)
+        await state.update_data(nav_msg_id=sent.message_id)
+        await call.answer()
+        return
 
     if photo_url:
         await render_screen(call, state, text, photo_url=photo_url, reply_markup=keyboard)

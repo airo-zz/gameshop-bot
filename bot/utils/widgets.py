@@ -155,3 +155,43 @@ def category_widget_html(products: list) -> str | None:
     if len(html.encode()) > 32768 or len(zlib.compress(html.encode(), 9)) > WIDGET_ZLIB_LIMIT:
         return None
     return html
+
+
+# ── Панель главного меню ─────────────────────────────────────────────────────
+# Данные — chat_data (JSON от dashboard_data); при появлении на экране виджет
+# сам просит свежие запросом «r» (фоновые запросы разрешены в личке с ботом).
+# D = {b: баланс, lv, ic, col: уровень, cb: % кэшбэка, p: прогресс 0..1, pt: подпись,
+#      mc: кэшбэк месяца, ct: корзина или null, od: последний заказ или null}
+
+DASHBOARD_HTML = """<style>
+body{margin:0;padding:12px 12px 0;font:15px/1.3 system-ui,sans-serif}
+.h{font-size:12px;color:var(--tg-theme-hint-color)}
+.t{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.b{font-size:27px;font-weight:700;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.l{text-align:right;padding:6px 10px;border-radius:12px;background:var(--tg-theme-secondary-bg-color)}
+.l b{display:block;font-size:15px}
+.r{height:6px;border-radius:3px;background:var(--tg-theme-secondary-bg-color);margin:12px 0 5px;overflow:hidden}
+.r i{display:block;height:100%;width:0;border-radius:3px;transition:width .9s cubic-bezier(.2,.8,.2,1)}
+.x{font-size:13px;margin-top:8px;color:var(--tg-theme-hint-color)}
+.w{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--tg-theme-section-separator-color);font-size:14px}
+.w span:last-child{font-weight:550;text-align:right;font-variant-numeric:tabular-nums}
+.z{padding-bottom:max(10px,env(safe-area-inset-bottom))}
+</style><div id="A"></div>
+<script>
+var W=window.TelegramWidget,D=null,open=0,shown=0;
+function ld(s){try{D=JSON.parse(s)}catch(e){}}
+function tg(){open=!open;try{W.HapticFeedback.selectionChanged()}catch(e){}R()}
+function R(){var a=document.getElementById('A');if(!D){a.innerHTML='<div class="h z">Загружаю…</div>';return}
+var h='<div class="t"><div><div class="h">Баланс</div><div class="b">'+D.b+'</div></div>'+
+'<div class="l" onclick="tg()"><span class="h">'+D.ic+' уровень</span><b style="color:'+D.col+'">'+D.lv+'</b><span class="h">кэшбэк '+D.cb+'</span></div></div>'+
+'<div class="r"><i id="P" style="background:'+D.col+'"></i></div><div class="h">'+D.pt+'</div>';
+if(open)h+='<div class="x">Кэшбэк начисляется на баланс после выполнения заказа. В этом месяце: '+D.mc+'</div>';
+h+='<div style="margin-top:10px"></div>';
+var rows=[['Корзина',D.ct||'пусто'],['Последний заказ',D.od||'пока нет']];
+rows.forEach(function(x,i){h+='<div class="w'+(i==rows.length-1?' z':'')+'"><span class="h">'+x[0]+'</span><span>'+x[1]+'</span></div>'});
+a.innerHTML=h;var p=document.getElementById('P');
+if(shown)p.style.width=Math.round(D.p*100)+'%';else{shown=1;setTimeout(function(){p.style.width=Math.round(D.p*100)+'%'},60)}}
+function rf(){if(!W.request)return;W.request('r').then(function(a){try{var o=JSON.parse(a.result);if(o.d){D=o.d;R()}}catch(e){}},function(){})}
+ld(W.chatData);W.onEvent('chatDataChanged',function(){ld(W.chatData);R()});W.onEvent('activated',rf);
+R();rf();if(W.ready)W.ready();
+</script>"""

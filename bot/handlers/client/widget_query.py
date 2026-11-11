@@ -6,6 +6,7 @@ bot/handlers/client/widget_query.py
 middleware диспетчера до разбора, отвечаем answerWidgetQuery (до 15 с).
 
 Запрос виджета раздела: «a:<id товара hex>:<кол-во>» — положить в корзину.
+Запрос панели главного меню: «r» — свежие данные (bot/utils/dashboard.py).
 Ответ виджету — JSON: {"ok":1,"m":"…"} или {"ok":0,"e":"…"}.
 ─────────────────────────────────────────────────────────────────────────────
 """
@@ -64,6 +65,17 @@ class WidgetQueryMiddleware(BaseMiddleware):
         return None
 
     async def _handle(self, bot: Bot, query: dict) -> dict:
+        tg_id = (query.get("from") or {}).get("id")
+        if query.get("data") == "r":
+            # панель главного меню просит свежие данные
+            from bot.utils.dashboard import dashboard_data
+
+            async with async_session_factory() as db:
+                user = (await db.execute(select(User).where(User.telegram_id == tg_id))).scalar_one_or_none()
+                if not user:
+                    return {"ok": 0}
+                return {"ok": 1, "d": await dashboard_data(db, user)}
+
         parts = str(query.get("data") or "").split(":")
         if len(parts) != 3 or parts[0] != "a":
             return {"ok": 0, "e": "Неизвестный запрос"}
@@ -75,7 +87,6 @@ class WidgetQueryMiddleware(BaseMiddleware):
         if units < 1:
             return {"ok": 0, "e": "Неверное количество"}
 
-        tg_id = (query.get("from") or {}).get("id")
         chat_id = (query.get("chat") or {}).get("id") or tg_id
         message_id = query.get("message_id")
 
