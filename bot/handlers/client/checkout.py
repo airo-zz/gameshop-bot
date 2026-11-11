@@ -28,6 +28,7 @@ from shared.models import CartItem, Order, OrderStatus, PaymentMethod, Product, 
 from api.services.cart_service import CartService
 from api.services.order_service import OrderService
 from api.services.payment_service import PaymentService
+from api.services.rapira_service import get_method_fees
 from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit
 
@@ -43,24 +44,28 @@ class CheckoutFSM(StatesGroup):
 
 # ── Клавиатуры ────────────────────────────────────────────────────────────────
 
-def _payment_methods_keyboard(balance: float) -> InlineKeyboardMarkup:
+def _external_method_rows(fees: dict[str, float]) -> list[list[InlineKeyboardButton]]:
+    """СБП / карта / крипта с комиссией способа на кнопке."""
+    return [
+        [InlineKeyboardButton(text=texts.pay_method_button(m, fees.get(m)), callback_data=f"checkout:pay:{m}")]
+        for m in ("sbp", "card", "crypto")
+    ]
+
+
+def _payment_methods_keyboard(balance: float, fees: dict[str, float]) -> InlineKeyboardMarkup:
     balance_label = f"💰 Балансом ({balance:.0f} ₽)"
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text=balance_label, callback_data="checkout:pay:balance")],
-            [InlineKeyboardButton(text="🏦 СБП", callback_data="checkout:pay:sbp")],
-            [InlineKeyboardButton(text="💳 Банковская карта", callback_data="checkout:pay:card")],
-            [InlineKeyboardButton(text="🪙 Криптовалюта", callback_data="checkout:pay:crypto")],
+            *_external_method_rows(fees),
             [InlineKeyboardButton(text="❌ Отменить заказ", callback_data="checkout:cancel")],
         ]
     )
 
 
-def _insufficient_balance_keyboard() -> InlineKeyboardMarkup:
+def _insufficient_balance_keyboard(fees: dict[str, float]) -> InlineKeyboardMarkup:
     buttons = [
-        [InlineKeyboardButton(text="🏦 СБП", callback_data="checkout:pay:sbp")],
-        [InlineKeyboardButton(text="💳 Банковская карта", callback_data="checkout:pay:card")],
-        [InlineKeyboardButton(text="🪙 Криптовалюта", callback_data="checkout:pay:crypto")],
+        *_external_method_rows(fees),
         [InlineKeyboardButton(text="❌ Отменить заказ", callback_data="checkout:cancel")],
     ]
     # Пополнение прямо в боте (Platega) — заказ остаётся, к нему можно вернуться
@@ -179,7 +184,7 @@ async def cb_pay_custom_lot(
     )
     await call.message.answer(
         text,
-        reply_markup=_payment_methods_keyboard(float(user.balance)),
+        reply_markup=_payment_methods_keyboard(float(user.balance), await get_method_fees(db)),
         parse_mode="HTML",
     )
     await call.answer()
@@ -338,7 +343,7 @@ async def _finalize_order(message: Message, user: User, db: AsyncSession, state:
     )
     await message.answer(
         text,
-        reply_markup=_payment_methods_keyboard(float(user.balance)),
+        reply_markup=_payment_methods_keyboard(float(user.balance), await get_method_fees(db)),
         parse_mode="HTML",
     )
 
@@ -385,7 +390,7 @@ async def cb_pay_balance(
         await safe_edit(
             call.message,
             texts.payment_insufficient_balance(balance, needed),
-            reply_markup=_insufficient_balance_keyboard(),
+            reply_markup=_insufficient_balance_keyboard(await get_method_fees(db)),
         )
         await call.answer("❌ Недостаточно средств", show_alert=True)
 
@@ -396,7 +401,7 @@ async def cb_pay_balance(
     CheckoutFSM.selecting_method,
     F.data.in_({"checkout:pay:sbp", "checkout:pay:card", "checkout:pay:crypto"}),
 )
-async def cb_pay_platega(
+async def cb_pay_external(
     call: CallbackQuery,
     user: User,
     db: AsyncSession,
@@ -418,7 +423,7 @@ async def cb_pay_platega(
 
     payment_svc = PaymentService(db)
     try:
-        result = await payment_svc.pay_platega(order, user, method_value, source="bot")
+        result = await payment_svc.pay_external(order, user, method_value, source="bot")
     except ValueError as exc:
         await call.answer(str(exc), show_alert=True)
         return

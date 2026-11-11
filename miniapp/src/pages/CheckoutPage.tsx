@@ -11,6 +11,7 @@ import { useTelegram } from '@/hooks/useTelegram'
 import { useCartStore } from '@/store'
 import { PAY_SOURCE } from '@/config/appTarget'
 import BalanceSplitToggle, { splitPayment } from '@/components/ui/BalanceSplit'
+import FeeBadge from '@/components/ui/FeeBadge'
 
 const PAYMENT_METHODS = [
   { id: 'balance', label: 'Баланс бота',      icon: <Wallet size={20} />,     description: 'Мгновенно' },
@@ -233,7 +234,10 @@ export default function CheckoutPage() {
                 </span>
                 <div className="flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold text-sm" style={{ color: 'var(--text)' }}>{method.label}</p>
+                    <p className="font-semibold text-sm flex items-center gap-1.5 flex-wrap" style={{ color: 'var(--text)' }}>
+                      {method.label}
+                      {method.id !== 'balance' && <FeeBadge pct={quote?.fees?.[method.id as QuoteKey]} />}
+                    </p>
                     {quote && (
                       <p className="text-sm font-semibold num" style={{ color: 'var(--text)' }}>
                         {fmtPrice(quote[method.id as QuoteKey])} ₽

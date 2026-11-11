@@ -13,6 +13,7 @@ import { ordersApi, profileApi, cartApi } from '@/api'
 import { useWebCart } from '@/web/cart/useWebCart'
 import { PAY_SOURCE } from '@/config/appTarget'
 import BalanceSplitToggle, { splitPayment } from '@/components/ui/BalanceSplit'
+import FeeBadge from '@/components/ui/FeeBadge'
 import { fmtNum } from '@/utils/format'
 
 function money(v: number) {
@@ -188,7 +189,10 @@ export default function WebCheckoutPage() {
               <m.icon size={20} style={{ color: selected ? 'var(--link)' : 'var(--hint)' }} />
               <div className="flex-1">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-[var(--text)]">{m.label}</p>
+                  <p className="text-sm font-semibold text-[var(--text)] flex items-center gap-1.5 flex-wrap">
+                    {m.label}
+                    {m.id !== 'balance' && <FeeBadge pct={quote?.fees?.[m.id]} />}
+                  </p>
                   {quote && (
                     <p className="text-sm font-semibold num text-[var(--text)]">
                       {money(quote[m.id])}

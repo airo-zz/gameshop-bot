@@ -376,7 +376,7 @@ export const cartApi = {
     apiClient.get<CheckoutFieldGroup[]>('/cart/checkout-fields').then(r => r.data),
 
   getQuote: () =>
-    apiClient.get<{ crypto: number; balance: number; card: number; sbp: number }>('/cart/quote').then(r => r.data),
+    apiClient.get<PayQuote>('/cart/quote').then(r => r.data),
 }
 
 // ── Orders API ────────────────────────────────────────────────────────────────
@@ -403,7 +403,7 @@ export const ordersApi = {
 
   // Котировка по способам оплаты для заранее созданного заказа (спец-лот)
   payQuote: (orderId: string) =>
-    apiClient.get<{ crypto: number; balance: number; card: number; sbp: number }>(
+    apiClient.get<PayQuote>(
       `/orders/${orderId}/pay-quote`,
     ).then(r => r.data),
 
@@ -493,7 +493,21 @@ export const profileApi = {
 
 // ── Payments API ──────────────────────────────────────────────────────────────
 
+/** Сумма по каждому способу оплаты + комиссия способа в % (fees) */
+export interface PayQuote {
+  crypto: number
+  balance: number
+  card: number
+  sbp: number
+  fees?: PaymentFees
+}
+
+export type PaymentFees = Record<'balance' | 'sbp' | 'card' | 'crypto', number>
+
 export const paymentsApi = {
+  /** Комиссия способов оплаты в % (для экранов без котировки — пополнение баланса) */
+  fees: () => apiClient.get<PaymentFees>('/payments/fees').then(r => r.data),
+
   topupBalance: (amount: number, method: 'sbp' | 'card' | 'crypto', source?: 'web' | 'miniapp') =>
     apiClient.post<{ redirect_url?: string; payment_id?: string }>(
       '/payments/balance/topup',

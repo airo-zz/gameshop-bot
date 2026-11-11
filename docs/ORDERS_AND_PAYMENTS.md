@@ -13,9 +13,9 @@
 2. **Создание заказа** — `OrderService.create_from_cart`. Копирует позиции в `OrderItem`, вместе с ценой, данными покупателя и инструкцией по получению на момент покупки. Корзина очищается **только после того, как оплата успешно запущена** (`meta.from_cart`). Если платёжка вернула ошибку, корзина остаётся.
 3. **Оплата** — `api/routers/payments.py` → `POST /payments/orders/{id}/pay` → `PaymentService`:
    - `pay_balance` — целиком с баланса;
-   - `pay_platega` — СБП / карта / крипта через Platega;
-   - с флагом `use_balance` и неполным балансом — **доплата**: `OrderService.hold_balance` замораживает весь баланс, в Platega уходит остаток.
-4. **Подтверждение** — вебхук Platega `POST /webhooks/platega` (`api/routers/webhooks.py` → `PaymentService.handle_platega_webhook`). Статус `CONFIRMED` переводит заказ в `paid`.
+   - `pay_external` — внешний шлюз по способу (`gateway_for`): **карта → Platega** (`pay_platega`), **СБП и крипта → Coinso** (`pay_coinso`). Пока ключи Coinso не заданы в `.env`, СБП и крипта тоже идут через Platega;
+   - с флагом `use_balance` и неполным балансом — **доплата**: `OrderService.hold_balance` замораживает весь баланс, в шлюз уходит остаток.
+4. **Подтверждение** — вебхуки `POST /webhooks/platega` (`handle_platega_webhook`, статус `CONFIRMED`) и `POST /webhooks/coinso` (`handle_coinso_webhook`, событие `payment.success`). Оба сводятся к общему `PaymentService._settle`, который переводит заказ в `paid` или зачисляет пополнение.
 5. **`change_status(paid)`** делает всё остальное (`api/services/order_service.py`):
    - обновляет статистику покупателя (для уровня кэшбэка);
    - создаёт или привязывает чат с оператором и пишет туда системное сообщение;
@@ -52,13 +52,24 @@ new → pending_payment → paid → processing → completed ⇄ processing
 - Товары «за единицу» (поле типа `quantity`: звёзды, рубли Steam) — без округления «в 9», точно до копеек.
 - **Наценки способов оплаты** (`markup_sbp`, `markup_card`, `markup_crypto`, `markup_balance` в `shop_settings`) прибавляются только на шаге оплаты (`pricing.method_total`). В каталоге показывается цена «как при оплате балансом».
 - Platega сама добавляет клиенту свою комиссию, поэтому в Platega уходит **базовая сумма** заказа (subtotal − скидка) без нашей наценки. Иначе комиссия взялась бы дважды.
+- Coinso удерживает комиссию с магазина, поэтому в Coinso уходит сумма **с нашей наценкой способа** (`_with_method_markup`). С 11.11.2026: СБП 0%, крипта 2%.
+- Комиссия способа в % (`rapira_service.get_method_fees`) отдаётся в `/cart/quote`, `/orders/{id}/pay-quote` (поле `fees`) и `GET /payments/fees`. Её показывают при выборе способа: плашка `FeeBadge` в Mini App и на сайте, текст кнопок в боте (`texts.pay_method_button`).
 
 ## Баланс
 
 - `users.balance` всегда равен сумме записей `balance_transactions` этого пользователя. Задача `check_integrity` проверяет это раз в 3 часа и шлёт тревогу персоналу.
 - Менять баланс можно только с записью в `BalanceTransaction` — напрямую `user.balance +=` не писать.
-- **Пополнение**: `PaymentService.topup_platega` создаёт `BalanceTopup` (сумма и пользователь хранятся на нашей стороне), вебхук зачисляет через `_credit_balance_topup`. Повторно не зачислит: уникальный индекс `(provider, external_payment_id)`.
-- **Холд при доплате**: `hold_balance` списывает баланс в `order.meta.balance_hold`. `release_balance_hold` возвращает его при отмене, истечении заказа, отказе или chargeback в Platega, а также при повторной оплате без баланса. Повторный холд второй раз не списывает.
+- **Пополнение**: `PaymentService.topup_external` (Platega или Coinso по способу) создаёт `BalanceTopup` (сумма и пользователь хранятся на нашей стороне), вебхук зачисляет через `_credit_balance_topup`. Повторно не зачислит: уникальный индекс `(provider, external_payment_id)`.
+- **Холд при доплате**: `hold_balance` списывает баланс в `order.meta.balance_hold`. `release_balance_hold` возвращает его при отмене, истечении заказа, отказе шлюза или chargeback, а также при повторной оплате без баланса. Повторный холд второй раз не списывает.
+
+## Вебхук Coinso — как защищён
+
+- Подпись: заголовок `X-Signature` = HMAC-SHA256 **сырого** тела ключом `COINSO_SECRET_KEY` (тот же Secret Key, что в `Authorization: Bearer`). Без верной подписи — 401.
+- Платёж ищется по `invoice_id` = `Payment.external_id` / `BalanceTopup.external_id` (provider `coinso`). Полю `custom` не доверяем.
+- На `payment.success` статус дополнительно сверяется через `GET /payment/status` — если там не `paid`, заказ не оплачивается. Если статус-API недоступен, доверяем подписанному вебхуку.
+- Тестовые платежи (`test_mode: true`) игнорируются, пока `COINSO_ACCEPT_TEST=false`. Для проверки цепочки в тестовом режиме проекта — временно `COINSO_ACCEPT_TEST=true`.
+- Пополнение зачисляет сумму якоря `BalanceTopup.amount` (без наценки), к оплате уходило с наценкой.
+- Webhook URL в кабинете Coinso: `https://redonate.gg/webhooks/coinso`, **без** `/api`.
 
 ## Вебхук Platega — как защищён
 
@@ -80,6 +91,6 @@ new → pending_payment → paid → processing → completed ⇄ processing
 
 ## Где смотреть, если что-то не так
 
-- Оплата не подтвердилась: `docker compose logs api | grep "Platega webhook"`. Если запросов нет — проверить callback URL в кабинете Platega.
-- Ошибка при создании платежа: `grep "Platega pay error"` — там тело ответа Platega.
+- Оплата не подтвердилась: `docker compose logs api | grep -E "Platega webhook|Coinso webhook"`. Если запросов нет — проверить callback / webhook URL в кабинете шлюза.
+- Ошибка при создании платежа: `grep -E "Platega pay error|Coinso (pay|topup) error"` — там тело ответа шлюза (у Coinso — `error_code`, `error_source`).
 - Автовыдача: логи `worker` (`fragment:`, `fazer:`).

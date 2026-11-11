@@ -131,6 +131,13 @@ async def get_all_markups(db: AsyncSession) -> dict[str, float]:
     return {g: float(await get_group_markup(db, g)) for g in MARKUP_KEYS}
 
 
+async def get_method_fees(db: AsyncSession) -> dict[str, float]:
+    """Комиссия способа оплаты в % сверх цены каталога — для показа при выборе способа."""
+    markups = await get_all_markups(db)
+    disp = 1 + markups[DISPLAY_GROUP] / 100
+    return {g: round(((1 + m / 100) / disp - 1) * 100, 2) for g, m in markups.items()}
+
+
 async def get_markup_percent(db: AsyncSession) -> Decimal:
     """Базовая наценка для кэша ₽-цены товара — по крипте (самый дешёвый метод)."""
     return await get_group_markup(db, DISPLAY_GROUP)

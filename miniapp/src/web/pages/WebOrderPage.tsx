@@ -10,7 +10,7 @@ import { CheckCircle2, Clock, Loader2, XCircle, RotateCcw, Wallet, Smartphone, C
 import { PenLoader } from '@/components/brand/BrandMotion'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
-import { ordersApi } from '@/api'
+import { ordersApi, paymentsApi } from '@/api'
 import { PAY_SOURCE } from '@/config/appTarget'
 import { openChat } from '@/web/chat/chatStore'
 import { OrderReviewForm } from '@/components/reviews/Reviews'
@@ -34,6 +34,8 @@ export default function WebOrderPage() {
   const [repaying, setRepaying] = useState(false)
   const [method, setMethod] = useState<string>('sbp')
 
+  // Комиссия способа в % — на кнопках выбора способа
+  const { data: fees } = useQuery({ queryKey: ['web', 'payment-fees'], queryFn: paymentsApi.fees, staleTime: 5 * 60 * 1000 })
   const { data: order, isLoading, isError } = useQuery({
     queryKey: ['web', 'order', id],
     queryFn: () => ordersApi.get(id!),
@@ -180,6 +182,7 @@ export default function WebOrderPage() {
                       className={'h-11 rounded-xl inline-flex items-center justify-center gap-2 text-sm font-medium transition-colors '
                         + (method === m ? 'bg-[var(--accent)] text-white' : 'bg-[var(--bg3)] text-[var(--text-2)] hover:text-[var(--text)]')}>
                 <Icon size={16} /> {label}
+                {m !== 'balance' && fees && <span className="text-[11px] opacity-75 num">{fees[m]}%</span>}
               </button>
             ))}
           </div>

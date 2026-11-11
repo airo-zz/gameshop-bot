@@ -16,3 +16,9 @@ export function fmtPrice(v: number | string): string {
   const n = typeof v === 'string' ? parseFloat(v) : v
   return fmtNum(parseFloat(n.toFixed(2)))
 }
+
+/** Комиссия способа оплаты: 0 → "Комиссия 0%", 2 → "Комиссия 2%", 9.5 → "Комиссия 9,5%". */
+export function feeText(pct: number | null | undefined): string | null {
+  if (pct == null || !Number.isFinite(Number(pct))) return null
+  return `Комиссия ${fmtNum(Number(pct))}%`
+}

@@ -59,7 +59,7 @@ async def get_cart(db: DbSession, user: CurrentUser):
 async def get_cart_quote(db: DbSession, user: CurrentUser):
     """Итоговая сумма корзины по каждому способу оплаты (с наценкой метода)."""
     from api.services.pricing import method_total
-    from api.services.rapira_service import DISPLAY_GROUP, get_all_markups
+    from api.services.rapira_service import DISPLAY_GROUP, get_all_markups, get_method_fees
 
     svc = CartService(db)
     cart = await svc.get_or_create_cart(user)
@@ -72,6 +72,8 @@ async def get_cart_quote(db: DbSession, user: CurrentUser):
         "balance": method_total(base, disp, markups["balance"]),
         "card": method_total(base, disp, markups["card"]),
         "sbp": method_total(base, disp, markups["sbp"]),
+        # Комиссия способа в % — показывается рядом со способом оплаты
+        "fees": await get_method_fees(db),
     }
 
 

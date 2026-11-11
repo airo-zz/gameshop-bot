@@ -49,7 +49,7 @@ async def get_order_pay_quote(order_id: UUID, db: DbSession, user: CurrentUser):
     """Сумма заказа по каждому способу оплаты (для экрана оплаты заранее созданного
     заказа / индивидуального лота). База = subtotal − скидка, наценка метода сверху."""
     from api.services.pricing import method_total
-    from api.services.rapira_service import DISPLAY_GROUP, get_all_markups
+    from api.services.rapira_service import DISPLAY_GROUP, get_all_markups, get_method_fees
 
     result = await db.execute(
         select(Order).where(Order.id == order_id, Order.user_id == user.id)
@@ -66,6 +66,7 @@ async def get_order_pay_quote(order_id: UUID, db: DbSession, user: CurrentUser):
         "balance": method_total(base, disp, markups["balance"]),
         "card": method_total(base, disp, markups["card"]),
         "sbp": method_total(base, disp, markups["sbp"]),
+        "fees": await get_method_fees(db),
     }
 
 

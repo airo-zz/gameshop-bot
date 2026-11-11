@@ -1,6 +1,6 @@
 /**
  * src/web/pages/WebBalancePage.tsx
- * Баланс на сайте: текущий остаток, пополнение через Platega (СБП / карта /
+ * Баланс на сайте: текущий остаток, пополнение через Coinso / Platega (СБП / карта /
  * крипта) и история операций.
  *
  * Пополнение: POST /payments/balance/topup → redirect_url Platega. Переходим
@@ -19,6 +19,7 @@ import { profileApi, paymentsApi, type BalanceTransaction } from '@/api'
 import { PAY_SOURCE } from '@/config/appTarget'
 import { money, apiError, txLabel, txIsCredit } from '@/web/format'
 import { fmtNum } from '@/utils/format'
+import FeeBadge from '@/components/ui/FeeBadge'
 
 const PRESETS = [300, 500, 1000, 2000, 5000]
 const MIN_AMOUNT = 100
@@ -50,6 +51,8 @@ export default function WebBalancePage() {
     queryFn: profileApi.get,
     refetchInterval: waiting ? 4000 : false,
   })
+  // Комиссия способа в % — на карточках способов
+  const { data: fees } = useQuery({ queryKey: ['web', 'payment-fees'], queryFn: paymentsApi.fees, staleTime: 5 * 60 * 1000 })
   const { data: history = [], isLoading: historyLoading } = useQuery<BalanceTransaction[]>({
     queryKey: HISTORY_KEY,
     queryFn: profileApi.getBalanceHistory,
@@ -191,7 +194,10 @@ export default function WebBalancePage() {
                     >
                       <m.icon size={20} style={{ color: selected ? 'var(--link)' : 'var(--hint)' }} />
                       <div className="flex-1">
-                        <p className="text-sm font-semibold text-[var(--text)]">{m.label}</p>
+                        <p className="text-sm font-semibold text-[var(--text)] flex items-center gap-1.5 flex-wrap">
+                          {m.label}
+                          <FeeBadge pct={fees?.[m.id]} />
+                        </p>
                         <p className="text-xs text-[var(--hint)]">{m.hint}</p>
                       </div>
                       {selected && <CheckCircle2 size={18} style={{ color: 'var(--link)' }} />}

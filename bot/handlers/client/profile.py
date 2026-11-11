@@ -25,6 +25,7 @@ from shared.config import settings
 from shared.models import User, LoyaltyLevel
 from shared.content import get_photo_url, get_text
 from api.services.payment_service import PaymentService
+from api.services.rapira_service import get_method_fees
 from bot.utils.texts import texts, TOPUP_MIN, TOPUP_MAX
 from bot.utils.helpers import safe_edit, render_screen
 
@@ -219,7 +220,7 @@ async def cb_balance_fill(call: CallbackQuery, state: FSMContext) -> None:
 
 
 @router.callback_query(F.data.startswith("balance:amount:"))
-async def cb_balance_amount(call: CallbackQuery, state: FSMContext) -> None:
+async def cb_balance_amount(call: CallbackQuery, state: FSMContext, db: AsyncSession) -> None:
     value = call.data.split(":")[2]
 
     if value == "custom":
@@ -237,26 +238,33 @@ async def cb_balance_amount(call: CallbackQuery, state: FSMContext) -> None:
         await call.answer("Ошибка", show_alert=True)
         return
 
-    await safe_edit(call.message, texts.topup_choose_method(amount), reply_markup=_topup_methods_keyboard(amount))
+    await safe_edit(
+        call.message, texts.topup_choose_method(amount),
+        reply_markup=_topup_methods_keyboard(amount, await get_method_fees(db)),
+    )
     await call.answer()
 
 
 @router.message(TopupFSM.waiting_amount)
-async def fsm_topup_custom_amount(message: Message, state: FSMContext) -> None:
+async def fsm_topup_custom_amount(message: Message, state: FSMContext, db: AsyncSession) -> None:
     raw = (message.text or "").strip().replace(" ", "").replace(",", "").replace("₽", "")
     if not raw.isdigit() or not (TOPUP_MIN <= int(raw) <= TOPUP_MAX):
         await message.answer(texts.topup_bad_amount)
         return
     await state.clear()
     amount = int(raw)
-    await message.answer(texts.topup_choose_method(amount), reply_markup=_topup_methods_keyboard(amount))
+    await message.answer(
+        texts.topup_choose_method(amount),
+        reply_markup=_topup_methods_keyboard(amount, await get_method_fees(db)),
+    )
 
 
-def _topup_methods_keyboard(amount: int) -> InlineKeyboardMarkup:
+def _topup_methods_keyboard(amount: int, fees: dict[str, float]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🏦 СБП", callback_data=f"balance:pay:sbp:{amount}")],
-        [InlineKeyboardButton(text="💳 Банковская карта", callback_data=f"balance:pay:card:{amount}")],
-        [InlineKeyboardButton(text="🪙 Криптовалюта", callback_data=f"balance:pay:crypto:{amount}")],
+        *[
+            [InlineKeyboardButton(text=texts.pay_method_button(m, fees.get(m)), callback_data=f"balance:pay:{m}:{amount}")]
+            for m in ("sbp", "card", "crypto")
+        ],
         [
             InlineKeyboardButton(text="◀️ Сумма", callback_data="balance:fill"),
             InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
@@ -266,7 +274,7 @@ def _topup_methods_keyboard(amount: int) -> InlineKeyboardMarkup:
 
 @router.callback_query(F.data.startswith("balance:pay:"))
 async def cb_balance_pay(call: CallbackQuery, user: User, db: AsyncSession) -> None:
-    """Создаёт транзакцию Platega на пополнение. Зачисление — по webhook,
+    """Создаёт платёж на пополнение (Platega / Coinso). Зачисление — по webhook,
     пользователю придёт сообщение «Баланс пополнен»."""
     try:
         _, _, method, raw_amount = call.data.split(":")
@@ -279,7 +287,7 @@ async def cb_balance_pay(call: CallbackQuery, user: User, db: AsyncSession) -> N
         return
 
     try:
-        result = await PaymentService(db).topup_platega(user, Decimal(amount), method, source="bot")
+        result = await PaymentService(db).topup_external(user, Decimal(amount), method, source="bot")
     except ValueError as exc:
         await call.answer(str(exc) or texts.topup_failed, show_alert=True)
         return

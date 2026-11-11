@@ -92,18 +92,26 @@ async def initiate_payment(
             payment_id=data.get("payment_id"),
         )
 
-    # Внешний шлюз Platega: СБП / карта / крипта.
+    # Внешний шлюз: карта — Platega, СБП / крипта — Coinso (payment_service.gateway_for).
     if method in ("sbp", "card", "crypto"):
         source = body.source if body else "miniapp"
         use_balance = bool(body and body.use_balance)
         try:
-            data = await svc.pay_platega(order, user, method, source, use_balance)
+            data = await svc.pay_external(order, user, method, source, use_balance)
         except ValueError as e:
             raise HTTPException(400, str(e))
         await _clear_cart_if_from_cart()
         return PaymentInitResponse(method=method, status="pending", **data)
 
     raise HTTPException(400, "Неподдерживаемый метод оплаты")
+
+
+@router.get("/fees")
+async def payment_fees(db: DbSession, user: CurrentUser):
+    """Комиссия каждого способа оплаты в % — {balance, sbp, card, crypto}."""
+    from api.services.rapira_service import get_method_fees
+
+    return await get_method_fees(db)
 
 
 class BalanceTopupRequest(BaseModel):
@@ -117,7 +125,7 @@ class BalanceTopupRequest(BaseModel):
 async def topup_balance(request: Request, body: BalanceTopupRequest, db: DbSession, user: CurrentUser):
     svc = PaymentService(db)
     try:
-        data = await svc.topup_platega(user, body.amount, body.method, body.source)
+        data = await svc.topup_external(user, body.amount, body.method, body.source)
     except ValueError as e:
         raise HTTPException(400, str(e))
     return data

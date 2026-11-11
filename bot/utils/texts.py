@@ -245,7 +245,16 @@ class BotTexts:
             f"Нажми кнопку ниже для оплаты. После оплаты нажми «✅ Я оплатил»."
         )
 
-    # ── Пополнение баланса (Platega) ──────────────────────────────────────────
+    @staticmethod
+    def pay_method_button(method: str, fee: float | None) -> str:
+        """Кнопка способа оплаты с комиссией: «🏦 СБП · комиссия 0%»."""
+        names = {"sbp": "🏦 СБП", "card": "💳 Банковская карта", "crypto": "🪙 Криптовалюта"}
+        label = names.get(method, method)
+        if fee is None:
+            return label
+        return f"{label} · комиссия {fee:g}%"
+
+    # ── Пополнение баланса ─────────────────────────────────────────────────────
     @property
     def topup_choose_amount(self) -> str:
         return "💳 <b>Пополнение баланса</b>\n\nВыбери сумму или укажи свою:"
@@ -261,8 +270,8 @@ class BotTexts:
     def topup_choose_method(self, amount: int) -> str:
         return (
             f"💳 <b>Пополнение на {amount:,} ₽</b>\n\n".replace(",", " ")
-            + "Выбери способ оплаты. Комиссия платёжной системы будет показана "
-            "на странице оплаты."
+            + "Выбери способ оплаты. Комиссия способа — на кнопке, "
+            "она добавляется к сумме пополнения."
         )
 
     def topup_waiting(self, amount: int, method: str) -> str:

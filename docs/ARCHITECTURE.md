@@ -26,7 +26,7 @@
       nginx ──── статика: miniapp/dist (/app), dist-web (сайт), dist-admin (admin.)
         │
         ├── /api/v1/*      → api (FastAPI)
-        ├── /webhooks/*    → api (Platega)
+        ├── /webhooks/*    → api (Platega, Coinso)
         ├── /webhook/bot   → bot
         └── /game/*, /     → api отдаёт HTML для поисковиков (seo.py), браузер грузит React
                                │
@@ -61,11 +61,11 @@ migrations/versions/    изменения схемы БД
 | product_keys | `ProductKey` | ключи для выдачи (шифруются Fernet) |
 | users | `User` | покупатель: Telegram (положительный `telegram_id`) или почта (отрицательный `telegram_id`); баланс |
 | balance_transactions | `BalanceTransaction` | все движения баланса; сумма = `users.balance` (проверяется задачей `check_integrity`) |
-| balance_topups | `BalanceTopup` | пополнения баланса через Platega |
+| balance_topups | `BalanceTopup` | пополнения баланса через Platega / Coinso |
 | carts / cart_items | `Cart`, `CartItem` | корзина |
 | orders / order_items | `Order`, `OrderItem` | заказ; `order_number` генерирует триггер БД (`#000123`) |
 | order_status_history | `OrderStatusHistory` | журнал смен статуса |
-| payments | `Payment` | платёж по заказу (`external_id` = id транзакции Platega) |
+| payments | `Payment` | платёж по заказу (`external_id` = id транзакции Platega / invoice_id Coinso) |
 | discount_rules, promo_codes, promo_code_usages | — | скидки и промокоды |
 | loyalty_levels | `LoyaltyLevel` | уровни кэшбэка |
 | referral_rewards | `ReferralReward` | начисления по реферальной программе |
@@ -77,7 +77,7 @@ migrations/versions/    изменения схемы БД
 
 ## Где хранятся настройки
 
-- **`.env` на сервере** → `shared/config/settings.py`. Токены ботов, пароль БД, ключи шифрования, креды Platega, домены. Меняются только на сервере, после изменения — перезапуск контейнеров.
+- **`.env` на сервере** → `shared/config/settings.py`. Токены ботов, пароль БД, ключи шифрования, креды Platega и Coinso, домены. Меняются только на сервере, после изменения — перезапуск контейнеров.
 - **`shop_settings` в БД** — всё, что меняют из админки: курс и наценки, тексты и фото бота, ключи FazerCards / Fragment / хаба (шифруются `ENCRYPTION_KEY`), главная страница, лояльность.
 
 ## Фоновые задачи (worker/main.py → beat_schedule)

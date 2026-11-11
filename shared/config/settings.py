@@ -118,10 +118,17 @@ class JWTSettings(BaseSettings):
 
 
 class PaymentSettings(BaseSettings):
-    # Platega — единственный внешний платёжный шлюз (карта / СБП / крипта).
+    # Platega — карта (и запасной шлюз для СБП / крипты, пока не настроен Coinso).
     PLATEGA_MERCHANT_ID: str = ""
     PLATEGA_SECRET: str = ""
     PLATEGA_BASE_URL: str = "https://app.platega.io"
+    # Coinso — СБП и крипта (coinso.io/docs). Secret Key = Bearer и ключ подписи вебхука.
+    COINSO_PROJECT_ID: str = ""
+    COINSO_SECRET_KEY: str = ""
+    COINSO_BASE_URL: str = "https://coinso.io/api"
+    # Тестовый режим проекта Coinso: true — тестовые платежи подтверждают заказ
+    # (для проверки цепочки). В бою false — test_mode-платежи игнорируются.
+    COINSO_ACCEPT_TEST: bool = False
 
 
 class SecuritySettings(BaseSettings):

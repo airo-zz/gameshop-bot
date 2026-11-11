@@ -8,7 +8,7 @@ import toast from 'react-hot-toast'
 import { profileApi, paymentsApi, type BalanceTransaction } from '@/api'
 import { useTelegram } from '@/hooks/useTelegram'
 import { PAY_SOURCE } from '@/config/appTarget'
-import { fmtNum } from '@/utils/format'
+import { feeText, fmtNum } from '@/utils/format'
 
 
 const PRESET_AMOUNTS = [200, 500, 1000, 5000, 10000]
@@ -58,6 +58,9 @@ export default function BalancePage() {
     refetchInterval: awaiting ? 4000 : false,
     refetchOnWindowFocus: true,
   })
+
+  // Комиссия способа в % — показываем на кнопках способов
+  const { data: fees } = useQuery({ queryKey: ['payment-fees'], queryFn: paymentsApi.fees, staleTime: 5 * 60 * 1000 })
 
   const { data: history = [] } = useQuery<BalanceTransaction[]>({
     queryKey: ['balance-history'],
@@ -194,7 +197,12 @@ export default function BalancePage() {
                   color: 'var(--text)',
                 }}
               >
-                {METHOD_LABELS[m]}
+                <span className="block truncate">{METHOD_LABELS[m]}</span>
+                {fees && (
+                  <span className="block text-[10px] font-normal num" style={{ color: fees[m] === 0 ? 'var(--link)' : 'var(--hint)' }}>
+                    {feeText(fees[m])}
+                  </span>
+                )}
               </button>
             ))}
           </div>

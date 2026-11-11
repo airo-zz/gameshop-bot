@@ -11,6 +11,7 @@ import { fmtPrice } from '@/utils/format'
 import { useTelegram } from '@/hooks/useTelegram'
 import { PAY_SOURCE } from '@/config/appTarget'
 import BalanceSplitToggle, { splitPayment } from '@/components/ui/BalanceSplit'
+import FeeBadge from '@/components/ui/FeeBadge'
 
 const PAYMENT_METHODS = [
   { id: 'balance', label: 'Баланс бота', icon: <Wallet size={20} />, description: 'Мгновенно' },
@@ -133,7 +134,10 @@ export default function PayOrderPage() {
               }}>
               <span style={{ color: active ? 'var(--link)' : 'var(--hint)' }}>{m.icon}</span>
               <span style={{ flex: 1 }}>
-                <span style={{ display: 'block', fontSize: 14, fontWeight: 600 }}>{m.label}</span>
+                <span style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, fontSize: 14, fontWeight: 600 }}>
+                  {m.label}
+                  {m.id !== 'balance' && <FeeBadge pct={quote?.fees?.[group(m.id)]} />}
+                </span>
                 <span style={{ display: 'block', fontSize: 11, color: 'var(--hint)' }}>{m.description}</span>
               </span>
               {price != null && (

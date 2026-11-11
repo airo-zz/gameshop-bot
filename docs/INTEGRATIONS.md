@@ -2,7 +2,8 @@
 
 | Сервис | Зачем | Код | Где креды |
 |---|---|---|---|
-| **Platega** | единственная платёжка: СБП, карта, крипта | `api/services/payment_service.py`, вебхук `api/routers/webhooks.py` | `.env`: `PLATEGA_MERCHANT_ID`, `PLATEGA_SECRET` |
+| **Platega** | оплата картой (и запасной шлюз СБП / крипты) | `api/services/payment_service.py`, вебхук `api/routers/webhooks.py` | `.env`: `PLATEGA_MERCHANT_ID`, `PLATEGA_SECRET` |
+| **Coinso** | СБП и крипта | `api/services/payment_service.py` (`pay_coinso`, `topup_coinso`), вебхук `/webhooks/coinso` | `.env`: `COINSO_PROJECT_ID`, `COINSO_SECRET_KEY` |
 | **RAPIRA** | курс USDT/RUB для цен | `api/services/rapira_service.py` | без ключа |
 | **FazerCards** | автовыдача пополнений, гифт-карт, Steam | `api/services/fazer/`, `fazer_service.py` | админка → «Интеграции» |
 | **Fragment + TON** | автовыдача Telegram Stars / Premium | `api/services/fragment/` | админка → «Интеграции» |
@@ -22,6 +23,14 @@
 - ID транзакции в ответе лежит в `transactionId`, а не в `id`.
 - Коды методов: СБП = 2, карта = 11, крипта = 13 (`PLATEGA_METHOD_CODES`).
 - Куда вернуть покупателя после оплаты, зависит от источника (`source`: web / miniapp / bot) — `_return_urls` в `payment_service.py`.
+
+## Coinso
+
+Документация — https://coinso.io/docs. Подробно о нашей стороне — в [ORDERS_AND_PAYMENTS.md](ORDERS_AND_PAYMENTS.md).
+- `POST https://coinso.io/api/payment/create` с `Authorization: Bearer <Secret Key>` (не API Key!): `project_id`, `amount` (₽), `method` (`sbp` | `crypto`), `custom`, `success_url` / `fail_url`. Ответ: `invoice_id` (8 символов) и `payment_url`.
+- Вебхук подписан: `X-Signature` = HMAC-SHA256 сырого тела Secret Key. Приходит с 31.43.163.127. Тестовые платежи помечены `test_mode: true`.
+- Комиссию Coinso удерживает с нас — сумма счёта = то, что платит покупатель (с нашей наценкой способа).
+- Ошибки — `error_code` / `error_source` (`bank` — банк-партнёр, можно повторить позже).
 
 ## Хаб UchetFP
 

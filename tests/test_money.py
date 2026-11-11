@@ -198,6 +198,115 @@ async def test_platega_canceled_returns_balance_hold(db, test_product):
     await _assert_balance_matches_ledger(db, user)
 
 
+# ── Вебхук Coinso ─────────────────────────────────────────────────────────────
+
+def _coinso_status(monkeypatch, status):
+    """Подменяет GET /payment/status Coinso (None — API недоступен)."""
+    from api.services.payment_service import PaymentService
+
+    async def _fake(self, invoice_id):
+        return status
+    monkeypatch.setattr(PaymentService, "_coinso_status", _fake)
+
+
+@pytest.mark.asyncio
+async def test_coinso_success_marks_order_paid_once(db, test_product, monkeypatch):
+    from api.services.payment_service import PaymentService
+    from shared.models import OrderStatus, PaymentStatus
+    _coinso_status(monkeypatch, "paid")
+    user = await _user(db, "0")
+    order = await _order(db, user, test_product, "150")
+    payment = await _payment(db, order, user, "Cn5oInv1")
+    svc = PaymentService(db)
+
+    body = {"event": "payment.success", "invoice_id": "Cn5oInv1", "amount": 150, "payment_method": "sbp"}
+    assert await svc.handle_coinso_webhook(body) is True
+    assert payment.status == PaymentStatus.succeeded
+    assert order.status == OrderStatus.paid
+    assert await svc.handle_coinso_webhook(body) is True  # дубль вебхука
+    assert order.status == OrderStatus.paid
+
+
+@pytest.mark.asyncio
+async def test_coinso_success_ignored_when_status_not_paid(db, test_product, monkeypatch):
+    from api.services.payment_service import PaymentService
+    from shared.models import OrderStatus, PaymentStatus
+    _coinso_status(monkeypatch, "pending")
+    user = await _user(db, "0")
+    order = await _order(db, user, test_product, "150")
+    payment = await _payment(db, order, user, "Cn5oInv2")
+
+    body = {"event": "payment.success", "invoice_id": "Cn5oInv2", "amount": 150}
+    assert await PaymentService(db).handle_coinso_webhook(body) is True
+    assert payment.status == PaymentStatus.pending
+    assert order.status == OrderStatus.pending_payment
+
+
+@pytest.mark.asyncio
+async def test_coinso_test_mode_does_not_pay(db, test_product, monkeypatch):
+    from api.services.payment_service import PaymentService
+    from shared.models import OrderStatus
+    _coinso_status(monkeypatch, "paid")
+    user = await _user(db, "0")
+    order = await _order(db, user, test_product, "150")
+    await _payment(db, order, user, "Cn5oInv3")
+
+    body = {"event": "payment.success", "invoice_id": "Cn5oInv3", "amount": 150, "test_mode": True}
+    assert await PaymentService(db).handle_coinso_webhook(body) is True
+    assert order.status == OrderStatus.pending_payment
+
+
+@pytest.mark.asyncio
+async def test_coinso_failed_returns_balance_hold(db, test_product):
+    from api.services.order_service import OrderService
+    from api.services.payment_service import PaymentService
+    from shared.models import PaymentStatus
+    user = await _user(db, "30.00")
+    user._test_start_balance = Decimal("30.00")
+    order = await _order(db, user, test_product, "100")
+    await OrderService(db).hold_balance(order, user)
+    payment = await _payment(db, order, user, "Cn5oInv4")
+
+    body = {"event": "payment.failed", "invoice_id": "Cn5oInv4", "error_code": "payment_expired"}
+    assert await PaymentService(db).handle_coinso_webhook(body) is True
+    assert payment.status == PaymentStatus.cancelled
+    assert user.balance == Decimal("30.00")
+    await _assert_balance_matches_ledger(db, user)
+
+
+@pytest.mark.asyncio
+async def test_coinso_topup_credits_amount_without_markup(db, monkeypatch):
+    """К оплате ушло 102 ₽ (крипта +2%), зачисляется 100 ₽ — сумма якоря."""
+    from api.services.payment_service import PaymentService
+    from shared.models import BalanceTopup
+    _coinso_status(monkeypatch, None)  # статус-API недоступен — доверяем подписанному вебхуку
+    user = await _user(db, "0")
+    topup = BalanceTopup(user_id=user.id, amount=Decimal("100.00"), provider="coinso", external_id="Cn5oTop1")
+    db.add(topup)
+    await db.flush()
+    svc = PaymentService(db)
+
+    body = {"event": "payment.success", "invoice_id": "Cn5oTop1", "amount": 102}
+    assert await svc.handle_coinso_webhook(body) is True
+    assert await svc.handle_coinso_webhook(body) is True
+    await db.flush()
+    await db.refresh(user)
+    assert user.balance == Decimal("100.00")
+    assert topup.status == "credited"
+    await _assert_balance_matches_ledger(db, user)
+
+
+def test_gateway_for_routes_card_to_platega(monkeypatch):
+    from api.services import payment_service as ps
+    monkeypatch.setattr(ps.settings, "COINSO_PROJECT_ID", "1")
+    monkeypatch.setattr(ps.settings, "COINSO_SECRET_KEY", "s")
+    assert ps.gateway_for("sbp") == "coinso"
+    assert ps.gateway_for("crypto") == "coinso"
+    assert ps.gateway_for("card") == "platega"
+    monkeypatch.setattr(ps.settings, "COINSO_SECRET_KEY", "")
+    assert ps.gateway_for("sbp") == "platega"  # Coinso не настроен — запасной шлюз
+
+
 # ── Вебхук Platega: пополнение баланса ────────────────────────────────────────
 
 @pytest.mark.asyncio
