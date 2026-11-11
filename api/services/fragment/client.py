@@ -10,6 +10,16 @@ from .models import *
 from .exceptions import *
 
 
+def _raise_need_ton(json_response: dict) -> None:
+    """Fragment отвечает {need_ton: true}, когда в сессии не подключён TON-кошелёк
+    (протухли куки stel_ssid / stel_token / stel_ton_token)."""
+    if json_response.get("need_ton"):
+        raise FragmentAPIException(
+            "need_ton: в сессии Fragment не подключён TON-кошелёк — обновите куки "
+            "stel_ssid / stel_token / stel_ton_token в админке → «Интеграции»"
+        )
+
+
 class FragmentAPI:
     def __init__(self, cookie: str, rates_cache_time: int = 60):
         self.cookie: str = cookie
@@ -171,6 +181,7 @@ class FragmentAPI:
 
         if (error_message := json_response.get("error")):
             raise FragmentAPIException(error_message)
+        _raise_need_ton(json_response)
 
         return InitBuyRequestResponse.model_validate(json_response)
 
@@ -280,6 +291,7 @@ class FragmentAPI:
 
         if (error_message := json_response.get("error")):
             raise FragmentAPIException(error_message)
+        _raise_need_ton(json_response)
 
         return InitBuyRequestResponse.model_validate(json_response)
 
