@@ -29,6 +29,7 @@ from bot.handlers.client import (
     start, catalog, cart, orders, profile, support,
     checkout, inline_search, search,
 )
+from bot.handlers.client.widget_query import WidgetQueryMiddleware
 
 # ── Логирование ───────────────────────────────────────────────────────────────
 logging.basicConfig(level=settings.LOG_LEVEL)
@@ -47,7 +48,12 @@ CLIENT_COMMANDS = [
 ]
 
 
-async def on_startup(bot: Bot) -> None:
+def allowed_updates(dp: Dispatcher) -> list[str]:
+    """Типы обновлений: всё, что слушают роутеры, + запросы виджетов (aiogram их не знает)."""
+    return sorted({*dp.resolve_used_update_types(), "widget_query"})
+
+
+async def on_startup(bot: Bot, dispatcher: Dispatcher) -> None:
     log.info("bot.startup", shop_name=settings.SHOP_NAME, env=settings.ENVIRONMENT)
     if not settings.WEBHOOK_SECRET:
         log.warning("WEBHOOK_SECRET не задан — webhook не защищён от подделки запросов!")
@@ -63,6 +69,7 @@ async def on_startup(bot: Bot) -> None:
             url=settings.webhook_url,
             secret_token=settings.WEBHOOK_SECRET,
             drop_pending_updates=True,
+            allowed_updates=allowed_updates(dispatcher),
         )
         log.info("bot.webhook_set", url=settings.webhook_url)
     else:
@@ -89,6 +96,8 @@ def create_dispatcher() -> Dispatcher:
     dp = Dispatcher(storage=storage)
 
     # ── Middlewares (порядок важен) ───────────────────────────────────────────
+    # Запросы виджетов разделов — до разбора обновления (aiogram 3.31 их не знает)
+    dp.update.outer_middleware(WidgetQueryMiddleware(dp))
     dp.message.middleware(LoggingMiddleware())
     dp.callback_query.middleware(LoggingMiddleware())
     dp.message.middleware(AuthMiddleware())
@@ -146,7 +155,7 @@ async def run_polling() -> None:
     bot = create_bot()
     dp = create_dispatcher()
     log.info("bot.polling_start", shop=settings.SHOP_NAME)
-    await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+    await dp.start_polling(bot, allowed_updates=allowed_updates(dp))
 
 
 async def health_handler(request: web.Request) -> web.Response:

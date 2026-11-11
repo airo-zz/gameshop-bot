@@ -24,9 +24,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models import Game, Category, Product, Cart, CartItem, User
 from shared.config import settings
 from api.services.cart_service import CartService
-from bot.utils.texts import texts, rub, table
+from aiogram.exceptions import TelegramBadRequest
+
+from bot.utils.texts import texts
 from bot.utils.helpers import safe_edit, render_screen
 from bot.utils.rich import send_screen
+from bot.utils.widgets import SendWidget, category_widget_html, widgets_enabled
 from shared.content import get_photo_url, get_text, resolve_photo_url
 
 router = Router(name="client:catalog")
@@ -103,8 +106,8 @@ async def _catalog_games(db: AsyncSession, services: bool) -> list[Game]:
     games = list((await db.execute(select(Game).where(Game.is_active == True, cond))).scalars().all())
     in_stock = await game_min_prices(db)
     games = [g for g in games if g.id in in_stock]
-    games.sort(key=lambda g: (-int((g.meta or {}).get("sold_count") or 0), not g.is_featured,
-                              g.sort_order or 0, g.name.lower()))
+    # в боте — по алфавиту (на сайте и в мини-аппе свой порядок)
+    games.sort(key=lambda g: g.name.lower().replace("ё", "е"))
     return games
 
 
@@ -237,8 +240,8 @@ async def render_game(call: CallbackQuery, game: Game, db: AsyncSession, page: i
     categories = list((await db.execute(
         select(Category)
         .where(Category.game_id == game.id, Category.is_active == True, Category.parent_id == None)
-        .order_by(Category.sort_order.asc(), Category.name.asc())
     )).scalars().all())
+    categories.sort(key=lambda c: c.name.lower().replace("ё", "е"))   # в боте — по алфавиту
     if not categories:
         await call.answer("Нет доступных разделов", show_alert=True)
         return
@@ -307,6 +310,46 @@ async def cb_menu_shortcut(call: CallbackQuery, db: AsyncSession) -> None:
 
 # ── Раздел → товары (страницами) ─────────────────────────────────────────────
 
+def widget_keyboard(category_id: uuid.UUID, game_id: uuid.UUID, cart_total: float | None) -> InlineKeyboardMarkup:
+    """Кнопки под виджетом раздела: корзина, список (если виджет не виден), назад."""
+    rows = []
+    if cart_total:
+        rows.append([InlineKeyboardButton(text=f"🛒 Корзина: {cart_total:.0f} ₽", callback_data="cart:view",
+                                          style="success")])
+    rows.append([InlineKeyboardButton(text="📋 Списком", callback_data=f"catalog:catlist:{category_id}")])
+    rows.append([
+        InlineKeyboardButton(text="◀️ Назад", callback_data=f"catalog:game:{game_id}"),
+        InlineKeyboardButton(text="🏠 Меню", callback_data="menu:main"),
+    ])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+async def _send_category_widget(call: CallbackQuery, category: Category, game: Game | None,
+                                products: list[Product], cart_total: float | None) -> bool:
+    """Раздел виджетом: подпись (название, описание) над ним, выбор и «В корзину» — внутри."""
+    html = category_widget_html(products)
+    if html is None:
+        return False
+    game_name = game.name if game else ""
+    caption = f"<b>{escape(category.name)}</b>" + (f" · {escape(game_name)}" if game_name else "")
+    desc = (category.description or (game.description if game else None) or "").strip()
+    if desc:
+        caption += f"\n\n{escape(desc[:700])}"
+    try:
+        await call.bot(SendWidget(
+            chat_id=call.message.chat.id, html=html, caption=caption, parse_mode="HTML",
+            show_caption_above_media=True, allow_queries=True,
+            reply_markup=widget_keyboard(category.id, category.game_id, cart_total),
+        ))
+    except TelegramBadRequest:
+        return False
+    try:
+        await call.message.delete()
+    except TelegramBadRequest:
+        pass
+    return True
+
+
 async def _render_category(
     call: CallbackQuery,
     category_id: uuid.UUID,
@@ -315,8 +358,10 @@ async def _render_category(
     toast: str | None = None,
     page: int = 0,
     focus_product: uuid.UUID | None = None,
+    as_list: bool = False,
 ) -> None:
-    """Рисует товары раздела страницами. Клик по товару = добавить в корзину."""
+    """Товары раздела: виджетом (выбор в сообщении), иначе — страницами кнопок,
+    клик по товару = добавить в корзину."""
     category = await db.get(Category, category_id)
     if not category:
         await call.answer("Раздел не найден", show_alert=True)
@@ -337,11 +382,16 @@ async def _render_category(
     for it in cart.items:
         qty_map[it.product_id] = qty_map.get(it.product_id, 0) + it.quantity
 
-    if len(products) == 1:
-        return await _show_product(call, products[0].id, db, cart=cart)
-
     game = await db.get(Game, category.game_id)
     game_name = game.name if game else "Игра"
+
+    if widgets_enabled() and not as_list:
+        if await _send_category_widget(call, category, game, products, cart_total):
+            await call.answer(toast or "")
+            return
+
+    if len(products) == 1:
+        return await _show_product(call, products[0].id, db, cart=cart)
 
     pages = (len(products) + PRODUCTS_PAGE - 1) // PRODUCTS_PAGE
     if focus_product is not None:   # после «в корзину» — остаёмся на странице этого товара
@@ -350,11 +400,7 @@ async def _render_category(
     page = max(0, min(page, pages - 1))
 
     buttons = []
-    price_rows = []
     for p in products[page * PRODUCTS_PAGE:(page + 1) * PRODUCTS_PAGE]:
-        q = qty_map.get(p.id, 0)
-        mark = " · нет" if p.is_out_of_stock else (f" · ×{q}" if q else "")
-        price_rows.append((escape(p.name) + mark, f"<b>{rub(p.price)}</b>"))
         q = qty_map.get(p.id, 0)
         label = f"{p.name} — {float(p.price):.0f} ₽"
         if p.is_out_of_stock:
@@ -379,11 +425,7 @@ async def _render_category(
     desc = (category.description or (game.description if game else None) or "").strip()
     if desc:
         header = f"{header}\n\n{escape(desc[:600])}"
-    header += "\n" + table(price_rows, header=("Товар", "Цена"))
-    if cart_total:
-        header += f"\n<footer>Нажми на товар — он добавится в корзину. В корзине на {rub(cart_total)}</footer>"
-    else:
-        header += "\n<footer>Нажми на товар — он добавится в корзину</footer>"
+    header += "\n<footer>Нажми на товар — он добавится в корзину</footer>"
 
     await render_screen(call, None, header, reply_markup=keyboard, answer_text=toast or "")
 
@@ -405,7 +447,7 @@ async def cb_catalog_cat_reset(call: CallbackQuery, db: AsyncSession, user: User
             removed += 1
     if removed:
         await db.commit()
-    await _render_category(call, category_id, db, user,
+    await _render_category(call, category_id, db, user, as_list=True,
                            toast=f"🗑 Убрано из корзины: {removed}" if removed else "В корзине нет товаров из этого раздела")
 
 
@@ -419,6 +461,17 @@ async def cb_catalog_category(call: CallbackQuery, db: AsyncSession, user: User)
     await _render_category(call, category_id, db, user)
 
 
+@router.callback_query(F.data.startswith("catalog:catlist:"))
+async def cb_catalog_category_list(call: CallbackQuery, db: AsyncSession, user: User) -> None:
+    """Раздел списком кнопок — если виджет не отображается (старое приложение Telegram)."""
+    try:
+        category_id = uuid.UUID(call.data.split(":")[2])
+    except (IndexError, ValueError):
+        await call.answer("Ошибка", show_alert=True)
+        return
+    await _render_category(call, category_id, db, user, as_list=True)
+
+
 @router.callback_query(F.data.startswith("catalog:catp:"))
 async def cb_catalog_category_page(call: CallbackQuery, db: AsyncSession, user: User) -> None:
     try:
@@ -427,7 +480,7 @@ async def cb_catalog_category_page(call: CallbackQuery, db: AsyncSession, user: 
     except ValueError:
         await call.answer("Ошибка", show_alert=True)
         return
-    await _render_category(call, category_id, db, user, page=page_n)
+    await _render_category(call, category_id, db, user, page=page_n, as_list=True)
 
 
 @router.callback_query(F.data.startswith("catalog:qadd:"))
@@ -458,7 +511,7 @@ async def cb_catalog_quick_add(call: CallbackQuery, db: AsyncSession, user: User
         return
 
     await _render_category(call, product.category_id, db, user, toast=f"✅ {product.name} — в корзине",
-                           focus_product=product.id)
+                           focus_product=product.id, as_list=True)
 
 
 async def _show_product(
@@ -610,22 +663,31 @@ async def cb_cart_add_with_fields(
     await call.answer()
 
 
+def _field_prompt(field: dict) -> tuple[str, InlineKeyboardMarkup]:
+    label: str = field.get("label", "Поле")
+    options: list[str] = field.get("options", [])
+    if field.get("type", "text") == "select" and options:
+        return texts.input_field_select_prompt(label), _select_field_keyboard(options)
+    return texts.input_field_prompt(label, field.get("placeholder", "")), _cancel_fsm_keyboard()
+
+
+async def start_fields_from_widget(bot, chat_id: int, state: FSMContext, product: Product,
+                                   fields: list[dict], units: int) -> None:
+    """Товар выбран в виджете, но нужны данные покупателя — спрашиваем их в чате."""
+    units = max(1, min(units, CartService._max_quantity(product)))
+    await state.set_state(InputFieldsFSM.collecting)
+    await state.update_data(product_id=str(product.id), fields=fields, current_idx=0,
+                            collected={}, units=units)
+    text, keyboard = _field_prompt(fields[0])
+    await bot.send_message(chat_id, text, reply_markup=keyboard, parse_mode="HTML")
+
+
 async def _ask_field(
     message: Message,
     field: dict,
     edit: bool = False,
 ) -> None:
-    label: str = field.get("label", "Поле")
-    field_type: str = field.get("type", "text")
-    placeholder: str = field.get("placeholder", "")
-    options: list[str] = field.get("options", [])
-
-    if field_type == "select" and options:
-        text = texts.input_field_select_prompt(label)
-        keyboard = _select_field_keyboard(options)
-    else:
-        text = texts.input_field_prompt(label, placeholder)
-        keyboard = _cancel_fsm_keyboard()
+    text, keyboard = _field_prompt(field)
 
     if edit:
         await safe_edit(message, text, reply_markup=keyboard)
@@ -679,7 +741,8 @@ async def fsm_collect_text_field(
             await message.answer("❌ Товар не найден.", parse_mode="HTML")
             return
 
-        await _add_to_cart_message(message, user, db, product, input_data=collected)
+        await _add_to_cart_message(message, user, db, product, input_data=collected,
+                                   quantity=int(data.get("units") or 1))
     else:
         await state.update_data(current_idx=next_idx, collected=collected)
         await _ask_field(message, fields[next_idx], edit=False)
@@ -718,7 +781,8 @@ async def fsm_collect_select_field(
             await safe_edit(call.message, "❌ Товар не найден.")
             return
 
-        await _add_to_cart(call, user, db, product, input_data=collected)
+        await _add_to_cart(call, user, db, product, input_data=collected,
+                           quantity=int(data.get("units") or 1))
     else:
         await state.update_data(current_idx=next_idx, collected=collected)
         await _ask_field(call.message, fields[next_idx], edit=True)
@@ -753,6 +817,7 @@ async def _persist_cart_item(
     user: User,
     product: Product,
     input_data: dict,
+    quantity: int = 1,
 ) -> None:
     """Сохраняет позицию в корзине (создаёт или увеличивает qty). Не делает commit."""
     price = Decimal(str(product.price))
@@ -773,7 +838,7 @@ async def _persist_cart_item(
     existing = existing_result.scalar_one_or_none()
 
     if existing:
-        existing.quantity += 1
+        existing.quantity += quantity
         existing.price_snapshot = price
         if input_data:
             existing.input_data = input_data
@@ -781,7 +846,7 @@ async def _persist_cart_item(
         item = CartItem(
             cart_id=cart.id,
             product_id=product.id,
-            quantity=1,
+            quantity=quantity,
             price_snapshot=price,
             input_data=input_data,
         )
@@ -794,10 +859,11 @@ async def _add_to_cart(
     db: AsyncSession,
     product: Product,
     input_data: dict,
+    quantity: int = 1,
 ) -> None:
     """Добавляет товар в корзину и перерисовывает карточку товара."""
     try:
-        await _persist_cart_item(db, user, product, input_data)
+        await _persist_cart_item(db, user, product, input_data, quantity)
         await db.commit()
     except Exception:
         await db.rollback()
@@ -816,10 +882,11 @@ async def _add_to_cart_message(
     db: AsyncSession,
     product: Product,
     input_data: dict,
+    quantity: int = 1,
 ) -> None:
     """Добавляет товар в корзину после FSM и отправляет подтверждение новым сообщением."""
     try:
-        await _persist_cart_item(db, user, product, input_data)
+        await _persist_cart_item(db, user, product, input_data, quantity)
         await db.commit()
     except Exception:
         await db.rollback()
