@@ -66,7 +66,7 @@ async def dashboard_data(db: AsyncSession, user: User) -> dict:
         "lv": lv.name if lv else "—",
         "ic": lv.icon_emoji if lv else "",
         "col": lv.color_hex if lv else "#8A94A6",
-        "cb": f"{float(lv.cashback_percent):g}%" if lv else "0%",
+        "cb": f"{float(lv.cashback_percent):g}%".replace(".", ",") if lv else "0%",
         "p": round(progress, 3),
         "pt": caption,
         "mc": month_cb,
