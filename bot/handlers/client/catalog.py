@@ -310,6 +310,16 @@ async def cb_menu_shortcut(call: CallbackQuery, db: AsyncSession) -> None:
 
 # ── Раздел → товары (страницами) ─────────────────────────────────────────────
 
+async def category_products(db: AsyncSession, category_id: uuid.UUID) -> list[Product]:
+    """Товары раздела в порядке показа. Виджет ссылается на них по номерам —
+    список и запрос виджета должны строиться одной функцией."""
+    return list((await db.execute(
+        select(Product)
+        .where(Product.category_id == category_id, Product.is_active == True)
+        .order_by(Product.sort_order.asc(), Product.name.asc(), Product.id.asc())
+    )).scalars().all())
+
+
 def widget_keyboard(category_id: uuid.UUID, game_id: uuid.UUID, cart_total: float | None) -> InlineKeyboardMarkup:
     """Кнопки под виджетом раздела: корзина, список (если виджет не виден), назад."""
     rows = []
@@ -327,7 +337,7 @@ def widget_keyboard(category_id: uuid.UUID, game_id: uuid.UUID, cart_total: floa
 async def _send_category_widget(call: CallbackQuery, category: Category, game: Game | None,
                                 products: list[Product], cart_total: float | None) -> bool:
     """Раздел виджетом: подпись (название, описание) над ним, выбор и «В корзину» — внутри."""
-    html = category_widget_html(products)
+    html = category_widget_html(category.id, products)
     if html is None:
         return False
     game_name = game.name if game else ""
@@ -367,11 +377,7 @@ async def _render_category(
         await call.answer("Раздел не найден", show_alert=True)
         return
 
-    products = list((await db.execute(
-        select(Product)
-        .where(Product.category_id == category_id, Product.is_active == True)
-        .order_by(Product.sort_order.asc(), Product.name.asc())
-    )).scalars().all())
+    products = await category_products(db, category_id)
     if not products:
         await call.answer("Нет доступных товаров", show_alert=True)
         return
