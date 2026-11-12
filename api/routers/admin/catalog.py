@@ -9,7 +9,7 @@ import uuid
 from decimal import Decimal
 from math import ceil
 
-from fastapi import APIRouter, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query, UploadFile, status
 from sqlalchemy import func, or_, select
 
 from api.deps import DbSession
@@ -35,6 +35,7 @@ from api.schemas.admin import (
 )
 from api.services.ggsel_import import parse_ggsel_csv
 from api.services.ggsel_import_commit import commit_ggsel_import, unique_category_slug
+from api.services import indexnow
 from api.services.pricing import usd_to_rub
 from api.services.rapira_service import get_markup_percent, get_usd_rub_rate
 from api.utils.admin_log import log_admin_action
@@ -94,6 +95,7 @@ async def create_game(
     body: GameCreateIn,
     db: DbSession,
     admin: CurrentAdmin,
+    background: BackgroundTasks,
 ) -> GameOut:
     slug = body.slug or _slugify(body.name)
 
@@ -131,6 +133,8 @@ async def create_game(
         entity_id=game.id,
         after_data={"name": game.name, "slug": game.slug},
     )
+    if game.is_active:
+        background.add_task(indexnow.submit, indexnow.game_urls(game))
 
     return game
 
@@ -142,6 +146,7 @@ async def update_game(
     body: GameUpdateIn,
     db: DbSession,
     admin: CurrentAdmin,
+    background: BackgroundTasks,
 ) -> GameOut:
     result = await db.execute(select(Game).where(Game.id == game_id))
     game = result.scalar_one_or_none()
@@ -174,6 +179,10 @@ async def update_game(
         before_data=before,
         after_data=update_data,
     )
+    if game.is_active:
+        # изменились тексты/SEO — поисковикам на переобход игру и её разделы
+        cats = (await db.execute(select(Category).where(Category.game_id == game.id))).scalars().all()
+        background.add_task(indexnow.submit, indexnow.game_urls(game, cats))
 
     return game
 
@@ -255,9 +264,10 @@ async def create_category(
     body: CategoryCreateIn,
     db: DbSession,
     admin: CurrentAdmin,
+    background: BackgroundTasks,
 ) -> CategoryOut:
-    game = await db.execute(select(Game).where(Game.id == body.game_id))
-    if not game.scalar_one_or_none():
+    game = (await db.execute(select(Game).where(Game.id == body.game_id))).scalar_one_or_none()
+    if not game:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Игра не найдена")
 
     if body.parent_id:
@@ -295,6 +305,8 @@ async def create_category(
         entity_id=category.id,
         after_data={"name": category.name, "game_id": str(body.game_id)},
     )
+    if game.is_active and category.is_active:
+        background.add_task(indexnow.submit, indexnow.game_urls(game, [category]))
 
     return category
 
@@ -306,6 +318,7 @@ async def update_category(
     body: CategoryUpdateIn,
     db: DbSession,
     admin: CurrentAdmin,
+    background: BackgroundTasks,
 ) -> CategoryOut:
     result = await db.execute(select(Category).where(Category.id == category_id))
     category = result.scalar_one_or_none()
@@ -332,6 +345,10 @@ async def update_category(
         before_data=before,
         after_data=update_data,
     )
+    if category.is_active:
+        game = await db.get(Game, category.game_id)
+        if game and game.is_active:
+            background.add_task(indexnow.submit, indexnow.game_urls(game, [category]))
 
     return category
 
