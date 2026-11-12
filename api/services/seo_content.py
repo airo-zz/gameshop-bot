@@ -82,6 +82,10 @@ def accusative(phrase: str) -> str:
     """
     words = phrase.split(" ")
     for i, w in enumerate(words):
+        if w in ("—", "–", "-", "·", "|"):
+            break  # после тире — уточнение («GTA 6 PS5 — Турция»), его не склоняем
+        if len(w) > 1 and w.isupper():
+            continue  # аббревиатура (США, PSN) не склоняется
         low = w.lower()
         if not re.fullmatch(r"[А-Яа-яЁё-]+", w) or low in _INDECLINABLE:
             continue  # латиница, индекс, «премиум» — смотрим дальше
