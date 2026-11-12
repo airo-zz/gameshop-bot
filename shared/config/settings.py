@@ -179,8 +179,6 @@ class AppSettings(BaseSettings):
     ABANDONED_CART_HOURS: int = 1
     CART_PRICE_RESERVE_HOURS: int = 24
     FRONTEND_URL: str = "https://redonate.gg"
-    # IndexNow (api/services/indexnow.py): ключ публичный — файл miniapp/public/<ключ>.txt
-    INDEXNOW_KEY: str = "8f91286c7a4fa362d5007d1e61fc9871"
     # Украшения Discord: каталог UchetFP (git-копия на хосте, монтируется только на
     # чтение) и витрина discordcatalog.net — источник картинок
     DECOR_CATALOG_DIR: str = "/decor-catalog"
