@@ -143,6 +143,20 @@ export default function GameEditPage() {
   const [categories, setCategories] = useState<AdminCategory[]>([])
   const [newCatName, setNewCatName] = useState('')
   const [addingCat, setAddingCat]     = useState(false)
+  const [togglingCatId, setTogglingCatId] = useState<string | null>(null)
+
+  const toggleCategory = async (cat: AdminCategory) => {
+    setTogglingCatId(cat.id)
+    try {
+      const updated = await adminApi.updateCategory(cat.id, { is_active: !cat.is_active })
+      setCategories((prev) => prev.map((c) => (c.id === cat.id ? { ...c, is_active: updated.is_active } : c)))
+      toast.success(updated.is_active ? `«${cat.name}» показан на витрине` : `«${cat.name}» скрыт`)
+    } catch {
+      toast.error('Не удалось изменить раздел')
+    } finally {
+      setTogglingCatId(null)
+    }
+  }
 
   // ── load game in edit mode ──
   useEffect(() => {
@@ -560,16 +574,21 @@ export default function GameEditPage() {
                   <span className="text-sm text-[var(--text)] font-medium truncate flex-1 min-w-0 pr-2">
                     {cat.name}
                   </span>
-                  <span
+                  {/* Нажатие — включить/скрыть раздел на витрине (сайт, мини-апп, бот) */}
+                  <button
+                    type="button"
+                    disabled={togglingCatId === cat.id}
+                    onClick={() => toggleCategory(cat)}
+                    title={cat.is_active ? 'Скрыть раздел' : 'Показать раздел'}
                     className={[
-                      'text-xs px-2 py-0.5 rounded-full shrink-0',
+                      'text-xs px-2 py-0.5 rounded-full shrink-0 transition-opacity disabled:opacity-50',
                       cat.is_active
                         ? 'bg-emerald-500/15 text-emerald-400'
-                        : 'bg-[var(--bg2)] text-[var(--hint)]',
+                        : 'bg-[var(--bg2)] text-[var(--hint)] hover:text-[var(--text)]',
                     ].join(' ')}
                   >
                     {cat.is_active ? 'Активна' : 'Неактивна'}
-                  </span>
+                  </button>
                 </div>
               ))}
             </div>
