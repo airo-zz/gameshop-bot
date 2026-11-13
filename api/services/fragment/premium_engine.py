@@ -224,8 +224,6 @@ class PremiumEngine:
                                         payload=msg0.fixed_payload, seed_phrase=self.seed)
         if not ok:
             return False, "⚠️ Задержка при отправке Premium. Продавец скоро завершит.", f"ton: {msg}"
-        if not tx:                       # лайт-сервер иногда не отдаёт хэш — берём из toncenter
-            tx = self._latest_tx_hash()
         # фактическая себестоимость сделки — для отчёта о прибыли в ТГ.
         if pm == "usdt_ton":
             ctx["cost"] = {"usd": (float(usdt_amount) if usdt_amount is not None else None),
@@ -243,17 +241,3 @@ class PremiumEngine:
         return True, (f"✅ Telegram Premium на {months} мес успешно отправлен на @{username}! "
                       "Спасибо за покупку." + (f"\nТранзакция: {link}" if link else "")), \
                f"ok premium={months}mo @{username} tx={tx}"
-
-    def _latest_tx_hash(self) -> str | None:
-        """Хэш последнего исходящего перевода кошелька (fallback для чека)."""
-        try:
-            import requests
-            addr = self.ton._address_from_seed(self.seed)
-            r = requests.get("https://toncenter.com/api/v2/getTransactions",
-                             params={"address": addr, "limit": 1}, timeout=15).json()
-            txs = r.get("result") or []
-            if txs:
-                return (txs[0].get("transaction_id") or {}).get("hash")
-        except Exception:  # noqa: BLE001
-            pass
-        return None

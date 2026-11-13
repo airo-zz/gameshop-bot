@@ -169,6 +169,13 @@ class TonClient:
                 break
             await asyncio.sleep(0.5)
             new_seqno = await self._get_seqno(wallet)
+        if new_seqno == old_seqno:
+            # Сеть не приняла внешнее сообщение (или лайт-сервер отстаёт) — успехом
+            # это считать нельзя: иначе заказ закроется без выдачи (#557XCHZ5).
+            raise RuntimeError(
+                f"перевод не подтверждён сетью: seqno {old_seqno} не изменился за 30 с "
+                "— проверьте кошелёк перед повторной выдачей"
+            )
 
         # ищем tx_hash по ref_id в последних 30 транзакциях
         last_payload = transfers[-1][2]
@@ -228,12 +235,12 @@ class TonClient:
         try:
             cf = asyncio.run_coroutine_threadsafe(_enqueue(), self._loop)
             tx_hash = cf.result(timeout=120)
-            # Если pytoniq не нашёл hash (LiteServer crashes) — пробуем найти
-            # его через toncenter HTTP. Ждём ~7 сек чтобы tx появилась в индексе.
+            # Если pytoniq не нашёл hash (LiteServer crashes) — ищем свою tx по
+            # Ref# из payload через toncenter. Ждём ~7 сек, чтобы tx попала в индекс.
             if not tx_hash:
                 import time as _t
                 _t.sleep(7)
-                tx_hash = self.find_recent_tx_hash(destination, int(nano_amount))
+                tx_hash = self.find_tx_by_ref(payload, seed)
             return True, "ok", tx_hash
         except Exception as exc:
             return False, str(exc), None
@@ -266,48 +273,46 @@ class TonClient:
             logger.warning("address_from_seed failed: %s", exc)
             return None
 
-    def find_recent_tx_hash(self, destination: str, expected_value_nano: int,
-                            tolerance: int = 1_000_000,
-                            max_age_seconds: int = 180) -> str | None:
-        """Найти hash недавней outgoing-транзакции с нашего кошелька на destination
-        через toncenter HTTP API. Используется как fallback когда LiteServer
-        не вернул hash после wallet.raw_transfer.
-
-        - tolerance: допустимая разница в nano (1M nano = 0.001 TON) на комиссию
-        - max_age_seconds: смотрим только tx за последние N секунд
+    def find_tx_by_ref(self, payload_b64: str, seed_phrase: str | None = None,
+                       max_age_seconds: int = 300) -> str | None:
+        """Hash недавней исходящей tx нашего кошелька, в комментарии которой есть
+        Ref# из payload Fragment (и для TON-комментария, и для forward_payload
+        jetton-перевода). Нет совпадения — None: чужую/старую tx не подставляем.
         """
-        import requests, time as _time
-        seed = self._seed_phrase
-        if not seed:
+        import re
+        import time as _time
+        import requests
+        try:
+            raw = base64.b64decode(payload_b64)
+        except Exception:  # noqa: BLE001 — битый payload: искать нечего
             return None
-        addr = self._address_from_seed(seed)
-        if not addr:
+        seed = seed_phrase or self._seed_phrase
+        addr = self._address_from_seed(seed) if seed else None
+        if b"Ref#" not in raw or not addr:
             return None
         try:
             r = requests.get(
-                "https://toncenter.com/api/v2/getTransactions",
-                params={"address": addr, "limit": 10, "archival": "true"},
+                "https://toncenter.com/api/v3/transactions",
+                params={"account": addr, "limit": 10, "sort": "desc"},
                 timeout=15,
             )
             if r.status_code != 200:
-                logger.warning("toncenter getTransactions status %s", r.status_code)
-                return None
-            data = r.json()
-            if not data.get("ok"):
+                logger.warning("toncenter v3 transactions status %s", r.status_code)
                 return None
             now_ts = _time.time()
-            for tx in data.get("result", []):
-                tx_utime = tx.get("utime") or 0
-                if now_ts - tx_utime > max_age_seconds:
+            for tx in r.json().get("transactions", []):
+                if now_ts - (tx.get("now") or 0) > max_age_seconds:
                     continue
                 for out_msg in tx.get("out_msgs", []):
-                    out_dest = out_msg.get("destination")
-                    out_value = int(out_msg.get("value") or 0)
-                    if out_dest == destination and abs(out_value - expected_value_nano) <= tolerance:
-                        return tx.get("transaction_id", {}).get("hash")
+                    # Ref берём из декодированного комментария (чистый текст) и ищем
+                    # в байтах payload — в сыром BOC за Ref могут идти чужие байты.
+                    decoded = str((out_msg.get("message_content") or {}).get("decoded"))
+                    for ref in re.findall(r"Ref#[A-Za-z0-9]+", decoded):
+                        if ref.encode() in raw:
+                            return tx.get("hash")
             return None
-        except Exception as exc:
-            logger.warning("find_recent_tx_hash failed: %s", exc)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("find_tx_by_ref failed: %s", exc)
             return None
 
     def _balance_via_http(self, seed: str) -> float | None:

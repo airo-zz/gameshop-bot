@@ -164,8 +164,6 @@ class StarsEngine:
                                         payload=msg0.fixed_payload, seed_phrase=self.seed)
         if not ok:
             return False, "⚠️ Задержка при отправке звёзд. Продавец скоро завершит.", f"ton: {msg}"
-        if not tx:                       # лайт-сервер иногда не отдаёт хэш — берём из toncenter
-            tx = self._latest_tx_hash()
         # фактическая себестоимость сделки — для отчёта о прибыли в ТГ.
         # Пишем ТОЛЬКО после успешного перевода, реальные величины, ничего не оцениваем.
         if pm == "usdt_ton":
@@ -184,17 +182,3 @@ class StarsEngine:
         return True, (f"✅ {stars}⭐ успешно отправлены на @{username}! Спасибо за покупку."
                       + (f"\nТранзакция: {link}" if link else "")), \
                f"ok stars={stars} @{username} tx={tx}"
-
-    def _latest_tx_hash(self) -> str | None:
-        """Хэш последнего исходящего перевода кошелька (fallback для чека)."""
-        try:
-            import requests
-            addr = self.ton._address_from_seed(self.seed)
-            r = requests.get("https://toncenter.com/api/v2/getTransactions",
-                             params={"address": addr, "limit": 1}, timeout=15).json()
-            txs = r.get("result") or []
-            if txs:
-                return (txs[0].get("transaction_id") or {}).get("hash")
-        except Exception:  # noqa: BLE001
-            pass
-        return None
