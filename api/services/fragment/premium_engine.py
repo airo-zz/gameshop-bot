@@ -45,6 +45,18 @@ _MONTH_HINTS = ("срок", "период", "месяц", "подписк", "т�
                 "premium", "премиум", "план", "plan", "duration", "period")
 
 
+def _ref_id_for_report(fixed_payload: str) -> str | None:
+    """ref_id перевода — известен ещё до отправки (зашит в платёж от Fragment).
+    Хеш транзакции не ищем (как в хабе UchetFP): по этой метке транзакция
+    находится на кошельке через toncenter в любой момент. Только для отчёта."""
+    try:
+        import base64
+        from .ton_client import _get_ref_id_safe
+        return _get_ref_id_safe(base64.b64decode(fixed_payload))
+    except Exception:  # noqa: BLE001 — отчёт не должен блокировать выдачу
+        return None
+
+
 def _norm(s) -> str:
     return str(s or "").lower().replace("ё", "е")
 
@@ -94,7 +106,7 @@ class PremiumEngine:
         self.cfg = cfg
         self.seed = seed
         self.fragment = FragmentAPI(cookie)
-        self.ton = TonClient(seed)
+        self.ton = TonClient(seed, api_key=cfg.get("toncenter_api_key") or "")
         self.show_sender = bool(cfg.get("show_sender", False))
         pm = str(cfg.get("payment_method") or "ton").strip().lower()
         self.payment_method = pm if pm in PAYMENT_METHODS else "ton"
@@ -220,15 +232,17 @@ class PremiumEngine:
                 return False, "⚠️ Временная задержка выдачи. Продавец скоро отправит.", \
                        f"недостаточно баланса: {balance} < {ton_amount}"
 
+        ref_id = _ref_id_for_report(msg0.fixed_payload)
         ok, msg, tx = self.ton.transfer(destination=msg0.address, nano_amount=nano_amount,
-                                        payload=msg0.fixed_payload, seed_phrase=self.seed)
+                                        payload=msg0.fixed_payload, seed_phrase=self.seed,
+                                        wait_for_confirm=False)
         if not ok:
-            return False, "⚠️ Задержка при отправке Premium. Продавец скоро завершит.", f"ton: {msg}"
+            return False, "⚠️ Задержка при отправке Premium. Продавец скоро завершит.", f"ton: {msg} ref={ref_id}"
         # фактическая себестоимость сделки — для отчёта о прибыли в ТГ.
         if pm == "usdt_ton":
             ctx["cost"] = {"usd": (float(usdt_amount) if usdt_amount is not None else None),
                            "currency": "USDT", "gas_ton": float(ton_amount),
-                           "qty": months, "unit": " мес", "recipient": f"@{username}", "tx": tx}
+                           "qty": months, "unit": " мес", "recipient": f"@{username}", "tx": tx, "ref_id": ref_id}
         else:
             try:
                 rate = float(self.fragment.ton_rate)
@@ -236,8 +250,8 @@ class PremiumEngine:
                 rate = None
             ctx["cost"] = {"ton": float(ton_amount), "rate_usd": rate,
                            "usd": (float(ton_amount) * rate) if rate else None,
-                           "qty": months, "unit": " мес", "recipient": f"@{username}", "tx": tx}
+                           "qty": months, "unit": " мес", "recipient": f"@{username}", "tx": tx, "ref_id": ref_id}
         link = f"https://tonviewer.com/transaction/{tx}" if tx else ""
         return True, (f"✅ Telegram Premium на {months} мес успешно отправлен на @{username}! "
                       "Спасибо за покупку." + (f"\nТранзакция: {link}" if link else "")), \
-               f"ok premium={months}mo @{username} tx={tx}"
+               f"ok premium={months}mo @{username} tx={tx} ref={ref_id}"

@@ -27,6 +27,18 @@ JETTON_TRANSFER_OP = 0x0f8a7ea5      # TEP-74 jetton transfer
 USDT_DECIMALS = 6
 
 
+def _ref_id_for_report(fixed_payload: str) -> str | None:
+    """ref_id перевода — известен ещё до отправки (зашит в платёж от Fragment).
+    Хеш транзакции не ищем (как в хабе UchetFP): по этой метке транзакция
+    находится на кошельке через toncenter в любой момент. Только для отчёта."""
+    try:
+        import base64
+        from .ton_client import _get_ref_id_safe
+        return _get_ref_id_safe(base64.b64decode(fixed_payload))
+    except Exception:  # noqa: BLE001 — отчёт не должен блокировать выдачу
+        return None
+
+
 def _clean_username(raw: str) -> str | None:
     if not raw:
         return None
@@ -50,7 +62,7 @@ class StarsEngine:
         self.cfg = cfg
         self.seed = seed
         self.fragment = FragmentAPI(cookie)
-        self.ton = TonClient(seed)
+        self.ton = TonClient(seed, api_key=cfg.get("toncenter_api_key") or "")
         self.min_stars = int(cfg.get("min_stars", 50))
         self.max_stars = int(cfg.get("max_stars", 1_000_000))
         self.show_sender = bool(cfg.get("show_sender", False))
@@ -160,16 +172,18 @@ class StarsEngine:
                 return False, "⚠️ Временная задержка выдачи. Продавец скоро отправит.", \
                        f"недостаточно баланса: {balance} < {ton_amount}"
 
+        ref_id = _ref_id_for_report(msg0.fixed_payload)
         ok, msg, tx = self.ton.transfer(destination=msg0.address, nano_amount=nano_amount,
-                                        payload=msg0.fixed_payload, seed_phrase=self.seed)
+                                        payload=msg0.fixed_payload, seed_phrase=self.seed,
+                                        wait_for_confirm=False)
         if not ok:
-            return False, "⚠️ Задержка при отправке звёзд. Продавец скоро завершит.", f"ton: {msg}"
+            return False, "⚠️ Задержка при отправке звёзд. Продавец скоро завершит.", f"ton: {msg} ref={ref_id}"
         # фактическая себестоимость сделки — для отчёта о прибыли в ТГ.
         # Пишем ТОЛЬКО после успешного перевода, реальные величины, ничего не оцениваем.
         if pm == "usdt_ton":
             ctx["cost"] = {"usd": (float(usdt_amount) if usdt_amount is not None else None),
                            "currency": "USDT", "gas_ton": float(ton_amount),
-                           "qty": stars, "unit": "⭐", "recipient": f"@{username}", "tx": tx}
+                           "qty": stars, "unit": "⭐", "recipient": f"@{username}", "tx": tx, "ref_id": ref_id}
         else:
             try:
                 rate = float(self.fragment.ton_rate)
@@ -177,8 +191,8 @@ class StarsEngine:
                 rate = None
             ctx["cost"] = {"ton": float(ton_amount), "rate_usd": rate,
                            "usd": (float(ton_amount) * rate) if rate else None,
-                           "qty": stars, "unit": "⭐", "recipient": f"@{username}", "tx": tx}
+                           "qty": stars, "unit": "⭐", "recipient": f"@{username}", "tx": tx, "ref_id": ref_id}
         link = f"https://tonviewer.com/transaction/{tx}" if tx else ""
         return True, (f"✅ {stars}⭐ успешно отправлены на @{username}! Спасибо за покупку."
                       + (f"\nТранзакция: {link}" if link else "")), \
-               f"ok stars={stars} @{username} tx={tx}"
+               f"ok stars={stars} @{username} tx={tx} ref={ref_id}"
