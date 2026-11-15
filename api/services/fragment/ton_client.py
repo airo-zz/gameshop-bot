@@ -143,7 +143,9 @@ class TonClient:
         from pytoniq.contract.wallets.wallet import WalletV4R2, Address
         from pytoniq_core import Cell
 
-        wallet = await WalletV4R2.from_mnemonic(self._provider, seed_phrase)
+        wallet = await self._retry(
+            lambda: WalletV4R2.from_mnemonic(self._provider, seed_phrase), "from_mnemonic"
+        )
         old_seqno = await self._get_seqno(wallet)
 
         wallet_messages = []
@@ -160,7 +162,14 @@ class TonClient:
                 )
             )
 
-        await wallet.raw_transfer(msgs=wallet_messages)
+        # Подписываем с уже прочитанным seqno и шлём с повторами: лайт-серверы
+        # периодически отстают («block handle not in db», #LJHPJ5F9). Повтор с тем же
+        # seqno безопасен — кошелёк примет такое сообщение не больше одного раза.
+        transfer_msg = wallet.raw_create_transfer_msg(
+            private_key=wallet.private_key, seqno=old_seqno,
+            wallet_id=wallet.wallet_id, messages=wallet_messages,
+        )
+        await self._retry(lambda: wallet.send_external(body=transfer_msg), "send_external")
 
         # ждём пока seqno изменится — значит транзакция в цепочке
         new_seqno = await self._get_seqno(wallet)
@@ -193,15 +202,21 @@ class TonClient:
             logger.warning("Не удалось получить hash транзакции: %s", exc)
         return None
 
-    async def _get_seqno(self, wallet) -> int:
+    async def _retry(self, make_coro, what: str, attempts: int = 6):
+        """Повтор запроса к лайт-серверу с нарастающей паузой (~20 с суммарно):
+        балансер за это время уходит на другой сервер или текущий догоняет сеть."""
         last_exc = None
-        for _ in range(5):
+        for i in range(attempts):
             try:
-                return await wallet.get_seqno()
+                return await make_coro()
             except Exception as exc:
                 last_exc = exc
-                await asyncio.sleep(0.5)
-        raise last_exc if last_exc else RuntimeError("get_seqno failed")
+                logger.warning("TON %s: попытка %d/%d не удалась: %s", what, i + 1, attempts, exc)
+                await asyncio.sleep(min(1 + i * 1.5, 6))
+        raise last_exc if last_exc else RuntimeError(f"{what} failed")
+
+    async def _get_seqno(self, wallet) -> int:
+        return await self._retry(wallet.get_seqno, "get_seqno")
 
     async def _get_transactions(self, wallet, limit: int = 30):
         last_exc = None
